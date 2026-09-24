@@ -1,0 +1,251 @@
+-- Could NOT find Vulkan (missing: Vulkan_LIBRARY Vulkan_INCLUDE_DIR) (found version "")
+-- Configuring done (0.3s)
+-- Generating done (0.2s)
+-- Build files have been written to: C:/GIT_local/GTAClone/build-jolt-ninja
+[1/12] Building CXX object CMakeFiles/simulation_smoke.dir/physics.cpp.obj
+In file included from C:/GIT_local/GTAClone/physics.cpp:1:
+In file included from C:/GIT_local/GTAClone\physics.h:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/physics.cpp:1:
+In file included from C:/GIT_local/GTAClone\physics.h:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[2/12] Building CXX object CMakeFiles/simulation_smoke.dir/props.cpp.obj
+In file included from C:/GIT_local/GTAClone/props.cpp:1:
+In file included from C:/GIT_local/GTAClone\props.h:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/props.cpp:1:
+In file included from C:/GIT_local/GTAClone\props.h:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[3/12] Building CXX object CMakeFiles/simulation_smoke.dir/ai.cpp.obj
+In file included from C:/GIT_local/GTAClone/ai.cpp:1:
+In file included from C:/GIT_local/GTAClone\ai.h:3:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/ai.cpp:1:
+In file included from C:/GIT_local/GTAClone\ai.h:3:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[4/12] Building CXX object CMakeFiles/simulation_smoke.dir/content.cpp.obj
+In file included from C:/GIT_local/GTAClone/content.cpp:2:
+In file included from C:/GIT_local/GTAClone\game_internal.h:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/content.cpp:2:
+In file included from C:/GIT_local/GTAClone\game_internal.h:2:
+
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[5/12] Building CXX object CMakeFiles/simulation_smoke.dir/game.cpp.obj
+In file included from C:/GIT_local/GTAClone/game.cpp:5:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/game.cpp:5:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+    3 | #define NOMINMAX
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[6/12] Building CXX object CMakeFiles/MiniCity3D.dir/dx11_scene.cpp.obj
+In file included from C:/GIT_local/GTAClone/dx11_scene.cpp:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/dx11_scene.cpp:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[7/12] Building CXX object CMakeFiles/simulation_smoke.dir/savegame.cpp.obj
+In file included from C:/GIT_local/GTAClone/savegame.cpp:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/savegame.cpp:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+    3 | #define NOMINMAX
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[8/12] Building CXX object CMakeFiles/simulation_smoke.dir/camera.cpp.obj
+In file included from C:/GIT_local/GTAClone/camera.cpp:1:
+In file included from C:/GIT_local/GTAClone\camera.h:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/camera.cpp:1:
+In file included from C:/GIT_local/GTAClone\camera.h:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[9/12] Building CXX object CMakeFiles/simulation_smoke.dir/ui.cpp.obj
+In file included from C:/GIT_local/GTAClone/ui.cpp:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/ui.cpp:2:
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+    3 | #define NOMINMAX
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[10/12] Linking CXX executable MiniCity3D.exe
+[11/12] Building CXX object CMakeFiles/simulation_smoke.dir/jolt_world.cpp.obj
+In file included from C:/GIT_local/GTAClone/jolt_world.cpp:10:
+In file included from C:/GIT_local/GTAClone\jolt_world.h:2:
+C:/GIT_local/GTAClone\game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/jolt_world.cpp:10:
+In file included from C:/GIT_local/GTAClone\jolt_world.h:2:
+
+C:/GIT_local/GTAClone\game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[12/12] Linking CXX executable simulation_smoke.exe
+Built MiniCity3D.exe (Direct3D 11 + Jolt Physics)
+Test project C:/GIT_local/GTAClone/build-jolt-ninja
+    Start 1: simulation_smoke
+1/1 Test #1: simulation_smoke .................   Passed    0.07 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.08 sec

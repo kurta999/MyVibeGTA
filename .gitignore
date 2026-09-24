@@ -1,0 +1,5 @@
+/build-jolt
+/build-jolt-ninja
+/dist
+/tests/bin/
+/tools
