@@ -8,7 +8,7 @@
 
 namespace ui {
 Page page=Page::Closed;
-int selection=0,graphicsQuality=2,shadowQuality=1,vegetationDensity=2,effectsQuality=2,windowChoice=1,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
+int selection=0,graphicsQuality=2,shadowQuality=1,vegetationDensity=2,effectsQuality=2,drawDistance=1,lodDistance=1,windowChoice=1,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
 std::array<int,int(Action::Count)> bindings{{'W','S','A','D',VK_SHIFT,'E'}};
 
@@ -25,7 +25,7 @@ void applyWindow(){
     AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
     SetWindowPos(game::win,nullptr,0,0,r.right-r.left,r.bottom-r.top,SWP_NOMOVE|SWP_NOZORDER);
 }
-int count(Page p){return p==Page::Main?7:p==Page::Graphics?5:p==Page::Controls?8:p==Page::Audio?1:0;}
+int count(Page p){return p==Page::Main?7:p==Page::Graphics?7:p==Page::Controls?8:p==Page::Audio?1:0;}
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
     WritePrivateProfileStringA(section,key,text,path.c_str());
@@ -38,6 +38,8 @@ void load(){
     shadowQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Shadows",1,path.c_str())),0,2);
     vegetationDensity=std::clamp(int(GetPrivateProfileIntA("Graphics","Vegetation",2,path.c_str())),0,2);
     effectsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Effects",2,path.c_str())),0,2);
+    drawDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","DrawDistance",1,path.c_str())),0,2);
+    lodDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","LodDistance",1,path.c_str())),0,2);
     int resolutionVersion=GetPrivateProfileIntA("Graphics","ResolutionVersion",0,path.c_str());
     windowChoice=resolutionVersion<2?1:std::clamp(int(GetPrivateProfileIntA("Graphics","WindowSize",1,path.c_str())),0,2);
     mouseSensitivity=std::clamp(int(GetPrivateProfileIntA("Controls","Sensitivity",7,path.c_str())),1,20);
@@ -54,6 +56,8 @@ void save(){
     writeValue("Graphics","Shadows",shadowQuality,path);
     writeValue("Graphics","Vegetation",vegetationDensity,path);
     writeValue("Graphics","Effects",effectsQuality,path);
+    writeValue("Graphics","DrawDistance",drawDistance,path);
+    writeValue("Graphics","LodDistance",lodDistance,path);
     writeValue("Graphics","WindowSize",windowChoice,path);
     writeValue("Graphics","ResolutionVersion",2,path);
     writeValue("Controls","Sensitivity",mouseSensitivity,path);
@@ -101,6 +105,8 @@ void handleKey(int key){
         if(selection==2&&direction)vegetationDensity=std::clamp(vegetationDensity+direction,0,2);
         if(selection==3&&direction)effectsQuality=std::clamp(effectsQuality+direction,0,2);
         if(selection==4&&direction)shadowQuality=std::clamp(shadowQuality+direction,0,2);
+        if(selection==5&&direction)drawDistance=std::clamp(drawDistance+direction,0,2);
+        if(selection==6&&direction)lodDistance=std::clamp(lodDistance+direction,0,2);
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);

@@ -19,7 +19,7 @@ if ($OpenGL) {
     $compiler = (Get-Command clang++ -ErrorAction Stop).Source.Replace('\','/')
     & $cmake -S . -B build-jolt-ninja -G Ninja "-DCMAKE_CXX_COMPILER=$compiler" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    & $cmake --build build-jolt-ninja --target MiniCity3D simulation_smoke -j 6
+    & $cmake --build build-jolt-ninja --target MiniCity3D simulation_smoke asset_smoke -j 6
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     try {
         Copy-Item -LiteralPath 'build-jolt-ninja\MiniCity3D.exe' -Destination $target -Force -ErrorAction Stop

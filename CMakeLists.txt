@@ -10,16 +10,18 @@ set(ENABLE_INSTALL OFF CACHE BOOL "No Jolt install target" FORCE)
 add_subdirectory(third_party/JoltPhysics/Build third_party/JoltPhysics-build)
 
 set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp audio.cpp ui.cpp physics.cpp weapons.cpp
-    savegame.cpp camera.cpp props.cpp)
+    savegame.cpp camera.cpp props.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp)
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
-    renderer_dx11.cpp dx11_scene.cpp dx11_assets.cpp dx11_hud.cpp jolt_world.cpp)
+    renderer_dx11.cpp dx11_scene.cpp dx11_assets.cpp dx11_hud.cpp jolt_world.cpp debug_menu.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics)
 target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 d3d11 dxgi d3dcompiler)
 add_custom_command(TARGET MiniCity3D POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-  "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets")
+  "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data")
 
 option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
 if(MINI_CITY_BUILD_OPENGL)
@@ -34,13 +36,21 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
-  add_executable(simulation_smoke tests/simulation_smoke.cpp game.cpp ai.cpp
-      content.cpp physics.cpp props.cpp savegame.cpp weapons.cpp camera.cpp audio.cpp ui.cpp jolt_world.cpp)
+  add_executable(simulation_smoke tests/simulation_smoke.cpp game.cpp input.cpp ai.cpp
+      content.cpp physics.cpp props.cpp savegame.cpp weapons.cpp camera.cpp audio.cpp ui.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp jolt_world.cpp debug_menu.cpp)
   target_compile_features(simulation_smoke PRIVATE cxx_std_17)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(simulation_smoke PRIVATE third_party/JoltPhysics)
   target_link_libraries(simulation_smoke PRIVATE Jolt user32 gdi32 opengl32 ole32 xaudio2)
+  add_custom_command(TARGET simulation_smoke POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:simulation_smoke>/data")
   add_test(NAME simulation_smoke COMMAND simulation_smoke)
   set_tests_properties(simulation_smoke PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
+  add_executable(asset_smoke tests/asset_smoke.cpp dx11_assets.cpp)
+  target_compile_features(asset_smoke PRIVATE cxx_std_17)
+  add_test(NAME asset_smoke COMMAND asset_smoke)
+  set_tests_properties(asset_smoke PROPERTIES
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>")
 endif()

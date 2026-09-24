@@ -29,6 +29,7 @@ void synthesize(Channel& channel,Effect effect,int variant){
     float duration=0.25f;
     switch(effect){
     case Effect::Shot:duration=variant==2?0.47f:variant==4?0.58f:0.25f;break;
+    case Effect::SilencedShot:duration=0.12f;break;
     case Effect::Pickup:duration=0.35f;break;
     case Effect::Success:duration=0.75f;break;
     case Effect::Step:duration=0.12f;break;
@@ -51,6 +52,7 @@ void synthesize(Channel& channel,Effect effect,int variant){
             float envelope=std::exp(-u*(variant==2?6.0f:9.0f));
             signal=(0.55f*noise()+0.45f*wave(t,base*(1.0f-u*0.55f)))*envelope;break;
         }
+        case Effect::SilencedShot:signal=(noise()*0.12f+wave(t,120)*0.08f)*std::exp(-u*13);break;
         case Effect::Pickup:signal=(wave(t,680)+wave(t,1020)*0.5f)*std::sin(PI*u)*0.32f;break;
         case Effect::Success:{float note=u<0.30f?523:u<0.60f?659:784;
             signal=wave(t,note)*0.3f*std::sin(PI*std::fmod(u*3,1.0f));break;}

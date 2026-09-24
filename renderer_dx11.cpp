@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "dx11_assets.h"
 #include "ui.h"
+#include "weather.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -32,13 +33,19 @@ ID3D11DepthStencilView* depthView=nullptr;
 ID3D11VertexShader* sceneVS=nullptr;
 ID3D11VertexShader* instanceVS=nullptr;
 ID3D11PixelShader* scenePS=nullptr;
+ID3D11PixelShader* alphaShadowPS=nullptr;
+ID3D11HullShader* sceneHS=nullptr;
+ID3D11DomainShader* sceneDS=nullptr;
 ID3D11VertexShader* hudVS=nullptr;
 ID3D11PixelShader* hudPS=nullptr;
 ID3D11InputLayout* inputLayout=nullptr;
 ID3D11InputLayout* instanceLayout=nullptr;
 ID3D11Buffer* vertexBuffer=nullptr;
+ID3D11Buffer* staticBuffer=nullptr;
 ID3D11Buffer* instanceBuffer=nullptr;
 std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshBuffers;
+std::unordered_map<const dx11::Mesh*,ID3D11ShaderResourceView*> modelTextures;
+std::unordered_map<std::wstring,ID3D11ShaderResourceView*> sharedModelTextures;
 ID3D11Buffer* sceneBuffer=nullptr;
 ID3D11RasterizerState* rasterState=nullptr;
 ID3D11RasterizerState* shadowRaster=nullptr;
@@ -48,9 +55,10 @@ ID3D11ShaderResourceView* shadowView=nullptr;
 ID3D11SamplerState* shadowSampler=nullptr;
 int shadowSize=0;
 ID3D11DepthStencilState* noDepth=nullptr;
+ID3D11DepthStencilState* readDepth=nullptr;
 ID3D11BlendState* alphaBlend=nullptr;
 ID3D11SamplerState* sampler=nullptr;
-ID3D11ShaderResourceView* textures[3]{};
+ID3D11ShaderResourceView* textures[2]{};
 ID3D11ShaderResourceView* detailTextures[dx11::MATERIAL_GROUPS]{};
 ID3D11ShaderResourceView* normalTextures[dx11::MATERIAL_GROUPS]{};
 ID3D11Texture2D* hudTexture=nullptr;
@@ -60,6 +68,7 @@ size_t vertexCapacity=0;
 size_t instanceCapacity=0;
 int bufferW=0,bufferH=0;
 std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
+size_t staticStarts[dx11::MATERIAL_GROUPS]{},staticCounts[dx11::MATERIAL_GROUPS]{};
 std::vector<dx11::Vertex> vertices;
 std::vector<dx11::ModelInstance> models;
 struct InstanceData {XMFLOAT4 a,b,c,tint;};
@@ -124,26 +133,98 @@ Output VSInstanced(InstancedInput input){
     float3 local=float3((input.position.x-input.c.x)*input.a.x,
         (input.position.y-input.c.y)*input.a.y,
         (input.position.z-input.c.z)*input.a.z);
-    float3 world=float3(input.b.y+input.a.w*local.x+input.b.x*local.z,
-        input.b.z+local.y,input.b.w-input.b.x*local.x+input.a.w*local.z);
+    float3 pitched=float3(local.x,input.tint.w*local.y+input.c.w*local.z,
+        -input.c.w*local.y+input.tint.w*local.z);
+    float3 world=float3(input.b.y+input.a.w*pitched.x+input.b.x*pitched.z,
+        input.b.z+pitched.y,input.b.w-input.b.x*pitched.x+input.a.w*pitched.z);
     float3 scaledNormal=input.normal/max(input.a.xyz,float3(0.0001,0.0001,0.0001));
-    float3 normal=normalize(float3(input.a.w*scaledNormal.x+input.b.x*scaledNormal.z,
-        scaledNormal.y,-input.b.x*scaledNormal.x+input.a.w*scaledNormal.z));
+    float3 pitchedNormal=float3(scaledNormal.x,
+        input.tint.w*scaledNormal.y+input.c.w*scaledNormal.z,
+        -input.c.w*scaledNormal.y+input.tint.w*scaledNormal.z);
+    float3 normal=normalize(float3(input.a.w*pitchedNormal.x+input.b.x*pitchedNormal.z,
+        pitchedNormal.y,-input.b.x*pitchedNormal.x+input.a.w*pitchedNormal.z));
     Output result;
     result.position=mul(float4(world,1),viewProjection);
     result.shadowPosition=mul(float4(world,1),shadowViewProjection);
     result.world=world;result.normal=normal;result.uv=input.uv;
-    result.color=input.color*input.tint;
+    result.color=float4(input.color.rgb*input.tint.rgb,input.color.a);
+    return result;
+}
+struct TessFactors {float edge[3]:SV_TessFactor;float inside:SV_InsideTessFactor;};
+float edgeFactor(float3 a,float3 b){
+    float distanceToEye=distance((a+b)*0.5,eye.xyz);
+    int material=(int)(params.x+0.5);
+    float maximum=material==11?(eye.w>1.5?4.0:2.0):
+        material==4?2.0:(eye.w>1.5?3.0:2.0);
+    return 1.0+floor((maximum-1.0)*saturate((300.0-distanceToEye)/230.0)+0.5);
+}
+TessFactors HSFactors(InputPatch<Output,3> patch,uint patchId:SV_PrimitiveID){
+    TessFactors factors;
+    factors.edge[0]=edgeFactor(patch[1].world,patch[2].world);
+    factors.edge[1]=edgeFactor(patch[2].world,patch[0].world);
+    factors.edge[2]=edgeFactor(patch[0].world,patch[1].world);
+    factors.inside=max(factors.edge[0],max(factors.edge[1],factors.edge[2]));
+    return factors;
+}
+[domain("tri")]
+[partitioning("integer")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(3)]
+[patchconstantfunc("HSFactors")]
+Output HS(InputPatch<Output,3> patch,uint controlPoint:SV_OutputControlPointID){return patch[controlPoint];}
+float surfaceDisplacement(float3 world,float3 normal,float2 uv){
+    int material=(int)(params.x+0.5);
+    if(material==10){
+        int2 tile=int2(floor(saturate(uv)*4.0));
+        int patch=tile.y*4+tile.x;
+        if(patch!=0&&patch!=1&&patch!=2&&patch!=8&&patch!=9&&patch!=11)return 0;
+        return 0.18*sin(world.x*0.075)*sin(world.y*0.064+world.z*0.052);
+    }
+    if(material==11){
+        if(normal.y<0.7)return 0;
+        float jointX=abs(frac(world.x/9.0)-0.5);
+        float jointZ=abs(frac(world.z/9.0)-0.5);
+        return 0.08+0.06*sin(world.x*0.15)*sin(world.z*0.14)-
+            0.02*(smoothstep(0.47,0.50,jointX)+smoothstep(0.47,0.50,jointZ));
+    }
+    if(material==4)
+        return 0.32*sin(world.x*0.105+world.y*0.081)*sin(world.z*0.097);
+    return 0.16*sin(world.x*0.083+world.y*0.069)*sin(world.z*0.081);
+}
+[domain("tri")]
+Output DS(TessFactors factors,const OutputPatch<Output,3> patch,float3 bary:SV_DomainLocation){
+    Output result;
+    result.world=patch[0].world*bary.x+patch[1].world*bary.y+patch[2].world*bary.z;
+    result.normal=normalize(patch[0].normal*bary.x+patch[1].normal*bary.y+patch[2].normal*bary.z);
+    result.uv=patch[0].uv*bary.x+patch[1].uv*bary.y+patch[2].uv*bary.z;
+    result.color=patch[0].color*bary.x+patch[1].color*bary.y+patch[2].color*bary.z;
+    result.world+=result.normal*surfaceDisplacement(result.world,result.normal,result.uv);
+    result.position=mul(float4(result.world,1),viewProjection);
+    result.shadowPosition=mul(float4(result.world,1),shadowViewProjection);
     return result;
 }
 float4 PS(Output input):SV_TARGET{
     float4 base=input.color;
     int material=(int)(params.x+0.5);
-    if(material==1||material==2||material==3)
+    bool modelTexture=frac(params.x)>0.1;
+    if(material==1||modelTexture)
         base*=diffuseTexture.Sample(linearSampler,input.uv);
+    if(modelTexture&&material!=13)clip(base.a-0.35);
+    if(material==13){
+        float distanceToEye=distance(input.world,eye.xyz);
+        float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
+        return float4(lerp(base.rgb,fogColor.rgb,fog),base.a*(1-fog));
+    }
     float3 normal=normalize(input.normal);
-    if(material>=2){
-        float scale=material==2||material==3?0.055:
+    if(material==10){
+        float3 bump=normalTexture.Sample(linearSampler,input.uv).xyz*2-1;
+        float3 tangent=abs(normal.y)>0.5?float3(1,0,0):
+            abs(normal.x)>0.5?float3(0,0,1):float3(1,0,0);
+        float3 bitangent=normalize(cross(normal,tangent));
+        normal=normalize(lerp(normal,normalize(tangent*bump.x+
+            bitangent*bump.y+normal*bump.z),0.48));
+    }else if(material>=2){
+        float scale=material==2||material==3||material==11||material==12?0.055:
             material==4?0.085:material==5?0.25:material==6?0.11:
             material==7?0.028:material==8?0.022:0.03;
         float3 axis=abs(normal);
@@ -156,8 +237,9 @@ float4 PS(Output input):SV_TARGET{
             base.rgb=lerp(base.rgb,float3(0.37,0.62,0.28),0.45);
             strength=0.54;
         }else if(material==4)strength=0.72;
-        if(material==2||material==3)
+        if(material==2||material==3||material==11||material==12)
             strength=base.b>base.r*1.15&&base.b>base.g*1.05?0.06:0.79;
+        if(modelTexture)strength*=0.13;
         base.rgb*=lerp(float3(1,1,1),surface*1.65,strength);
         float3 bump=normalTexture.Sample(linearSampler,uv).xyz*2-1;
         float3 tangent=axis.y>axis.x&&axis.y>axis.z?float3(1,0,0):
@@ -178,6 +260,12 @@ float4 PS(Output input):SV_TARGET{
     }
     float light=ambient.x+sun.w*diffuse*visibility;
     float3 lit=base.rgb*light;
+    if((material==10||material==12)&&base.b>base.r*1.12){
+        float3 viewDirection=normalize(eye.xyz-input.world);
+        float3 halfVector=normalize(viewDirection+normalize(sun.xyz));
+        float reflection=pow(saturate(dot(normal,halfVector)),18);
+        lit+=float3(0.28,0.39,0.45)*reflection*sun.w;
+    }
     float night=1-saturate((ambient.x-0.32)/0.42);
     float lampColumn=round((input.world.x-368)/450);
     float lampRow=round((input.world.z-115)/215);
@@ -190,6 +278,9 @@ float4 PS(Output input):SV_TARGET{
     float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
     float3 mapped=lit/(1+max(0,lit-0.85));
     return float4(lerp(mapped,fogColor.rgb,fog),base.a);
+}
+void PSShadowAlpha(Output input){
+    clip(diffuseTexture.Sample(linearSampler,input.uv).a-0.35);
 }
 )HLSL";
 const char* hudShader=R"HLSL(
@@ -205,14 +296,20 @@ Output VS(uint id:SV_VertexID){
 float4 PS(Output input):SV_TARGET{return image.Sample(linearSampler,input.uv);}
 )HLSL";
 bool createShaders(){
-    ID3DBlob *vs=nullptr,*instanced=nullptr,*ps=nullptr,*hudVertex=nullptr,*hudPixel=nullptr;
+    ID3DBlob *vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr;
     if(!compile(sceneShader,"VS","vs_5_0",&vs)||!compile(sceneShader,"PS","ps_5_0",&ps)||
        !compile(sceneShader,"VSInstanced","vs_5_0",&instanced)||
+       !compile(sceneShader,"PSShadowAlpha","ps_5_0",&shadowAlpha)||
+       !compile(sceneShader,"HS","hs_5_0",&hull)||!compile(sceneShader,"DS","ds_5_0",&domain)||
        !compile(hudShader,"VS","vs_5_0",&hudVertex)||!compile(hudShader,"PS","ps_5_0",&hudPixel)){
-        release(vs);release(instanced);release(ps);release(hudVertex);release(hudPixel);return false;}
+        release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
+        release(hudVertex);release(hudPixel);return false;}
     HRESULT result=device->CreateVertexShader(vs->GetBufferPointer(),vs->GetBufferSize(),nullptr,&sceneVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(instanced->GetBufferPointer(),instanced->GetBufferSize(),nullptr,&instanceVS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(ps->GetBufferPointer(),ps->GetBufferSize(),nullptr,&scenePS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(shadowAlpha->GetBufferPointer(),shadowAlpha->GetBufferSize(),nullptr,&alphaShadowPS);
+    if(SUCCEEDED(result))result=device->CreateHullShader(hull->GetBufferPointer(),hull->GetBufferSize(),nullptr,&sceneHS);
+    if(SUCCEEDED(result))result=device->CreateDomainShader(domain->GetBufferPointer(),domain->GetBufferSize(),nullptr,&sceneDS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(hudVertex->GetBufferPointer(),hudVertex->GetBufferSize(),nullptr,&hudVS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(hudPixel->GetBufferPointer(),hudPixel->GetBufferSize(),nullptr,&hudPS);
     D3D11_INPUT_ELEMENT_DESC layout[]={
@@ -232,7 +329,8 @@ bool createShaders(){
     std::copy(std::begin(instanceElements),std::end(instanceElements),fullLayout+4);
     if(SUCCEEDED(result))result=device->CreateInputLayout(fullLayout,8,instanced->GetBufferPointer(),
         instanced->GetBufferSize(),&instanceLayout);
-    release(vs);release(instanced);release(ps);release(hudVertex);release(hudPixel);
+    release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
+    release(hudVertex);release(hudPixel);
     return SUCCEEDED(result);
 }
 bool loadTexture(const std::wstring& file,ID3D11ShaderResourceView** view){
@@ -309,13 +407,26 @@ bool prepareInstances(){
             if(FAILED(device->CreateBuffer(&desc,&data,&buffer)))return false;
             meshBuffers.emplace(model.source,buffer);
         }
+        if(!model.source->textureFile.empty()&&
+           modelTextures.find(model.source)==modelTextures.end()){
+            ID3D11ShaderResourceView* texture=nullptr;
+            auto cached=sharedModelTextures.find(model.source->textureFile);
+            if(cached!=sharedModelTextures.end()){
+                texture=cached->second;texture->AddRef();
+            }else{
+                if(!loadTexture(model.source->textureFile,&texture))return false;
+                sharedModelTextures.emplace(model.source->textureFile,texture);
+            }
+            modelTextures.emplace(model.source,texture);
+        }
         if(instanceBatches.empty()||instanceBatches.back().mesh!=model.source||
            instanceBatches.back().material!=model.material)
             instanceBatches.push_back({model.source,model.material,UINT(instanceData.size()),0});
         ++instanceBatches.back().count;
         instanceData.push_back({{model.scaleX,model.scaleY,model.scaleZ,model.cosYaw},
             {model.sinYaw,model.x,model.y,model.z},
-            {model.centerX,model.minY,model.centerZ,0},{model.r,model.g,model.b,1}});
+            {model.centerX,model.minY,model.centerZ,model.sinPitch},
+            {model.r,model.g,model.b,model.cosPitch}});
     }
     if(instanceData.empty())return true;
     if(instanceData.size()>instanceCapacity){
@@ -333,19 +444,58 @@ bool prepareInstances(){
     context->Unmap(instanceBuffer,0);
     return true;
 }
-void drawInstances(bool shadow,SceneConstants& constants){
+bool createStaticGeometry(){
+    std::vector<dx11::Vertex> staticGroups[dx11::MATERIAL_GROUPS];
+    dx11::buildStaticScene(staticGroups);
+    std::vector<dx11::Vertex> packed;
+    for(int group=0;group<dx11::MATERIAL_GROUPS;++group){
+        staticStarts[group]=packed.size();staticCounts[group]=staticGroups[group].size();
+        packed.insert(packed.end(),staticGroups[group].begin(),staticGroups[group].end());
+    }
+    if(packed.empty())return false;
+    D3D11_BUFFER_DESC desc{};desc.ByteWidth=UINT(packed.size()*sizeof(dx11::Vertex));
+    desc.Usage=D3D11_USAGE_IMMUTABLE;desc.BindFlags=D3D11_BIND_VERTEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA data{};data.pSysMem=packed.data();
+    return SUCCEEDED(device->CreateBuffer(&desc,&data,&staticBuffer));
+}
+void setTessellation(int material){
+    bool enabled=ui::graphicsQuality>0&&
+        (material==2||material==4||material==10||material==11||material==12);
+    context->IASetPrimitiveTopology(enabled?D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST:
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->HSSetShader(enabled?sceneHS:nullptr,nullptr,0);
+    context->DSSetShader(enabled?sceneDS:nullptr,nullptr,0);
+}
+void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false){
     context->IASetInputLayout(instanceLayout);
     context->VSSetShader(instanceVS,nullptr,0);
     for(const auto& batch:instanceBatches){
+        if(batch.mesh->transparent!=transparent)continue;
+        if(shadow&&!batch.mesh->castsShadow)continue;
+        // Imported foliage already has dense leaf geometry. Hull/domain
+        // tessellation multiplies its cost without improving the silhouette.
+        setTessellation(batch.mesh->textured&&batch.material==4?0:batch.material);
         ID3D11Buffer* buffers[]={meshBuffers.at(batch.mesh),instanceBuffer};
         UINT strides[]={sizeof(dx11::Vertex),sizeof(InstanceData)},offsets[]={0,0};
         context->IASetVertexBuffers(0,2,buffers,strides,offsets);
-        if(!shadow){
-            constants.params.x=float(batch.material);
-            context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
+        auto texture=modelTextures.find(batch.mesh);
+        bool hasModelTexture=texture!=modelTextures.end();
+        constants.params.x=float(batch.material)+(hasModelTexture?0.25f:0.0f);
+        context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
+        if(shadow){
+            bool alpha=batch.mesh->alphaTest&&hasModelTexture;
+            context->PSSetShader(alpha?alphaShadowPS:nullptr,nullptr,0);
+            if(alpha){
+                ID3D11ShaderResourceView* base=texture->second;
+                context->PSSetShaderResources(0,1,&base);
+            }
+        }else{
             int group=batch.material;
-            ID3D11ShaderResourceView* base=group==2||group==3?textures[2]:nullptr;
-            ID3D11ShaderResourceView* resources[4]={base,detailTextures[group],normalTextures[group],detailTextures[9]};
+            ID3D11ShaderResourceView* base=hasModelTexture?texture->second:nullptr;
+            ID3D11ShaderResourceView* resources[4]={base,
+                group<dx11::MATERIAL_GROUPS?detailTextures[group]:nullptr,
+                group<dx11::MATERIAL_GROUPS?normalTextures[group]:nullptr,
+                detailTextures[9]};
             context->PSSetShaderResources(0,4,resources);
         }
         context->DrawInstanced(UINT(batch.mesh->vertices.size()),batch.count,0,batch.start);
@@ -371,6 +521,9 @@ bool createStates(){
     D3D11_DEPTH_STENCIL_DESC depth{};depth.DepthEnable=FALSE;
     depth.DepthWriteMask=D3D11_DEPTH_WRITE_MASK_ZERO;
     if(FAILED(device->CreateDepthStencilState(&depth,&noDepth)))return false;
+    depth.DepthEnable=TRUE;depth.DepthWriteMask=D3D11_DEPTH_WRITE_MASK_ZERO;
+    depth.DepthFunc=D3D11_COMPARISON_LESS_EQUAL;
+    if(FAILED(device->CreateDepthStencilState(&depth,&readDepth)))return false;
     D3D11_BLEND_DESC blend{};blend.RenderTarget[0].BlendEnable=TRUE;
     blend.RenderTarget[0].SrcBlend=D3D11_BLEND_SRC_ALPHA;
     blend.RenderTarget[0].DestBlend=D3D11_BLEND_INV_SRC_ALPHA;
@@ -412,25 +565,37 @@ void releaseTargets(){
 }
 SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float daylight){
     SceneConstants constants{};
+    const auto& conditions=weather::current();
+    float light=daylight*(1.0f-conditions.clouds*0.42f);
     XMVECTOR eye=XMVectorSet(pose.eye.x,pose.eye.y,pose.eye.z,1);
     XMVECTOR targetPoint=XMVectorSet(pose.target.x,pose.target.y,pose.target.z,1);
     // Movement, steering, and mouse yaw use the same right-handed view as the OpenGL build.
     XMMATRIX view=XMMatrixLookAtRH(eye,targetPoint,XMVectorSet(0,1,0,0));
-    XMMATRIX projection=XMMatrixPerspectiveFovRH(XMConvertToRadians(65.0f),
-        float(bufferW)/bufferH,2.0f,1250.0f);
+    const float drawScales[]={0.65f,1.0f,1.5f};
+    float drawScale=drawScales[std::clamp(ui::drawDistance,0,2)];
+    XMMATRIX projection=XMMatrixPerspectiveFovRH(XMConvertToRadians(camera::fieldOfView()),
+        float(bufferW)/bufferH,2.0f,1250.0f*drawScale);
     XMStoreFloat4x4(&constants.viewProjection,XMMatrixMultiply(view,projection));
     constants.sun={std::cos((gameHour-6)*PI/12),std::max(0.18f,std::abs(solar)),0.3f,
-        0.28f+0.68f*daylight};
+        0.28f+0.68f*light};
     XMVECTOR focus=XMVectorSet(player.x,0,player.z,1);
     XMVECTOR sunDirection=XMVector3Normalize(XMVectorSet(constants.sun.x,constants.sun.y,constants.sun.z,0));
     XMVECTOR lightEye=XMVectorAdd(focus,XMVectorScale(sunDirection,1400));
     XMMATRIX lightView=XMMatrixLookAtRH(lightEye,focus,XMVectorSet(0,1,0,0));
     XMMATRIX lightProjection=XMMatrixOrthographicRH(1800,1800,1,3300);
     XMStoreFloat4x4(&constants.shadowViewProjection,XMMatrixMultiply(lightView,lightProjection));
-    constants.ambient={0.32f+0.42f*daylight,0,0,0};
-    constants.fogColor={0.045f+0.52f*daylight,0.065f+0.68f*daylight,0.14f+0.74f*daylight,1};
-    constants.eye={pose.eye.x,pose.eye.y,pose.eye.z,1};
-    float fogEnd=ui::graphicsQuality==0?650.0f:ui::graphicsQuality==1?850.0f:1050.0f;
+    constants.ambient={0.32f+0.42f*light,0,0,0};
+    constants.fogColor={0.045f+0.52f*light,0.065f+0.68f*light,
+        0.14f+0.74f*light,1};
+    constants.fogColor.x=constants.fogColor.x*(1-conditions.clouds*0.4f)+
+        0.40f*conditions.clouds*0.4f;
+    constants.fogColor.y=constants.fogColor.y*(1-conditions.clouds*0.4f)+
+        0.43f*conditions.clouds*0.4f;
+    constants.fogColor.z=constants.fogColor.z*(1-conditions.clouds*0.4f)+
+        0.47f*conditions.clouds*0.4f;
+    constants.eye={pose.eye.x,pose.eye.y,pose.eye.z,float(ui::graphicsQuality)};
+    float fogEnd=(ui::graphicsQuality==0?650.0f:ui::graphicsQuality==1?850.0f:1050.0f)*
+        drawScale*conditions.visibility;
     constants.params={0,fogEnd*0.42f,fogEnd,
         shadowDepth&&ui::shadowQuality>0&&daylight>0.05f?1.0f:0.0f};
     return constants;
@@ -488,16 +653,21 @@ bool initRenderer(){
     if(!createShaders()||!createStates()||!createTargets(std::max(1,screenW),std::max(1,screenH)))return false;
     std::wstring base=executableFolder();
     if(!loadTexture(base+L"\\assets\\texture_atlas.png",&textures[1]))return false;
-    if(!loadTexture(base+L"\\assets\\models\\baked\\buildings\\building-a.png",&textures[2]))return false;
-    const wchar_t* materials[dx11::MATERIAL_GROUPS]={nullptr,nullptr,L"Bricks001",L"Concrete001",
-        L"Bark001",L"Fabric001",L"Metal001",L"Asphalt001",L"Ground054",L"Grass001"};
-    for(int i=2;i<dx11::MATERIAL_GROUPS;++i){
+    const wchar_t* materials[]={nullptr,nullptr,L"Bricks001",L"Concrete001",
+        L"Bark001",L"Fabric001",L"Metal001",L"Asphalt001",L"Ground054",L"Grass001",nullptr};
+    for(int i=2;i<10;++i){
         std::wstring path=base+L"\\assets\\materials\\"+materials[i];
         if(!loadTexture(path+L"_Color.jpg",&detailTextures[i])||
            !loadTexture(path+L"_NormalDX.jpg",&normalTextures[i]))return false;
     }
+    if(!loadTexture(base+L"\\assets\\models\\baked\\marina\\MarinaFacade_NormalDX.png",
+            &normalTextures[10]))return false;
+    detailTextures[11]=detailTextures[3];detailTextures[11]->AddRef();
+    normalTextures[11]=normalTextures[3];normalTextures[11]->AddRef();
+    detailTextures[12]=detailTextures[3];detailTextures[12]->AddRef();
+    normalTextures[12]=normalTextures[3];normalTextures[12]->AddRef();
     dx11::loadMeshes(base+L"\\assets\\models\\baked");
-    return true;
+    return createStaticGeometry();
 }
 void render(){
     drawCalls=0;
@@ -527,6 +697,8 @@ void render(){
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->VSSetShader(sceneVS,nullptr,0);
     context->VSSetConstantBuffers(0,1,&sceneBuffer);
+    context->HSSetConstantBuffers(0,1,&sceneBuffer);
+    context->DSSetConstantBuffers(0,1,&sceneBuffer);
     if(constants.params.w>0){
         ID3D11ShaderResourceView* empty=nullptr;
         context->PSSetShaderResources(4,1,&empty);
@@ -538,10 +710,13 @@ void render(){
         context->RSSetViewports(1,&shadowViewport);
         context->RSSetState(shadowRaster);
         context->PSSetShader(nullptr,nullptr,0);
+        context->PSSetSamplers(0,1,&sampler);
         SceneConstants shadowConstants=constants;
         shadowConstants.viewProjection=constants.shadowViewProjection;
-        context->UpdateSubresource(sceneBuffer,0,nullptr,&shadowConstants,0,0);
         for(int group=0;group<dx11::MATERIAL_GROUPS;++group)if(counts[group]){
+            setTessellation(group);
+            shadowConstants.params.x=float(group);
+            context->UpdateSubresource(sceneBuffer,0,nullptr,&shadowConstants,0,0);
             context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
         }
         drawInstances(true,shadowConstants);
@@ -563,15 +738,30 @@ void render(){
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(sceneVS,nullptr,0);
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){
-        if(!counts[group])continue;
+        if(!counts[group]&&!staticCounts[group])continue;
         constants.params.x=float(group);
         context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
-        ID3D11ShaderResourceView* baseTexture=group==1?textures[1]:group==2||group==3?textures[2]:nullptr;
+        setTessellation(group);
+        ID3D11ShaderResourceView* baseTexture=group==1?textures[1]:nullptr;
         ID3D11ShaderResourceView* resources[4]={baseTexture,detailTextures[group],normalTextures[group],detailTextures[9]};
         context->PSSetShaderResources(0,4,resources);
-        context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
+        if(staticCounts[group]){
+            context->IASetVertexBuffers(0,1,&staticBuffer,&stride,&offset);
+            context->Draw(UINT(staticCounts[group]),UINT(staticStarts[group]));++drawCalls;
+        }
+        if(counts[group]){
+            context->IASetVertexBuffers(0,1,&vertexBuffer,&stride,&offset);
+            context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
+        }
     }
     drawInstances(false,constants);
+    float effectBlend[4]{0,0,0,0};
+    context->OMSetDepthStencilState(readDepth,0);
+    context->OMSetBlendState(alphaBlend,effectBlend,0xffffffffu);
+    drawInstances(false,constants,true);
+    context->OMSetBlendState(nullptr,effectBlend,0xffffffffu);
+    context->OMSetDepthStencilState(nullptr,0);
+    setTessellation(-1);
     dx11::buildHud(hudPixels.data(),bufferW,bufferH);
     if(SUCCEEDED(context->Map(hudTexture,0,D3D11_MAP_WRITE_DISCARD,0,&mapped))){
         for(int row=0;row<bufferH;++row)
@@ -599,13 +789,17 @@ void shutdownRenderer(){
     for(auto& texture:textures)release(texture);
     for(auto& texture:detailTextures)release(texture);
     for(auto& texture:normalTextures)release(texture);
-    release(sampler);release(shadowSampler);release(alphaBlend);release(noDepth);
+    release(sampler);release(shadowSampler);release(alphaBlend);release(readDepth);release(noDepth);
     release(rasterState);release(shadowRaster);
-    release(sceneBuffer);release(vertexBuffer);release(inputLayout);
+    release(sceneBuffer);release(vertexBuffer);release(staticBuffer);release(inputLayout);
     release(instanceBuffer);release(instanceLayout);
     for(auto& item:meshBuffers)release(item.second);
     meshBuffers.clear();
-    release(sceneVS);release(instanceVS);release(scenePS);release(hudVS);release(hudPS);
+    for(auto& item:modelTextures)release(item.second);
+    modelTextures.clear();
+    sharedModelTextures.clear();
+    release(sceneVS);release(instanceVS);release(scenePS);release(alphaShadowPS);release(sceneHS);release(sceneDS);
+    release(hudVS);release(hudPS);
     release(swapChain);release(context);release(device);
     if(gdiplusToken){Gdiplus::GdiplusShutdown(gdiplusToken);gdiplusToken=0;}
 }

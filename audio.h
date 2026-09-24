@@ -1,6 +1,6 @@
 #pragma once
 namespace audio {
-enum class Effect { Shot, Pickup, Success, Step, Engine, Splash, Hit, Fail, Reload, Surf, Skid, Traffic, Count };
+enum class Effect { Shot, SilencedShot, Pickup, Success, Step, Engine, Splash, Hit, Fail, Reload, Surf, Skid, Traffic, Count };
 bool init();
 void play(Effect effect,int variant=0);
 void playAt(Effect effect,float x,float z,int variant=0);

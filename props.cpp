@@ -1,4 +1,5 @@
 #include "props.h"
+#include "regions.h"
 #include <algorithm>
 #include <cmath>
 #ifdef MINI_CITY_JOLT
@@ -27,6 +28,7 @@ void reset(){
     game::props.clear();
     for(int i=0;i<22;++i){
         Vec2 p{150.0f+i*95.0f,BEACH_START+80.0f+float(i%3)*42.0f};
+        if(regions::causewayAt(p))continue;
         game::props.push_back({p,{},0,0,0,0,80,i%4==0,true});
     }
     for(int i=0;i<12;++i){
@@ -50,7 +52,7 @@ void update(float dt){
             Vec2 strike=vehicles[occupied].velocity;
             jolt_world::impulse(index,{strike.x*dt*5,0,strike.z*dt*5});
             if(len(strike)>90){prop.health-=int(len(strike)*dt*2);
-                vehicles[occupied].damage=std::min(100.0f,vehicles[occupied].damage+dt*2);}
+                damageVehicle(occupied,dt*5);}
         }
         if(prop.health<=0){prop.alive=false;jolt_world::remove(index);fragments(prop);}
     }
@@ -64,7 +66,7 @@ void update(float dt){
             Vec2 strike=vehicles[occupied].velocity;
             prop.v=prop.v+strike*dt*5.0f;
             if(len(strike)>90){prop.health-=int(len(strike)*dt*2);
-                vehicles[occupied].damage=std::min(100.0f,vehicles[occupied].damage+dt*2);}
+                damageVehicle(occupied,dt*5);}
         }
         prop.v=prop.v*std::exp(-2.0f*dt);
         Vec2 candidate=prop.p+prop.v*dt;

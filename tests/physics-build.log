@@ -1,0 +1,38 @@
+-- Could NOT find Vulkan (missing: Vulkan_LIBRARY Vulkan_INCLUDE_DIR) (found version "")
+-- Configuring done (0.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: C:/GIT_local/GTAClone/build-jolt-ninja
+[1/2] Building CXX object CMakeFiles/simulation_smoke.dir/tests/simulation_smoke.cpp.obj
+In file included from C:/GIT_local/GTAClone/tests/simulation_smoke.cpp:1:
+C:/GIT_local/GTAClone/tests\../game.h:2:9: warning: 'WIN32_LEAN_AND_MEAN' macro redefined [-Wmacro-redefined]
+    2 | #define WIN32_LEAN_AND_MEAN
+      |         ^
+<command line>:17:9: note: previous definition is here
+   17 | #define WIN32_LEAN_AND_MEAN 1
+      |         ^
+In file included from C:/GIT_local/GTAClone/tests/simulation_smoke.cpp:1:
+C:/GIT_local/GTAClone/tests\../game.h:3:9: warning: 'NOMINMAX' macro redefined [-Wmacro-redefined]
+
+    3 | #define NOMINMAX
+
+      |         ^
+
+<command line>:16:9: note: previous definition is here
+
+   16 | #define NOMINMAX 1
+
+      |         ^
+
+2 warnings generated.
+
+[2/2] Linking CXX executable simulation_smoke.exe
+Built MiniCity3D.exe (Direct3D 11 + Jolt Physics)
+Test project C:/GIT_local/GTAClone/build-jolt-ninja
+    Start 1: simulation_smoke
+1/2 Test #1: simulation_smoke .................   Passed    0.08 sec
+    Start 2: asset_smoke
+2/2 Test #2: asset_smoke ......................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.14 sec

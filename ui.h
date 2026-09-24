@@ -10,6 +10,8 @@ extern int graphicsQuality;
 extern int shadowQuality;
 extern int vegetationDensity;
 extern int effectsQuality;
+extern int drawDistance;
+extern int lodDistance;
 extern int windowChoice;
 extern int mouseSensitivity;
 extern int masterVolume;
