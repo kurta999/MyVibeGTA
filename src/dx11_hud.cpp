@@ -189,7 +189,8 @@ void map(int x,int y,int width,int height,bool large){
         marker(house.p,3,house.owned?RGB(91,170,245):RGB(185,134,230));
     for(size_t i=0;i<game::missions.size();++i){auto p=game::missions[i].start;
         COLORREF marker=game::missionDone[i]?RGB(136,211,140):
-            int(i)==next?RGB(245,184,100):RGB(110,119,125);
+            int(i)==next?RGB(245,184,100):
+            i>=6?RGB(246,126,76):RGB(110,119,125);
         if(p.x>=minX&&p.x<=minX+viewW&&p.z>=minZ&&p.z<=minZ+viewD)
             rect(sx(p.x)-3,sy(p.z)-3,7,7,marker);}
     int px=sx(game::player.x),py=sy(game::player.z);
@@ -271,7 +272,7 @@ void debugMenu(int width,int height){
     rect(x,y,w,h,RGB(25,37,47));
     rect(x,y,w,5,RGB(255,193,99));
     label(x+25,y+20,"DEBUG MENU  /  F4",RGB(255,226,156));
-    label(x+25,y+48,"Weapons and health can be saved with game progress",
+    label(x+25,y+48,"Time, weather, weapons and health save with game progress",
         RGB(202,221,221));
     int total=debug_menu::entryCount();
     int first=std::clamp(debug_menu::selection-5,0,std::max(0,total-11));
@@ -285,8 +286,14 @@ void debugMenu(int width,int height){
         else if(index==1)std::snprintf(entry,sizeof(entry),"Fly: %s  (Space up, Ctrl down)",
             debug_menu::flyMode?"ON":"OFF");
         else if(index==2)std::snprintf(entry,sizeof(entry),"Restore health to 400");
+        else if(index==3){
+            int hour=int(game::gameHour),minute=int((game::gameHour-hour)*60);
+            std::snprintf(entry,sizeof(entry),"Time of day: < %02d:%02d >",hour,minute);
+        }
+        else if(index==4)std::snprintf(entry,sizeof(entry),"Weather: < %s >",
+            weather::current().name.c_str());
         else{
-            int weaponIndex=index-3;
+            int weaponIndex=index-debug_menu::WEAPONS_START;
             std::snprintf(entry,sizeof(entry),"%2d. %s%s",weaponIndex+1,
                 weapons::stats(weaponIndex).name.c_str(),
                 game::weapon==weaponIndex?"  [EQUIPPED]":"");
@@ -297,7 +304,7 @@ void debugMenu(int width,int height){
     char range[80]{};
     std::snprintf(range,sizeof(range),"%d-%d of %d",first+1,last,total);
     label(x+25,y+526,range,RGB(195,215,218));
-    label(x+168,y+526,"Up/Down  PgUp/PgDn  Enter select  Esc/F4 close",
+    label(x+168,y+526,"Up/Down select  Left/Right change  Enter choose  Esc/F4 close",
         RGB(195,215,218));
 }
 }
@@ -438,7 +445,7 @@ void buildHud(unsigned char* pixels,int width,int height){
             int(mapW*regions::DEPTH/regions::WIDTH));
         int x=(width-mapW)/2,y=(height-mapH)/2;
         rect(x-25,y-49,mapW+50,mapH+100,RGB(30,41,51));
-        label(x,y-31,"WORLD MAP: yellow you  green shops  blue owned homes  purple homes",RGB(247,238,211));
+        label(x,y-31,"MAP: yellow route  orange jobs  green shops  blue owned  purple homes",RGB(247,238,211));
         map(x,y,mapW,mapH,true);
     }
     if(game::messageTime>0){

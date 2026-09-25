@@ -26,12 +26,50 @@
 #undef NDEBUG
 #endif
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <set>
 #include <string>
+#include <vector>
+
+double connectedPlayableArea(){
+    constexpr int step=100;
+    constexpr int columns=int(regions::WIDTH)/step;
+    constexpr int rows=int(regions::DEPTH)/step;
+    std::vector<unsigned char> passable(columns*rows),visited(columns*rows);
+    auto index=[=](int x,int z){return z*columns+x;};
+    auto center=[=](int x,int z){return game::Vec2{(x+0.5f)*step,(z+0.5f)*step};};
+    int start=-1;
+    for(int z=0;z<rows;++z)for(int x=0;x<columns;++x){
+        game::Vec2 point=center(x,z);
+        int cell=index(x,z);
+        passable[cell]=!game::solid(point,1);
+        if(passable[cell]&&game::len(point-game::player)<100&&start<0)start=cell;
+    }
+    assert(start>=0);
+    std::vector<int> queue{start};visited[start]=1;
+    int conservativeCells=0;
+    for(std::size_t head=0;head<queue.size();++head){
+        int cell=queue[head],x=cell%columns,z=cell/columns;
+        game::Vec2 point=center(x,z);
+        bool wholeCell=true;
+        for(game::Vec2 offset: {game::Vec2{25,25},{25,-25},{-25,25},{-25,-25}})
+            if(game::solid(point+offset,1)){wholeCell=false;break;}
+        if(wholeCell)++conservativeCells;
+        for(game::Vec2 direction: {game::Vec2{1,0},{-1,0},{0,1},{0,-1}}){
+            int nx=x+int(direction.x),nz=z+int(direction.z);
+            if(nx<0||nz<0||nx>=columns||nz>=rows)continue;
+            int neighbor=index(nx,nz);
+            if(!passable[neighbor]||visited[neighbor]||
+               game::solid(point+direction*(step*0.5f),1))continue;
+            visited[neighbor]=1;queue.push_back(neighbor);
+        }
+    }
+    return double(conservativeCells)*step*step;
+}
 
 int main(){
     std::srand(1);
@@ -109,6 +147,11 @@ int main(){
     assert(countEastVehicles()==13);
     std::remove(regionConfig.c_str());
     assert(regions::load());
+    game::reset();
+    const double playableArea=connectedPlayableArea();
+    std::printf("Connected playable area (conservative 100-unit grid): %.2f million square units\n",
+        playableArea/1000000.0);
+    assert(playableArea>264000000.0);
     assert(fire::groundAt({1050,920})==fire::Material::Grass);
     assert(fire::groundAt({300,250})==fire::Material::Asphalt);
     assert(fire::groundAt({300,game::SHORE+10})==fire::Material::Water);
@@ -171,7 +214,10 @@ int main(){
 #ifdef MINI_CITY_JOLT
     assert(!debug_menu::open&&!debug_menu::godMode&&!debug_menu::flyMode);
     debug_menu::toggle();
-    assert(debug_menu::open&&debug_menu::entryCount()==3+weapons::count());
+    assert(debug_menu::open&&debug_menu::entryCount()==debug_menu::WEAPONS_START+weapons::count());
+    input::windowProc(nullptr,WM_KEYDOWN,VK_F11,0);
+    assert(game::screenshotRequested);
+    game::screenshotRequested=false;
     debug_menu::handleKey(VK_RETURN);
     assert(debug_menu::godMode);
     game::applyDamage(40);
@@ -189,7 +235,19 @@ int main(){
     game::health=23;
     debug_menu::handleKey(VK_RETURN);
     assert(game::health==game::PLAYER_MAX_HEALTH);
-    debug_menu::selection=3+weapons::count()-1;
+    debug_menu::selection=3;
+    game::gameHour=23.5f;
+    debug_menu::handleKey(VK_RIGHT);
+    assert(std::abs(game::gameHour-0.5f)<0.001f);
+    debug_menu::handleKey(VK_LEFT);
+    assert(std::abs(game::gameHour-23.5f)<0.001f);
+    debug_menu::selection=4;
+    weather::set(weather::states().front().id);
+    debug_menu::handleKey(VK_LEFT);
+    assert(weather::current().id==weather::states().back().id);
+    debug_menu::handleKey(VK_RIGHT);
+    assert(weather::current().id==weather::states().front().id);
+    debug_menu::selection=debug_menu::WEAPONS_START+weapons::count()-1;
     debug_menu::handleKey(VK_RETURN);
     assert(!debug_menu::open&&game::weapon==weapons::count()-1&&
         game::unlocked[game::weapon]&&game::magazine[game::weapon]>0);
@@ -262,6 +320,12 @@ int main(){
     for(const auto& prop:game::props)assert(!regions::causewayAt(prop.p));
     assert(game::buildings.size()>60&&game::peds.size()>120&&
         game::vehicles.size()>30&&game::trees.size()>6000);
+    int regionalTraffic=0;
+    for(const auto& vehicle:game::vehicles)if(vehicle.trafficRoute>=0){
+        ++regionalTraffic;
+        assert(vehicle.id.rfind("traffic-",0)==0&&regions::roadAt(vehicle.p));
+    }
+    assert(regionalTraffic>=8);
     for(const auto& hub:regions::hubs()){
         auto ped=std::find_if(game::peds.begin(),game::peds.end(),
             [&](const game::Ped& item){return item.id==hub.id+"-ped-0";});
@@ -397,6 +461,16 @@ int main(){
     }
     assert(game::vehicles[crossingCar].p.z>2230&&
         std::abs(game::vehicles[crossingCar].p.x-1200)<60);
+    auto traffic=std::find_if(game::vehicles.begin(),game::vehicles.end(),
+        [](const game::Vehicle& vehicle){return vehicle.trafficRoute>=0&&
+            vehicle.id.find("snow-route")!=std::string::npos;});
+    assert(traffic!=game::vehicles.end());
+    game::Vec2 trafficStart=traffic->p;
+    game::player=trafficStart+game::Vec2{0,75};
+    jolt_world::teleportCharacter(game::player,0);
+    for(int tick=0;tick<180;++tick)game::update(1.0f/60.0f);
+    assert(game::len(traffic->p-trafficStart)>25&&
+        regions::roadAt(traffic->p)&&!traffic->exploded);
 #endif
     game::reset();
     assert(traversal::lastError().empty());
@@ -563,6 +637,18 @@ int main(){
     game::bullets.push_back(fastBullet);
     game::update(1.0f/60.0f);
     assert(game::peds[0].health==90);
+    game::reset();game::buildings.clear();game::vehicles.clear();
+    game::props.clear();game::trees.clear();game::player={5000,5000};
+    for(auto& ped:game::peds){ped.alive=false;ped.respawn=999999;}
+    game::peds[0].alive=true;game::peds[0].p={5147,5100};
+    game::peds[0].health=100;game::peds[0].armor=0;
+    game::peds[0].knockedDown=1;
+    game::Bullet crossingShot{};crossingShot.p={5110,20,5100};
+    crossingShot.v={96000,0,0};crossingShot.life=1;
+    crossingShot.damage=20;crossingShot.range=3000;
+    game::bullets.push_back(crossingShot);
+    game::update(1.0f/60.0f);
+    assert(game::bullets.empty()&&game::peds[0].health==80);
     game::reset();game::buildings.clear();
     for(auto& ped:game::peds){ped.alive=false;ped.respawn=999999;}
     game::peds[0].alive=true;game::peds[0].p={350,250};
@@ -680,7 +766,20 @@ int main(){
     for(int tick=0;tick<90;++tick)police::update(1.0f/60.0f);
     assert(police::wantedLevel()==0);
     game::reset();
-    assert(game::missions.size()==6);
+    assert(game::missions.size()==10);
+    assert(game::missions[6].kind==game::MissionKind::Drive);
+    assert(game::missions[7].kind==game::MissionKind::Targets);
+    assert(game::missions[8].kind==game::MissionKind::Collect);
+    assert(game::missions[9].kind==game::MissionKind::Drive);
+    for(int index=6;index<10;++index){
+        assert(regions::roadAt(game::missions[index].start));
+        for(const auto& goal:game::missions[index].goals)
+            assert(regions::roadAt(goal));
+    }
+    game::player=game::missions[8].start;
+    game::startMission();
+    assert(game::activeMission==8);
+    game::reset();
     assert(game::trees.size()>6042);
     assert(std::count_if(game::trees.begin(),game::trees.end(),
         [](const game::Tree& tree){return tree.id.rfind("marina-tree-",0)==0;})>=20);
@@ -1090,15 +1189,38 @@ int main(){
     assert(game::ragdollParts.size()==6);
     for(int tick=0;tick<380;++tick)props::update(1.0f/60.0f);
     assert(game::ragdollParts.empty());
+    game::reset();
+    auto& pinnedPed=game::peds[0];
+    pinnedPed.p=game::player+game::Vec2{45,0};
+    pinnedPed.alive=false;pinnedPed.health=0;pinnedPed.respawn=40;
+    pinnedPed.pinned=true;pinnedPed.pinAnchor=pinnedPed.p+game::Vec2{4,0};
+    const std::string pinnedId=pinnedPed.id;
+    jolt_world::spawnRagdoll(pinnedPed,{},&pinnedPed.pinAnchor);
+    for(int tick=0;tick<910;++tick)props::update(1.0f/60.0f);
+    assert(game::corpseSnapshots.size()==1&&game::ragdollParts.size()==6);
+    assert(!game::peds[0].pinned&&game::peds[0].corpseVisualDelay>0);
+    const auto frozen=game::corpseSnapshots[0].parts[0].p;
+    assert(savegame::save());
+    assert(savegame::load());
+    auto restored=std::find_if(game::corpseSnapshots.begin(),
+        game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& pose){
+            return pose.pedId==pinnedId;
+        });
+    assert(restored!=game::corpseSnapshots.end());
+    assert(std::abs(restored->parts[0].p.x-frozen.x)<0.01f);
+    assert(std::abs(restored->parts[0].p.y-frozen.y)<0.01f);
+    props::update(1.0f/60.0f);
+    assert(game::ragdollParts.size()==6);
 #endif
 
     game::money=1234;game::health=68;game::weapon=1;game::unlocked[1]=true;
-    game::missionDone[5]=true;
+    game::missionDone[5]=true;game::missionDone[8]=true;
     assert(savegame::save());
-    game::money=0;game::health=100;game::weapon=0;game::missionDone[5]=false;
+    game::money=0;game::health=100;game::weapon=0;
+    game::missionDone[5]=false;game::missionDone[8]=false;
     assert(savegame::load());
     assert(game::money==1234&&game::health==68&&game::weapon==1);
-    assert(game::missionDone[5]);
+    assert(game::missionDone[5]&&game::missionDone[8]);
     char executable[MAX_PATH]{};GetModuleFileNameA(nullptr,executable,MAX_PATH);
     std::string savePath(executable);
     savePath=savePath.substr(0,savePath.find_last_of("\\/")+1)+"savegame.ini";
@@ -1109,6 +1231,7 @@ int main(){
     assert(savegame::load());
     assert(game::money==712&&game::health==256&&game::weapon==1);
     assert(game::ammo[1]==37&&game::magazine[1]==8&&game::missionDone[0]);
+    assert(!game::missionDone[8]);
     assert(savegame::save());
     assert(GetPrivateProfileIntA("Save","Version",0,savePath.c_str())==3);
     game::money=0;game::missionDone[0]=false;

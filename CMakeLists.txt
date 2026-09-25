@@ -20,7 +20,7 @@ add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics)
-target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 d3d11 dxgi d3dcompiler)
+target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 d3d11 dxgi d3dcompiler psapi)
 add_custom_command(TARGET MiniCity3D POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"

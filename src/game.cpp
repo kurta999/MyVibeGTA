@@ -48,6 +48,10 @@ bool debugHud=false;
 float frameRate=0,frameMs=0,simulationMs=0,physicsMs=0;
 int drawCalls=0,activeAi=0;
 std::string message;
+#ifdef MINI_CITY_JOLT
+bool screenshotRequested=false;
+void requestScreenshot(){screenshotRequested=true;}
+#endif
 std::vector<bool> unlocked{true,false,false,false,false};
 std::vector<int> ammo{-1,0,0,0,0};
 std::vector<int> magazine{12,0,0,0,0};
@@ -76,9 +80,10 @@ std::vector<HitFlash> hitFlashes;
 std::vector<Blast> blasts;
 std::vector<Debris> debris;
 std::vector<RagdollPart> ragdollParts;
+std::vector<CorpseSnapshot> corpseSnapshots;
 std::vector<Pickup> pickups;
 std::vector<MissionDef> missions;
-std::array<bool,6> missionDone{};
+std::array<bool,10> missionDone{};
 void spawnDebris(const Ped& ped,Vec3 impulse);
 
 void announce(const std::string& s,float seconds=4){message=s;messageTime=seconds;}
@@ -226,8 +231,9 @@ const char* missionObjective(){
 }
 void startMission(){
     if(activeMission>=0||health<=0)return;
-    for(int i=0;i<int(missions.size());++i)if(len(missions[i].start-player)<75){
-        if(i>0&&!missionDone[i-1]){
+    for(int i=0;i<int(missions.size());++i)if(!missionDone[i]&&
+        len(missions[i].start-player)<75){
+        if(i>0&&i<6&&!missionDone[i-1]){
             announce(std::string("Finish ")+missions[i-1].name+" to unlock this mission.",4);
             return;
         }
@@ -283,6 +289,34 @@ bool bulletSolidSegment(Vec3 start,Vec3 end,Vec3& impact){
     impact=start+delta*nearest;
     return true;
 }
+bool bulletCylinderSegment(Vec3 start,Vec3 end,Vec2 center,float radius,
+                           float low,float high,float& entry){
+    Vec3 delta=end-start;
+    float first=0,last=1;
+    if(std::abs(delta.y)<0.00001f){
+        if(start.y<low||start.y>high)return false;
+    }else{
+        float a=(low-start.y)/delta.y,b=(high-start.y)/delta.y;
+        if(a>b)std::swap(a,b);
+        first=std::max(first,a);last=std::min(last,b);
+    }
+    float x=start.x-center.x,z=start.z-center.z;
+    float a=delta.x*delta.x+delta.z*delta.z;
+    float c=x*x+z*z-radius*radius;
+    if(a<0.00001f){
+        if(c>0)return false;
+    }else{
+        float b=2*(x*delta.x+z*delta.z);
+        float discriminant=b*b-4*a*c;
+        if(discriminant<0)return false;
+        float root=std::sqrt(discriminant);
+        first=std::max(first,(-b-root)/(2*a));
+        last=std::min(last,(-b+root)/(2*a));
+    }
+    if(first>last||last<0||first>1)return false;
+    entry=std::clamp(first,0.0f,1.0f);
+    return true;
+}
 bool valid(Vec2 p,Kind k,float radius){
     if(k==Kind::Boat)return p.x>=radius&&p.x<=regions::WIDTH-radius&&
         p.z>=radius&&p.z<=regions::DEPTH-radius&&regions::waterAt(p);
@@ -295,8 +329,9 @@ Vec2 randomWalkable(){
 void reset(){
 #ifdef MINI_CITY_JOLT
     debug_menu::reset();
+    screenshotRequested=false;
 #endif
-    buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();debris.clear();ragdollParts.clear();pickups.clear();missions.clear();
+    buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
     player={300,250};previousPlayer=player;playerVelocity={};playerY=0;playerVerticalSpeed=0;grounded=true;swimming=false;
     health=PLAYER_MAX_HEALTH;armor=0;repairKits=1;weapon=0;occupied=-1;enteringVehicle=-1;vehicleEntryTime=0;airTime=0;
     carriedPed=-1;
@@ -533,8 +568,10 @@ void enterExit(){
     }
     if(index>=0){
         telescopeActive=false;
-        if(vehicles[index].id.rfind("traffic-",0)==0)
+        if(vehicles[index].id.rfind("traffic-",0)==0){
             police::report(police::Crime::CarTheft,player,true);
+            vehicles[index].trafficRoute=-1;
+        }
 #ifdef MINI_CITY_JOLT
         enteringVehicle=index;vehicleEntryTime=0.65f;playerVelocity={};
 #else
@@ -836,6 +873,42 @@ void update(float dt){
             }
         }
     }
+#ifdef MINI_CITY_JOLT
+    const auto& trafficRoads=regions::roads();
+    for(int index=0;index<int(vehicles.size());++index){
+        Vehicle& car=vehicles[index];
+        if(car.trafficRoute<0||car.trafficRoute>=int(trafficRoads.size())||
+           car.exploded||car.owned||index==occupied)continue;
+        const auto& road=trafficRoads[car.trafficRoute];
+        Vec2 axis=road.end-road.start;
+        float length=len(axis);
+        if(length<1500)continue;
+        Vec2 tangent=axis*(1.0f/length);
+        Vec2 lane{-tangent.z,tangent.x};
+        Vec2 end=road.end+lane*12.0f;
+        float distanceToPlayer=len(car.p-player);
+        if(len(car.p-end)<110.0f){
+            if(distanceToPlayer>650.0f){
+                Vec2 restart=road.start+axis*0.08f+lane*12.0f;
+                jolt_world::teleportVehicle(index,restart,std::atan2(axis.z,axis.x));
+            }else jolt_world::driveVehicle(index,car.speed>10?-0.5f:0.0f,0,dt);
+            continue;
+        }
+        if(distanceToPlayer>850.0f){
+            jolt_world::driveVehicle(index,0,0,dt);continue;
+        }
+        float progress=std::clamp((car.p.x-road.start.x)*tangent.x+
+            (car.p.z-road.start.z)*tangent.z,0.0f,length);
+        Vec2 target=road.start+tangent*std::min(length,progress+145.0f)+lane*12.0f;
+        Vec2 direction=target-car.p;
+        float desired=std::atan2(direction.z,direction.x);
+        float error=std::atan2(std::sin(desired-car.angle),
+            std::cos(desired-car.angle));
+        float steering=std::clamp(error*1.8f,-0.7f,0.7f);
+        float throttle=std::abs(error)>1.0f?0.25f:car.speed<105?0.72f:0.08f;
+        jolt_world::driveVehicle(index,throttle,steering,dt);
+    }
+#endif
     airTime=occupied>=0||grounded||swimming?0:airTime+dt;
     if(carriedPed>=0){
         if(health<=0||occupied>=0)carryDrop();
@@ -877,6 +950,50 @@ void update(float dt){
         const auto treeCandidates=regions::nearbyTreeIndices(
             (horizontalStart+horizontalEnd)*0.5f,
             len(horizontalEnd-horizontalStart)*0.5f+25.0f);
+        if(bullet.streamType==0){
+            float nearest=1.0f;
+            bool dynamicHit=false;
+            auto consider=[&](Vec2 center,float radius,float low,float high){
+                float entry=0;
+                if(bulletCylinderSegment(bullet.p,next,center,radius,low,high,entry)&&
+                   entry<nearest){nearest=entry;dynamicHit=true;}
+            };
+            for(const auto& prop:props)if(prop.alive)
+                consider(prop.p,prop.barrel?12.0f:14.0f,prop.y,prop.y+25);
+            for(int index=0;index<int(vehicles.size());++index){
+                const auto& car=vehicles[index];
+                if(car.exploded||(!bullet.hostile&&index==occupied))continue;
+                consider(car.p,car.kind==Kind::Bike?14.0f:
+                    car.kind==Kind::Boat?25.0f:26.0f,
+                    car.rideHeight+2,car.rideHeight+42);
+            }
+            for(int index:treeCandidates){
+                if(index<0||std::size_t(index)>=trees.size())continue;
+                const auto& tree=trees[index];
+                if(!tree.destroyed)
+                    consider(tree.p,6.0f*std::min(tree.scale,4.0f),
+                        0,tree.height*tree.scale*0.6f);
+            }
+            if(bullet.hostile){
+                if(health>0)consider(player,occupied>=0?19.0f:11.0f,
+                    2,occupied>=0?43.0f:playerY+37);
+            }else{
+                if(activeMission>=0&&(missions[activeMission].kind==MissionKind::Targets||
+                   (missions[activeMission].kind==MissionKind::Finale&&missionStep==1))&&
+                   missionStep<int(missions[activeMission].goals.size()))
+                    consider(missions[activeMission].goals[missionStep],18.0f,0,45);
+                for(const auto& ped:peds)if(ped.alive)
+                    consider(ped.p,10.0f,2,37);
+            }
+            if(dynamicHit){
+                Vec3 travel=next-bullet.p;
+                float distance=len(travel);
+                float inside=distance>0?std::min(0.05f/distance,(1-nearest)*0.5f):0;
+                next=bullet.p+travel*(nearest+inside);
+                wallHit=false;
+            }
+            samples=1;
+        }
         for(int n=1;n<=samples&&bullet.life>0;++n){
             Vec3 point=bullet.p+(next-bullet.p)*(float(n)/samples);
             impactPoint=point;

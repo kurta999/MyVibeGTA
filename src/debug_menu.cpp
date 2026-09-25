@@ -3,7 +3,9 @@
 #include "weapons.h"
 #include "traversal.h"
 #include "jolt_world.h"
+#include "weather.h"
 #include <algorithm>
+#include <cmath>
 
 namespace debug_menu {
 bool open=false;
@@ -11,7 +13,7 @@ bool godMode=false;
 bool flyMode=false;
 int selection=0;
 
-int entryCount(){return 3+weapons::count();}
+int entryCount(){return WEAPONS_START+weapons::count();}
 void reset(){open=false;godMode=false;flyMode=false;selection=0;}
 void toggle(){open=!open;selection=std::clamp(selection,0,std::max(0,entryCount()-1));}
 
@@ -38,7 +40,23 @@ void handleKey(int key){
         return;
     }
     if(selection==2){game::health=game::PLAYER_MAX_HEALTH;return;}
-    int chosen=selection-3;
+    if(selection==3){
+        float step=key==VK_LEFT?-1.0f:1.0f;
+        game::gameHour=std::fmod(game::gameHour+24.0f+step,24.0f);
+        return;
+    }
+    if(selection==4){
+        const auto& states=weather::states();
+        if(states.empty())return;
+        auto current=std::find_if(states.begin(),states.end(),[](const weather::State& state){
+            return state.id==weather::current().id;
+        });
+        int index=current==states.end()?0:int(current-states.begin());
+        index=(index+int(states.size())+(key==VK_LEFT?-1:1))%int(states.size());
+        weather::set(states[index].id);
+        return;
+    }
+    int chosen=selection-WEAPONS_START;
     if(chosen<0||chosen>=weapons::count())return;
     const auto& stats=weapons::stats(chosen);
     game::unlocked[chosen]=true;

@@ -1,6 +1,7 @@
 param([string[]]$AssetIds = @(
-    'tree_small_02', 'fir_sapling', 'quiver_tree_01',
-    'island_tree_01', 'island_tree_02', 'pine_sapling_small',
+    'tree_small_02', 'fir_sapling', 'quiver_tree_01', 'quiver_tree_02',
+    'island_tree_01', 'island_tree_02', 'island_tree_03',
+    'jacaranda_tree', 'pine_sapling_small',
     'modular_urban_apartments_facade', 'modular_factory_facade',
     'shrub_01', 'shrub_02', 'shrub_03', 'shrub_04', 'shrub_sorrel_01',
     'wild_rooibos_bush', 'fern_02', 'nettle_plant', 'periwinkle_plant',
@@ -39,7 +40,13 @@ $slugs = @(
     'exotic-wildlife-hd-umbrella-acacia-850a62bb',
     'exotic-wildlife-hd-baobab-tree-fb196805',
     'japanese-school-and-city-street-cherry-tree-blossom-618a9f6d',
-    'greek-island-village-and-harbour-olive-tree-b7baf3c7'
+    'greek-island-village-and-harbour-olive-tree-b7baf3c7',
+    'greek-island-village-and-harbour-fig-tree-15e48fe1',
+    'jungle-temple-and-stone-city-buttress-root-tree-44607ba7',
+    'jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41',
+    'korean-hanok-village-and-street-persimmon-tree-ec7be2f6',
+    'alpine-and-arctic-biomes-timberline-tree-4975b730',
+    'jungle-temple-and-stone-city-palm-sapling-6702b25c'
 )
 $smallRoot = Join-Path $PSScriptRoot '../assets/models/source/3dassets'
 New-Item -ItemType Directory -Force -Path $smallRoot | Out-Null

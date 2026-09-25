@@ -429,5 +429,15 @@ void loadMeshes(const std::wstring& folder){
     }
 }
 const Mesh* mesh(const std::string& name){auto it=meshes.find(name);return it==meshes.end()?nullptr:&it->second;}
+std::vector<const Mesh*> regionalMeshes(){
+    std::vector<const Mesh*> result;
+    for(const auto& entry:meshes){
+        const std::string& name=entry.first;
+        if(name.rfind("nature/",0)==0||name.rfind("buildings/urban-",0)==0||
+           name.rfind("marina/",0)==0)
+            result.push_back(&entry.second);
+    }
+    return result;
+}
 const SkinMesh* skinMesh(const std::string& name){auto it=skins.find(name);return it==skins.end()?nullptr:&it->second;}
 }

@@ -35,13 +35,26 @@ BUSH_SOURCES = [
     "weed_plant_02", "crystalline_iceplant",
 ]
 BUSH_IDS = [f"bush_{index:02d}" for index in range(36)]
+POLY_TREE_AUTHORS = {
+    "tree_small_02": "Rico Cilliers",
+    "fir_sapling": "Rob Tuytel; Rico Cilliers",
+    "quiver_tree_01": "James Ray Cock; Dario Barresi; Rico Cilliers",
+    "quiver_tree_02": "Dario Barresi; Rico Cilliers",
+    "island_tree_01": "Rob Tuytel; Rico Cilliers",
+    "island_tree_02": "Rob Tuytel; Rico Cilliers",
+    "island_tree_03": "Rob Tuytel; Rico Cilliers",
+    "jacaranda_tree": "Rob Tuytel; Rico Cilliers",
+    "pine_sapling_small": "Rob Tuytel; Rico Cilliers",
+}
 OTHER_TREES = {
-    "tree_palmDetailedShort": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
+    "tree_blocks": "greek-island-village-and-harbour-olive-tree-b7baf3c7",
+    "tree_fat": "jungle-temple-and-stone-city-buttress-root-tree-44607ba7",
+    "tree_simple": "korean-hanok-village-and-street-persimmon-tree-ec7be2f6",
+    "tree_pineGroundB": "alpine-and-arctic-biomes-timberline-tree-4975b730",
+    "tree_palmDetailedShort": "greek-island-village-and-harbour-fig-tree-15e48fe1",
+    "tree_palmShort": "jungle-temple-and-stone-city-palm-sapling-6702b25c",
+    "tree_palmTall": "jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41",
     "tree_palmDetailedTall": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
-    "tree_palmShort": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
-    "tree_palmTall": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
-    "tree_palm": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
-    "tree_palmBend": "desert-mosque-and-madrasa-courtyard-date-palm-c311e205",
     "tree_plateau": "exotic-wildlife-hd-umbrella-acacia-850a62bb",
     "tree_small": "exotic-wildlife-hd-baobab-tree-fb196805",
     "tree_urbanCherry": "japanese-school-and-city-street-cherry-tree-blossom-618a9f6d",
@@ -175,14 +188,21 @@ def tree_source(name):
     if name in OTHER_TREES:
         slug = OTHER_TREES[name]
         return SOURCE / "3dassets" / (slug + ".glb"), None
-    if name.startswith("tree_pine") or name == "tree_cone":
+    polyhaven = {"tree_detailed": "island_tree_03",
+                 "tree_thin": "jacaranda_tree",
+                 "tree_cone": "fir_sapling",
+                 "tree_pineDefaultB": "fir_sapling",
+                 "tree_palm": "quiver_tree_01",
+                 "tree_palmBend": "quiver_tree_02"}
+    if name in polyhaven:
+        asset = polyhaven[name]
+        return SOURCE / "polyhaven" / asset / (asset + ".gltf"), None
+    if name.startswith("tree_pine"):
         return SOURCE / "polyhaven/pine_sapling_small/pine_sapling_small.gltf", None
     if name == "tree_oak":
         return SOURCE / "polyhaven/island_tree_01/island_tree_01.gltf", None
     if name == "tree_tall":
         return SOURCE / "polyhaven/island_tree_02/island_tree_02.gltf", None
-    if name in ("tree_fat",):
-        return SOURCE / "polyhaven/quiver_tree_01/quiver_tree_01.gltf", None
     return SOURCE / "polyhaven/tree_small_02/tree_small_02.gltf", None
 
 
@@ -548,7 +568,7 @@ def write_manifests():
         if "polyhaven" in relative:
             asset_id = source.parent.name
             url = f"https://polyhaven.com/a/{asset_id}"
-            creator = "Poly Haven"
+            creator = POLY_TREE_AUTHORS[asset_id]
         else:
             url = f"https://3dassets.dev/assets/{source.stem}"
             creator = "3D Assets"
@@ -582,6 +602,9 @@ def write_manifests():
 
 
 if __name__ == "__main__":
+    if "--manifest-only" in sys.argv:
+        write_manifests()
+        sys.exit(0)
     if "--sample-tree" in sys.argv:
         bake_tree(TREE_IDS[0], 0)
     elif "--sample-building" in sys.argv:

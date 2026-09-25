@@ -14,11 +14,15 @@
 #include "weather.h"
 #include "regions.h"
 #include "commerce.h"
+#include "logging.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <chrono>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
+#include <cwchar>
 #include <fstream>
 #include <functional>
 #include <string>
@@ -68,6 +72,7 @@ int shadowSize=0;
 ID3D11DepthStencilState* noDepth=nullptr;
 ID3D11DepthStencilState* readDepth=nullptr;
 ID3D11BlendState* alphaBlend=nullptr;
+ID3D11BlendState* hudBlend=nullptr;
 ID3D11SamplerState* sampler=nullptr;
 ID3D11ShaderResourceView* textures[2]{};
 ID3D11ShaderResourceView* detailTextures[dx11::MATERIAL_GROUPS]{};
@@ -87,6 +92,7 @@ struct InstanceBatch {const dx11::Mesh* mesh;int material;UINT start,count;};
 std::vector<InstanceData> instanceData;
 std::vector<InstanceBatch> instanceBatches;
 std::vector<unsigned char> hudPixels;
+unsigned int screenshotSequence=0;
 struct SceneConstants {
     XMFLOAT4X4 viewProjection;
     XMFLOAT4X4 shadowViewProjection;
@@ -610,6 +616,34 @@ bool growVertexBuffer(size_t count){
     description.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;
     return SUCCEEDED(device->CreateBuffer(&description,nullptr,&vertexBuffer));
 }
+bool cacheModel(const dx11::Mesh* source){
+    if(meshBuffers.find(source)==meshBuffers.end()){
+        D3D11_BUFFER_DESC desc{};
+        desc.ByteWidth=UINT(source->vertices.size()*sizeof(dx11::Vertex));
+        desc.Usage=D3D11_USAGE_IMMUTABLE;desc.BindFlags=D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA data{};data.pSysMem=source->vertices.data();
+        ID3D11Buffer* buffer=nullptr;
+        if(FAILED(device->CreateBuffer(&desc,&data,&buffer)))return false;
+        meshBuffers.emplace(source,buffer);
+    }
+    if(source->materialRanges.empty()&&!source->textureFile.empty()&&
+       modelTextures.find(source)==modelTextures.end()){
+        ID3D11ShaderResourceView* texture=nullptr;
+        auto cached=sharedModelTextures.find(source->textureFile);
+        if(cached!=sharedModelTextures.end()){
+            texture=cached->second;texture->AddRef();
+        }else{
+            if(!loadTexture(source->textureFile,&texture))return false;
+            sharedModelTextures.emplace(source->textureFile,texture);
+        }
+        modelTextures.emplace(source,texture);
+    }
+    for(const auto& range:source->materialRanges)
+        if(!cachePbrTexture(range.baseFile)||!cachePbrTexture(range.normalFile,false)||
+           !cachePbrTexture(range.ormFile,false)||!cachePbrTexture(range.occlusionFile,false)||
+           !cachePbrTexture(range.emissiveFile))return false;
+    return true;
+}
 bool prepareInstances(){
     std::sort(models.begin(),models.end(),[](const auto& a,const auto& b){
         if(a.material!=b.material)return a.material<b.material;
@@ -617,31 +651,7 @@ bool prepareInstances(){
     });
     instanceData.clear();instanceBatches.clear();
     for(const auto& model:models){
-        if(meshBuffers.find(model.source)==meshBuffers.end()){
-            D3D11_BUFFER_DESC desc{};
-            desc.ByteWidth=UINT(model.source->vertices.size()*sizeof(dx11::Vertex));
-            desc.Usage=D3D11_USAGE_IMMUTABLE;desc.BindFlags=D3D11_BIND_VERTEX_BUFFER;
-            D3D11_SUBRESOURCE_DATA data{};data.pSysMem=model.source->vertices.data();
-            ID3D11Buffer* buffer=nullptr;
-            if(FAILED(device->CreateBuffer(&desc,&data,&buffer)))return false;
-            meshBuffers.emplace(model.source,buffer);
-        }
-        if(model.source->materialRanges.empty()&&!model.source->textureFile.empty()&&
-           modelTextures.find(model.source)==modelTextures.end()){
-            ID3D11ShaderResourceView* texture=nullptr;
-            auto cached=sharedModelTextures.find(model.source->textureFile);
-            if(cached!=sharedModelTextures.end()){
-                texture=cached->second;texture->AddRef();
-            }else{
-                if(!loadTexture(model.source->textureFile,&texture))return false;
-                sharedModelTextures.emplace(model.source->textureFile,texture);
-            }
-            modelTextures.emplace(model.source,texture);
-        }
-        for(const auto& range:model.source->materialRanges)
-            if(!cachePbrTexture(range.baseFile)||!cachePbrTexture(range.normalFile,false)||
-               !cachePbrTexture(range.ormFile,false)||!cachePbrTexture(range.occlusionFile,false)||
-               !cachePbrTexture(range.emissiveFile))return false;
+        if(!cacheModel(model.source))return false;
         if(instanceBatches.empty()||instanceBatches.back().mesh!=model.source||
            instanceBatches.back().material!=model.material)
             instanceBatches.push_back({model.source,model.material,UINT(instanceData.size()),0});
@@ -792,6 +802,8 @@ bool createStates(){
     blend.RenderTarget[0].BlendOpAlpha=D3D11_BLEND_OP_ADD;
     blend.RenderTarget[0].RenderTargetWriteMask=D3D11_COLOR_WRITE_ENABLE_ALL;
     if(FAILED(device->CreateBlendState(&blend,&alphaBlend)))return false;
+    blend.RenderTarget[0].DestBlendAlpha=D3D11_BLEND_INV_SRC_ALPHA;
+    if(FAILED(device->CreateBlendState(&blend,&hudBlend)))return false;
     D3D11_SAMPLER_DESC sample{};sample.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     sample.AddressU=sample.AddressV=sample.AddressW=D3D11_TEXTURE_ADDRESS_WRAP;
     sample.MaxLOD=D3D11_FLOAT32_MAX;
@@ -920,10 +932,51 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
         shadowDepth&&ui::shadowQuality>0&&daylight>0.05f?1.0f:0.0f};
     return constants;
 }
+bool saveScreenshotPng(const D3D11_MAPPED_SUBRESOURCE& mapped,UINT width,UINT height,
+                       std::string& filename){
+    std::wstring folder=executableFolder()+L"\\screenshots";
+    if(!CreateDirectoryW(folder.c_str(),nullptr)&&GetLastError()!=ERROR_ALREADY_EXISTS)
+        return false;
+    UINT encoderCount=0,encoderBytes=0;
+    if(Gdiplus::GetImageEncodersSize(&encoderCount,&encoderBytes)!=Gdiplus::Ok||
+       encoderCount==0||encoderBytes==0)return false;
+    std::vector<unsigned char> storage(encoderBytes);
+    auto* encoders=reinterpret_cast<Gdiplus::ImageCodecInfo*>(storage.data());
+    if(Gdiplus::GetImageEncoders(encoderCount,encoderBytes,encoders)!=Gdiplus::Ok)
+        return false;
+    const CLSID* pngEncoder=nullptr;
+    for(UINT i=0;i<encoderCount;++i)
+        if(encoders[i].MimeType&&std::wcscmp(encoders[i].MimeType,L"image/png")==0){
+            pngEncoder=&encoders[i].Clsid;break;
+        }
+    if(!pngEncoder)return false;
+    SYSTEMTIME now{};GetLocalTime(&now);
+    wchar_t name[100]{};
+    for(int attempt=0;attempt<1000;++attempt){
+        std::swprintf(name,100,L"MiniCity3D-%04u%02u%02u-%02u%02u%02u-%03u-%lu-%u.png",
+            now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond,
+            now.wMilliseconds,GetCurrentProcessId(),screenshotSequence++);
+        std::wstring path=folder+L"\\"+name;
+        if(GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES)continue;
+        Gdiplus::Bitmap bitmap(width,height,INT(mapped.RowPitch),PixelFormat32bppARGB,
+            static_cast<BYTE*>(mapped.pData));
+        if(bitmap.GetLastStatus()!=Gdiplus::Ok||
+           bitmap.Save(path.c_str(),pngEncoder,nullptr)!=Gdiplus::Ok)return false;
+        filename.clear();
+        for(const wchar_t* character=name;*character;++character)
+            filename.push_back(static_cast<char>(*character));
+        return true;
+    }
+    return false;
+}
 void captureIfRequested(){
     char file[MAX_PATH]{};
-    if(!GetEnvironmentVariableA("MINICITY_CAPTURE",file,MAX_PATH))return;
-    SetEnvironmentVariableA("MINICITY_CAPTURE",nullptr);
+    DWORD legacyLength=GetEnvironmentVariableA("MINICITY_CAPTURE",file,MAX_PATH);
+    bool legacyCapture=legacyLength>0&&legacyLength<MAX_PATH;
+    bool pngCapture=screenshotRequested;
+    if(!legacyCapture&&!pngCapture)return;
+    screenshotRequested=false;
+    if(legacyCapture)SetEnvironmentVariableA("MINICITY_CAPTURE",nullptr);
     ID3D11Texture2D* back=nullptr;
     if(FAILED(swapChain->GetBuffer(0,__uuidof(ID3D11Texture2D),reinterpret_cast<void**>(&back))))return;
     D3D11_TEXTURE2D_DESC description{};back->GetDesc(&description);
@@ -934,18 +987,31 @@ void captureIfRequested(){
         context->CopyResource(staging,back);
         D3D11_MAPPED_SUBRESOURCE mapped{};
         if(SUCCEEDED(context->Map(staging,0,D3D11_MAP_READ,0,&mapped))){
-            BITMAPFILEHEADER fileHeader{};BITMAPINFOHEADER imageHeader{};
-            fileHeader.bfType=0x4D42;fileHeader.bfOffBits=sizeof(fileHeader)+sizeof(imageHeader);
-            fileHeader.bfSize=fileHeader.bfOffBits+description.Width*description.Height*4;
-            imageHeader.biSize=sizeof(imageHeader);imageHeader.biWidth=LONG(description.Width);
-            imageHeader.biHeight=-LONG(description.Height);imageHeader.biPlanes=1;
-            imageHeader.biBitCount=32;imageHeader.biCompression=BI_RGB;
-            std::ofstream output(file,std::ios::binary);
-            if(output){output.write(reinterpret_cast<const char*>(&fileHeader),sizeof(fileHeader));
-                output.write(reinterpret_cast<const char*>(&imageHeader),sizeof(imageHeader));
-                for(UINT row=0;row<description.Height;++row)
-                    output.write(reinterpret_cast<const char*>(static_cast<const unsigned char*>(mapped.pData)+
-                        size_t(row)*mapped.RowPitch),size_t(description.Width)*4);}
+            if(pngCapture){
+                std::string name;
+                if(saveScreenshotPng(mapped,description.Width,description.Height,name)){
+                    message="Screenshot saved: screenshots/"+name;
+                    logging::write(message.c_str());
+                }else{
+                    message="Screenshot failed to save";
+                    logging::write(message.c_str());
+                }
+                messageTime=3.0f;
+            }
+            if(legacyCapture){
+                BITMAPFILEHEADER fileHeader{};BITMAPINFOHEADER imageHeader{};
+                fileHeader.bfType=0x4D42;fileHeader.bfOffBits=sizeof(fileHeader)+sizeof(imageHeader);
+                fileHeader.bfSize=fileHeader.bfOffBits+description.Width*description.Height*4;
+                imageHeader.biSize=sizeof(imageHeader);imageHeader.biWidth=LONG(description.Width);
+                imageHeader.biHeight=-LONG(description.Height);imageHeader.biPlanes=1;
+                imageHeader.biBitCount=32;imageHeader.biCompression=BI_RGB;
+                std::ofstream output(file,std::ios::binary);
+                if(output){output.write(reinterpret_cast<const char*>(&fileHeader),sizeof(fileHeader));
+                    output.write(reinterpret_cast<const char*>(&imageHeader),sizeof(imageHeader));
+                    for(UINT row=0;row<description.Height;++row)
+                        output.write(reinterpret_cast<const char*>(static_cast<const unsigned char*>(mapped.pData)+
+                            size_t(row)*mapped.RowPitch),size_t(description.Width)*4);}
+            }
             context->Unmap(staging,0);
         }
     }
@@ -987,14 +1053,25 @@ bool initRenderer(){
     detailTextures[12]=detailTextures[3];detailTextures[12]->AddRef();
     normalTextures[12]=normalTextures[3];normalTextures[12]->AddRef();
     dx11::loadMeshes(base+L"\\assets\\models\\baked");
-    return createStaticGeometry();
+    if(!createStaticGeometry())return false;
+    // A region jump must not synchronously upload dozens of nature and city
+    // meshes on its first visible frame. Load them while the startup window
+    // is still hidden; the immutable buffers are shared by later instances.
+    for(const dx11::Mesh* mesh:dx11::regionalMeshes())
+        if(!cacheModel(mesh)){
+            logging::write("Regional resource prewarm incomplete; using on-demand loading");
+            break;
+        }
+    return true;
 }
 void render(){
+    auto renderBegin=std::chrono::steady_clock::now();
     drawCalls=0;
     int width=std::max(1,screenW),height=std::max(1,screenH);
     if(width!=bufferW||height!=bufferH){releaseTargets();
         if(!createTargets(width,height))return;}
     dx11::buildScene(groups,models);
+    auto sceneBuilt=std::chrono::steady_clock::now();
     vertices.clear();size_t starts[dx11::MATERIAL_GROUPS]{},counts[dx11::MATERIAL_GROUPS]{};
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){starts[group]=vertices.size();counts[group]=groups[group].size();
         vertices.insert(vertices.end(),groups[group].begin(),groups[group].end());}
@@ -1004,6 +1081,7 @@ void render(){
     std::memcpy(mapped.pData,vertices.data(),vertices.size()*sizeof(dx11::Vertex));
     context->Unmap(vertexBuffer,0);
     if(!prepareInstances())return;
+    auto instancesReady=std::chrono::steady_clock::now();
     float solar=std::sin((gameHour-6)*PI/12.0f);
     float daylight=std::clamp(solar*2.3f+0.42f,0.0f,1.0f);
     int requestedShadowSize=ui::shadowQuality==0?0:ui::shadowQuality==1?1024:2048;
@@ -1141,7 +1219,7 @@ void render(){
                 hudPixels.data()+size_t(row)*bufferW*4,size_t(bufferW)*4);
         context->Unmap(hudTexture,0);
         context->OMSetDepthStencilState(noDepth,0);
-        float blend[4]{0,0,0,0};context->OMSetBlendState(alphaBlend,blend,0xffffffffu);
+        float blend[4]{0,0,0,0};context->OMSetBlendState(hudBlend,blend,0xffffffffu);
         context->IASetInputLayout(nullptr);
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
         context->VSSetShader(hudVS,nullptr,0);context->PSSetShader(hudPS,nullptr,0);
@@ -1151,7 +1229,21 @@ void render(){
         context->OMSetDepthStencilState(nullptr,0);
     }
     captureIfRequested();
+    auto beforePresent=std::chrono::steady_clock::now();
     swapChain->Present(1,0);
+    auto afterPresent=std::chrono::steady_clock::now();
+    if(std::strstr(GetCommandLineA(),"--benchmark-travel")&&
+       std::chrono::duration<float,std::milli>(afterPresent-renderBegin).count()>30){
+        char timing[200]{};
+        std::snprintf(timing,sizeof(timing),
+            "Travel frame at %.0f,%.0f: scene %.1f ms, uploads %.1f ms, draw/HUD %.1f ms, present %.1f ms",
+            player.x,player.z,
+            std::chrono::duration<float,std::milli>(sceneBuilt-renderBegin).count(),
+            std::chrono::duration<float,std::milli>(instancesReady-sceneBuilt).count(),
+            std::chrono::duration<float,std::milli>(beforePresent-instancesReady).count(),
+            std::chrono::duration<float,std::milli>(afterPresent-beforePresent).count());
+        logging::write(timing);
+    }
 }
 void shutdownRenderer(){
     dx11::shutdownHud();
@@ -1161,7 +1253,7 @@ void shutdownRenderer(){
     for(auto& texture:textures)release(texture);
     for(auto& texture:detailTextures)release(texture);
     for(auto& texture:normalTextures)release(texture);
-    release(sampler);release(shadowSampler);release(alphaBlend);release(readDepth);release(noDepth);
+    release(sampler);release(shadowSampler);release(hudBlend);release(alphaBlend);release(readDepth);release(noDepth);
     release(rasterState);release(shadowRaster);
     release(postBuffer);release(sceneBuffer);release(vertexBuffer);release(staticBuffer);release(inputLayout);
     release(instanceBuffer);release(instanceLayout);

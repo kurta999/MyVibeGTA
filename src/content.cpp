@@ -2,6 +2,7 @@
 #include "data_file.h"
 #include "game_internal.h"
 #include "weapons.h"
+#include "regions.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -41,7 +42,7 @@ bool point(data_file::Ini& file,const std::string& s,const std::string& k,Vec2& 
     in>>std::ws;
     if(!in.eof()||
        !std::isfinite(p.x)||!std::isfinite(p.z)||
-       p.x<0||p.x>WORLD_W||p.z<0||p.z>WORLD_D)return bad(s,k);
+       p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH)return bad(s,k);
     return true;
 }
 bool color(data_file::Ini& file,const std::string& s,const std::string& k,Color& c){
@@ -165,7 +166,7 @@ bool populate(const char* worldPath,const char* missionsPath){
        minZ>=BEACH_START-beachMargin)return bad(traffic,"bounds");
     if(!integer(world,"Vehicles","Count",vehicleCount,1,200)||
        !integer(world,"Pickups","Count",pickupCount,0,200)||
-       !integer(missionFile,"Missions","Count",missionCount,6,6))return false;
+       !integer(missionFile,"Missions","Count",missionCount,6,10))return false;
 
     std::set<std::string> vehicleIds,pickupIds,missionIds;
     std::vector<Vehicle> placed;placed.reserve(vehicleCount);
@@ -199,7 +200,7 @@ bool populate(const char* worldPath,const char* missionsPath){
         const std::string s="Mission"+std::to_string(i);std::string value;
         MissionRow m{};
         if(!id(missionFile,s,m.id,missionIds))return false;
-        if(m.id!=legacyIds[i])return bad(s,"Id must retain save order");
+        if(i<6&&m.id!=legacyIds[i])return bad(s,"Id must retain save order");
         if(!string(missionFile,s,"Name",m.name)||!string(missionFile,s,"Kind",value))return false;
         if(!missionKind(value,m.kind))return bad(s,"Kind");
         if(!point(missionFile,s,"Start",m.start)||

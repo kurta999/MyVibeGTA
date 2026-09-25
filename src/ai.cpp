@@ -113,7 +113,7 @@ void update(float dt){
             ped.corpseVisualDelay=std::max(0.0f,ped.corpseVisualDelay-dt);
             if(ped.respawn<=0){
 #ifdef MINI_CITY_JOLT
-            if(ped.pinned)jolt_world::removeRagdoll(ped.id);
+            jolt_world::removeRagdoll(ped.id);
 #endif
             if(!regions::homeForPed(ped.id,ped.p))ped.p=randomWalkable();
             ped.target=ped.p;

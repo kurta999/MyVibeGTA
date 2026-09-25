@@ -64,6 +64,10 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     case WM_MOVE:if(lookCaptured)clipLookCursor();return 0;
     case WM_KEYDOWN:
 #ifdef MINI_CITY_JOLT
+        if(wp==VK_F11){
+            if(!(lp&(1<<30)))requestScreenshot();
+            return 0;
+        }
         if(debug_menu::open){
             if(!(lp&(1<<30)))debug_menu::handleKey(int(wp));
             return 0;

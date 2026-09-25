@@ -9,6 +9,7 @@
 #include "jolt_world.h"
 #endif
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -30,9 +31,54 @@ int read(const std::string& section,const char* key,int fallback,const std::stri
     return int(GetPrivateProfileIntA(section.c_str(),key,fallback,file.c_str()));
 }
 std::string readText(const std::string& section,const char* key,const std::string& file){
-    char value[128]{};
+    char value[256]{};
     GetPrivateProfileStringA(section.c_str(),key,"",value,sizeof(value),file.c_str());
     return value;
+}
+bool saveCorpsePose(const std::string& section,const game::CorpseSnapshot& pose,
+    const std::string& file){
+    char value[256]{};
+    const auto& first=pose.parts[0];
+    std::snprintf(value,sizeof(value),"%.3f,%.3f,%.3f,%.6f,%d",
+        first.origin.x,first.origin.y,first.origin.z,first.yaw,first.style);
+    bool ok=writeText(section,"PoseMeta",value,file);
+    for(int i=0;i<6;++i){
+        const auto& part=pose.parts[i];
+        std::snprintf(value,sizeof(value),"%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.6f,%.6f,%.6f,%.6f",
+            part.p.x,part.p.y,part.p.z,part.rest.x,part.rest.y,part.rest.z,
+            part.qx,part.qy,part.qz,part.qw);
+        std::string key="Pose"+std::to_string(i);
+        ok&=writeText(section,key.c_str(),value,file);
+    }
+    return ok;
+}
+bool loadCorpsePose(const std::string& section,const std::string& file,
+    game::CorpseSnapshot& pose){
+    const std::string meta=readText(section,"PoseMeta",file);
+    game::Vec3 origin{};float yaw=0;int style=0;
+    if(std::sscanf(meta.c_str(),"%f,%f,%f,%f,%d",
+        &origin.x,&origin.y,&origin.z,&yaw,&style)!=5||
+        !std::isfinite(origin.x)||!std::isfinite(origin.y)||
+        !std::isfinite(origin.z)||!std::isfinite(yaw)||
+        style<0||style>3)return false;
+    for(int i=0;i<6;++i){
+        std::string key="Pose"+std::to_string(i);
+        const std::string value=readText(section,key.c_str(),file);
+        auto& part=pose.parts[i];
+        if(std::sscanf(value.c_str(),"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+            &part.p.x,&part.p.y,&part.p.z,&part.rest.x,&part.rest.y,
+            &part.rest.z,&part.qx,&part.qy,&part.qz,&part.qw)!=10)return false;
+        const float values[]={part.p.x,part.p.y,part.p.z,part.rest.x,
+            part.rest.y,part.rest.z,part.qx,part.qy,part.qz,part.qw};
+        for(float number:values)if(!std::isfinite(number))return false;
+        if(part.p.x<0||part.p.x>regions::WIDTH||part.p.z<0||
+            part.p.z>regions::DEPTH||part.p.y< -100||part.p.y>1000)return false;
+        float norm=part.qx*part.qx+part.qy*part.qy+
+            part.qz*part.qz+part.qw*part.qw;
+        if(norm<0.5f||norm>1.5f)return false;
+        part.origin=origin;part.yaw=yaw;part.style=style;part.part=i;
+    }
+    return true;
 }
 }
 bool save(){
@@ -76,6 +122,12 @@ bool save(){
             ok&=write(section,"X",int(ped.p.x),temporary);
             ok&=write(section,"Z",int(ped.p.z),temporary);
             ok&=write(section,"Respawn",int(ped.respawn),temporary);
+            auto pose=std::find_if(game::corpseSnapshots.begin(),
+                game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& snapshot){
+                    return snapshot.pedId==ped.id;
+                });
+            if(pose!=game::corpseSnapshots.end())
+                ok&=saveCorpsePose(section,*pose,temporary);
         }
     }
     for(const auto& house:commerce::houses)
@@ -175,12 +227,13 @@ bool load(){
         std::clamp(read("Player","Weapon",0,file),0,std::min(4,weapons::count()-1)):
         weapons::indexOf(readText("Player","WeaponId",file));
     if(game::weapon<0||!game::unlocked[game::weapon])game::weapon=0;
-    for(int i=0;i<int(game::missionDone.size());++i){
-        if(version==1){
+    for(int i=0;i<int(game::missions.size())&&i<int(game::missionDone.size());++i){
+        if(version==1&&i<6){
             char key[32]{};
             std::snprintf(key,sizeof(key),"Complete%d",i);
             game::missionDone[i]=read("Missions",key,0,file)!=0;
-        }else game::missionDone[i]=read("Mission."+game::missions[i].id,"Complete",0,file)!=0;
+        }else if(version==1)game::missionDone[i]=false;
+        else game::missionDone[i]=read("Mission."+game::missions[i].id,"Complete",0,file)!=0;
     }
     if(version>=2)for(auto& ped:game::peds){
         std::string section="Ped."+ped.id;
@@ -206,6 +259,13 @@ bool load(){
                     ped.corpseVisualDelay=std::min(15.0f,ped.respawn);
                 }
 #endif
+            }
+            else{
+                game::CorpseSnapshot pose{};pose.pedId=ped.id;
+                if(loadCorpsePose(section,file,pose)){
+                    game::corpseSnapshots.push_back(std::move(pose));
+                    ped.corpseVisualDelay=ped.respawn;
+                }
             }
         }
     }

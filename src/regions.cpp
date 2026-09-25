@@ -29,6 +29,7 @@ std::string error;
 float cityX=10700,cityZ=7000,citySpacing=500;
 int cityRows=6,cityColumns=7,regionalTrees=6000,regionalProps=900;
 int climbFrequency=6,cityPedestrians=48,cityVehicles=12;
+int trafficPerRoad=1;
 std::vector<game::Kind> cityVehicleCycle;
 bool parseVehicleCycle(const std::string& source,std::vector<game::Kind>& result){
     result.clear();
@@ -66,7 +67,7 @@ bool load(const char* path){
     int parsedRows=cityRows,parsedColumns=cityColumns;
     int parsedTrees=regionalTrees,parsedPropCount=regionalProps;
     int parsedClimbFrequency=climbFrequency,parsedCityPedestrians=cityPedestrians;
-    int parsedCityVehicles=cityVehicles;
+    int parsedCityVehicles=cityVehicles,parsedTrafficPerRoad=trafficPerRoad;
     if(!file.integer("Regions","Count",count,5,20)||
        !file.real("SecondCity","X",parsedCityX,9000,14500)||
        !file.real("SecondCity","Z",parsedCityZ,5500,11000)||
@@ -77,7 +78,8 @@ bool load(const char* path){
        !file.integer("Population","Props",parsedPropCount,0,3000)||
        !file.integer("Population","ClimbFrequency",parsedClimbFrequency,1,30)||
        !file.integer("Population","CityPedestrians",parsedCityPedestrians,10,150)||
-       !file.integer("Population","CityVehicles",parsedCityVehicles,1,100)){
+       !file.integer("Population","CityVehicles",parsedCityVehicles,1,100)||
+       !file.integer("Population","TrafficPerRoad",parsedTrafficPerRoad,0,2)){
         error=file.lastError();return false;
     }
     std::string cityCycleText;
@@ -227,6 +229,7 @@ bool load(const char* path){
     climbFrequency=parsedClimbFrequency;cityPedestrians=parsedCityPedestrians;
     cityVehicles=parsedCityVehicles;
     cityVehicleCycle=std::move(parsedCityCycle);
+    trafficPerRoad=parsedTrafficPerRoad;
     populationHubs=std::move(parsedHubs);
     return true;
 }
@@ -565,6 +568,28 @@ void populate(){
             vehicle.p=hub.p+game::Vec2{-70.0f+index*140.0f,0};
             vehicle.c=game::rgb(90+(index*57)%130,93+(index*83)%130,
                 99+(index*43)%130);
+            game::vehicles.insert(game::vehicles.begin(),vehicle);
+        }
+    }
+    // Long regional roads receive a small, data-capped moving population.
+    // Cars keep stable IDs so theft and damage use the existing save rules.
+    for(int route=0;route<int(roadSegments.size());++route){
+        const Road& road=roadSegments[route];
+        game::Vec2 axis=road.end-road.start;
+        if(game::len(axis)<1500)continue;
+        game::Vec2 lane{-game::norm(axis).z,game::norm(axis).x};
+        for(int slot=0;slot<trafficPerRoad;++slot){
+            float fraction=0.25f+slot*0.5f;
+            game::Vec2 point=road.start+axis*fraction+lane*12.0f;
+            if(game::solid(point,22))continue;
+            game::Vehicle vehicle{};
+            vehicle.id="traffic-"+road.id+"-"+std::to_string(slot);
+            vehicle.kind=(route+slot)%4==0?game::Kind::SportCar:game::Kind::Car;
+            vehicle.p=point;
+            vehicle.angle=std::atan2(axis.z,axis.x);
+            vehicle.trafficRoute=route;
+            vehicle.c=game::rgb(86+(route*31+slot*23)%140,
+                83+(route*47+slot*19)%140,89+(route*53+slot*29)%140);
             game::vehicles.insert(game::vehicles.begin(),vehicle);
         }
     }

@@ -5,7 +5,6 @@
 #endif
 #include <cassert>
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 #include <filesystem>
 #include <set>
@@ -70,6 +69,7 @@ int main(){
     std::ifstream manifest("assets/models/NATURE_MANIFEST.csv");
     assert(manifest);
     std::set<std::string> manifestModels;
+    std::set<std::string> distinctTreeSources;
     std::string row;
     std::getline(manifest,row);
     while(std::getline(manifest,row)){
@@ -83,7 +83,9 @@ int main(){
         assert(std::ifstream("assets/models/"+source).good());
         assert(std::ifstream("assets/models/"+baked).good());
         assert(manifestModels.insert(id).second);
+        if(id.rfind("tree_",0)==0)distinctTreeSources.insert(source);
     }
+    assert(distinctTreeSources.size()>=20);
     data_file::Ini catalog;
     assert(catalog.load(data_file::resourcePath("trees.ini"))&&catalog.version(1));
     int count=0;assert(catalog.integer("Trees","Count",count,30,128));

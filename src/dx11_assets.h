@@ -42,6 +42,7 @@ struct ModelInstance {
 };
 void loadMeshes(const std::wstring& folder);
 const Mesh* mesh(const std::string& name);
+std::vector<const Mesh*> regionalMeshes();
 const SkinMesh* skinMesh(const std::string& name);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances);
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]);

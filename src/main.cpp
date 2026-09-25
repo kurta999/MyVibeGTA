@@ -26,10 +26,13 @@
 #endif
 #include <cstring>
 #include <cstdio>
+#include <psapi.h>
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     using namespace game;
     bool smoke=commandLine&&std::strstr(commandLine,"--smoke")!=nullptr;
     bool benchmark=smoke&&commandLine&&std::strstr(commandLine,"--benchmark")!=nullptr;
+    bool benchmarkTravel=benchmark&&commandLine&&
+        std::strstr(commandLine,"--benchmark-travel")!=nullptr;
     bool fullHd=smoke&&commandLine&&std::strstr(commandLine,"--1080p")!=nullptr;
     logging::initialize();
     std::srand(unsigned(std::time(nullptr)));
@@ -53,7 +56,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         AdjustWindowRect(&bounds,WS_OVERLAPPEDWINDOW,FALSE);
         SetWindowPos(win,nullptr,0,0,bounds.right-bounds.left,bounds.bottom-bounds.top,
             SWP_NOMOVE|SWP_NOZORDER);
-        GetClientRect(win,&area);screenW=area.right;screenH=area.bottom;
+        // Headless captures and benchmarks must render exactly 1920 x 1080
+        // even when Windows reports a DPI-adjusted hidden client rectangle.
+        screenW=1920;screenH=1080;
     }
     if(!weapons::load()){
         logging::write(weapons::lastError().c_str());
@@ -245,6 +250,8 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int tick=0;tick<20;++tick)update(1.0f/60.0f);
     }
 #endif
+    if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot"))
+        input::windowProc(win,WM_KEYDOWN,VK_F11,0);
     if(smoke){
         if(benchmark){
             constexpr int frames=120;
@@ -252,12 +259,24 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             QueryPerformanceFrequency(&frequency);
             render();
             std::array<double,frames> frameTimes{};
-            double simulationTotal=0,renderTotal=0;
+            const std::array<Vec2,6> travelStops{{{12000,8500},{7800,8500},
+                {5000,6000},{12000,3000},{12000,14000},{4000,14000}}};
+            double simulationTotal=0,renderTotal=0,physicsTotal=0;
+            double drawTotal=0,aiTotal=0;
             for(int frame=0;frame<frames;++frame){
                 QueryPerformanceCounter(&start);
+                if(benchmarkTravel&&frame%20==0){
+                    player=travelStops[frame/20];playerY=0;occupied=-1;
+#ifdef MINI_CITY_JOLT
+                    jolt_world::teleportCharacter(player,0);
+#endif
+                }
                 update(1.0f/60.0f);
+                physicsTotal+=physicsMs;
                 QueryPerformanceCounter(&middle);
                 render();
+                drawTotal+=drawCalls;
+                aiTotal+=activeAi;
                 QueryPerformanceCounter(&end);
                 frameTimes[frame]=1000.0*(end.QuadPart-start.QuadPart)/
                     double(frequency.QuadPart);
@@ -270,11 +289,21 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             for(double duration:frameTimes)total+=duration;
             std::sort(frameTimes.begin(),frameTimes.end());
             double p95=frameTimes[int(std::ceil(frames*0.95))-1];
-            char result[160]{};
+            double p99=frameTimes[int(std::ceil(frames*0.99))-1];
+            PROCESS_MEMORY_COUNTERS memory{};
+            memory.cb=sizeof(memory);
+            GetProcessMemoryInfo(GetCurrentProcess(),&memory,sizeof(memory));
+            std::size_t nearTrees=regions::nearbyTreeIndices(player,850).size();
+            std::size_t nearDecorations=regions::nearbyDecorationIndices(player,550).size();
+            char result[384]{};
             std::snprintf(result,sizeof(result),
-                "Benchmark %dx%d: avg %.2f ms (sim %.2f, render %.2f), p95 %.2f ms over %d frames, %zu flames",
-                screenW,screenH,total/frames,simulationTotal/frames,
-                renderTotal/frames,p95,frames,fire::active().size());
+                "Benchmark%s %dx%d: avg %.2f ms (sim %.2f, physics %.2f, render %.2f), p95 %.2f ms, p99 %.2f ms, max %.2f ms, draws %.0f, active AI %.0f over %d frames, %zu flames, RAM %.0f MiB, nearby trees %zu/%zu, decorations %zu/%zu",
+                benchmarkTravel?" travel":"",screenW,screenH,total/frames,
+                simulationTotal/frames,physicsTotal/frames,renderTotal/frames,
+                p95,p99,frameTimes.back(),
+                drawTotal/frames,aiTotal/frames,frames,fire::active().size(),
+                memory.WorkingSetSize/1048576.0,nearTrees,trees.size(),
+                nearDecorations,regions::decorations().size());
             logging::write(result);
         }else render();
         audio::shutdown();shutdownRenderer();DestroyWindow(win);

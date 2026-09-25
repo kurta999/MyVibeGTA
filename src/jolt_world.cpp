@@ -73,6 +73,36 @@ struct Ragdoll {
 };
 std::vector<Ragdoll> ragdolls;
 bool registered=false;
+void captureCorpsePose(const Ragdoll& ragdoll){
+    if(ragdoll.bodies.size()!=6)return;
+    auto ped=std::find_if(game::peds.begin(),game::peds.end(),
+        [&](const game::Ped& candidate){return candidate.id==ragdoll.pedId;});
+    if(ped==game::peds.end()||ped->alive||ped->carried)return;
+    game::CorpseSnapshot snapshot{};
+    snapshot.pedId=ragdoll.pedId;
+    auto& bodies=world->GetBodyInterface();
+    for(std::size_t i=0;i<snapshot.parts.size();++i){
+        auto p=bodies.GetCenterOfMassPosition(ragdoll.bodies[i]);
+        auto q=bodies.GetRotation(ragdoll.bodies[i]);
+        snapshot.parts[i]={{p.GetX(),p.GetY(),p.GetZ()},ragdoll.rest[i],
+            ragdoll.origin,q.GetX(),q.GetY(),q.GetZ(),q.GetW(),
+            ragdoll.yaw,ragdoll.style,int(i)};
+    }
+    ped->p={snapshot.parts[0].p.x,snapshot.parts[0].p.z};
+    ped->pinned=false;
+    ped->corpseVisualDelay=ped->respawn;
+    game::corpseSnapshots.erase(std::remove_if(game::corpseSnapshots.begin(),
+        game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& old){
+            return old.pedId==snapshot.pedId;
+        }),game::corpseSnapshots.end());
+    game::corpseSnapshots.push_back(std::move(snapshot));
+    if(game::corpseSnapshots.size()>24){
+        const std::string evicted=game::corpseSnapshots.front().pedId;
+        for(auto& other:game::peds)if(other.id==evicted&&!other.alive)
+            other.corpseVisualDelay=0;
+        game::corpseSnapshots.erase(game::corpseSnapshots.begin());
+    }
+}
 JPH::BodyID createStatic(game::Vec3 center,game::Vec3 half){
     auto& bodies=world->GetBodyInterface();
     JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(half.x,half.y,half.z)),
@@ -147,7 +177,7 @@ void shutdown(){
             bodies.RemoveBody(id);bodies.DestroyBody(id);
         }
     }
-    ragdolls.clear();game::ragdollParts.clear();
+    ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
     propBodies.clear();vehicleBodies.clear();vehicleConstraints.clear();vehicleSynced.clear();
     staticBodies.clear();buildingBodies.clear();streamedCellX=streamedCellZ=-1;
     world.reset();jobs.reset();allocator.reset();
@@ -399,7 +429,7 @@ void driveVehicle(std::size_t index,float throttle,float steering,float){
         bool braking=throttle*vehicle.speed<-5.0f;
         controller->SetDriverInput(braking?0.0f:throttle,steering,
             braking?1.0f:std::abs(throttle)<0.01f?0.03f:0.0f,
-            game::keys[VK_SPACE]?1.0f:0.0f);
+            int(index)==game::occupied&&game::keys[VK_SPACE]?1.0f:0.0f);
         if(std::abs(throttle)>0.01f||std::abs(steering)>0.01f) bodies.ActivateBody(id);
     }
 }
@@ -449,10 +479,13 @@ void remove(std::size_t index){
 void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
     const game::Vec2* pinAnchor){
     if(!world)return;
+    game::corpseSnapshots.erase(std::remove_if(game::corpseSnapshots.begin(),
+        game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& old){
+            return old.pedId==ped.id;
+        }),game::corpseSnapshots.end());
     if(ragdolls.size()>=12){
         auto& old=ragdolls.front();auto& bodies=world->GetBodyInterface();
-        for(auto& ped:game::peds)
-            if(ped.id==old.pedId&&ped.pinned)ped.corpseVisualDelay=0;
+        captureCorpsePose(old);
         for(auto& joint:old.joints)world->RemoveConstraint(joint.GetPtr());
         for(auto id:old.bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}
         ragdolls.erase(ragdolls.begin());
@@ -513,6 +546,10 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
 }
 void removeRagdoll(const std::string& pedId){
     if(!world)return;
+    game::corpseSnapshots.erase(std::remove_if(game::corpseSnapshots.begin(),
+        game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& snapshot){
+            return snapshot.pedId==pedId;
+        }),game::corpseSnapshots.end());
     auto& bodies=world->GetBodyInterface();
     for(auto it=ragdolls.begin();it!=ragdolls.end();){
         if(it->pedId!=pedId){++it;continue;}
@@ -529,7 +566,7 @@ void clearRagdolls(){
         for(auto& joint:ragdoll.joints)world->RemoveConstraint(joint.GetPtr());
         for(auto id:ragdoll.bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}
     }
-    ragdolls.clear();game::ragdollParts.clear();
+    ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
 }
 void step(float dt){
     if(!world)return;
@@ -592,6 +629,7 @@ void step(float dt){
     for(auto it=ragdolls.begin();it!=ragdolls.end();){
         it->life-=dt;
         if(it->life<=0){
+            captureCorpsePose(*it);
             for(auto& joint:it->joints)world->RemoveConstraint(joint.GetPtr());
             for(auto id:it->bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}
             it=ragdolls.erase(it);continue;
@@ -609,5 +647,8 @@ void step(float dt){
         }
         ++it;
     }
+    for(const auto& snapshot:game::corpseSnapshots)
+        game::ragdollParts.insert(game::ragdollParts.end(),
+            snapshot.parts.begin(),snapshot.parts.end());
 }
 }
