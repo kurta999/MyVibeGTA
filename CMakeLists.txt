@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(MiniCity3D LANGUAGES CXX)
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/JoltPhysics/Build/CMakeLists.txt")
   message(FATAL_ERROR "Jolt Physics v5.6.0 is required in third_party/JoltPhysics")
 endif()
 set(OVERRIDE_CXX_FLAGS OFF CACHE BOOL "Preserve the game's compiler flags" FORCE)
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY ON CACHE BOOL "Use the same static MSVC runtime as the game" FORCE)
 set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "Keep Jolt builds straightforward" FORCE)
 set(ENABLE_INSTALL OFF CACHE BOOL "No Jolt install target" FORCE)
 add_subdirectory(third_party/JoltPhysics/Build third_party/JoltPhysics-build)
