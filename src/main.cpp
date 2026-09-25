@@ -250,6 +250,8 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int tick=0;tick<20;++tick)update(1.0f/60.0f);
     }
 #endif
+    if(smoke&&commandLine&&std::strstr(commandLine,"--graphics-menu"))
+        ui::page=ui::Page::Graphics;
     if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot"))
         input::windowProc(win,WM_KEYDOWN,VK_F11,0);
     if(smoke){

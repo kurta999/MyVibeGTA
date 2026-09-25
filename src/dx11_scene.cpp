@@ -90,8 +90,7 @@ void sphere(Vec3 center,float radius,Color tint){
 }
 void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint={1,1,1}){
     const Mesh* source=mesh(name);if(!source)return;
-    const float lodScales[]={0.55f,1.0f,1.7f};
-    float lodScale=lodScales[std::clamp(ui::lodDistance,0,2)];
+    float lodScale=ui::lodDistanceScale();
     if(name.rfind("nature/",0)==0&&
        game::len(Vec2{position.x,position.z}-game::player)>
            (name.rfind("nature/bush_",0)==0?90:160)*lodScale){
@@ -255,8 +254,7 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
     return true;
 }
 float drawScale(){
-    const float scales[]={0.65f,1.0f,1.5f};
-    return scales[std::clamp(ui::drawDistance,0,2)];
+    return ui::drawDistanceScale();
 }
 bool close(Vec2 p,float distance){
     return game::len(p-game::player)<distance*drawScale();
@@ -307,28 +305,62 @@ void nightSky(){
     }
 }
 void regionalTerrain(){
-    constexpr float tile=100;
-    const float drawScales[]={0.7f,1.0f,1.35f};
-    float radius=1100*drawScales[std::clamp(ui::drawDistance,0,2)];
-    int minX=std::max(0,int(std::floor((game::player.x-radius)/tile)));
-    int maxX=std::min(int(regions::WIDTH/tile)-1,
-        int(std::floor((game::player.x+radius)/tile)));
-    int minZ=std::max(0,int(std::floor((game::player.z-radius)/tile)));
-    int maxZ=std::min(int(regions::DEPTH/tile)-1,
-        int(std::floor((game::player.z+radius)/tile)));
-    for(int z=minZ;z<=maxZ;++z)for(int x=minX;x<=maxX;++x){
-        float left=x*tile,top=z*tile;
-        if(left<game::WORLD_W&&top<game::WORLD_D)continue;
-        Vec2 sample{left+tile*0.5f,top+tile*0.5f};
-        if(regions::waterAt(sample))
-            ground(left,top,left+tile,top+tile,-0.4f,game::rgb(74,145,183));
-        else if(regions::roadAt(sample))
-            ground(left,top,left+tile,top+tile,0.11f,game::rgb(112,114,116),-1,7);
-        else{
-            auto biome=regions::biomeAt(sample);
-            int material=biome==regions::Biome::City||
-                biome==regions::Biome::Countryside||biome==regions::Biome::Savanna?9:0;
-            ground(left,top,left+tile,top+tile,0,regions::groundColor(sample),-1,material);
+    float radius=1100*drawScale();
+    auto emitTiles=[&](float tile,bool distant){
+        int minX=std::max(0,int(std::floor((game::player.x-radius)/tile)));
+        int maxX=std::min(int(regions::WIDTH/tile)-1,
+            int(std::floor((game::player.x+radius)/tile)));
+        int minZ=std::max(0,int(std::floor((game::player.z-radius)/tile)));
+        int maxZ=std::min(int(regions::DEPTH/tile)-1,
+            int(std::floor((game::player.z+radius)/tile)));
+        for(int z=minZ;z<=maxZ;++z)for(int x=minX;x<=maxX;++x){
+            float left=x*tile,top=z*tile;
+            if(left<game::WORLD_W&&top<game::WORLD_D)continue;
+            Vec2 sample{left+tile*0.5f,top+tile*0.5f};
+            float distance=game::len(sample-game::player);
+            if(distance>radius+tile||(!distant&&distance>1750)||
+               (distant&&distance<1550))continue;
+            float level=distant?-0.12f:0.0f;
+            if(regions::waterAt(sample))
+                ground(left,top,left+tile,top+tile,level-0.4f,game::rgb(74,145,183));
+            else if(regions::roadAt(sample))
+                ground(left,top,left+tile,top+tile,level+0.11f,
+                    game::rgb(112,114,116),-1,7);
+            else{
+                auto biome=regions::biomeAt(sample);
+                int material=biome==regions::Biome::City||
+                    biome==regions::Biome::Countryside||biome==regions::Biome::Savanna?9:0;
+                ground(left,top,left+tile,top+tile,level,
+                    regions::groundColor(sample),-1,material);
+            }
+        }
+    };
+    if(radius>1600)emitTiles(400,true);
+    emitTiles(100,false);
+    // Visual-only terrain beyond the playable bounds keeps the city edge from
+    // cutting a hard line against the sky. The player and Jolt bounds stay put.
+    if(game::player.x<radius+400||game::player.z<radius+400||
+       game::player.x>regions::WIDTH-radius-400||
+       game::player.z>regions::DEPTH-radius-400){
+        constexpr float skirt=400.0f;
+        int x0=int(std::floor((game::player.x-radius)/skirt));
+        int x1=int(std::floor((game::player.x+radius)/skirt));
+        int z0=int(std::floor((game::player.z-radius)/skirt));
+        int z1=int(std::floor((game::player.z+radius)/skirt));
+        for(int z=z0;z<=z1;++z)for(int x=x0;x<=x1;++x){
+            if(x>=0&&z>=0&&x*skirt<regions::WIDTH&&
+               z*skirt<regions::DEPTH)continue;
+            Vec2 center{(x+0.5f)*skirt,(z+0.5f)*skirt};
+            if(game::len(center-game::player)>radius+skirt)continue;
+            Vec2 edge{std::clamp(center.x,1.0f,regions::WIDTH-1.0f),
+                std::clamp(center.z,1.0f,regions::DEPTH-1.0f)};
+            bool citySide=x<0&&edge.z<game::BEACH_START;
+            bool water=!citySide&&regions::waterAt(edge);
+            Color tint=water?game::rgb(74,145,183):
+                citySide?game::rgb(91,139,79):regions::groundColor(edge);
+            ground(x*skirt,z*skirt,(x+1)*skirt,(z+1)*skirt,
+                water?-0.4f:-0.25f,tint,-1,
+                water?0:regions::biomeAt(edge)==regions::Biome::Desert?8:9);
         }
     }
     if(close({7800,8500},1400)){
@@ -537,6 +569,30 @@ void buildings(){
                 }
             }
         }
+        // Give each block a recognizable street-level frontage and roofline.
+        if(game::len(Vec2{b.x+b.w*0.5f,b.z}-game::player)<470){
+            const Color paint[]={game::rgb(56,111,116),game::rgb(151,89,61),
+                game::rgb(105,92,139),game::rgb(126,111,68)};
+            Color accent=paint[index%4];
+            float front=b.z+2.6f;
+            for(int col=0;col<2;++col){
+                float center=b.x+b.w*(col+0.5f)*0.5f;
+                model("primitive/box",{center,0,front},
+                    {std::min(36.0f,b.w*0.30f),20,2.1f},0,
+                    game::rgb(49,63,70));
+                model("primitive/box",{center,20,front-4.0f},
+                    {std::min(43.0f,b.w*0.36f),2.8f,9},0,accent);
+                model("primitive/box",{center,23,front-1.8f},
+                    {std::min(37.0f,b.w*0.31f),5.5f,1.5f},0,
+                    game::rgb(212,196,154));
+                model("primitive/box",{center,0,front-2.0f},
+                    {8.5f,18,1.2f},0,game::rgb(117,82,57));
+            }
+            float roof=b.h*(0.88f+0.13f*float(int(index)%3))+0.3f;
+            model("primitive/box",{b.x+b.w*0.25f,roof,b.z+b.d*0.25f},
+                {std::min(18.0f,b.w*0.12f),7.0f,std::min(20.0f,b.d*0.13f)},0,
+                game::rgb(88,94,92));
+        }
     }
 }
 bool grassGround(Vec2 point,regions::Biome& biome){
@@ -602,19 +658,20 @@ void proceduralGrass(){
         for(int z=z0;z<=z1;++z)for(int x=x0;x<=x1;++x)
             for(int variant=0;variant<2;++variant){
                 std::uint32_t seed=grassHash(x,z,variant+1);
+                if(grassUnit(grassHash(x/4,z/4,variant+73))<0.26f)continue;
                 Vec2 point{(x+grassUnit(seed))*cell,
                            (z+grassUnit(seed>>16))*cell};
                 if(game::len(point-center)>covered)continue;
                 regions::Biome biome{};
                 if(!grassGround(point,biome))continue;
                 std::uint32_t shape=grassHash(z,x,variant+17);
-                float width=2.8f+grassUnit(shape)*2.2f;
-                float height=2.5f+grassUnit(shape>>16)*2.7f;
+                float width=2.1f+grassUnit(shape)*2.3f;
+                float height=1.9f+grassUnit(shape>>16)*3.2f;
                 float yaw=grassUnit(grassHash(x,z,variant+39))*game::PI*2;
                 int tone=int(shape%29);
                 Color tint=biome==regions::Biome::Savanna?
-                    game::rgb(131+tone,137+tone/2,70+tone/3):
-                    game::rgb(68+tone/2,134+tone,61+tone/3);
+                    game::rgb(119+tone,126+tone/2,65+tone/3):
+                    game::rgb(68+tone/2,116+tone,57+tone/3);
                 cached.push_back({point,width,height,yaw,tint});
             }
     }
@@ -643,6 +700,9 @@ void vegetation(){
         const auto& prop=regions::decorations()[index];
         if(ui::vegetationDensity==1&&index%2)continue;
         if(!close(prop.p,550))continue;
+        float distance=game::len(prop.p-game::player);
+        if(distance>1400&&index%4!=0)continue;
+        if(distance>2900&&index%12!=0)continue;
         model("nature/"+prop.modelId,{prop.p.x,0,prop.p.z},
             {prop.width,prop.height,prop.depth},float(index)*0.73f);
     }
@@ -651,6 +711,9 @@ void vegetation(){
         const auto& tree=game::trees[index];
         if(ui::vegetationDensity==1&&index%2)continue;
         if(!close(tree.p,tree.scale>=5?850:tree.palm?650:600))continue;
+        float distance=game::len(tree.p-game::player);
+        if(tree.scale<5&&distance>1800&&index%3!=0)continue;
+        if(tree.scale<5&&distance>3300&&index%8!=0)continue;
         if(tree.destroyed){
             model("primitive/cylinder",{tree.p.x,0,tree.p.z},{8,13,8},0,
                 game::rgb(44,40,37));continue;
@@ -698,8 +761,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     Vec3 hand{p.x+f.x*6+r.x*6,height+20,p.z+f.z*6+r.z*6};
     int action=actionOverride>=0?actionOverride:armed?3:running?2:moving?1:0;
     float blend=actionOverride>=0?actionWeight:armed?1.0f:moving?0.9f:0.0f;
-    const float lodScales[]={0.55f,1.0f,1.7f};
-    bool detailed=game::len(p-game::player)<220*lodScales[std::clamp(ui::lodDistance,0,2)];
+    bool detailed=game::len(p-game::player)<220*ui::lodDistanceScale();
     if(!(detailed&&skinnedCharacter(name,{p.x,height,p.z},bodySize,game::PI/2-angle,
             action,blend,&hand,actionPhase,motion))){
         if(!detailed)name+="-lod";
@@ -963,13 +1025,19 @@ struct EffectHandler {
         float phase=game::worldTime*11.0f+float(seed%101)*0.23f;
         int layers=ui::effectsQuality==2?2:1;
         for(int layer=0;layer<layers;++layer){
-            float wave=std::sin(phase+layer*2.3f);
-            float width=(11.0f+intensity*8.0f)*(layer==0?1.0f:0.72f);
-            float height=(17.0f+intensity*14.0f)*(0.86f+wave*0.11f);
-            Vec3 origin=base+Vec3{std::sin(phase*0.55f+layer*3.0f)*2.0f,
-                float(layer)*1.9f,std::cos(phase*0.47f+layer)*2.0f};
-            sprite("effect/flame",origin,width,height,phase*0.13f+layer,
-                layer==0?Color{1,0.90f,0.72f}:Color{1,1,1});
+            float variation=float((seed>>(layer*7))&15u)/15.0f;
+            float wave=std::sin(phase*(0.84f+variation*0.31f)+layer*2.3f);
+            float width=(9.0f+intensity*8.0f)*(0.78f+variation*0.46f)*
+                (layer==0?1.0f:0.64f);
+            float height=(15.0f+intensity*14.0f)*(0.77f+variation*0.28f+wave*0.12f);
+            Vec3 origin=base+Vec3{
+                std::sin(phase*0.55f+layer*3.0f+variation)*3.3f,
+                float(layer)*1.9f,
+                std::cos(phase*0.47f+layer+variation)*3.3f};
+            sprite("effect/flame",origin,width,height,
+                variation*game::PI+phase*0.13f+layer,
+                layer==0?Color{1,0.73f+variation*0.17f,0.43f+variation*0.24f}:
+                    Color{1,0.94f,0.77f});
         }
         if(ui::effectsQuality>0&&seed%2==0){
             float rise=std::fmod(game::worldTime*15.0f+float(seed%29),31.0f);

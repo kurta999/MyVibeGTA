@@ -8,8 +8,9 @@
 
 namespace ui {
 Page page=Page::Closed;
-int selection=0,graphicsQuality=2,shadowQuality=1,vegetationDensity=2,effectsQuality=2,drawDistance=1,lodDistance=1,windowChoice=1,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
+int selection=0,graphicsQuality=2,shadowQuality=1,vegetationDensity=2,effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
+bool showHelp=false;
 std::array<int,int(Action::Count)> bindings{{'W','S','A','D',VK_SHIFT,'E'}};
 
 namespace {
@@ -32,14 +33,28 @@ void writeValue(const char* section,const char* key,int value,const std::string&
 }
 }
 bool paused(){return page!=Page::Closed;}
+float drawDistanceScale(){
+    int value=std::clamp(drawDistance,0,100);
+    return value<=50?0.65f+0.85f*value/50.0f:
+        1.5f+6.0f*(value-50)/50.0f;
+}
+float lodDistanceScale(){
+    return 0.55f+1.95f*std::clamp(lodDistance,0,100)/100.0f;
+}
 void load(){
     std::string path=configPath();
     graphicsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Quality",2,path.c_str())),0,2);
     shadowQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Shadows",1,path.c_str())),0,2);
     vegetationDensity=std::clamp(int(GetPrivateProfileIntA("Graphics","Vegetation",2,path.c_str())),0,2);
     effectsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Effects",2,path.c_str())),0,2);
-    drawDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","DrawDistance",1,path.c_str())),0,2);
-    lodDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","LodDistance",1,path.c_str())),0,2);
+    int distanceVersion=GetPrivateProfileIntA("Graphics","DistanceVersion",0,path.c_str());
+    drawDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","DrawDistance",distanceVersion?21:1,path.c_str())),0,100);
+    lodDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","LodDistance",distanceVersion?50:1,path.c_str())),0,100);
+    if(distanceVersion<1){
+        const int oldDraw[]={0,21,50},oldLod[]={0,23,59};
+        drawDistance=oldDraw[std::clamp(drawDistance,0,2)];
+        lodDistance=oldLod[std::clamp(lodDistance,0,2)];
+    }
     int resolutionVersion=GetPrivateProfileIntA("Graphics","ResolutionVersion",0,path.c_str());
     windowChoice=resolutionVersion<2?1:std::clamp(int(GetPrivateProfileIntA("Graphics","WindowSize",1,path.c_str())),0,2);
     mouseSensitivity=std::clamp(int(GetPrivateProfileIntA("Controls","Sensitivity",7,path.c_str())),1,20);
@@ -58,6 +73,7 @@ void save(){
     writeValue("Graphics","Effects",effectsQuality,path);
     writeValue("Graphics","DrawDistance",drawDistance,path);
     writeValue("Graphics","LodDistance",lodDistance,path);
+    writeValue("Graphics","DistanceVersion",1,path);
     writeValue("Graphics","WindowSize",windowChoice,path);
     writeValue("Graphics","ResolutionVersion",2,path);
     writeValue("Controls","Sensitivity",mouseSensitivity,path);
@@ -105,8 +121,8 @@ void handleKey(int key){
         if(selection==2&&direction)vegetationDensity=std::clamp(vegetationDensity+direction,0,2);
         if(selection==3&&direction)effectsQuality=std::clamp(effectsQuality+direction,0,2);
         if(selection==4&&direction)shadowQuality=std::clamp(shadowQuality+direction,0,2);
-        if(selection==5&&direction)drawDistance=std::clamp(drawDistance+direction,0,2);
-        if(selection==6&&direction)lodDistance=std::clamp(lodDistance+direction,0,2);
+        if(selection==5&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
+        if(selection==6&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);
@@ -116,5 +132,21 @@ void handleKey(int key){
     if(page==Page::Audio&&direction){masterVolume=std::clamp(masterVolume+direction*10,0,100);
         audio::setVolume(masterVolume);}
     if(direction||key==VK_RETURN)save();
+}
+void handleMouse(int x,int y,bool dragging){
+    if(page!=Page::Graphics)return;
+    RECT client{};GetClientRect(game::win,&client);
+    int left=(client.right-client.left)/2-280;
+    int top=(client.bottom-client.top)/2-250;
+    for(int row=5;row<=6;++row){
+        int rowY=top+105+row*50;
+        if(y<rowY-5||y>rowY+38)continue;
+        if(!dragging&&x<left+285)return;
+        selection=row;
+        int value=std::clamp((x-(left+290))*100/220,0,100);
+        int& setting=row==5?drawDistance:lodDistance;
+        if(setting!=value){setting=value;save();}
+        return;
+    }
 }
 }

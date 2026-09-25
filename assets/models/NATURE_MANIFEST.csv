@@ -7,33 +7,33 @@ rock_largeA,source/nature/rock_largeA.glb,baked/nature/rock_largeA.m3d,https://k
 rock_largeB,source/nature/rock_largeB.glb,baked/nature/rock_largeB.m3d,https://kenney.nl/assets/nature-kit,Kenney,CC0-1.0,2026-09-24,no
 rock_smallFlatA,source/nature/rock_smallFlatA.glb,baked/nature/rock_smallFlatA.m3d,https://kenney.nl/assets/nature-kit,Kenney,CC0-1.0,2026-09-24,no
 rock_tallA,source/nature/rock_tallA.glb,baked/nature/rock_tallA.m3d,https://kenney.nl/assets/nature-kit,Kenney,CC0-1.0,2026-09-24,no
-tree_blocks,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_blocks.m3d,https://polyhaven.com/a/tree_small_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_default,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_default.m3d,https://polyhaven.com/a/tree_small_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_detailed,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_detailed.m3d,https://polyhaven.com/a/tree_small_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_fat,source/polyhaven/quiver_tree_01/quiver_tree_01.gltf,baked/nature/tree_fat.m3d,https://polyhaven.com/a/quiver_tree_01,Poly Haven,CC0-1.0,2026-09-25,no
-tree_oak,source/polyhaven/island_tree_01/island_tree_01.gltf,baked/nature/tree_oak.m3d,https://polyhaven.com/a/island_tree_01,Poly Haven,CC0-1.0,2026-09-25,no
-tree_simple,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_simple.m3d,https://polyhaven.com/a/tree_small_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_tall,source/polyhaven/island_tree_02/island_tree_02.gltf,baked/nature/tree_tall.m3d,https://polyhaven.com/a/island_tree_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_thin,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_thin.m3d,https://polyhaven.com/a/tree_small_02,Poly Haven,CC0-1.0,2026-09-25,no
-tree_cone,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_cone.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineDefaultA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineDefaultA.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineDefaultB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineDefaultB.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineGroundA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineGroundA.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineGroundB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineGroundB.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineRoundA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundA.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineRoundB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundB.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineRoundC,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundC.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineRoundD,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundD.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineSmallA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineSmallA.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineSmallB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineSmallB.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineTallA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineTallA.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_pineTallB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineTallB.m3d,https://polyhaven.com/a/pine_sapling_small,Poly Haven,CC0-1.0,2026-09-25,no
-tree_palmDetailedShort,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palmDetailedShort.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
+tree_blocks,source/3dassets/greek-island-village-and-harbour-olive-tree-b7baf3c7.glb,baked/nature/tree_blocks.m3d,https://3dassets.dev/assets/greek-island-village-and-harbour-olive-tree-b7baf3c7,3D Assets,CC0-1.0,2026-09-25,no
+tree_default,source/polyhaven/tree_small_02/tree_small_02.gltf,baked/nature/tree_default.m3d,https://polyhaven.com/a/tree_small_02,Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_detailed,source/polyhaven/island_tree_03/island_tree_03.gltf,baked/nature/tree_detailed.m3d,https://polyhaven.com/a/island_tree_03,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_fat,source/3dassets/jungle-temple-and-stone-city-buttress-root-tree-44607ba7.glb,baked/nature/tree_fat.m3d,https://3dassets.dev/assets/jungle-temple-and-stone-city-buttress-root-tree-44607ba7,3D Assets,CC0-1.0,2026-09-25,no
+tree_oak,source/polyhaven/island_tree_01/island_tree_01.gltf,baked/nature/tree_oak.m3d,https://polyhaven.com/a/island_tree_01,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_simple,source/3dassets/korean-hanok-village-and-street-persimmon-tree-ec7be2f6.glb,baked/nature/tree_simple.m3d,https://3dassets.dev/assets/korean-hanok-village-and-street-persimmon-tree-ec7be2f6,3D Assets,CC0-1.0,2026-09-25,no
+tree_tall,source/polyhaven/island_tree_02/island_tree_02.gltf,baked/nature/tree_tall.m3d,https://polyhaven.com/a/island_tree_02,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_thin,source/polyhaven/jacaranda_tree/jacaranda_tree.gltf,baked/nature/tree_thin.m3d,https://polyhaven.com/a/jacaranda_tree,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_cone,source/polyhaven/fir_sapling/fir_sapling.gltf,baked/nature/tree_cone.m3d,https://polyhaven.com/a/fir_sapling,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineDefaultA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineDefaultA.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineDefaultB,source/polyhaven/fir_sapling/fir_sapling.gltf,baked/nature/tree_pineDefaultB.m3d,https://polyhaven.com/a/fir_sapling,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineGroundA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineGroundA.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineGroundB,source/3dassets/alpine-and-arctic-biomes-timberline-tree-4975b730.glb,baked/nature/tree_pineGroundB.m3d,https://3dassets.dev/assets/alpine-and-arctic-biomes-timberline-tree-4975b730,3D Assets,CC0-1.0,2026-09-25,no
+tree_pineRoundA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundA.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineRoundB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundB.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineRoundC,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundC.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineRoundD,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineRoundD.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineSmallA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineSmallA.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineSmallB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineSmallB.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineTallA,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineTallA.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_pineTallB,source/polyhaven/pine_sapling_small/pine_sapling_small.gltf,baked/nature/tree_pineTallB.m3d,https://polyhaven.com/a/pine_sapling_small,Rob Tuytel; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_palmDetailedShort,source/3dassets/greek-island-village-and-harbour-fig-tree-15e48fe1.glb,baked/nature/tree_palmDetailedShort.m3d,https://3dassets.dev/assets/greek-island-village-and-harbour-fig-tree-15e48fe1,3D Assets,CC0-1.0,2026-09-25,no
 tree_palmDetailedTall,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palmDetailedTall.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
-tree_palmShort,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palmShort.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
-tree_palmTall,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palmTall.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
-tree_palm,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palm.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
-tree_palmBend,source/3dassets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb,baked/nature/tree_palmBend.m3d,https://3dassets.dev/assets/desert-mosque-and-madrasa-courtyard-date-palm-c311e205,3D Assets,CC0-1.0,2026-09-25,no
+tree_palmShort,source/3dassets/jungle-temple-and-stone-city-palm-sapling-6702b25c.glb,baked/nature/tree_palmShort.m3d,https://3dassets.dev/assets/jungle-temple-and-stone-city-palm-sapling-6702b25c,3D Assets,CC0-1.0,2026-09-25,no
+tree_palmTall,source/3dassets/jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41.glb,baked/nature/tree_palmTall.m3d,https://3dassets.dev/assets/jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41,3D Assets,CC0-1.0,2026-09-25,no
+tree_palm,source/polyhaven/quiver_tree_01/quiver_tree_01.gltf,baked/nature/tree_palm.m3d,https://polyhaven.com/a/quiver_tree_01,James Ray Cock; Dario Barresi; Rico Cilliers,CC0-1.0,2026-09-25,no
+tree_palmBend,source/polyhaven/quiver_tree_02/quiver_tree_02.gltf,baked/nature/tree_palmBend.m3d,https://polyhaven.com/a/quiver_tree_02,Dario Barresi; Rico Cilliers,CC0-1.0,2026-09-25,no
 tree_plateau,source/3dassets/exotic-wildlife-hd-umbrella-acacia-850a62bb.glb,baked/nature/tree_plateau.m3d,https://3dassets.dev/assets/exotic-wildlife-hd-umbrella-acacia-850a62bb,3D Assets,CC0-1.0,2026-09-25,no
 tree_small,source/3dassets/exotic-wildlife-hd-baobab-tree-fb196805.glb,baked/nature/tree_small.m3d,https://3dassets.dev/assets/exotic-wildlife-hd-baobab-tree-fb196805,3D Assets,CC0-1.0,2026-09-25,no
 tree_urbanCherry,source/3dassets/japanese-school-and-city-street-cherry-tree-blossom-618a9f6d.glb,baked/nature/tree_urbanCherry.m3d,https://3dassets.dev/assets/japanese-school-and-city-street-cherry-tree-blossom-618a9f6d,3D Assets,CC0-1.0,2026-09-25,no

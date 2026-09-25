@@ -4,6 +4,7 @@
 /cmake-build-*/
 /out/
 /dist/
+/screenshots/
 /.vs/
 CMakeFiles/
 CMakeCache.txt
@@ -37,3 +38,7 @@ __pycache__/
 
 # Jolt is a separately pinned upstream checkout (see README.md)
 /third_party/JoltPhysics/
+
+# Large Poly Haven source geometry; restore with tools/fetch_city_sources.ps1
+/assets/models/source/polyhaven/island_tree_03/island_tree_03.bin
+/assets/models/source/polyhaven/jacaranda_tree/jacaranda_tree.bin

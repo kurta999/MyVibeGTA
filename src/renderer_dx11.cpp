@@ -14,6 +14,7 @@
 #include "weather.h"
 #include "regions.h"
 #include "commerce.h"
+#include "fire.h"
 #include "logging.h"
 #include <algorithm>
 #include <array>
@@ -247,7 +248,17 @@ float4 PS(Output input):SV_TARGET{
         base.rgb=pow(saturate(base.rgb),2.2);
     if(material==1||modelTexture)
         base*=diffuseTexture.Sample(linearSampler,input.uv);
-    if(modelTexture&&material!=13)clip(base.a-0.35);
+    if(modelTexture&&material!=13){
+        float threshold=material==4?0.42:0.35;
+        clip(base.a-threshold);
+    }
+    if(material==4&&modelTexture&&base.g>base.r*1.18){
+        float nearCamera=distance(input.world,eye.xyz);
+        float keep=smoothstep(11.0,34.0,nearCamera);
+        float stableNoise=frac(sin(dot(floor(input.world.xz*0.72),
+            float2(12.9898,78.233)))*43758.5453);
+        clip(keep-stableNoise);
+    }
     if(material==13){
         float distanceToEye=distance(input.world,eye.xyz);
         float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
@@ -337,7 +348,15 @@ float4 PS(Output input):SV_TARGET{
         float2 uv=float2(projected.x*0.5+0.5,0.5-projected.y*0.5);
         if(all(uv>=0)&&all(uv<=1)&&projected.z>0&&projected.z<1){
             float bias=max(0.00018,0.0012*(1-diffuse));
-            visibility=lerp(0.35,1.0,shadowTexture.SampleCmpLevelZero(shadowSampler,uv,projected.z-bias));
+            uint shadowWidth,shadowHeight;
+            shadowTexture.GetDimensions(shadowWidth,shadowHeight);
+            float2 texel=1.0/float2(shadowWidth,shadowHeight);
+            float filtered=0;
+            [unroll] for(int sy=0;sy<2;++sy)
+                [unroll] for(int sx=0;sx<2;++sx)
+                    filtered+=shadowTexture.SampleCmpLevelZero(shadowSampler,
+                        uv+(float2(sx,sy)-0.5)*texel*1.6,projected.z-bias);
+            visibility=lerp(0.24,1.0,filtered*0.25);
         }
     }
     float3 lightDirection=normalize(sun.xyz);
@@ -383,7 +402,14 @@ float4 PS(Output input):SV_TARGET{
     return float4(lerp(lit,fogColor.rgb,fog),material==15?0.2:base.a);
 }
 void PSShadowAlpha(Output input){
-    clip(diffuseTexture.Sample(linearSampler,input.uv).a-0.35);
+    float4 base=diffuseTexture.Sample(linearSampler,input.uv);
+    clip(base.a-0.42);
+    if(base.g>base.r*1.18){
+        float keep=smoothstep(11.0,34.0,distance(input.world,eye.xyz));
+        float stableNoise=frac(sin(dot(floor(input.world.xz*0.72),
+            float2(12.9898,78.233)))*43758.5453);
+        clip(keep-stableNoise);
+    }
 }
 )HLSL";
 const char* hudShader=R"HLSL(
@@ -457,8 +483,24 @@ float4 PS(Input input):SV_TARGET{
         center=lerp(center,reflection,hit?0.60*effects.w:0.28*effects.w);
     }
     if(d>=0.9999){
-        float gradient=smoothstep(0.0,0.85,1-uv.y);
+        float4 farPoint=mul(float4(uv.x*2-1,1-uv.y*2,1,1),inverseViewProjection);
+        float3 ray=normalize(farPoint.xyz/farPoint.w-cameraEye.xyz);
+        float gradient=saturate(0.34+ray.y*1.8);
         center=lerp(skyHorizon.rgb,skyTop.rgb,gradient);
+        float drift=skyHorizon.w*0.018;
+        float2 cloudUv=ray.xz/max(0.14,ray.y+0.12);
+        float vapor=0.5+0.24*sin(cloudUv.x*8+cloudUv.y*3+drift)+
+            0.16*sin(cloudUv.x*17-cloudUv.y*11-drift*0.6)+
+            0.10*sin(cloudUv.x*29+cloudUv.y*19+drift*1.3);
+        float cloud=smoothstep(0.57,0.77,vapor)*
+            saturate((ray.y+0.03)*5.0)*(0.16+skyTop.w*0.46);
+        float cloudDay=saturate((skyTop.b-0.09)/0.55);
+        center=lerp(center,lerp(float3(0.12,0.15,0.21),
+            float3(0.82,0.86,0.88),cloudDay),cloud);
+        float ridge=0.006+0.013*sin(ray.x*19+ray.z*7)+
+            0.008*sin(ray.x*41-ray.z*23);
+        center=lerp(center,skyHorizon.rgb*0.66,
+            1-smoothstep(ridge,ridge+0.014,ray.y));
     }
     if(effects.x>0.01&&d<0.9999){
         float z=linearDepth(d),occlusion=0;
@@ -843,8 +885,7 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     XMVECTOR targetPoint=XMVectorSet(pose.target.x,pose.target.y,pose.target.z,1);
     // Movement, steering, and mouse yaw use the same right-handed view as the OpenGL build.
     XMMATRIX view=XMMatrixLookAtRH(eye,targetPoint,XMVectorSet(0,1,0,0));
-    const float drawScales[]={0.65f,1.0f,1.5f};
-    float drawScale=drawScales[std::clamp(ui::drawDistance,0,2)];
+    float drawScale=ui::drawDistanceScale();
     XMMATRIX projection=XMMatrixPerspectiveFovRH(XMConvertToRadians(camera::fieldOfView()),
         float(bufferW)/bufferH,2.0f,1250.0f*drawScale);
     XMStoreFloat4x4(&constants.viewProjection,XMMatrixMultiply(view,projection));
@@ -858,8 +899,8 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     XMStoreFloat4x4(&constants.shadowViewProjection,XMMatrixMultiply(lightView,lightProjection));
     const float night=1.0f-daylight;
     const float twilight=std::max(0.0f,1.0f-std::abs(solar)*3.5f);
-    constants.ambient={0.27f+0.47f*light,0.30f+0.43f*light,
-        0.37f+0.36f*light,0};
+    constants.ambient={0.18f+0.36f*light,0.21f+0.35f*light,
+        0.27f+0.34f*light,0};
     constants.fogColor={0.045f+0.52f*light,0.065f+0.68f*light,
         0.14f+0.74f*light,1};
     constants.fogColor.x=constants.fogColor.x*(1-conditions.clouds*0.4f)+
@@ -919,6 +960,9 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             }
         }
     }
+    for(const auto& flame:fire::active())
+        addLight(flame.p.x,12,flame.p.z,70+flame.intensity*25,
+            1.0f,0.29f,0.08f,0.85f+flame.intensity*0.65f);
     std::sort(lights.begin(),lights.end(),[](const LocalLight& a,const LocalLight& b){
         return a.distance<b.distance;});
     for(size_t i=0;i<std::min<size_t>(lights.size(),12);++i){
@@ -926,9 +970,8 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
         constants.localLightColor[i]=lights[i].color;
     }
     constants.eye={pose.eye.x,pose.eye.y,pose.eye.z,float(ui::graphicsQuality)};
-    float fogEnd=(ui::graphicsQuality==0?650.0f:ui::graphicsQuality==1?850.0f:1050.0f)*
-        drawScale*conditions.visibility;
-    constants.params={0,fogEnd*0.42f,fogEnd,
+    float fogEnd=1250.0f*drawScale*0.94f*conditions.visibility;
+    constants.params={0,fogEnd*0.51f,fogEnd,
         shadowDepth&&ui::shadowQuality>0&&daylight>0.05f?1.0f:0.0f};
     return constants;
 }
@@ -1168,9 +1211,8 @@ void render(){
     XMStoreFloat4x4(&post.inverseViewProjection,
         XMMatrixInverse(nullptr,XMLoadFloat4x4(&constants.viewProjection)));
     post.cameraEye=constants.eye;
-    const float postDrawScales[]={0.65f,1.0f,1.5f};
     post.pixelSize={1.0f/bufferW,1.0f/bufferH,2.0f,
-        1250.0f*postDrawScales[std::clamp(ui::drawDistance,0,2)]};
+        1250.0f*ui::drawDistanceScale()};
     const auto biome=regions::biomeAt(player);
     XMFLOAT4 tint{1,1,1,1.15f};
     if(biome==regions::Biome::Snow)tint={0.90f,0.97f,1.08f,1.12f};
@@ -1183,9 +1225,9 @@ void render(){
     tint.w*=1.0f-weather::current().clouds*0.13f;
     post.grade=tint;
     post.skyTop={0.015f+0.10f*daylight,0.025f+0.32f*daylight,
-        0.09f+0.60f*daylight,1};
+        0.09f+0.60f*daylight,weather::current().clouds};
     post.skyHorizon={0.055f+0.55f*daylight,0.075f+0.68f*daylight,
-        0.15f+0.69f*daylight,1};
+        0.15f+0.69f*daylight,gameHour};
     post.skyTop.x+=twilight*0.10f;
     post.skyTop.y-=twilight*0.07f;
     post.skyHorizon.x+=twilight*0.34f;

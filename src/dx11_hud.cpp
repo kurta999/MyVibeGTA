@@ -240,16 +240,25 @@ void pauseMenu(int width,int height){
     }else if(ui::page==ui::Page::Graphics){
         const char* quality[]={"Low","Medium","High"};const char* sizes[]={"1280 x 720","1600 x 900","1920 x 1080"};
         const char* shadows[]={"Off","Medium","High"};
-        const char* ranges[]={"Near","Standard","Far"};
         const char* items[]={quality[ui::graphicsQuality],sizes[ui::windowChoice],
-            quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality],
-            ranges[ui::drawDistance],ranges[ui::lodDistance]};
+            quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
             "Draw distance","LOD distance"};
         for(int i=0;i<7;++i){int row=y+105+i*50;
             if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
-            std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
-            label(x+42,row+5,buffer,RGB(239,241,229));}
+            if(i<5){
+                std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
+                label(x+42,row+5,buffer,RGB(239,241,229));
+            }else{
+                int value=i==5?ui::drawDistance:ui::lodDistance;
+                if(i==5)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
+                    names[i],1250.0f*ui::drawDistanceScale());
+                else std::snprintf(buffer,sizeof(buffer),"%s: %d%%",names[i],value);
+                label(x+42,row+5,buffer,RGB(239,241,229));
+                rect(x+290,row+12,220,8,RGB(58,72,82));
+                rect(x+290,row+12,220*value/100,8,RGB(241,191,100));
+                rect(x+286+220*value/100,row+7,8,18,RGB(248,231,185));
+            }}
     }else if(ui::page==ui::Page::Controls){
         const char* names[]={"Mouse sensitivity","Invert vertical mouse","Forward","Backward","Left","Right","Sprint","Interact"};
         for(int i=0;i<8;++i){int row=y+105+i*39;
@@ -264,7 +273,7 @@ void pauseMenu(int width,int height){
         rect(x+22,y+124,510,40,RGB(73,113,134));
         label(x+42,y+134,buffer,RGB(239,241,231));
     }
-    label(x+28,y+467,"Arrow keys: select/change    Enter: choose    Esc: back",RGB(197,207,212));
+    label(x+28,y+467,"Arrows or mouse: adjust    Enter: choose    Esc: back",RGB(197,207,212));
 }
 void debugMenu(int width,int height){
     if(!debug_menu::open)return;
@@ -313,20 +322,25 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(!memoryDC||!dib){std::memset(pixels,0,size_t(width)*height*4);return;}
     std::memset(dib,0,size_t(width)*height*4);
     char textBuffer[240];
-    rect(12,12,760,72,RGB(31,41,49));
+    rect(12,12,ui::showHelp?760:190,ui::showHelp?72:53,RGB(31,41,49));
     int hour=int(game::gameHour),minute=int((game::gameHour-hour)*60);
     label(24,19,"MINI CITY 3D",RGB(255,225,151));
-    if(game::occupied>=0){
+    if(ui::showHelp&&game::occupied>=0){
         const auto& vehicle=game::vehicles[game::occupied];
         const char* name=vehicle.kind==game::Kind::Boat?"BOAT":vehicle.kind==game::Kind::Bike?"BIKE":
             vehicle.kind==game::Kind::SportCar?"SPORT CAR":"CAR";
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  S brake  |  SPACE drift  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
-    }else std::snprintf(textBuffer,sizeof(textBuffer),"WASD move  |  SHIFT run  |  RMB aim  |  LMB fire  |  R reload");
-    label(220,19,textBuffer,RGB(223,230,230));
-    label(24,49,"1-9 / Q guns  |  C camera  |  B telescope  |  E vehicle  |  F use  |  TAB choose  |  G carry",RGB(201,215,215));
-    rect(12,89,160,28,RGB(31,41,49));
-    label(24,93,weather::current().name.c_str(),RGB(211,230,236));
+    }else if(ui::showHelp)std::snprintf(textBuffer,sizeof(textBuffer),
+        "WASD move  |  SHIFT run  |  RMB aim  |  LMB fire  |  R reload");
+    if(ui::showHelp){
+        label(220,19,textBuffer,RGB(223,230,230));
+        label(24,49,"1-9 / Q guns  |  C camera  |  B telescope  |  E vehicle  |  F use  |  TAB choose  |  G carry",RGB(201,215,215));
+    }else{
+        std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  F1 HELP",
+            weather::current().name.c_str());
+        label(24,40,textBuffer,RGB(211,230,236));
+    }
     map(18,height-169,180,140,false);
     int statusX=width-360;
     rect(statusX,12,348,156,RGB(31,41,49));
@@ -486,7 +500,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         std::snprintf(textBuffer,sizeof(textBuffer),"FIRE %zu   SHOTS %zu   PROPS %zu",
             fire::active().size(),game::bullets.size(),game::props.size());
         label(width-265,height-45,textBuffer,RGB(224,245,220));}
-    if(!ui::paused()&&!debug_menu::open)
+    if(ui::showHelp&&!ui::paused()&&!debug_menu::open)
         label(18,height-28,"F4 DEBUG MENU",RGB(197,211,213));
     if(commerce::menu()!=commerce::Menu::None&&!ui::paused()){
         auto entries=commerce::menuEntries();

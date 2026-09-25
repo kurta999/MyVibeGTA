@@ -112,19 +112,26 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
                 message=views[int(cameraMode)];messageTime=2;
             }
             if(wp==VK_F3)debugHud=!debugHud;
+            if(wp==VK_F1)ui::showHelp=!ui::showHelp;
             if(wp=='T')gameHour=std::fmod(gameHour+1.0f,24.0f);
             if(wp=='Q')for(int i=1;i<=weapons::count();++i){int candidate=(weapon+i)%weapons::count();
                 if(unlocked[candidate]){weapon=candidate;break;}}
         }
         if(wp=='R'){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
     case WM_KEYUP:if(wp<256)keys[wp]=false;return 0;
-    case WM_LBUTTONDOWN:if(!ui::paused()&&commerce::menu()==commerce::Menu::None
+    case WM_LBUTTONDOWN:if(ui::paused()){
+            ui::handleMouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),false);return 0;
+        }
+        if(commerce::menu()==commerce::Menu::None
 #ifdef MINI_CITY_JOLT
         &&!debug_menu::open
 #endif
         )
         leftMouse=true;return 0;
     case WM_LBUTTONUP:leftMouse=false;return 0;
+    case WM_MOUSEMOVE:if(ui::paused()&&(wp&MK_LBUTTON))
+            ui::handleMouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),true);
+        return 0;
     case WM_RBUTTONDOWN:if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&
 #ifdef MINI_CITY_JOLT
         !debug_menu::open&&

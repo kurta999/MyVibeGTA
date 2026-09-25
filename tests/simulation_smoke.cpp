@@ -1279,8 +1279,9 @@ int main(){
     game::interact();
     assert((game::money==90&&game::peds[0].cash==0)||
            (game::money==0&&game::peds[0].hostile));
-    ui::shadowQuality=2;ui::drawDistance=2;ui::lodDistance=0;ui::save();
-    ui::shadowQuality=0;ui::drawDistance=0;ui::lodDistance=2;ui::load();
-    assert(ui::shadowQuality==2&&ui::drawDistance==2&&ui::lodDistance==0);
+    ui::shadowQuality=2;ui::drawDistance=100;ui::lodDistance=75;ui::save();
+    ui::shadowQuality=0;ui::drawDistance=0;ui::lodDistance=0;ui::load();
+    assert(ui::shadowQuality==2&&ui::drawDistance==100&&ui::lodDistance==75);
+    assert(std::abs(ui::drawDistanceScale()-7.5f)<0.001f);
     std::puts("simulation smoke passed");
 }
