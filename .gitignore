@@ -1,5 +1,39 @@
-/build-jolt
-/build-jolt-ninja
-/dist
+# Local builds and packages
+/build/
+/build-*/
+/cmake-build-*/
+/out/
+/dist/
+/.vs/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+
+# Compiled files and runtime output
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+*.pch
+*.lib
+*.a
+*.dll
+*.exp
+*.log
+/*.exe
+/*.bmp
+/settings.ini
+/savegame.ini
 /tests/bin/
-/tools
+/tests/*.exe
+/tests/*.bmp
+
+# Python tool caches
+__pycache__/
+*.py[cod]
+
+# Jolt is a separately pinned upstream checkout (see README.md)
+/third_party/JoltPhysics/

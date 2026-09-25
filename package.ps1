@@ -1,4 +1,5 @@
-param([switch]$SkipBuild,[switch]$IncludeOpenGL,
+param([switch]$SkipBuild,[switch]$SkipSmoke,[switch]$IncludeOpenGL,
+    [string]$PackageName='',
     [string]$Direct3DExecutable='MiniCity3D.exe',
     [string]$OpenGLExecutable='MiniCity3DGL.exe')
 $ErrorActionPreference = 'Stop'
@@ -10,8 +11,13 @@ if (-not $SkipBuild) {
 
 $outputDirectory = Join-Path $PSScriptRoot 'dist'
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
-$packageName = 'MiniCity3D-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' +
-    ([guid]::NewGuid().ToString('N').Substring(0,4))
+$packageName = if ($PackageName) { $PackageName } else {
+    'MiniCity3D-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' +
+        ([guid]::NewGuid().ToString('N').Substring(0,4))
+}
+if ($packageName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+    throw 'PackageName must contain only letters, digits, dots, underscores, and hyphens.'
+}
 $packageDirectory = Join-Path $outputDirectory $packageName
 New-Item -ItemType Directory -Path $packageDirectory | Out-Null
 
@@ -29,26 +35,42 @@ if ($IncludeOpenGL) {
     $executables += 'MiniCity3DGL.exe'
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'README.md') -Destination $packageDirectory
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets') -Destination $packageDirectory -Recurse
+$assetSource = Join-Path $PSScriptRoot 'assets'
+$assetDestination = Join-Path $packageDirectory 'assets'
+New-Item -ItemType Directory -Path $assetDestination | Out-Null
+foreach ($fileName in @('character_atlas.png', 'texture_atlas.png')) {
+    Copy-Item -LiteralPath (Join-Path $assetSource $fileName) -Destination $assetDestination
+}
+foreach ($folderName in @('effects', 'materials')) {
+    Copy-Item -LiteralPath (Join-Path $assetSource $folderName) -Destination $assetDestination -Recurse
+}
+$modelSource = Join-Path $assetSource 'models'
+$modelDestination = Join-Path $assetDestination 'models'
+New-Item -ItemType Directory -Path $modelDestination | Out-Null
+Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
+foreach ($fileName in @('LICENSES.md', 'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md')) {
+    Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
+}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'data') -Destination $packageDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'third_party\JoltPhysics\LICENSE') `
     -Destination (Join-Path $packageDirectory 'JoltPhysics-LICENSE.txt')
 
-foreach ($fileName in $executables) {
+if (-not $SkipSmoke) {
+    foreach ($fileName in $executables) {
     $gameProcess = Start-Process -FilePath (Join-Path $packageDirectory $fileName) `
         -ArgumentList '--smoke --day' -WorkingDirectory $packageDirectory `
         -PassThru -Wait -WindowStyle Hidden
     if ($gameProcess.ExitCode -ne 0) {
         throw "$fileName failed its packaged smoke run with exit code $($gameProcess.ExitCode)"
     }
-}
-$nightRun = Start-Process -FilePath (Join-Path $packageDirectory 'MiniCity3D.exe') `
+    }
+    $nightRun = Start-Process -FilePath (Join-Path $packageDirectory 'MiniCity3D.exe') `
     -ArgumentList '--smoke --night --ragdoll' -WorkingDirectory $packageDirectory `
     -PassThru -Wait -WindowStyle Hidden
-if ($nightRun.ExitCode -ne 0) {
+    if ($nightRun.ExitCode -ne 0) {
     throw "MiniCity3D.exe failed its packaged night/ragdoll smoke run with exit code $($nightRun.ExitCode)"
-}
-foreach ($regionFlag in @('--causeway', '--east', '--snowfield', '--desert-hub', '--savanna',
+    }
+    foreach ($regionFlag in @('--causeway', '--east', '--snowfield', '--desert-hub', '--savanna',
         '--swim', '--climb', '--fall', '--debug-menu')) {
     $regionRun = Start-Process -FilePath (Join-Path $packageDirectory 'MiniCity3D.exe') `
         -ArgumentList "--smoke --day $regionFlag" -WorkingDirectory $packageDirectory `
@@ -56,10 +78,12 @@ foreach ($regionFlag in @('--causeway', '--east', '--snowfield', '--desert-hub',
     if ($regionRun.ExitCode -ne 0) {
         throw "MiniCity3D.exe failed packaged $regionFlag smoke run with exit code $($regionRun.ExitCode)"
     }
+    }
 }
 
 $packageLog = Join-Path $packageDirectory 'MiniCity3D.log'
 if (Test-Path -LiteralPath $packageLog) { Remove-Item -LiteralPath $packageLog }
 $archivePath = "$packageDirectory.zip"
 Compress-Archive -LiteralPath $packageDirectory -DestinationPath $archivePath -CompressionLevel Optimal
-Write-Host "Packaged and smoke-tested $archivePath"
+if ($SkipSmoke) { Write-Host "Packaged $archivePath" }
+else { Write-Host "Packaged and smoke-tested $archivePath" }

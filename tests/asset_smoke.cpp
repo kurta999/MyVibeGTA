@@ -1,5 +1,5 @@
-#include "../dx11_assets.h"
-#include "../data_file.h"
+#include "../src/dx11_assets.h"
+#include "../src/data_file.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif

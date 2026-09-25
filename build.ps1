@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $common = @('main.cpp','input.cpp','logging.cpp','game.cpp','ai.cpp','content.cpp','audio.cpp','ui.cpp','physics.cpp','weapons.cpp',
     'savegame.cpp','camera.cpp','props.cpp')
 if ($OpenGL) {
-    $sources = $common + @('renderer.cpp','textures.cpp')
+    $sources = @($common | ForEach-Object { "src/$_" }) + @('src/renderer.cpp','src/textures.cpp')
     $target = if ($OutputPath) { $OutputPath } else { 'MiniCity3DGL.exe' }
     clang++ -std=c++17 -O2 @sources -o $target '-Wl,/SUBSYSTEM:WINDOWS' `
         -luser32 -lgdi32 -lopengl32 -lglu32 -lgdiplus -lole32 -lxaudio2

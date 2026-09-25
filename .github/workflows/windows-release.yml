@@ -1,0 +1,63 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source and Jolt
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Configure Direct3D 11 build
+        run: cmake -S . -B build-ci -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+
+      - name: Build game and tests
+        run: cmake --build build-ci --config Release --target MiniCity3D simulation_smoke asset_smoke --parallel 4
+
+      - name: Run smoke tests
+        run: ctest --test-dir build-ci -C Release --output-on-failure
+
+      - name: Package game
+        shell: pwsh
+        run: ./package.ps1 -SkipBuild -SkipSmoke -PackageName 'MiniCity3D-build-${{ github.run_number }}' -Direct3DExecutable 'build-ci/Release/MiniCity3D.exe'
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: MiniCity3D-windows
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested package
+        uses: actions/download-artifact@v7
+        with:
+          name: MiniCity3D-windows
+          path: dist
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Mini City 3D build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*.zip
