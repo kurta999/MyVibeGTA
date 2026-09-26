@@ -876,6 +876,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
 }
 void people(){
     for(const auto& ped:game::peds){
+        if(ped.drivingVehicle>=0)continue;
         if(!close(ped.p,420))continue;
         if(!ped.alive){
             if(ped.pinned){
@@ -897,10 +898,12 @@ void people(){
         }
         bool hit=ped.hitFlash>0;
         bool attacking=ped.attackVisualTime>0;
-        int action=hit?4:attacking?(ped.armed?6:10):-1;
+        bool entering=ped.state==game::PedState::EnterVehicle;
+        int action=hit?4:attacking?(ped.armed?6:10):entering?9:-1;
         float phase=hit?std::clamp(1.0f-ped.hitFlash/0.3f,0.0f,1.0f):
             attacking?std::clamp(1.0f-ped.attackVisualTime/
-                (ped.armed?0.32f:0.42f),0.0f,1.0f):-1.0f;
+                (ped.armed?0.32f:0.42f),0.0f,1.0f):
+            entering?std::clamp(ped.boardingTime/0.75f,0.0f,1.0f):-1.0f;
         character(ped.p,ped.angle,ped.style,ped.armed,
             ped.panic>0||game::len(ped.target-ped.p)>10,
             ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,

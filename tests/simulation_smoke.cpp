@@ -71,7 +71,16 @@ double connectedPlayableArea(){
     return double(conservativeCells)*step*step;
 }
 
-int main(){
+void trafficScenarios();
+void navigationScenarios();
+int main(int argc,char** argv){
+    if(argc>1&&(std::string(argv[1])=="--traffic-only"||std::string(argv[1])=="--navigation-only")){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();
+        if(std::string(argv[1])=="--navigation-only")navigationScenarios();
+        else trafficScenarios();return 0;
+    }
     std::srand(1);
     char currentDirectory[MAX_PATH]{};GetCurrentDirectoryA(MAX_PATH,currentDirectory);
     std::string weaponConfig=std::string(currentDirectory)+"\\weapons-test.ini";

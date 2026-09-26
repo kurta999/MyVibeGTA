@@ -7,6 +7,7 @@
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "traffic.h"
 #endif
 #include <algorithm>
 #include <cmath>
@@ -308,6 +309,9 @@ bool load(){
         tree.burning=false;
     }
     game::activeMission=-1;game::missionStep=0;
+#ifdef MINI_CITY_JOLT
+    traffic::afterLoad();
+#endif
     return true;
 }
 }

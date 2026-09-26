@@ -7,6 +7,7 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Constraints/DistanceConstraint.h>
 #include <Jolt/Physics/Vehicle/VehicleConstraint.h>
@@ -54,6 +55,30 @@ std::unique_ptr<JPH::TempAllocatorImpl> allocator;
 std::unique_ptr<JPH::JobSystemSingleThreaded> jobs;
 std::vector<JPH::BodyID> propBodies;
 std::vector<JPH::BodyID> vehicleBodies;
+// The physics jobs are single threaded. Queue contacts and apply gameplay
+// damage after Update, when the physics world is no longer locked.
+std::vector<std::pair<int,float>> playerCarContacts;
+class TrafficContacts final:public JPH::ContactListener {
+    void record(const JPH::Body& a,const JPH::Body& b){
+        int occupied=game::occupied;
+        if(occupied<0||occupied>=int(vehicleBodies.size())||
+           std::abs(game::vehicles[occupied].speed)<10)return;
+        JPH::BodyID other;
+        if(a.GetID()==vehicleBodies[occupied])other=b.GetID();
+        else if(b.GetID()==vehicleBodies[occupied])other=a.GetID();
+        else return;
+        float speed=(a.GetLinearVelocity()-b.GetLinearVelocity()).Length();
+        if(speed<12)return;
+        for(int i=0;i<int(vehicleBodies.size());++i)if(vehicleBodies[i]==other){
+            playerCarContacts.push_back({i,speed});break;}
+    }
+public:
+    void OnContactAdded(const JPH::Body& a,const JPH::Body& b,
+        const JPH::ContactManifold&,JPH::ContactSettings&) override{record(a,b);}
+    void OnContactPersisted(const JPH::Body& a,const JPH::Body& b,
+        const JPH::ContactManifold&,JPH::ContactSettings&) override{record(a,b);}
+};
+TrafficContacts trafficContacts;
 std::vector<JPH::Ref<JPH::VehicleConstraint>> vehicleConstraints;
 std::vector<game::Vec2> vehicleSynced;
 JPH::Ref<JPH::CharacterVirtual> playerCharacter;
@@ -196,6 +221,7 @@ void reset(){
     jobs=std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
     world=std::make_unique<JPH::PhysicsSystem>();
     world->Init(2048,0,4096,2048,broadPhase,broadFilter,pairFilter);
+    world->SetContactListener(&trafficContacts);
     world->SetGravity(JPH::Vec3(0,-700,0));
     addStatic({game::WORLD_W*0.5f,-5,game::SHORE*0.5f},
         {game::WORLD_W*0.5f,5,game::SHORE*0.5f});
@@ -344,7 +370,7 @@ void reset(){
     pedestrianSettings->mMaxStrength=0.0f;
     pedCharacters.resize(game::peds.size());
     for(std::size_t index=0;index<game::peds.size();++index)
-        if(game::peds[index].alive&&game::len(game::peds[index].p-game::player)<500)
+        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<500)
             pedCharacters[index]=makePedCharacter(game::peds[index].p);
     world->OptimizeBroadPhase();
 }
@@ -353,7 +379,7 @@ void addPed(){
     std::size_t previous=pedCharacters.size();
     pedCharacters.resize(game::peds.size());
     for(std::size_t index=previous;index<game::peds.size();++index)
-        if(game::peds[index].alive&&game::len(game::peds[index].p-game::player)<500)
+        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<500)
             pedCharacters[index]=makePedCharacter(game::peds[index].p);
 }
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
@@ -450,7 +476,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     position=character->GetPosition();
     ped.p={float(position.GetX()),float(position.GetZ())};
 }
-void driveVehicle(std::size_t index,float throttle,float steering,float){
+void driveVehicle(std::size_t index,float throttle,float steering,float,bool brake){
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
     auto& vehicle=game::vehicles[index];auto& bodies=world->GetBodyInterface();
     if(int(index)==game::occupied)syncBuildingColliders(vehicle.p);
@@ -475,11 +501,11 @@ void driveVehicle(std::size_t index,float throttle,float steering,float){
         float power=std::max(0.35f,1.0f-vehicle.damage/145.0f);
         float torque=physics::tuning(vehicle.kind).engineTorque;
         controller->GetEngine().mMaxTorque=torque*power;
-        bool braking=throttle*vehicle.speed<-5.0f;
+        bool braking=brake||throttle*vehicle.speed<-5.0f;
         controller->SetDriverInput(braking?0.0f:throttle,steering,
             braking?1.0f:std::abs(throttle)<0.01f?0.03f:0.0f,
             int(index)==game::occupied&&game::keys[VK_SPACE]?1.0f:0.0f);
-        if(std::abs(throttle)>0.01f||std::abs(steering)>0.01f) bodies.ActivateBody(id);
+        if(brake||std::abs(throttle)>0.01f||std::abs(steering)>0.01f) bodies.ActivateBody(id);
     }
 }
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle){
@@ -623,7 +649,7 @@ void step(float dt){
         std::size_t(game::occupied)<game::vehicles.size()?
         game::vehicles[game::occupied].p:game::player);
     for(std::size_t index=0;index<pedCharacters.size()&&index<game::peds.size();++index)
-        if(!game::peds[index].alive)pedCharacters[index]=nullptr;
+        if(!game::peds[index].alive||game::peds[index].drivingVehicle>=0)pedCharacters[index]=nullptr;
     auto& bodies=world->GetBodyInterface();
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid()||game::vehicles[i].kind!=game::Kind::Boat)continue;
@@ -635,7 +661,13 @@ void step(float dt){
             bodies.AddForce(vehicleBodies[i],JPH::Vec3(0,550*std::max(0.0f,acceleration),0));
         }
     }
+    playerCarContacts.clear();
     world->Update(dt,1,allocator.get(),jobs.get());
+    for(auto [index,speed]:playerCarContacts){
+        if(index>=int(game::vehicles.size())||game::vehicles[index].collisionCooldown>0)continue;
+        game::damageVehicle(index,std::max(1.0f,(speed-12)*0.12f),true);
+        game::vehicles[index].collisionCooldown=0.35f;
+    }
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid())continue;
         auto position=bodies.GetCenterOfMassPosition(vehicleBodies[i]);

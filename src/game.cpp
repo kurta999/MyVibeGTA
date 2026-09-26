@@ -18,6 +18,7 @@
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "traffic.h"
 #include "debug_menu.h"
 #endif
 #include "ai.h"
@@ -117,10 +118,13 @@ bool vehicleLightsOn(const Vehicle& vehicle){
         (vehicle.lightsManual?vehicle.lightsOn:
             std::sin((gameHour-6)*PI/12.0f)<0.12f);
 }
-void damageVehicle(int index,float amount){
+void damageVehicle(int index,float amount,bool playerCaused){
     if(index<0||index>=int(vehicles.size())||!std::isfinite(amount)||amount<=0)return;
     Vehicle& vehicle=vehicles[index];
     if(vehicle.exploded)return;
+#ifdef MINI_CITY_JOLT
+    if(playerCaused)traffic::damaged(index,amount);
+#endif
     const auto tuning=physics::tuning(vehicle.kind);
     vehicle.damage=std::min(100.0f,vehicle.damage+amount/tuning.maxHealth*100.0f);
     if(vehicle.damage<100){
@@ -157,11 +161,11 @@ void damageVehicle(int index,float amount){
         prop.health-=int((1-len(prop.p-vehicle.p)/90)*110);
     for(int other=0;other<int(vehicles.size());++other)if(other!=index){
         float distance=len(vehicles[other].p-vehicle.p);
-        if(distance<85)damageVehicle(other,(1-distance/85)*115);
+        if(distance<85)damageVehicle(other,(1-distance/85)*115,playerCaused);
     }
     announce("VEHICLE EXPLODED",3);
 }
-void explodeAt(Vec3 point,float radius,int damage){
+void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
     if(radius<=0||damage<=0)return;
     blasts.push_back({point,0.75f,radius});
     fire::ignite({point.x,point.z},fire::surfaceAt(point));
@@ -190,7 +194,7 @@ void explodeAt(Vec3 point,float radius,int damage){
     }
     for(int index=0;index<int(vehicles.size());++index){
         float distance=len(vehicles[index].p-center);
-        if(distance<radius)damageVehicle(index,damage*(1-distance/radius));
+        if(distance<radius)damageVehicle(index,damage*(1-distance/radius),playerCaused);
     }
     for(int index:regions::nearbyTreeIndices(center,radius)){
         if(index<0||std::size_t(index)>=trees.size())continue;
@@ -364,6 +368,9 @@ void reset(){
     announce("Find the colored mission markers. Press F to start; M opens the map.",8);
     content::populate();
     regions::populate();
+#ifdef MINI_CITY_JOLT
+    traffic::reset();
+#endif
     commerce::reset();
     traversal::reset();
     weather::reset();
@@ -399,7 +406,7 @@ std::vector<Interaction> availableInteractions(){
     int target=-1;float targetDistance=29;
     for(int i=0;i<int(peds.size());++i){
         const Ped& ped=peds[i];
-        if(!ped.alive||ped.cash<=0||ped.hostile)continue;
+        if(!ped.alive||ped.drivingVehicle>=0||ped.cash<=0||ped.hostile)continue;
         float distance=len(ped.p-player);
         if(distance>=targetDistance||!clearLine(player,ped.p))continue;
         Vec2 facing=forward(ped.angle),behind=norm(player-ped.p);
@@ -493,6 +500,7 @@ void interact(){
     }else if(action.type==InteractionType::Pickpocket){
         Ped& ped=peds[action.index];
         if(randi(100)<content::pickpocketNoticePercent()){
+            ai::reactToHit(ped,player);
             ped.hostile=true;ped.alertTime=8;ped.panic=0;
             ped.lastKnown=player;ped.sightMemory=5;
             ped.target=player;ped.state=PedState::Attack;
@@ -584,11 +592,16 @@ void enterExit(){
     float best=85;int index=-1;
     for(int i=0;i<int(vehicles.size());++i){
         float d=len(vehicles[i].p-player);
-        if(!vehicles[i].exploded&&d<best){best=d;index=i;}
+        if(!vehicles[i].exploded&&std::abs(vehicles[i].speed)<35&&d<best){best=d;index=i;}
     }
     if(index>=0){
         telescopeActive=false;
-        if(vehicles[index].id.rfind("traffic-",0)==0){
+        bool hadDriver=vehicles[index].driver>=0;
+#ifdef MINI_CITY_JOLT
+        traffic::carjacked(index);
+        if(vehicles[index].driver>=0)return;
+#endif
+        if(hadDriver||vehicles[index].id.rfind("traffic-",0)==0){
             police::report(police::Crime::CarTheft,player,true);
             vehicles[index].trafficRoute=-1;
         }
@@ -640,7 +653,7 @@ void shoot(){
         if(playerY<45)for(int index=0;index<int(peds.size());++index){
             const Ped& ped=peds[index];
             Vec2 delta=ped.p-player;float distance=len(delta);
-            if(!ped.alive||distance>=nearest||
+            if(!ped.alive||ped.drivingVehicle>=0||distance>=nearest||
                 facing.x*delta.x+facing.z*delta.z<distance*0.15f||
                 !clearLine(player,ped.p))continue;
             nearest=distance;target=index;
@@ -779,6 +792,10 @@ void update(float dt){
         }
     }
     invulnerable=std::max(0.0f,invulnerable-dt);messageTime=std::max(0.0f,messageTime-dt);
+    if(enteringVehicle>=0){
+        if(enteringVehicle>=int(vehicles.size())||vehicles[enteringVehicle].exploded||
+           health<=0){enteringVehicle=-1;vehicleEntryTime=0;}
+    }
     if(enteringVehicle>=0){
         vehicleEntryTime-=dt;
         if(vehicleEntryTime<=0){
@@ -922,40 +939,7 @@ void update(float dt){
         }
     }
 #ifdef MINI_CITY_JOLT
-    const auto& trafficRoads=regions::roads();
-    for(int index=0;index<int(vehicles.size());++index){
-        Vehicle& car=vehicles[index];
-        if(car.trafficRoute<0||car.trafficRoute>=int(trafficRoads.size())||
-           car.exploded||car.owned||index==occupied)continue;
-        const auto& road=trafficRoads[car.trafficRoute];
-        Vec2 axis=road.end-road.start;
-        float length=len(axis);
-        if(length<1500)continue;
-        Vec2 tangent=axis*(1.0f/length);
-        Vec2 lane{-tangent.z,tangent.x};
-        Vec2 end=road.end+lane*12.0f;
-        float distanceToPlayer=len(car.p-player);
-        if(len(car.p-end)<110.0f){
-            if(distanceToPlayer>650.0f){
-                Vec2 restart=road.start+axis*0.08f+lane*12.0f;
-                jolt_world::teleportVehicle(index,restart,std::atan2(axis.z,axis.x));
-            }else jolt_world::driveVehicle(index,car.speed>10?-0.5f:0.0f,0,dt);
-            continue;
-        }
-        if(distanceToPlayer>850.0f){
-            jolt_world::driveVehicle(index,0,0,dt);continue;
-        }
-        float progress=std::clamp((car.p.x-road.start.x)*tangent.x+
-            (car.p.z-road.start.z)*tangent.z,0.0f,length);
-        Vec2 target=road.start+tangent*std::min(length,progress+145.0f)+lane*12.0f;
-        Vec2 direction=target-car.p;
-        float desired=std::atan2(direction.z,direction.x);
-        float error=std::atan2(std::sin(desired-car.angle),
-            std::cos(desired-car.angle));
-        float steering=std::clamp(error*1.8f,-0.7f,0.7f);
-        float throttle=std::abs(error)>1.0f?0.25f:car.speed<105?0.72f:0.08f;
-        jolt_world::driveVehicle(index,throttle,steering,dt);
-    }
+    traffic::update(dt);
 #endif
     airTime=occupied>=0||grounded||swimming?0:airTime+dt;
     if(carriedPed>=0){
@@ -1072,7 +1056,7 @@ void update(float dt){
                 damageVehicle(vehicleIndex,bullet.rocket?
                     physics::tuning(car.kind).maxHealth:
                     bullet.streamType>=2?0:
-                    damage*physics::tuning(car.kind).bulletDamageScale);
+                    damage*physics::tuning(car.kind).bulletDamageScale,!bullet.hostile);
                 impacts.push_back({{point.x,point.z},0.55f,false});
                 bullet.life=0;hitVehicle=true;
                 audio::playAt(audio::Effect::Hit,point.x,point.z);break;
@@ -1151,7 +1135,7 @@ void update(float dt){
                 ped.knockback=ped.knockback+norm(Vec2{bullet.v.x,bullet.v.z})*
                     (bullet.streamType==3?230.0f:70.0f);
                 if(bullet.streamType==3)ped.knockedDown=3.0f;
-                if(bullet.streamType!=2)ai::reactToHit(ped,player);
+                if(bullet.streamType!=2&&!bullet.hostile)ai::reactToHit(ped,player);
                 if(solid(ped.target,12))ped.target=ped.p;
                 if(ped.health<=0){ped.alive=false;ped.respawn=ped.police?999999:45;
                     ped.corpseVisualDelay=6;
@@ -1184,7 +1168,7 @@ void update(float dt){
         bullet.distance+=len(next-bullet.p);
         bullet.p=next;bullet.v.y-=bullet.gravity*dt;bullet.life-=dt;
         if(bullet.rocket&&bullet.life<=0)
-            explodeAt(impactPoint,bullet.explosionRadius,bullet.explosionDamage);
+            explodeAt(impactPoint,bullet.explosionRadius,bullet.explosionDamage,!bullet.hostile);
     }
     bullets.erase(std::remove_if(bullets.begin(),bullets.end(),[](const Bullet& b){return b.life<=0;}),bullets.end());
     for(auto& impact:impacts)impact.life-=dt;

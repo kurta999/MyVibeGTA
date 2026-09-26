@@ -16,7 +16,7 @@ set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp au
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     src/renderer_dx11.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
-    src/jolt_world.cpp src/debug_menu.cpp)
+    src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics)
@@ -42,9 +42,10 @@ include(CTest)
 if(BUILD_TESTING)
   set(SIMULATION_SOURCES game.cpp input.cpp ai.cpp content.cpp physics.cpp props.cpp savegame.cpp
       weapons.cpp camera.cpp audio.cpp ui.cpp fire.cpp police.cpp commerce.cpp traversal.cpp
-      weather.cpp regions.cpp jolt_world.cpp debug_menu.cpp)
+      weather.cpp regions.cpp jolt_world.cpp debug_menu.cpp traffic.cpp ped_navigation.cpp)
   list(TRANSFORM SIMULATION_SOURCES PREPEND "src/")
-  add_executable(simulation_smoke tests/simulation_smoke.cpp ${SIMULATION_SOURCES})
+  add_executable(simulation_smoke tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
+      tests/navigation_scenarios.cpp ${SIMULATION_SOURCES})
   target_compile_features(simulation_smoke PRIVATE cxx_std_17)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(simulation_smoke PRIVATE third_party/JoltPhysics)
@@ -53,6 +54,12 @@ if(BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:simulation_smoke>/data")
   add_test(NAME simulation_smoke COMMAND simulation_smoke)
+  add_test(NAME traffic_scenarios COMMAND simulation_smoke --traffic-only)
+  add_test(NAME navigation_scenarios COMMAND simulation_smoke --navigation-only)
+  set_tests_properties(navigation_scenarios PROPERTIES
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
+  set_tests_properties(traffic_scenarios PROPERTIES
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(simulation_smoke PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   add_executable(asset_smoke tests/asset_smoke.cpp src/dx11_assets.cpp)

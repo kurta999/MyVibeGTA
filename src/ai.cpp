@@ -7,6 +7,8 @@
 #include "police.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "traffic.h"
+#include "ped_navigation.h"
 #endif
 #include <algorithm>
 #include <cmath>
@@ -62,6 +64,9 @@ void notifyGunshot(Vec2 origin){
 }
 
 void reactToHit(Ped& ped,Vec2 threat){
+#ifdef MINI_CITY_JOLT
+    traffic::provoke(ped,threat);
+#endif
     ped.hostile=true;
     ped.panic=5;ped.alertTime=5;
     ped.lastKnown=threat;ped.sightMemory=4;
@@ -75,7 +80,7 @@ void reactToHit(Ped& ped,Vec2 threat){
 }
 
 bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
-    if(!ped.alive||vehicle.exploded||vehicle.kind==Kind::Boat||
+    if(!ped.alive||ped.drivingVehicle>=0||vehicle.exploded||vehicle.kind==Kind::Boat||
        ped.vehicleImpactCooldown>0)return false;
     float speed=std::abs(vehicle.speed);
     float radius=vehicle.kind==Kind::Bike?17.0f:26.0f;
@@ -106,7 +111,14 @@ bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
 }
 
 void update(float dt){
+    if(dt<=0)return;
+#ifdef MINI_CITY_JOLT
+    ped_navigation::beginFrame();
+#endif
     for(auto& ped:peds){
+#ifdef MINI_CITY_JOLT
+        if(!ped.alive)traffic::release(ped);
+#endif
         ped.vehicleImpactCooldown=std::max(0.0f,ped.vehicleImpactCooldown-dt);
         if(ped.alive&&occupied>=0&&occupied<int(vehicles.size())&&
            vehicleImpact(ped,vehicles[occupied]))continue;
@@ -129,7 +141,8 @@ void update(float dt){
             ped.pinned=false;ped.pinAnchor={};}continue;}
         ped.hitFlash=std::max(0.0f,ped.hitFlash-dt);
         ped.attackVisualTime=std::max(0.0f,ped.attackVisualTime-dt);
-        if(!ped.police&&!ped.hostile&&ped.burnTime<=0&&ped.state==PedState::Wander&&
+        if(!ped.police&&!ped.hostile&&ped.grievance<=0&&ped.drivingVehicle<0&&
+           ped.burnTime<=0&&ped.state==PedState::Wander&&
            len(ped.p-player)>1200)continue;
         if(ped.knockedDown>0){
             ped.knockedDown=std::max(0.0f,ped.knockedDown-dt);
@@ -144,6 +157,9 @@ void update(float dt){
 #endif
             continue;
         }
+#ifdef MINI_CITY_JOLT
+        if(traffic::updatePed(ped,dt))continue;
+#endif
         ped.panic=std::max(0.0f,ped.panic-dt);
         ped.alertTime=std::max(0.0f,ped.alertTime-dt);
         ped.fireCooldown=std::max(0.0f,ped.fireCooldown-dt);
@@ -160,9 +176,9 @@ void update(float dt){
         if(ped.state==PedState::Attack&&ped.hostile&&!ped.armed){
             if(ped.alertTime<=0){ped.hostile=false;ped.state=PedState::Wander;}
             else{
-                ped.target=player;
-                ped.angle=std::atan2(player.z-ped.p.z,player.x-ped.p.x);
-                if(distanceToPlayer<23&&ped.fireCooldown<=0&&health>0){
+                ped.target=ped.grievance>0?ped.lastKnown:player;
+                ped.angle=std::atan2(ped.target.z-ped.p.z,ped.target.x-ped.p.x);
+                if(occupied<0&&distanceToPlayer<23&&clearLine(ped.p,player)&&ped.fireCooldown<=0&&health>0){
                     applyDamage(8);
                     ped.fireCooldown=0.9f;
                     ped.attackVisualTime=0.42f;
@@ -221,14 +237,19 @@ void update(float dt){
                 if(ped.state==PedState::Defend&&ped.tacticTimer<=0){
                     ped.state=PedState::Investigate;ped.alertTime=3;
                 }
-            }else{ped.state=PedState::Wander;ped.hostile=false;}
+            }else if(ped.grievance>0){ped.target=ped.lastKnown;}
+            else{ped.state=PedState::Wander;ped.hostile=false;}
         }
         if(ped.state==PedState::Wander&&(len(ped.target-ped.p)<7||randi(3000)==0)){
             for(int n=0;n<15;++n){Vec2 target=ped.p+Vec2{randf(-170,170),randf(-170,170)};
                 if(!solid(target,12)){ped.target=target;break;}}
         }
-        Vec2 step=norm(ped.target-ped.p)*ped.speed*(ped.panic>0?1.7f:1.0f)*dt+
-            ped.knockback*dt;
+        float moveSpeed=ped.speed*(ped.panic>0?1.7f:1.0f);
+#ifdef MINI_CITY_JOLT
+        Vec2 step=ped_navigation::velocity(ped,ped.target,moveSpeed,dt)*dt+ped.knockback*dt;
+#else
+        Vec2 step=norm(ped.target-ped.p)*moveSpeed*dt+ped.knockback*dt;
+#endif
         ped.knockback=ped.knockback*std::exp(-6.0f*dt);
         Vec2 old=ped.p;
 #ifdef MINI_CITY_JOLT
@@ -238,7 +259,7 @@ void update(float dt){
 #else
         move(ped.p,step,9,Kind::Car);
 #endif
-        if(len(ped.p-old)<0.1f)ped.target=ped.p;
+        if(len(ped.p-old)<0.1f&&ped.state==PedState::Wander)ped.target=ped.p;
         if(len(step)>0.001f)ped.angle=std::atan2(step.z,step.x);
     }
 }

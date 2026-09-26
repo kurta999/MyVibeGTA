@@ -16,7 +16,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt);
 void teleportCharacter(game::Vec2 position,float height);
 void movePed(std::size_t index,game::Vec2 horizontal,float dt);
 void addPed();
-void driveVehicle(std::size_t index,float throttle,float steering,float dt);
+void driveVehicle(std::size_t index,float throttle,float steering,float dt,bool brake=false);
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle);
 int wheelContactCount(std::size_t index);
 std::size_t activeBuildingColliderCount();

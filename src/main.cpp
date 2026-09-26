@@ -296,6 +296,21 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--no-shadows"))ui::shadowQuality=0;
 #ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--traffic-preview")){
+        player=previousPlayer={520,235};cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;
+        jolt_world::teleportCharacter(player,0);
+        int placed=0;
+        for(int i=0;i<int(vehicles.size())&&placed<2;++i){
+            auto& car=vehicles[i];
+            if(car.driver<0||car.kind!=Kind::Car||car.p.x>2400||car.p.z>1600)continue;
+            jolt_world::teleportVehicle(i,placed==0?Vec2{600,273}:Vec2{773,440},
+                placed==0?0:-PI/2);
+            car.roadFrom=car.roadTo=-1;++placed;
+        }
+        for(int tick=0;tick<150;++tick)update(1.0f/60.0f);
+        previousPlayer=player;
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--ragdoll")){
         player={600,BEACH_START+220};previousPlayer=player;
         Ped fallen{};fallen.p={player.x+50,player.z};fallen.style=0;
