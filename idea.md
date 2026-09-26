@@ -110,6 +110,9 @@ Prioritize one finished street and beach approach: improved camera and aiming, v
 
 - **Fire and headlights pass:** Peds and vehicles carry a timed burn state after contact with flames, including flamethrower hits. Burning peds flee and lose health until death; vehicles that ignite or reach severe damage lose durability until they explode. Fire follows each moving target visually in DX11, and foam or water extinguishes it. Car and motorcycle headlights switch on at entry and H toggles them, with visible lamps and local lights even during the day. The DX11 build and simulation checks cover the state progression and controls, and a night burn preview frame was visually checked; interactive tuning remains open.
 
+- **Hip-fire and combat animation pass:** On-foot LMB fires the equipped ranged weapon without requiring RMB aim; Space plus LMB still makes an unarmed strike. Baked DX11 punch and slash clips animate close attacks, and timed fire, hit, and counterattack poses animate the player and nearby pedestrians. Surviving unarmed pedestrians now close in and strike back after being hit; armed pedestrians retain their cover and gunfire behavior. The DX11 build, simulation and asset smoke tests pass, and a combat preview frame was visually checked. Interactive combat timing and feel remain to be checked.
+- **DX11 death and casing effects pass:** Pedestrian death now retains the ragdoll and shows a short blood spray plus a ground decal instead of colored cuboid debris. Each ballistic shot ejects one brass casing, including each dual-wield shot; casings fall, bounce, settle, expire, and remain capped at 70. Simulation checks cover death blood, the casing cap and settling, and non-ballistic weapons. The DX11 build and automated tests pass, and casing and blood preview frames were visually checked; interactive effect timing still needs a play check.
+
 ## Quality checks
 
 - Maintain a runnable build after every milestone.

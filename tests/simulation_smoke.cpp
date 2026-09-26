@@ -625,11 +625,26 @@ int main(){
     game::peds.push_back(meleeTarget);
     game::weapon=weapons::indexOf("katana");
     game::shoot();
-    assert(game::peds[0].health==25&&game::bullets.empty());
+    assert(game::peds[0].health==25&&game::bullets.empty()&&
+        game::meleeVisualAction==11);
     game::fireCooldown=0;game::weapon=0;game::keys[VK_SPACE]=true;
     game::shoot();
     game::keys[VK_SPACE]=false;
-    assert(game::peds[0].health==3&&game::bullets.empty());
+    assert(game::peds[0].health==3&&game::bullets.empty()&&
+        game::meleeVisualAction==10);
+    game::reset();game::buildings.clear();game::peds.clear();
+    game::Ped hipFireTarget{};hipFireTarget.p={355,250};
+    hipFireTarget.health=100;hipFireTarget.knockedDown=1;
+    game::peds.push_back(hipFireTarget);
+    int hipFireAmmo=game::magazine[0];
+    game::rightMouse=false;game::leftMouse=true;
+    game::update(1.0f/60.0f);
+    game::leftMouse=false;
+    assert(game::magazine[0]==hipFireAmmo-1&&game::shotVisualTime>0&&
+        game::casings.size()==1);
+    for(int tick=0;tick<8;++tick)game::update(1.0f/60.0f);
+    assert(game::peds[0].alive&&game::peds[0].health<100&&
+        game::peds[0].hitFlash>0&&game::peds[0].state==game::PedState::Attack);
     game::reset();game::buildings.clear();
     game::player={300,250};
     for(auto& ped:game::peds){ped.alive=false;ped.respawn=999999;}
@@ -682,6 +697,11 @@ int main(){
     game::bullets.push_back(headshot);
     for(int tick=0;tick<8;++tick)game::update(1.0f/60.0f);
     assert(!game::peds[0].alive&&game::peds[0].armor==60);
+    assert(game::debris.empty()&&
+        std::any_of(game::hitFlashes.begin(),game::hitFlashes.end(),
+            [](const game::HitFlash& flash){return flash.person;})&&
+        std::any_of(game::impacts.begin(),game::impacts.end(),
+            [](const game::Impact& impact){return impact.person&&impact.life>2.0f;}));
     game::reset();game::buildings.clear();game::vehicles.clear();
     game::props.clear();game::trees.clear();game::player={5100,5100};
     for(auto& ped:game::peds){ped.alive=false;ped.respawn=999999;}
@@ -731,9 +751,28 @@ int main(){
     game::bullets.clear();game::weapon=smg;game::unlocked[smg]=true;
     game::magazine[smg]=10;game::ammo[smg]=100;game::fireCooldown=0;
     game::shoot();
-    assert(game::magazine[smg]==8&&game::bullets.size()==2);
+    assert(game::magazine[smg]==8&&game::bullets.size()==2&&
+        game::casings.size()==2);
     assert(savegame::save()&&savegame::load());
     assert(game::armedKills[smg]==100&&game::dualWieldActive(smg));
+    game::reset();game::peds.clear();game::buildings.clear();
+    game::weapon=0;game::magazine[0]=80;
+    for(int shot=0;shot<74;++shot){
+        game::fireCooldown=0;game::shoot();game::bullets.clear();
+        assert(game::casings.size()<=70);
+    }
+    assert(game::casings.size()==70);
+    for(int tick=0;tick<90;++tick)game::update(1.0f/60.0f);
+    assert(std::all_of(game::casings.begin(),game::casings.end(),
+        [](const game::ShellCasing& casing){return casing.p.y>=0.7f&&casing.p.y<3.0f;}));
+    int bow=weapons::indexOf("bow");
+    game::weapon=bow;game::magazine[bow]=1;game::fireCooldown=0;
+    game::shoot();
+    assert(game::casings.size()==70);
+    int flamethrower=weapons::indexOf("flamethrower");
+    game::weapon=flamethrower;game::magazine[flamethrower]=1;
+    game::fireCooldown=0;game::shoot();
+    assert(game::casings.size()==70);
     game::reset();
     assert(content::lastError().empty());
     for(auto& ped:game::peds)ped.alive=false;
@@ -766,6 +805,8 @@ int main(){
         bullet.damage==weapons::stats(weapons::indexOf("sniper")).damage)
         strongShot=true;
     assert(strongShot);
+    assert(std::any_of(game::peds.begin(),game::peds.end(),
+        [](const game::Ped& ped){return ped.police&&ped.attackVisualTime>0;}));
     assert(savegame::save());
     assert(savegame::load()&&police::wantedLevel()==4);
     game::reset();
@@ -1072,7 +1113,21 @@ int main(){
     assert(game::peds[1].state==game::PedState::Flee);
     assert(game::peds[2].state==game::PedState::Investigate);
     ai::reactToHit(game::peds[2],game::player);
-    assert(game::peds[2].state==game::PedState::Flee);
+    assert(game::peds[2].state==game::PedState::Attack&&game::peds[2].hostile&&
+        game::peds[2].fireCooldown>0);
+    game::reset();game::buildings.clear();game::peds.clear();
+    game::Ped striker{};striker.p=game::player+game::Vec2{20,0};
+    striker.health=100;striker.speed=0;
+    game::peds.push_back(striker);
+    game::cameraYaw=0;game::keys[VK_SPACE]=true;
+    game::shoot();game::keys[VK_SPACE]=false;
+    assert(game::peds[0].health==78&&game::peds[0].hitFlash>0&&
+        game::peds[0].state==game::PedState::Attack);
+    game::peds[0].knockback={};
+    float healthBeforeCounter=game::health;
+    for(int tick=0;tick<30&&game::health==healthBeforeCounter;++tick)
+        ai::update(1.0f/60.0f);
+    assert(game::health<healthBeforeCounter&&game::peds[0].attackVisualTime>0);
     game::reset();
     game::buildings.clear();game::peds.clear();game::props.clear();
     game::bullets.push_back({{game::player.x-20,18,game::player.z},{1200,0,0},1,12,0,
@@ -1120,6 +1175,31 @@ int main(){
     game::keys[ui::bindings[int(ui::Action::Forward)]]=false;
     assert(game::len(game::vehicles[drivenCar].p-parkedStart)>80);
     assert(jolt_world::wheelContactCount(drivenCar)>=2);
+    game::reset();
+    drivenCar=int(game::vehicles.size())-6;
+    jolt_world::teleportVehicle(drivenCar,{90,80},game::PI);
+    game::occupied=drivenCar;
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
+    for(int tick=0;tick<180;++tick)game::update(1.0f/60.0f);
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=false;
+    assert(game::vehicles[drivenCar].p.x>0);
+    assert(jolt_world::wheelContactCount(drivenCar)>=2);
+    game::enterExit();
+    assert(game::occupied==-1&&!game::solid(game::player,12));
+    game::enterExit();
+    for(int tick=0;tick<45;++tick)game::update(1.0f/60.0f);
+    assert(game::occupied==drivenCar);
+    jolt_world::teleportVehicle(drivenCar,game::vehicles[drivenCar].p,0);
+    float borderStart=game::vehicles[drivenCar].p.x;
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
+    for(int tick=0;tick<90;++tick)game::update(1.0f/60.0f);
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=false;
+    assert(game::vehicles[drivenCar].p.x>borderStart+40);
+    jolt_world::teleportVehicle(drivenCar,{-35,80},game::PI);
+    game::update(1.0f/60.0f);
+    assert(game::vehicles[drivenCar].p.x>=55);
+    game::enterExit();
+    assert(game::occupied==-1&&!game::solid(game::player,12));
     game::reset();
     drivenCar=int(game::vehicles.size())-6;
     game::vehicles[drivenCar].p={300,400};

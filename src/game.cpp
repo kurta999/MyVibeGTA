@@ -58,6 +58,8 @@ std::vector<int> magazine{12,0,0,0,0};
 std::vector<int> armedKills;
 float reloadRemaining=0,recoil=0;
 float meleeVisualTime=0;
+float shotVisualTime=0;
+int meleeVisualAction=10;
 int reloadingWeapon=-1;
 int carriedPed=-1;
 int interactionSelection=0;
@@ -79,6 +81,7 @@ std::vector<Bullet> bullets;
 std::vector<Impact> impacts;
 std::vector<HitFlash> hitFlashes;
 std::vector<Blast> blasts;
+std::vector<ShellCasing> casings;
 std::vector<Debris> debris;
 std::vector<RagdollPart> ragdollParts;
 std::vector<CorpseSnapshot> corpseSnapshots;
@@ -340,12 +343,13 @@ void reset(){
     debug_menu::reset();
     screenshotRequested=false;
 #endif
-    buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
+    buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();casings.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
     player={300,250};previousPlayer=player;playerVelocity={};playerY=0;playerVerticalSpeed=0;grounded=true;swimming=false;crouched=false;
     health=PLAYER_MAX_HEALTH;armor=0;repairKits=1;weapon=0;occupied=-1;enteringVehicle=-1;vehicleEntryTime=0;airTime=0;
     carriedPed=-1;
     interactionSelection=0;
-    fireCooldown=0;reloadRemaining=0;reloadingWeapon=-1;recoil=0;meleeVisualTime=0;
+    fireCooldown=0;reloadRemaining=0;reloadingWeapon=-1;recoil=0;
+    meleeVisualTime=0;shotVisualTime=0;meleeVisualAction=10;
     cameraYaw=0;cameraPitch=0;cameraMode=CameraMode::ThirdNear;
     scopeLevel=0;scopeBlend=0;vehicleLookTime=0;telescopeActive=false;invulnerable=0;
     money=0;activeMission=-1;missionStep=0;missionTime=0;showMap=false;worldTime=0;gameHour=16.5f;
@@ -539,8 +543,14 @@ bool carryingBody(){return carriedPed>=0;}
 void spawnDebris(const Ped& ped,Vec3 impulse){
 #ifdef MINI_CITY_JOLT
     jolt_world::spawnRagdoll(ped,impulse);
-    if(len(impulse)<2500)return;
-#endif
+    if(impacts.size()>=128)impacts.erase(impacts.begin());
+    impacts.push_back({ped.p,8.0f,true});
+    for(int i=0;i<3;++i){
+        if(hitFlashes.size()>=96)hitFlashes.erase(hitFlashes.begin());
+        hitFlashes.push_back({{ped.p.x+randf(-7,7),randf(13,28),
+            ped.p.z+randf(-7,7)},0.22f,rgb(190,34,28),true});
+    }
+#else
     if(debris.size()>110)debris.erase(debris.begin(),debris.begin()+35);
     const int tiles[]={16+ped.style,20+ped.style,20+ped.style,24+ped.style,24+ped.style};
     const float heights[]={30,19,17,7,7};
@@ -551,6 +561,7 @@ void spawnDebris(const Ped& ped,Vec3 impulse){
         debris.push_back({p,velocity,randf(2.5f,4.5f),0,randf(-230,230),
             i==0?8.0f:5.0f,i==0?8.0f:11.0f,i==0?8.0f:5.0f,tiles[i]});
     }
+#endif
 }
 void enterExit(){
     if(enteringVehicle>=0)return;
@@ -623,6 +634,7 @@ void shoot(){
         float reach=unarmed?55.0f:stats.range;
         float interval=unarmed?0.55f:stats.secondsBetweenShots;
         fireCooldown=interval;meleeVisualTime=std::min(0.4f,interval);
+        meleeVisualAction=unarmed?10:11;
         Vec2 facing=forward(cameraYaw);
         int target=-1;float nearest=reach;
         if(playerY<45)for(int index=0;index<int(peds.size());++index){
@@ -670,9 +682,11 @@ void shoot(){
             player,false);
     }
     muzzleFlash=0.12f;
+    if(occupied<0)shotVisualTime=0.32f;
     recoil=std::min(1.0f,recoil+0.25f+(weapon==2?0.25f:0));
     Vec2 f=forward(cameraYaw),r{-f.z,f.x};
-    camera::Pose pose=camera::compute(player,occupied>=0?0:playerY,true,occupied);
+    camera::Pose pose=camera::compute(player,occupied>=0?0:playerY,
+        occupied>=0||rightMouse,occupied);
     Vec3 target=camera::traceReticle(pose,stats.range);
     Vec3 muzzle{player.x+f.x*16+r.x*7,17+playerY,player.z+f.z*16+r.z*7};
 #ifdef MINI_CITY_JOLT
@@ -691,6 +705,16 @@ void shoot(){
     lastMuzzleLeft=muzzle+Vec3{-r.x*14,0,-r.z*14};
     for(int shot=0;shot<shots;++shot){
         Vec3 shotMuzzle=shots==2&&shot==0?lastMuzzleLeft:muzzle;
+        if(stats.streamType==0&&!stats.arrow&&!stats.rocket){
+            float side=shots==2&&shot==0?-1.0f:1.0f;
+            Vec3 ejection{shotMuzzle.x-f.x*5+r.x*side*4,
+                shotMuzzle.y-2,shotMuzzle.z-f.z*5+r.z*side*4};
+            Vec3 velocity{r.x*side*randf(22,34)+f.x*randf(-8,12),
+                randf(48,72),r.z*side*randf(22,34)+f.z*randf(-8,12)};
+            if(casings.size()>=70)casings.erase(casings.begin());
+            casings.push_back({ejection,velocity,12.0f,randf(-PI,PI),
+                randf(-18,18)});
+        }
         float flightTime=len(target-shotMuzzle)/stats.projectileSpeed;
         Vec3 ballisticTarget=target;
         ballisticTarget.y+=0.5f*stats.gravity*flightTime*flightTime;
@@ -743,6 +767,7 @@ void update(float dt){
     scopeBlend=std::clamp(scopeBlend+(scoped?1.0f:-1.0f)*dt*7.0f,0.0f,1.0f);
     vehicleLookTime=std::max(0.0f,vehicleLookTime-dt);
     meleeVisualTime=std::max(0.0f,meleeVisualTime-dt);
+    shotVisualTime=std::max(0.0f,shotVisualTime-dt);
     recoil=std::max(0.0f,recoil-dt*2.2f);
     if(reloadRemaining>0){reloadRemaining-=dt;
         if(reloadRemaining<=0&&reloadingWeapon>=0){
@@ -835,7 +860,7 @@ void update(float dt){
                     player.z>=BEACH_START?1:0);
                     stepTimer=running?0.29f:crouched||slowWalk?0.62f:0.43f;}
             }else stepTimer=0;
-            if(leftMouse&&(rightMouse||weapons::stats(weapon).melee||keys[VK_SPACE]))shoot();
+            if(leftMouse)shoot();
             }
         }else{
             Vehicle& v=vehicles[occupied];
@@ -1196,6 +1221,20 @@ void update(float dt){
         part.rotation+=part.spin*dt;
     }
     debris.erase(std::remove_if(debris.begin(),debris.end(),[](const Debris& p){return p.life<=0;}),debris.end());
+    for(auto& casing:casings){
+        casing.life-=dt;
+        casing.v.y-=530.0f*dt;
+        casing.p=casing.p+casing.v*dt;
+        if(casing.p.y<0.7f){
+            casing.p.y=0.7f;
+            casing.v.y=casing.v.y<-35.0f?-casing.v.y*0.22f:0;
+            casing.v.x*=0.65f;casing.v.z*=0.65f;
+            casing.spin*=0.65f;
+        }
+        casing.rotation+=casing.spin*dt;
+    }
+    casings.erase(std::remove_if(casings.begin(),casings.end(),
+        [](const ShellCasing& casing){return casing.life<=0;}),casings.end());
     if(occupied<0&&health>0&&invulnerable<=0)for(const auto& v:vehicles){
         if(std::abs(v.speed)>70&&len(v.p-player)<25){applyDamage(30);invulnerable=1;
             audio::play(audio::Effect::Hit);break;}

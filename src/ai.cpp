@@ -62,14 +62,15 @@ void notifyGunshot(Vec2 origin){
 }
 
 void reactToHit(Ped& ped,Vec2 threat){
-    ped.hostile=ped.armed;
+    ped.hostile=true;
     ped.panic=5;ped.alertTime=5;
     ped.lastKnown=threat;ped.sightMemory=4;
+    ped.fireCooldown=std::max(ped.fireCooldown,0.28f);
     if(ped.armed)
         ped.state=findCover(ped,threat,ped.target)?PedState::TakeCover:PedState::Attack;
     else{
-        ped.state=PedState::Flee;
-        ped.target=ped.p+norm(ped.p-threat)*220;
+        ped.state=PedState::Attack;
+        ped.target=threat;
     }
 }
 
@@ -121,10 +122,13 @@ void update(float dt){
             ped.burnTime=0;
             ped.state=PedState::Wander;ped.alertTime=0;ped.knockback={};
             ped.sightMemory=0;ped.tacticTimer=0;ped.burstShots=0;
+            ped.attackVisualTime=0;ped.hitFlash=0;
             ped.armor=ped.maxArmor;ped.cash=content::rollPedCash(ped.armed);
             ped.looted=false;ped.carried=false;ped.knockedDown=0;
             ped.impactAnimationTotal=0;ped.vehicleImpactCooldown=0;
             ped.pinned=false;ped.pinAnchor={};}continue;}
+        ped.hitFlash=std::max(0.0f,ped.hitFlash-dt);
+        ped.attackVisualTime=std::max(0.0f,ped.attackVisualTime-dt);
         if(!ped.police&&!ped.hostile&&ped.burnTime<=0&&ped.state==PedState::Wander&&
            len(ped.p-player)>1200)continue;
         if(ped.knockedDown>0){
@@ -142,7 +146,6 @@ void update(float dt){
         }
         ped.panic=std::max(0.0f,ped.panic-dt);
         ped.alertTime=std::max(0.0f,ped.alertTime-dt);
-        ped.hitFlash=std::max(0.0f,ped.hitFlash-dt);
         ped.fireCooldown=std::max(0.0f,ped.fireCooldown-dt);
         ped.tacticTimer=std::max(0.0f,ped.tacticTimer-dt);
         ped.sightMemory=std::max(0.0f,ped.sightMemory-dt);
@@ -162,6 +165,7 @@ void update(float dt){
                 if(distanceToPlayer<23&&ped.fireCooldown<=0&&health>0){
                     applyDamage(8);
                     ped.fireCooldown=0.9f;
+                    ped.attackVisualTime=0.42f;
                     audio::playAt(audio::Effect::Hit,player.x,player.z);
                 }
             }
@@ -194,6 +198,7 @@ void update(float dt){
                 }
                 if(distanceToPlayer<255&&ped.fireCooldown<=0){
                     const auto& pistol=weapons::stats(ped.weaponIndex);
+                    ped.attackVisualTime=0.32f;
                     ped.fireCooldown=++ped.burstShots>=3?
                         std::max(1.35f,pistol.secondsBetweenShots*1.5f):
                         pistol.secondsBetweenShots*1.5f;

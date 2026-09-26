@@ -46,9 +46,9 @@ GitHub Actions builds and runs both CMake smoke tests on Windows for pull reques
 | S / Space while driving | Brake / handbrake for controlled drifts |
 | Move mouse | Rotate the camera in every gameplay view without aiming |
 | Hold right mouse button | Aim; sniper sight has 2×, 4×, and 8× wheel zoom |
-| Left mouse button while aiming or driving | Fire; driving supports pistol and SMG drive-by shots |
+| Left mouse button with a ranged weapon | Fire with or without aiming; driving supports pistol and SMG drive-by shots |
 | Left mouse button with a melee weapon | Swing at a nearby person |
-| Space + left mouse button without aiming | Unarmed jump strike |
+| Space + left mouse button without aiming | Unarmed punch or jump strike |
 | F near a ladder or marked palm | Start climbing; W/S move, F lets go, Space jumps from a tree |
 | C | Cycle close/wide first-person, near/far third-person, and overview cameras |
 | B / mouse wheel | Open telescope / change telescope zoom (B closes it) |
@@ -79,6 +79,8 @@ The expanded world spans 53.45 times the original 2,400 × 2,200 map rectangle. 
 Grass terrain in the city, countryside, and savanna now has deterministic, low-poly tufts within 140 world units of the player. The patch recenters every 20 units, avoids roads, water, buildings, and non-grass biomes, and follows the Vegetation setting. DX11 fire, muzzle, impact, smoke, and explosion visuals use one effect handler with authored procedural textures and a blended depth-tested pass; explosions include a flash, expanding ring, flame burst, and smoke. Ballistic projectiles use a small 3D bullet mesh and travel roughly four times faster; rockets, arrows, and spray tools retain their own speeds. Run `--smoke --day --forest-fire` or `--smoke --day --effects-preview` to inspect the new effects. The source texture generator is `tools/make_effect_textures.ps1`.
 
 Peds set alight by flames or burning ground keep burning as they move, flee, and eventually die unless extinguished. Vehicles ignite from flames or severe damage and take delayed fire damage until they explode; foam, water, and repair kits can stop an active vehicle fire. Car and motorcycle headlights switch on when entered and can be toggled with H. Use `--smoke --night --burn-preview --screenshot` for a DX11 fire and headlight preview.
+
+In DX11, pedestrian deaths leave a blood decal beside the ragdoll instead of scattering colored boxes. Ballistic gunshots eject small brass casings that bounce and settle on the ground; at most 70 remain active. Use `--smoke --day --casing-preview --screenshot` for a repeatable casing view.
 
 ## DX11 visual quality
 

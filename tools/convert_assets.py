@@ -271,12 +271,16 @@ def convert_skin(path):
                 vertex = (*positions[index], *normals[index], uv[0], 1-uv[1],
                           *(color[i]*base[i] for i in range(4)))
                 vertices.append((vertex, [int(j)+joint_offset for j in vertex_joints[index]], weights[index]))
-    names = [("Idle", "Idle"), ("Walk", "Walk"), ("Run", "Run"),
-             ("Aim", "Idle_Gun_Pointing"), ("Hit", "HitRecieve"), ("Death", "Death"),
-             ("Fire", "Gun_Shoot"), ("Reload", "Interact")]
     female = path.stem == "casual-woman"
+    names = [("Idle", "Idle"), ("Walk", "Walk"), ("Run", "Run"),
+             ("Aim", "Idle_Gun_Pointing"),
+             ("Hit", "Death" if female else "HitRecieve"), ("Death", "Death"),
+             ("Fire", "Punch" if female else "Gun_Shoot"),
+             ("Reload", "Interact")]
     names += [("Fall", "RunningJump" if female else "HitRecieve_2"),
-              ("Enter", "Sitting" if female else "Interact")]
+              ("Enter", "Sitting" if female else "Interact"),
+              ("Punch", "Punch" if female else "Punch_Right"),
+              ("Slash", "SwordSlash" if female else "Sword_Slash")]
     hips = next((i for i, node in enumerate(document["nodes"])
                  if node.get("name") == "Hips"), None)
     identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -295,7 +299,10 @@ def convert_skin(path):
         frames = []
         attachments = []
         for frame in range(16):
-            pose = animation_pose(document, binary, animation_name, frame/16)
+            # The woman has no hit clip. A short opening section of her death
+            # reaction gives a flinch without dropping her to the ground.
+            phase = frame/16 * (0.38 if female and label == "Hit" else 1.0)
+            pose = animation_pose(document, binary, animation_name, phase)
             if label == "Enter" and not female and hips is not None:
                 # The source interaction gesture has no seated finish. Lower
                 # the hips as the character reaches the vehicle doorway.

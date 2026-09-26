@@ -805,16 +805,25 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     Vec3 hand{p.x+f.x*6+r.x*6,height+(playerControlled&&game::crouched?15.0f:20.0f),p.z+f.z*6+r.z*6};
     Vec3 target{};
     float aimPitch=0;
-    if(playerControlled&&armed){
-        auto pose=camera::compute(p,height,true,-1);
-        target=camera::traceReticle(pose,weapons::stats(game::weapon).range);
-        Vec3 fromHand=target-hand;
-        aimPitch=std::clamp(std::atan2(fromHand.y,
-            std::sqrt(fromHand.x*fromHand.x+fromHand.z*fromHand.z)),-0.85f,0.8f);
+    bool playerWeapon=playerControlled&&!game::telescopeActive&&
+        !game::swimming&&!traversal::active()&&game::enteringVehicle<0&&
+        !weapons::stats(game::weapon).melee&&
+        !(game::meleeVisualTime>0&&game::meleeVisualAction==10);
+    if(playerWeapon){
+        target={p.x+f.x*100,height+20,p.z+f.z*100};
+        if(armed||game::shotVisualTime>0){
+            auto pose=camera::compute(p,height,armed,-1);
+            target=camera::traceReticle(pose,weapons::stats(game::weapon).range);
+            Vec3 fromHand=target-hand;
+            aimPitch=std::clamp(std::atan2(fromHand.y,
+                std::sqrt(fromHand.x*fromHand.x+fromHand.z*fromHand.z)),-0.85f,0.8f);
+        }
     }
     int action=actionOverride>=0?actionOverride:armed?3:running?2:moving?1:0;
     float blend=actionOverride>=0?actionWeight:armed?1.0f:moving?0.9f:0.0f;
-    bool detailed=game::len(p-game::player)<220*ui::lodDistanceScale();
+    bool combatPose=actionOverride==4||actionOverride==6||actionOverride==10;
+    bool detailed=game::len(p-game::player)<
+        (combatPose?320.0f:220.0f)*ui::lodDistanceScale();
     if(!(detailed&&skinnedCharacter(name,{p.x,height,p.z},bodySize,game::PI/2-angle,
             action,blend,&hand,actionPhase,motion,aimPitch))){
         if(!detailed)name+="-lod";
@@ -823,7 +832,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
         model(name,{p.x,height,p.z},bodySize,game::PI/2-angle);
     }
     bool meleeHeld=playerControlled&&weapons::stats(game::weapon).melee;
-    if(armed||meleeHeld){
+    if(armed||meleeHeld||playerWeapon){
         if(playerControlled&&weapons::stats(game::weapon).arrow){
             Vec3 across{-f.z*12,0,f.x*12};
             Vec3 middle=hand+Vec3{f.x*8,0,f.z*8};
@@ -886,8 +895,16 @@ void people(){
             character(ped.p,ped.angle,ped.style,false,false,false,0,8,1.0f,false,phase);
             continue;
         }
-        character(ped.p,ped.angle,ped.style,ped.armed,ped.panic>0||game::len(ped.target-ped.p)>10,
-            ped.panic>0,0,ped.hitFlash>0?4:-1,std::min(1.0f,ped.hitFlash*8));
+        bool hit=ped.hitFlash>0;
+        bool attacking=ped.attackVisualTime>0;
+        int action=hit?4:attacking?(ped.armed?6:10):-1;
+        float phase=hit?std::clamp(1.0f-ped.hitFlash/0.3f,0.0f,1.0f):
+            attacking?std::clamp(1.0f-ped.attackVisualTime/
+                (ped.armed?0.32f:0.42f),0.0f,1.0f):-1.0f;
+        character(ped.p,ped.angle,ped.style,ped.armed,
+            ped.panic>0||game::len(ped.target-ped.p)>10,
+            ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
+            false,phase);
     }
     if(game::occupied<0&&game::health>0&&!camera::firstPersonActive()){
         bool entering=game::enteringVehicle>=0&&
@@ -913,16 +930,21 @@ void people(){
             shownY-=slide*3.0f;
             shownAngle=std::atan2(vehicle.p.z-shown.z,vehicle.p.x-shown.x);
         }else if(falling)actionPhase=std::clamp(game::airTime/0.65f,0.0f,1.0f);
+        else if(game::meleeVisualTime>0)
+            actionPhase=std::clamp(1.0f-game::meleeVisualTime/0.4f,0.0f,1.0f);
+        else if(game::shotVisualTime>0)
+            actionPhase=std::clamp(1.0f-game::shotVisualTime/0.32f,0.0f,1.0f);
         bool moving=game::len(game::playerVelocity)>15;
         int motion=game::swimming?1:climbing?2:falling?3:0;
         int action=entering?9:game::swimming?2:climbing?1:falling?2:
-            game::muzzleFlash>0||game::meleeVisualTime>0?6:game::reloadRemaining>0?7:-1;
+            game::meleeVisualTime>0?game::meleeVisualAction:
+            game::shotVisualTime>0?6:game::reloadRemaining>0?7:-1;
         float weight=entering?1.0f:game::swimming||climbing?0.6f:
             falling?std::min(1.0f,game::airTime*6):
-            game::muzzleFlash>0||game::meleeVisualTime>0?1.0f:
+            game::shotVisualTime>0||game::meleeVisualTime>0?1.0f:
             game::reloadRemaining>0?0.75f:1.0f;
         character(shown,shownAngle,1,game::rightMouse&&!entering&&
-            game::meleeVisualTime<=0,moving,
+            !weapons::stats(game::weapon).melee&&game::meleeVisualTime<=0,moving,
             !game::crouched&&game::len(game::playerVelocity)>205,
             shownY,action,weight,true,actionPhase,motion);
     }
@@ -1325,6 +1347,22 @@ void effects(){
     for(const auto& bullet:game::bullets)if(close({bullet.p.x,bullet.p.z},550)){
         handler.projectile(bullet);
     }
+    if(const Mesh* brass=mesh("primitive/cylinder"))
+        for(const auto& casing:game::casings)
+            if(close({casing.p.x,casing.p.z},500)){
+                float pitch=casing.p.y>0.75f?casing.rotation:game::PI*0.5f;
+                float yaw=casing.rotation*0.37f;
+                modelInstances->push_back({brass,0,
+                    1.25f/std::max(0.01f,brass->maxX-brass->minX),
+                    2.6f/std::max(0.01f,brass->maxY-brass->minY),
+                    1.25f/std::max(0.01f,brass->maxZ-brass->minZ),
+                    std::cos(yaw),std::sin(yaw),
+                    casing.p.x,casing.p.y,casing.p.z,
+                    (brass->minX+brass->maxX)*0.5f,
+                    (brass->minY+brass->maxY)*0.5f,
+                    (brass->minZ+brass->maxZ)*0.5f,
+                    0.58f,0.43f,0.20f,std::sin(pitch),std::cos(pitch)});
+            }
     for(const auto& blast:game::blasts)if(close({blast.p.x,blast.p.z},550))
         handler.explosion(blast);
     for(std::size_t index=0;index+5<game::ragdollParts.size();index+=6)
@@ -1334,9 +1372,6 @@ void effects(){
         for(const auto& flash:game::hitFlashes)
             if(close({flash.p.x,flash.p.z},500))
                 handler.impact(flash);
-        for(const auto& part:game::debris)if(close({part.p.x,part.p.z},500))
-            box(part.p.x,part.p.y-part.h/2,part.p.z,part.w,part.h,part.d,
-                part.tile>=24?game::rgb(55,66,82):game::rgb(161,91,86));
         for(const auto& impact:game::impacts)if(impact.person&&close(impact.p,500)){
             float size=15.0f+3.0f*(1.0f-std::clamp(impact.life/1.8f,0.0f,1.0f));
             model("effect/blood-decal",{impact.p.x,0.55f,impact.p.z},

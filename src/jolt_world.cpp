@@ -211,6 +211,17 @@ void reset(){
     addStatic({(8000+regions::WIDTH)*0.5f,-5,regions::DEPTH*0.5f},
         {(regions::WIDTH-8000)*0.5f,5,regions::DEPTH*0.5f});
     addStatic({7800,-5,8500},{200,5,100});
+    // Vehicles need the same world limit as the character. Without a collider
+    // they can leave the physics floor and lose all wheel contact.
+    constexpr float border=10.0f;
+    addStatic({-border,95,regions::DEPTH*0.5f},
+        {border,95,regions::DEPTH*0.5f+border});
+    addStatic({regions::WIDTH+border,95,regions::DEPTH*0.5f},
+        {border,95,regions::DEPTH*0.5f+border});
+    addStatic({regions::WIDTH*0.5f,95,-border},
+        {regions::WIDTH*0.5f+border,95,border});
+    addStatic({regions::WIDTH*0.5f,95,regions::DEPTH+border},
+        {regions::WIDTH*0.5f+border,95,border});
     syncBuildingColliders(game::player);
     auto& bodies=world->GetBodyInterface();
     for(const auto& prop:game::props){
@@ -628,6 +639,16 @@ void step(float dt){
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid())continue;
         auto position=bodies.GetCenterOfMassPosition(vehicleBodies[i]);
+        // Recover vehicles that were already beyond the border (for example
+        // from an older save) before syncing their position to the game.
+        if(position.GetX()<0||position.GetX()>regions::WIDTH||
+           position.GetZ()<0||position.GetZ()>regions::DEPTH){
+            game::Vec2 safe{
+                std::clamp(float(position.GetX()),55.0f,regions::WIDTH-55.0f),
+                std::clamp(float(position.GetZ()),55.0f,regions::DEPTH-55.0f)};
+            teleportVehicle(i,safe,game::vehicles[i].angle);
+            position=bodies.GetCenterOfMassPosition(vehicleBodies[i]);
+        }
         auto velocity=bodies.GetLinearVelocity(vehicleBodies[i]);
         auto& vehicle=game::vehicles[i];
         game::Vec2 resolved{velocity.GetX(),velocity.GetZ()};

@@ -191,6 +191,35 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             magazine[weapon]=weapons::stats(weapon).magazine;
         }
     }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--combat-preview")&&
+       peds.size()>=2){
+        player=previousPlayer={300,250};cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;rightMouse=false;
+#ifdef MINI_CITY_JOLT
+        jolt_world::teleportCharacter(player,0);
+#endif
+        for(auto& ped:peds){ped.alive=false;ped.respawn=999999;}
+        peds[0].alive=true;peds[0].p={355,230};peds[0].style=2;
+        peds[0].angle=PI;peds[0].armed=false;peds[0].hitFlash=0.2f;
+        peds[1].alive=true;peds[1].p={385,270};peds[1].style=0;
+        peds[1].angle=PI;peds[1].armed=true;peds[1].attackVisualTime=0.18f;
+        shotVisualTime=0.18f;muzzleFlash=0.12f;
+        lastMuzzle={player.x+16,20,player.z+7};
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--casing-preview")){
+        player=previousPlayer={300,210};cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;rightMouse=false;
+#ifdef MINI_CITY_JOLT
+        jolt_world::teleportCharacter(player,0);
+#endif
+        for(auto& ped:peds){ped.alive=false;ped.respawn=999999;}
+        weapon=0;magazine[weapon]=12;
+        for(int shot=0;shot<10;++shot){
+            fireCooldown=0;shoot();bullets.clear();
+            update(1.0f/60.0f);
+        }
+        for(int tick=0;tick<12;++tick)update(1.0f/60.0f);
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--blood-preview")){
         player=previousPlayer={100,100};cameraYaw=0;
         hitFlashes.push_back({{145,18,105},0.22f,rgb(205,34,29),true});

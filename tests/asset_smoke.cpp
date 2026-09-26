@@ -28,9 +28,13 @@ int main(){
         const auto* skin=dx11::skinMesh(name);
         assert(skin&&skin->jointCount>0&&skin->vertices.size()>1000);
         assert(skin->bodyPartForJoint.size()==skin->jointCount);
-        assert(skin->clips.size()==10);
+        assert(skin->clips.size()==12);
         assert(skin->clips[8].name=="Fall");
         assert(skin->clips[9].name=="Enter");
+        assert(skin->clips[10].name=="Punch");
+        assert(skin->clips[11].name=="Slash");
+        assert(skin->clips[4].palettes!=skin->clips[0].palettes);
+        assert(skin->clips[10].palettes!=skin->clips[0].palettes);
         for(const auto& clip:skin->clips)
             assert(clip.palettes.size()==size_t(clip.frames)*skin->jointCount);
         for(const auto& clip:skin->clips)
