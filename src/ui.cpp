@@ -8,7 +8,10 @@
 
 namespace ui {
 Page page=Page::Closed;
-int selection=0,graphicsQuality=2,shadowQuality=1,vegetationDensity=2,effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
+int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
+    antiAliasingQuality=1,aoQuality=1,vegetationDensity=2,grassDistance=50,
+    effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,
+    mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
 bool showHelp=false;
 std::array<int,int(Action::Count)> bindings{{'W','S','A','D',VK_SHIFT,'E'}};
@@ -26,7 +29,7 @@ void applyWindow(){
     AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
     SetWindowPos(game::win,nullptr,0,0,r.right-r.left,r.bottom-r.top,SWP_NOMOVE|SWP_NOZORDER);
 }
-int count(Page p){return p==Page::Main?7:p==Page::Graphics?7:p==Page::Controls?8:p==Page::Audio?1:0;}
+int count(Page p){return p==Page::Main?7:p==Page::Graphics?11:p==Page::Controls?8:p==Page::Audio?1:0;}
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
     WritePrivateProfileStringA(section,key,text,path.c_str());
@@ -45,7 +48,11 @@ void load(){
     std::string path=configPath();
     graphicsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Quality",2,path.c_str())),0,2);
     shadowQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Shadows",1,path.c_str())),0,2);
+    reflectionQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Reflections",1,path.c_str())),0,2);
+    antiAliasingQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","AntiAliasing",1,path.c_str())),0,2);
+    aoQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","SSAO",1,path.c_str())),0,2);
     vegetationDensity=std::clamp(int(GetPrivateProfileIntA("Graphics","Vegetation",2,path.c_str())),0,2);
+    grassDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","GrassDistance",50,path.c_str())),0,100);
     effectsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Effects",2,path.c_str())),0,2);
     int distanceVersion=GetPrivateProfileIntA("Graphics","DistanceVersion",0,path.c_str());
     drawDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","DrawDistance",distanceVersion?21:1,path.c_str())),0,100);
@@ -69,7 +76,11 @@ void save(){
     std::string path=configPath();
     writeValue("Graphics","Quality",graphicsQuality,path);
     writeValue("Graphics","Shadows",shadowQuality,path);
+    writeValue("Graphics","Reflections",reflectionQuality,path);
+    writeValue("Graphics","AntiAliasing",antiAliasingQuality,path);
+    writeValue("Graphics","SSAO",aoQuality,path);
     writeValue("Graphics","Vegetation",vegetationDensity,path);
+    writeValue("Graphics","GrassDistance",grassDistance,path);
     writeValue("Graphics","Effects",effectsQuality,path);
     writeValue("Graphics","DrawDistance",drawDistance,path);
     writeValue("Graphics","LodDistance",lodDistance,path);
@@ -121,8 +132,12 @@ void handleKey(int key){
         if(selection==2&&direction)vegetationDensity=std::clamp(vegetationDensity+direction,0,2);
         if(selection==3&&direction)effectsQuality=std::clamp(effectsQuality+direction,0,2);
         if(selection==4&&direction)shadowQuality=std::clamp(shadowQuality+direction,0,2);
-        if(selection==5&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
-        if(selection==6&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
+        if(selection==5&&direction)reflectionQuality=std::clamp(reflectionQuality+direction,0,2);
+        if(selection==6&&direction)antiAliasingQuality=std::clamp(antiAliasingQuality+direction,0,2);
+        if(selection==7&&direction)aoQuality=std::clamp(aoQuality+direction,0,2);
+        if(selection==8&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
+        if(selection==9&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
+        if(selection==10&&direction)grassDistance=std::clamp(grassDistance+direction*2,0,100);
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);
@@ -137,14 +152,14 @@ void handleMouse(int x,int y,bool dragging){
     if(page!=Page::Graphics)return;
     RECT client{};GetClientRect(game::win,&client);
     int left=(client.right-client.left)/2-280;
-    int top=(client.bottom-client.top)/2-250;
-    for(int row=5;row<=6;++row){
-        int rowY=top+105+row*50;
+    int top=(client.bottom-client.top)/2-320;
+    for(int row=8;row<=10;++row){
+        int rowY=top+105+row*42;
         if(y<rowY-5||y>rowY+38)continue;
         if(!dragging&&x<left+285)return;
         selection=row;
         int value=std::clamp((x-(left+290))*100/220,0,100);
-        int& setting=row==5?drawDistance:lodDistance;
+        int& setting=row==8?drawDistance:row==9?lodDistance:grassDistance;
         if(setting!=value){setting=value;save();}
         return;
     }

@@ -63,6 +63,7 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         if(lookCaptured)clipLookCursor();return 0;
     case WM_MOVE:if(lookCaptured)clipLookCursor();return 0;
     case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
 #ifdef MINI_CITY_JOLT
         if(wp==VK_F11){
             if(!(lp&(1<<30)))requestScreenshot();
@@ -93,6 +94,12 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
 #endif
         if(wp<256)keys[wp]=true;
         if(!(lp&(1<<30))){
+            if(wp==VK_CONTROL&&!(lp&(1<<24))&&occupied<0&&enteringVehicle<0&&
+               !swimming&&health>0
+#ifdef MINI_CITY_JOLT
+               &&!debug_menu::flyMode
+#endif
+               )crouched=!crouched;
             if(int(wp)==ui::bindings[int(ui::Action::Interact)]&&health>0)enterExit();
             if(wp=='F'){interact();if(commerce::menu()!=commerce::Menu::None)releaseAim();}
             if(wp==VK_TAB)cycleInteraction();
@@ -118,7 +125,8 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
                 if(unlocked[candidate]){weapon=candidate;break;}}
         }
         if(wp=='R'){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
-    case WM_KEYUP:if(wp<256)keys[wp]=false;return 0;
+    case WM_KEYUP:
+    case WM_SYSKEYUP:if(wp<256)keys[wp]=false;return 0;
     case WM_LBUTTONDOWN:if(ui::paused()){
             ui::handleMouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),false);return 0;
         }

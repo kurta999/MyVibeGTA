@@ -12,10 +12,12 @@
 #include "regions.h"
 #include "debug_menu.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <unordered_map>
 
 namespace dx11 {
 namespace {
@@ -127,7 +129,7 @@ void glowBox(Vec3 bottom,Vec3 size,float yaw,Color tint){
 }
 bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
                       int action,float actionWeight,Vec3* rightHand,float actionPhase,
-                      int motion){
+                      int motion,float aimPitch){
     const SkinMesh* skin=skinMesh(name);
     const Mesh* bounds=mesh(name);
     if(!skin||!bounds||skin->clips.empty()||
@@ -167,6 +169,20 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
     float centerX=(bounds->minX+bounds->maxX)*0.5f;
     float centerZ=(bounds->minZ+bounds->maxZ)*0.5f;
     float co=std::cos(yaw),si=std::sin(yaw);
+    Vec2 aimForward=game::forward(game::PI/2-yaw);
+    auto pitchArm=[&](Vec3& point,float weight){
+        if(weight<=0||std::abs(aimPitch)<0.001f)return;
+        float pitch=aimPitch*std::clamp(weight,0.0f,1.0f);
+        Vec3 pivot{position.x+aimForward.x*3,position.y+size.y*0.77f,
+            position.z+aimForward.z*3};
+        float depth=(point.x-pivot.x)*aimForward.x+
+            (point.z-pivot.z)*aimForward.z;
+        float vertical=point.y-pivot.y;
+        float rotated=std::cos(pitch)*depth-std::sin(pitch)*vertical;
+        point.x+=aimForward.x*(rotated-depth);
+        point.z+=aimForward.z*(rotated-depth);
+        point.y=pivot.y+std::sin(pitch)*depth+std::cos(pitch)*vertical;
+    };
     float bodyHeight=std::max(0.01f,bounds->maxY-bounds->minY);
     float motionPhase=motion==2?game::playerY*6.2831853f/42.0f:
         game::worldTime*(motion==1?8.0f:6.0f);
@@ -223,6 +239,7 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         float x=(hand.x-centerX)*sx,z=(hand.z-centerZ)*sz;
         *rightHand={position.x+co*x+si*z,position.y+(hand.y-bounds->minY)*sy,
             position.z-si*x+co*z};
+        pitchArm(*rightHand,1.0f);
     }
     auto& output=buckets[5];output.reserve(output.size()+skin->vertices.size());
     for(const SkinVertex& input:skin->vertices){
@@ -247,14 +264,36 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         float nx=n.x/sx,ny=n.y/sy,nz=n.z/sz;
         float length=std::max(0.0001f,std::sqrt(nx*nx+ny*ny+nz*nz));
         const auto& v=input.base;
-        output.push_back({position.x+co*x+si*z,position.y+(p.y-bounds->minY)*sy,
-            position.z-si*x+co*z,(co*nx+si*nz)/length,ny/length,
+        Vec3 world{position.x+co*x+si*z,position.y+(p.y-bounds->minY)*sy,
+            position.z-si*x+co*z};
+        pitchArm(world,parts[2]+parts[3]);
+        output.push_back({world.x,world.y,world.z,(co*nx+si*nz)/length,ny/length,
             (-si*nx+co*nz)/length,v.u,v.v,v.r,v.g,v.b,v.a});
     }
     return true;
 }
 float drawScale(){
     return ui::drawDistanceScale();
+}
+bool heldWeapon(const char* name,Vec3 hand,Vec3 muzzle,float width,float height){
+    const Mesh* source=mesh(name);
+    Vec3 delta=muzzle-hand;
+    float length=game::len(delta);
+    if(!modelInstances||!source||length<0.01f)return false;
+    float horizontal=std::sqrt(delta.x*delta.x+delta.z*delta.z);
+    Vec3 center=hand+delta*0.5f;
+    modelInstances->push_back({source,2,
+        width/std::max(0.01f,source->maxX-source->minX),
+        height/std::max(0.01f,source->maxY-source->minY),
+        length/std::max(0.01f,source->maxZ-source->minZ),
+        horizontal>0.001f?delta.z/horizontal:1.0f,
+        horizontal>0.001f?delta.x/horizontal:0.0f,
+        center.x,center.y,center.z,
+        (source->minX+source->maxX)*0.5f,
+        (source->minY+source->maxY)*0.5f,
+        (source->minZ+source->maxZ)*0.5f,
+        1,1,1,delta.y/length,horizontal/length});
+    return true;
 }
 bool close(Vec2 p,float distance){
     return game::len(p-game::player)<distance*drawScale();
@@ -322,7 +361,8 @@ void regionalTerrain(){
                (distant&&distance<1550))continue;
             float level=distant?-0.12f:0.0f;
             if(regions::waterAt(sample))
-                ground(left,top,left+tile,top+tile,level-0.4f,game::rgb(74,145,183));
+                ground(left,top,left+tile,top+tile,level-0.4f,
+                    game::rgb(74,145,183),-1,3);
             else if(regions::roadAt(sample))
                 ground(left,top,left+tile,top+tile,level+0.11f,
                     game::rgb(112,114,116),-1,7);
@@ -360,7 +400,7 @@ void regionalTerrain(){
                 citySide?game::rgb(91,139,79):regions::groundColor(edge);
             ground(x*skirt,z*skirt,(x+1)*skirt,(z+1)*skirt,
                 water?-0.4f:-0.25f,tint,-1,
-                water?0:regions::biomeAt(edge)==regions::Biome::Desert?8:9);
+                water?3:regions::biomeAt(edge)==regions::Biome::Desert?8:9);
         }
     }
     if(close({7800,8500},1400)){
@@ -641,14 +681,17 @@ std::uint32_t grassHash(int x,int z,int variant){
 float grassUnit(std::uint32_t value){return float(value&0xffffu)/65535.0f;}
 void proceduralGrass(){
     if(ui::vegetationDensity==0)return;
-    constexpr float radius=140.0f,cell=10.0f,recenter=20.0f;
+    const float radius=40.0f+2.0f*ui::grassDistance;
+    constexpr float cell=10.0f,recenter=20.0f;
     static int cacheX=std::numeric_limits<int>::min();
     static int cacheZ=std::numeric_limits<int>::min();
+    static int cacheDistance=-1;
     static std::vector<GrassTuft> cached;
     int centerX=int(std::floor(game::player.x/recenter));
     int centerZ=int(std::floor(game::player.z/recenter));
-    if(centerX!=cacheX||centerZ!=cacheZ){
+    if(centerX!=cacheX||centerZ!=cacheZ||cacheDistance!=ui::grassDistance){
         cacheX=centerX;cacheZ=centerZ;cached.clear();
+        cacheDistance=ui::grassDistance;
         Vec2 center{(centerX+0.5f)*recenter,(centerZ+0.5f)*recenter};
         float covered=radius+recenter;
         int x0=int(std::floor((center.x-covered)/cell));
@@ -757,13 +800,23 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     const Vec3 proportions[]={
         {14,34,14},{15,35,14},{13,32,13},{15,36,14}};
     Vec3 bodySize=proportions[style%4];
+    if(playerControlled&&game::crouched)bodySize.y*=0.72f;
     Vec2 f=game::forward(angle),r{-f.z,f.x};
-    Vec3 hand{p.x+f.x*6+r.x*6,height+20,p.z+f.z*6+r.z*6};
+    Vec3 hand{p.x+f.x*6+r.x*6,height+(playerControlled&&game::crouched?15.0f:20.0f),p.z+f.z*6+r.z*6};
+    Vec3 target{};
+    float aimPitch=0;
+    if(playerControlled&&armed){
+        auto pose=camera::compute(p,height,true,-1);
+        target=camera::traceReticle(pose,weapons::stats(game::weapon).range);
+        Vec3 fromHand=target-hand;
+        aimPitch=std::clamp(std::atan2(fromHand.y,
+            std::sqrt(fromHand.x*fromHand.x+fromHand.z*fromHand.z)),-0.85f,0.8f);
+    }
     int action=actionOverride>=0?actionOverride:armed?3:running?2:moving?1:0;
     float blend=actionOverride>=0?actionWeight:armed?1.0f:moving?0.9f:0.0f;
     bool detailed=game::len(p-game::player)<220*ui::lodDistanceScale();
     if(!(detailed&&skinnedCharacter(name,{p.x,height,p.z},bodySize,game::PI/2-angle,
-            action,blend,&hand,actionPhase,motion))){
+            action,blend,&hand,actionPhase,motion,aimPitch))){
         if(!detailed)name+="-lod";
         else if(armed)name+="-aim";
         else if(moving)name+=(running?"-run":"-walk")+std::to_string((int(game::worldTime*(running?10:6)+p.x))%4);
@@ -791,14 +844,24 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
                 thickness,thickness,tint);
             return;
         }
-        Vec3 muzzle{p.x+f.x*(playerControlled?16.0f:12.0f)+(playerControlled?r.x*7:0),
-            height+(playerControlled?17.0f:18.0f),
-            p.z+f.z*(playerControlled?16.0f:12.0f)+(playerControlled?r.z*7:0)};
-        beam(hand,muzzle,3.6f,3.0f,game::rgb(46,48,52));
+        Vec3 muzzle=playerControlled?
+            camera::weaponMuzzle(p,height,angle,target):
+            Vec3{p.x+f.x*12,height+18,p.z+f.z*12};
+        const std::string& weaponId=weapons::stats(playerControlled?game::weapon:0).id;
+        const char* asset=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?
+            "weapons/pistol":weaponId=="shotgun"||weaponId=="sniper"?
+            "weapons/lightning":weaponId=="rifle"?"weapons/ak":nullptr;
+        float width=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?2.5f:
+            weaponId=="rifle"?6.0f:2.4f;
+        float gunHeight=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?5.5f:
+            weaponId=="rifle"?6.5f:4.5f;
+        if(!asset||!heldWeapon(asset,hand,muzzle,width,gunHeight))
+            beam(hand,muzzle,3.6f,3.0f,game::rgb(46,48,52));
         if(playerControlled&&game::dualWieldActive(game::weapon)){
             Vec3 leftHand=hand+Vec3{-r.x*13,0,-r.z*13};
             Vec3 leftMuzzle=muzzle+Vec3{-r.x*14,0,-r.z*14};
-            beam(leftHand,leftMuzzle,3.6f,3.0f,game::rgb(46,48,52));
+            if(!asset||!heldWeapon(asset,leftHand,leftMuzzle,width,gunHeight))
+                beam(leftHand,leftMuzzle,3.6f,3.0f,game::rgb(46,48,52));
         }
     }
 }
@@ -860,32 +923,96 @@ void people(){
             game::reloadRemaining>0?0.75f:1.0f;
         character(shown,shownAngle,1,game::rightMouse&&!entering&&
             game::meleeVisualTime<=0,moving,
-            game::len(game::playerVelocity)>205,shownY,action,weight,true,actionPhase,motion);
+            !game::crouched&&game::len(game::playerVelocity)>205,
+            shownY,action,weight,true,actionPhase,motion);
     }
 }
+void carLamp(Vec2 center,float y,Vec2 facing,Vec2 side,float width,float height,
+             bool front,Color tint){
+    Vec2 across=side*(front?width*0.5f:-width*0.5f);
+    Vec3 a{center.x-across.x,y-height*0.5f,center.z-across.z};
+    Vec3 b{center.x+across.x,y-height*0.5f,center.z+across.z};
+    Vec3 c{b.x,y+height*0.5f,b.z};
+    Vec3 d{a.x,y+height*0.5f,a.z};
+    Vec3 normal{facing.x*(front?1.0f:-1.0f),0,
+                facing.z*(front?1.0f:-1.0f)};
+    quad(14,a,b,c,d,normal,tint);
+}
+float carLampDepth(const Mesh& body,Vec3 size,float x,float y,bool front){
+    float sx=size.x/std::max(0.01f,body.maxX-body.minX);
+    float sy=size.y/std::max(0.01f,body.maxY-body.minY);
+    float sz=size.z/std::max(0.01f,body.maxZ-body.minZ);
+    float cx=(body.minX+body.maxX)*0.5f;
+    float cz=(body.minZ+body.maxZ)*0.5f;
+    float depth=front?-std::numeric_limits<float>::max():
+        std::numeric_limits<float>::max();
+    for(std::size_t i=0;i+2<body.vertices.size();i+=3){
+        const auto& a=body.vertices[i];
+        const auto& b=body.vertices[i+1];
+        const auto& c=body.vertices[i+2];
+        float ax=(a.x-cx)*sx,ay=(a.y-body.minY)*sy;
+        float bx=(b.x-cx)*sx,by=(b.y-body.minY)*sy;
+        float px=(c.x-cx)*sx,py=(c.y-body.minY)*sy;
+        float determinant=(by-py)*(ax-px)+(px-bx)*(ay-py);
+        if(std::abs(determinant)<0.0001f)continue;
+        float wa=((by-py)*(x-px)+(px-bx)*(y-py))/determinant;
+        float wb=((py-ay)*(x-px)+(ax-px)*(y-py))/determinant;
+        float wc=1-wa-wb;
+        if(wa<-0.01f||wb<-0.01f||wc<-0.01f)continue;
+        float z=(wa*a.z+wb*b.z+wc*c.z-cz)*sz;
+        if(front)depth=std::max(depth,z);
+        else depth=std::min(depth,z);
+    }
+    if(std::abs(depth)>size.z)return front?size.z*0.48f:-size.z*0.48f;
+    return depth+(front?0.12f:-0.12f);
+}
 void vehicles(){
+    static std::unordered_map<const Mesh*,std::array<float,4>> lampDepths;
     for(const auto& v:game::vehicles){
         if(!close(v.p,650))continue;
         Color paint=v.exploded?game::rgb(38,39,41):v.c;
         Vec2 facing=game::forward(v.angle);
         float yaw=game::PI/2-v.angle;
         if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){
-            Color tint{0.68f+paint.r*0.32f,0.68f+paint.g*0.32f,0.68f+paint.b*0.32f};
-            model(v.kind==game::Kind::SportCar?"vehicles/sports-car":"vehicles/sedan",
-                {v.p.x,v.rideHeight,v.p.z},{26,v.kind==game::Kind::SportCar?20.0f:23.0f,48},
-                yaw,tint);
-            if(v.damage>40)model("primitive/box",
-                {v.p.x+facing.x*19,v.rideHeight+14,v.p.z+facing.z*19},
-                {13,2,3},yaw,game::rgb(48,47,47));
+            std::uint32_t key=2166136261u;
+            for(unsigned char ch:v.id)key=(key^ch)*16777619u;
+            int variant=int(key%5)+1;
+            std::string carName=v.kind==game::Kind::SportCar?
+                "vehicles/sports-car":"vehicles/traffic-"+std::to_string(variant);
+            if(!mesh(carName))carName="vehicles/sedan";
+            const float carHeights[]={20,23,23,21,26,22};
+            Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
+            model(carName,{v.p.x,v.rideHeight,v.p.z},
+                {26,carHeights[v.kind==game::Kind::SportCar?0:variant],48},yaw,tint);
             if(std::sin((game::gameHour-6)*game::PI/12.0f)<0.12f&&!v.exploded){
                 Vec2 side{-facing.z,facing.x};
-                for(float sign:{-1.0f,1.0f}){
-                    glowBox({v.p.x+facing.x*23+side.x*sign*8,
-                        v.rideHeight+11,v.p.z+facing.z*23+side.z*sign*8},
-                        {5,3,1.2f},yaw,game::rgb(255,242,196));
-                    glowBox({v.p.x-facing.x*23+side.x*sign*8,
-                        v.rideHeight+11,v.p.z-facing.z*23+side.z*sign*8},
-                        {5,3,1.2f},yaw,game::rgb(255,36,24));
+                const float sideOffsets[]={8.0f,9.2f,7.6f,8.9f,8.4f,8.0f};
+                const float frontHeights[]={10.0f,7.8f,10.1f,8.2f,10.2f,9.6f};
+                int geometry=v.kind==game::Kind::SportCar?0:variant;
+                const Mesh* body=mesh(carName);
+                auto found=lampDepths.find(body);
+                if(found==lampDepths.end()){
+                    std::array<float,4> depths{};
+                    Vec3 dimensions{26,carHeights[geometry],48};
+                    for(int sideIndex=0;sideIndex<2;++sideIndex){
+                        float x=(sideIndex==0?-1.0f:1.0f)*sideOffsets[geometry];
+                        depths[sideIndex]=carLampDepth(*body,dimensions,x,
+                            frontHeights[geometry],true);
+                        depths[sideIndex+2]=carLampDepth(*body,dimensions,x,9.7f,false);
+                    }
+                    found=lampDepths.emplace(body,depths).first;
+                }
+                float blink=std::fmod(game::worldTime,0.9f)<0.18f?1.3f:0.18f;
+                for(int sideIndex=0;sideIndex<2;++sideIndex){
+                    float sign=sideIndex==0?-1.0f:1.0f;
+                    Vec2 front=v.p+facing*found->second[sideIndex]+
+                        side*(sign*sideOffsets[geometry]);
+                    Vec2 rear=v.p+facing*found->second[sideIndex+2]+
+                        side*(sign*sideOffsets[geometry]);
+                    carLamp(front,v.rideHeight+frontHeights[geometry],facing,side,
+                        3.0f,1.7f,true,{blink,blink*0.94f,blink*0.76f});
+                    carLamp(rear,v.rideHeight+9.7f,facing,side,
+                        3.1f,1.7f,false,{blink,blink*0.12f,blink*0.08f});
                 }
             }
         }else if(v.kind==game::Kind::Bike){
@@ -921,6 +1048,22 @@ void vehicles(){
         }
     }
 }
+void marker(Vec2 p,float radius,float height,Color tint){
+    float pulse=1.0f+0.045f*std::sin(game::worldTime*3.0f);
+    model("marker/ring",{p.x,0.45f,p.z},{radius*2*pulse,0.01f,radius*2*pulse},0,tint);
+    model("marker/pillar",{p.x,0.5f,p.z},{radius*2,height,radius*2},0,tint);
+}
+void markerArrow(Vec2 p,float height,Color tint,Vec2 direction){
+    Vec2 f=game::norm(direction);
+    if(game::len(f)<0.01f)f={0,1};
+    Vec2 side{-f.z,f.x};
+    Vec3 tip{p.x+f.x*10,height+2.0f+std::sin(game::worldTime*2.5f)*2.0f,
+        p.z+f.z*10};
+    Vec3 left{p.x-f.x*6+side.x*8,tip.y,p.z-f.z*6+side.z*8};
+    Vec3 right{p.x-f.x*6-side.x*8,tip.y,p.z-f.z*6-side.z*8};
+    beam(left,tip,1.8f,1.8f,tint);
+    beam(right,tip,1.8f,1.8f,tint);
+}
 void markers(){
     for(const auto& ladder:traversal::ladders)if(close(ladder.bottom,650)){
         Vec3 left{ladder.bottom.x-6,0,ladder.bottom.z};
@@ -940,28 +1083,29 @@ void markers(){
     for(const auto& pickup:game::pickups)if(pickup.available&&close(pickup.p,650))
         sphere({pickup.p.x,13+std::sin(game::worldTime*3)*3,pickup.p.z},5,game::rgb(84,238,235));
     for(const auto& mission:game::missions)if(close(mission.start,650)){
-        model("primitive/box",{mission.start.x,0.3f,mission.start.z},
-            {28,0.12f,28},0,game::rgb(201,149,77));
-        sphere({mission.start.x,24+std::sin(game::worldTime*2)*3,mission.start.z},7,
-            game::rgb(243,197,96));
+        Color tint=game::rgb(244,174,67);
+        marker(mission.start,17,38,tint);
+        markerArrow(mission.start,42,tint,{0,1});
     }
     for(const auto& shop:commerce::shops)if(close(shop.p,650)){
-        model("primitive/box",{shop.p.x,0.3f,shop.p.z},
-            {23,0.12f,23},0,game::rgb(58,170,118));
-        sphere({shop.p.x,24+std::sin(game::worldTime*2)*3,shop.p.z},7,
-            game::rgb(106,241,166));
+        marker(shop.p,14,26,game::rgb(75,228,145));
     }
     for(const auto& house:commerce::houses)if(close(house.p,650)){
         Color tint=house.owned?game::rgb(91,170,245):game::rgb(185,134,230);
-        model("primitive/box",{house.p.x,0.3f,house.p.z},{23,0.12f,23},0,tint);
-        sphere({house.p.x,24+std::sin(game::worldTime*2)*3,house.p.z},7,tint);
+        marker(house.p,14,26,tint);
     }
     if(game::activeMission>=0&&game::missionStep<int(game::missions[game::activeMission].goals.size())){
         Vec2 goal=game::missions[game::activeMission].goals[game::missionStep];
         bool target=game::missions[game::activeMission].kind==game::MissionKind::Targets||
             (game::missions[game::activeMission].kind==game::MissionKind::Finale&&game::missionStep==1);
-        if(close(goal,650))sphere({goal.x,24+std::sin(game::worldTime*2)*3,goal.z},9,
-            target?game::rgb(255,139,75):game::rgb(135,255,123));
+        if(close(goal,650)){
+            Color tint=target?game::rgb(255,104,70):game::rgb(255,211,78);
+            marker(goal,target?20.0f:42.0f,target?42.0f:78.0f,tint);
+            const auto& goals=game::missions[game::activeMission].goals;
+            Vec2 next=game::missionStep+1<int(goals.size())?
+                goals[game::missionStep+1]-goal:Vec2{0,1};
+            markerArrow(goal,target?47.0f:82.0f,tint,next);
+        }
     }
 }
 Vec3 rotateBy(const RagdollPart& body,Vec3 v){
@@ -1080,7 +1224,11 @@ struct EffectHandler {
     }
     void impact(const game::HitFlash& flash){
         float life=std::clamp(flash.life/0.22f,0.0f,1.0f);
-        sprite("effect/flash",flash.p-Vec3{0,2.0f,0},
+        if(flash.person){
+            sprite("effect/blood",flash.p-Vec3{0,5.0f,0},
+                8.0f+life*10.0f,9.0f+life*9.0f,
+                flash.p.x*0.17f,Color{1,1,1});
+        }else sprite("effect/flash",flash.p-Vec3{0,2.0f,0},
             3.0f+life*7.0f,3.0f+life*7.0f,
             flash.p.x*0.17f,flash.c);
     }
@@ -1171,9 +1319,11 @@ void effects(){
         for(const auto& part:game::debris)if(close({part.p.x,part.p.z},500))
             box(part.p.x,part.p.y-part.h/2,part.p.z,part.w,part.h,part.d,
                 part.tile>=24?game::rgb(55,66,82):game::rgb(161,91,86));
-        for(const auto& impact:game::impacts)if(close(impact.p,500))
-            model("primitive/box",{impact.p.x,0.4f,impact.p.z},
-                {16,0.1f,16},0,game::rgb(130,31,37));
+        for(const auto& impact:game::impacts)if(impact.person&&close(impact.p,500)){
+            float size=15.0f+3.0f*(1.0f-std::clamp(impact.life/1.8f,0.0f,1.0f));
+            model("effect/blood-decal",{impact.p.x,0.55f,impact.p.z},
+                {size,0.01f,size},impact.p.x*0.13f,Color{0.55f,0.34f,0.34f});
+        }
     }
     for(const auto& prop:game::props)if(prop.alive&&close(prop.p,500)){
         if(prop.barrel){
@@ -1191,7 +1341,8 @@ void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]){
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
     ground(0,0,game::WORLD_W,game::BEACH_START,0,game::rgb(150,195,145),-1,9);
     ground(0,game::BEACH_START,game::WORLD_W,game::SHORE,0.05f,game::rgb(244,218,166),-1,8);
-    ground(0,game::SHORE,game::WORLD_W,game::WORLD_D,-0.4f,game::rgb(86,160,197),7);
+    ground(0,game::SHORE,game::WORLD_W,game::WORLD_D,-0.4f,
+        game::rgb(86,160,197),-1,3);
     ground(1140,game::BEACH_START,1260,game::WORLD_D,0.15f,
         game::rgb(112,114,116),-1,7);
     for(int col=0;col<5;++col){float x=300+col*450.0f;

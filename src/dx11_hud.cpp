@@ -225,8 +225,9 @@ void map(int x,int y,int width,int height,bool large){
 void pauseMenu(int width,int height){
     if(!ui::paused())return;
     rect(0,0,width,height,RGB(20,29,38));
-    int x=width/2-280,y=height/2-250;
-    rect(x,y,560,500,RGB(34,45,56));
+    int menuHeight=ui::page==ui::Page::Graphics?640:500;
+    int x=width/2-280,y=(height-menuHeight)/2;
+    rect(x,y,560,menuHeight,RGB(34,45,56));
     label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 11",RGB(255,225,151));
     const char* heading=ui::page==ui::Page::Main?"PAUSED":ui::page==ui::Page::Graphics?"GRAPHICS":
         ui::page==ui::Page::Controls?"CONTROLS":"AUDIO";
@@ -241,18 +242,21 @@ void pauseMenu(int width,int height){
         const char* quality[]={"Low","Medium","High"};const char* sizes[]={"1280 x 720","1600 x 900","1920 x 1080"};
         const char* shadows[]={"Off","Medium","High"};
         const char* items[]={quality[ui::graphicsQuality],sizes[ui::windowChoice],
-            quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality]};
+            quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality],
+            shadows[ui::reflectionQuality],shadows[ui::antiAliasingQuality],shadows[ui::aoQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
-            "Draw distance","LOD distance"};
-        for(int i=0;i<7;++i){int row=y+105+i*50;
+            "Reflections (SSR)","Anti-aliasing (FXAA)","Ambient occlusion (SSAO)",
+            "Draw distance","LOD distance","Grass distance"};
+        for(int i=0;i<11;++i){int row=y+105+i*42;
             if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
-            if(i<5){
+            if(i<8){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
             }else{
-                int value=i==5?ui::drawDistance:ui::lodDistance;
-                if(i==5)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
+                int value=i==8?ui::drawDistance:i==9?ui::lodDistance:ui::grassDistance;
+                if(i==8)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
                     names[i],1250.0f*ui::drawDistanceScale());
+                else if(i==10)std::snprintf(buffer,sizeof(buffer),"%s: %d m",names[i],40+value*2);
                 else std::snprintf(buffer,sizeof(buffer),"%s: %d%%",names[i],value);
                 label(x+42,row+5,buffer,RGB(239,241,229));
                 rect(x+290,row+12,220,8,RGB(58,72,82));
@@ -273,7 +277,7 @@ void pauseMenu(int width,int height){
         rect(x+22,y+124,510,40,RGB(73,113,134));
         label(x+42,y+134,buffer,RGB(239,241,231));
     }
-    label(x+28,y+467,"Arrows or mouse: adjust    Enter: choose    Esc: back",RGB(197,207,212));
+    label(x+28,y+menuHeight-33,"Arrows or mouse: adjust    Enter: choose    Esc: back",RGB(197,207,212));
 }
 void debugMenu(int width,int height){
     if(!debug_menu::open)return;
@@ -332,7 +336,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  S brake  |  SPACE drift  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
     }else if(ui::showHelp)std::snprintf(textBuffer,sizeof(textBuffer),
-        "WASD move  |  SHIFT run  |  RMB aim  |  LMB fire  |  R reload");
+        "WASD move  |  SHIFT run  |  ALT slow  |  LCTRL crouch  |  RMB aim  |  LMB fire");
     if(ui::showHelp){
         label(220,19,textBuffer,RGB(223,230,230));
         label(24,49,"1-9 / Q guns  |  C camera  |  B telescope  |  E vehicle  |  F use  |  TAB choose  |  G carry",RGB(201,215,215));

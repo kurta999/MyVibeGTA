@@ -18,7 +18,7 @@ int main(){
     assert(grass&&grass->vertices.size()==9&&!grass->castsShadow);
     assert(bullet&&bullet->vertices.size()>=100&&!bullet->castsShadow);
     for(const char* name:{"effect/flame","effect/smoke","effect/flash",
-                          "effect/shockwave"}){
+                          "effect/shockwave","effect/blood","effect/blood-decal"}){
         const auto* effect=dx11::mesh(name);
         assert(effect&&effect->transparent&&!effect->castsShadow&&
             effect->textured&&std::filesystem::exists(effect->textureFile));
@@ -53,6 +53,10 @@ int main(){
         const auto* building=dx11::mesh(key);
         const auto* lod=dx11::mesh(key+"-lod");
         assert(building&&lod&&building->vertices.size()>1000&&lod->vertices.size()>100);
+        assert(building->shadowProxy&&lod->shadowProxy&&
+            building->shadowProxy->vertices.size()==30&&
+            lod->shadowProxy->vertices.size()==30&&
+            !building->shadowProxy->textured);
         assert(building->textured&&std::filesystem::exists(building->textureFile));
         assert(lod->textured&&lod->textureFile==building->textureFile);
         assert(buildingTextures.insert(building->textureFile).second);
@@ -65,6 +69,18 @@ int main(){
     assert(cityCount==30);
     assert(!dx11::mesh("vehicles/sedan")->textured&&
         dx11::mesh("vehicles/sedan")->textureFile.empty());
+    for(int variant=1;variant<=5;++variant){
+        const auto* car=dx11::mesh("vehicles/traffic-"+std::to_string(variant));
+        assert(car&&car->textured&&car->vertices.size()>900);
+        assert(std::filesystem::exists(car->textureFile));
+    }
+    for(const char* name:{"pistol","ak","lightning"}){
+        const auto* gun=dx11::mesh(std::string("weapons/")+name);
+        assert(gun&&gun->textured&&gun->vertices.size()>2000);
+        assert(!gun->materialRanges.empty());
+        for(const auto& range:gun->materialRanges)
+            assert(range.count>0&&std::filesystem::exists(range.baseFile));
+    }
     assert(dx11::mesh("nature/tree_oak-lod"));
     std::ifstream manifest("assets/models/NATURE_MANIFEST.csv");
     assert(manifest);
@@ -84,6 +100,11 @@ int main(){
         assert(std::ifstream("assets/models/"+baked).good());
         assert(manifestModels.insert(id).second);
         if(id.rfind("tree_",0)==0)distinctTreeSources.insert(source);
+    }
+    for(const char* name:{"marker/ring","marker/pillar"}){
+        const auto* marker=dx11::mesh(name);
+        assert(marker&&marker->transparent&&!marker->castsShadow&&
+            !marker->vertices.empty());
     }
     assert(distinctTreeSources.size()>=20);
     data_file::Ini catalog;

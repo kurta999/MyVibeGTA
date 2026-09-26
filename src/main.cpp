@@ -115,6 +115,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         logging::write("Saved progress loaded");}
     if(smoke&&commandLine&&std::strstr(commandLine,"--day"))gameHour=12;
     if(smoke&&commandLine&&std::strstr(commandLine,"--night"))gameHour=22;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--lamp-dim"))worldTime=0.4f;
     if(smoke&&commandLine&&std::strstr(commandLine,"--sunrise"))gameHour=6.5f;
     if(smoke&&commandLine&&std::strstr(commandLine,"--sunset"))gameHour=18.5f;
     if(smoke&&commandLine&&std::strstr(commandLine,"--scope")){
@@ -164,6 +165,35 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         Bullet preview{};preview.p={143,19,114};preview.v={2800,0,0};
         preview.life=0.2f;preview.range=650;preview.damage=52;
         bullets.push_back(preview);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--aim-up")){
+        cameraYaw=0;cameraPitch=0.6f;rightMouse=true;
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--aim-down")){
+        cameraYaw=0;cameraPitch=-0.6f;rightMouse=true;
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--weapon-preview")){
+        cameraYaw=0;cameraPitch=0;rightMouse=true;
+        if(std::strstr(commandLine,"--rifle-preview")){
+            weapon=weapons::indexOf("rifle");unlocked[weapon]=true;
+            magazine[weapon]=weapons::stats(weapon).magazine;
+        }else if(std::strstr(commandLine,"--shotgun-preview")){
+            weapon=weapons::indexOf("shotgun");unlocked[weapon]=true;
+            magazine[weapon]=weapons::stats(weapon).magazine;
+        }
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--blood-preview")){
+        player=previousPlayer={100,100};cameraYaw=0;
+        hitFlashes.push_back({{145,18,105},0.22f,rgb(205,34,29),true});
+        impacts.push_back({{145,105},1.8f,true});
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--checkpoint-preview")&&
+       !missions.empty()&&!missions[0].goals.empty()){
+        activeMission=0;missionStep=0;missionTime=missions[0].seconds;
+        player=previousPlayer=missions[0].goals[0]+Vec2{-95,0};cameraYaw=0;
+#ifdef MINI_CITY_JOLT
+        jolt_world::teleportCharacter(player,0);
+#endif
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--map"))showMap=true;
 #ifdef MINI_CITY_JOLT
@@ -252,6 +282,8 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--graphics-menu"))
         ui::page=ui::Page::Graphics;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--crouch-preview"))
+        crouched=true;
     if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot"))
         input::windowProc(win,WM_KEYDOWN,VK_F11,0);
     if(smoke){

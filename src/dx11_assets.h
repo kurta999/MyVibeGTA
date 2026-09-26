@@ -23,6 +23,7 @@ struct Mesh {
     bool alphaTest=false;
     bool castsShadow=true;
     bool transparent=false;
+    const Mesh* shadowProxy=nullptr;
     std::wstring textureFile;
     float roughness=0.82f;
     float metallic=0.0f;

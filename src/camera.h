@@ -10,4 +10,5 @@ bool zoomActive();
 bool firstPersonActive();
 int scopeMagnification();
 game::Vec3 traceReticle(const Pose& pose,float maximumDistance);
+game::Vec3 weaponMuzzle(game::Vec2 player,float height,float yaw,game::Vec3 target);
 }

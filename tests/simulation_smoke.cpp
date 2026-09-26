@@ -929,6 +929,10 @@ int main(){
     hit=camera::traceReticle({{0,10,0},{100,10,0}},100);
     assert(hit.x>4.9f&&hit.x<5.1f);
     game::buildings.clear();
+    game::Vec3 highMuzzle=camera::weaponMuzzle({0,0},0,0,{250,120,0});
+    game::Vec3 lowMuzzle=camera::weaponMuzzle({0,0},0,0,{250,-80,0});
+    assert(highMuzzle.y>20&&lowMuzzle.y<20);
+    assert(game::len(highMuzzle-lowMuzzle)>7);
     game::cameraMode=game::CameraMode::ThirdNear;
     game::rightMouse=false;
     auto freeView=camera::compute(game::player,0,false,-1);
@@ -1151,6 +1155,48 @@ int main(){
     assert(game::grounded&&game::playerY<1.0f);
     assert(game::armor<25);
     game::reset();
+    game::player={14,80};
+    jolt_world::teleportCharacter(game::player,0);
+    for(int tick=0;tick<60;++tick)
+        jolt_world::moveCharacter({-160,0},false,1.0f/60.0f);
+    assert(game::player.x>=12.0f&&game::playerY<1.0f&&game::grounded);
+    float edgePosition=game::player.x;
+    for(int tick=0;tick<60;++tick)
+        jolt_world::moveCharacter({160,0},false,1.0f/60.0f);
+    assert(game::player.x>edgePosition+100.0f&&game::grounded);
+    game::player={-35,80};
+    jolt_world::teleportCharacter(game::player,-20);
+    for(int tick=0;tick<20;++tick)
+        jolt_world::moveCharacter({0,0},false,1.0f/60.0f);
+    assert(game::player.x>=12.0f&&game::playerY<1.0f&&game::grounded);
+    game::reset();
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
+    for(int tick=0;tick<60;++tick)game::update(1.0f/60.0f);
+    float normalWalk=game::player.x-300.0f;
+    game::keys[ui::bindings[int(ui::Action::Forward)]]=false;
+    game::reset();
+    input::windowProc(nullptr,WM_SYSKEYDOWN,VK_MENU,0);
+    input::windowProc(nullptr,WM_SYSKEYDOWN,'W',0);
+    for(int tick=0;tick<60;++tick)game::update(1.0f/60.0f);
+    float slowWalk=game::player.x-300.0f;
+    input::windowProc(nullptr,WM_SYSKEYUP,'W',0);
+    input::windowProc(nullptr,WM_SYSKEYUP,VK_MENU,0);
+    assert(slowWalk>25.0f&&slowWalk<normalWalk*0.7f);
+    game::reset();
+    float standingEye=camera::compute(game::player,0,false,-1).eye.y;
+    input::windowProc(nullptr,WM_KEYDOWN,VK_CONTROL,0);
+    assert(game::crouched);
+    input::windowProc(nullptr,WM_KEYUP,VK_CONTROL,0);
+    for(int tick=0;tick<10;++tick)game::update(1.0f/60.0f);
+    assert(game::crouched&&game::grounded&&
+        camera::compute(game::player,0,false,-1).eye.y<standingEye-8.0f);
+    input::windowProc(nullptr,WM_KEYDOWN,VK_CONTROL,1LL<<30);
+    assert(game::crouched);
+    input::windowProc(nullptr,WM_KEYUP,VK_CONTROL,0);
+    input::windowProc(nullptr,WM_KEYDOWN,VK_CONTROL,0);
+    assert(!game::crouched);
+    input::windowProc(nullptr,WM_KEYUP,VK_CONTROL,0);
+    game::reset();
     int entryCar=int(game::vehicles.size())-6;
     game::player=game::vehicles[entryCar].p+game::Vec2{20,0};
     game::enterExit();
@@ -1279,9 +1325,18 @@ int main(){
     game::interact();
     assert((game::money==90&&game::peds[0].cash==0)||
            (game::money==0&&game::peds[0].hostile));
-    ui::shadowQuality=2;ui::drawDistance=100;ui::lodDistance=75;ui::save();
-    ui::shadowQuality=0;ui::drawDistance=0;ui::lodDistance=0;ui::load();
-    assert(ui::shadowQuality==2&&ui::drawDistance==100&&ui::lodDistance==75);
+    ui::shadowQuality=2;ui::reflectionQuality=2;
+    ui::antiAliasingQuality=2;ui::aoQuality=2;
+    ui::drawDistance=100;ui::lodDistance=75;
+    ui::grassDistance=83;ui::save();
+    ui::shadowQuality=0;ui::reflectionQuality=0;
+    ui::antiAliasingQuality=0;ui::aoQuality=0;
+    ui::drawDistance=0;ui::lodDistance=0;
+    ui::grassDistance=0;ui::load();
+    assert(ui::shadowQuality==2&&ui::reflectionQuality==2&&
+        ui::antiAliasingQuality==2&&ui::aoQuality==2&&
+        ui::drawDistance==100&&ui::lodDistance==75&&
+        ui::grassDistance==83);
     assert(std::abs(ui::drawDistanceScale()-7.5f)<0.001f);
     std::puts("simulation smoke passed");
 }

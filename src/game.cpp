@@ -70,6 +70,7 @@ Vec2 playerVelocity{};
 float playerY=0,playerVerticalSpeed=0;
 bool grounded=true;
 bool swimming=false;
+bool crouched=false;
 std::vector<Building> buildings;
 std::vector<Tree> trees;
 std::vector<Ped> peds;
@@ -332,7 +333,7 @@ void reset(){
     screenshotRequested=false;
 #endif
     buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
-    player={300,250};previousPlayer=player;playerVelocity={};playerY=0;playerVerticalSpeed=0;grounded=true;swimming=false;
+    player={300,250};previousPlayer=player;playerVelocity={};playerY=0;playerVerticalSpeed=0;grounded=true;swimming=false;crouched=false;
     health=PLAYER_MAX_HEALTH;armor=0;repairKits=1;weapon=0;occupied=-1;enteringVehicle=-1;vehicleEntryTime=0;airTime=0;
     carriedPed=-1;
     interactionSelection=0;
@@ -636,7 +637,7 @@ void shoot(){
             police::report(ped.police?police::Crime::AttackOfficer:
                 ped.alive?police::Crime::Assault:police::Crime::Murder,
                 ped.p,true,ped.alive||ped.police);
-            impacts.push_back({ped.p,0.7f,true});
+            impacts.push_back({ped.p,1.8f,true});
             audio::playAt(audio::Effect::Hit,ped.p.x,ped.p.z);
         }
         return;
@@ -663,6 +664,9 @@ void shoot(){
     camera::Pose pose=camera::compute(player,occupied>=0?0:playerY,true,occupied);
     Vec3 target=camera::traceReticle(pose,stats.range);
     Vec3 muzzle{player.x+f.x*16+r.x*7,17+playerY,player.z+f.z*16+r.z*7};
+#ifdef MINI_CITY_JOLT
+    if(occupied<0)muzzle=camera::weaponMuzzle(player,playerY,cameraYaw,target);
+#endif
     if(occupied>=0){
         const Vehicle& car=vehicles[occupied];
         Vec2 carFront=forward(car.angle),carSide{-carFront.z,carFront.x};
@@ -717,7 +721,7 @@ void spawnHitFlash(const Bullet& bullet,Vec3 point,bool person=false){
     default:break;
     }
     if(hitFlashes.size()>=96)hitFlashes.erase(hitFlashes.begin());
-    hitFlashes.push_back({point,0.22f,tint});
+    hitFlashes.push_back({point,0.22f,tint,person});
 }
 void update(float dt){
     previousPlayer=player;
@@ -772,6 +776,7 @@ void update(float dt){
     if(keys[VK_LEFT])cameraYaw-=dt*1.8f;
     if(keys[VK_RIGHT])cameraYaw+=dt*1.8f;
     auto physicsBegin=std::chrono::steady_clock::now();
+    if(occupied>=0||enteringVehicle>=0)crouched=false;
     if(health>0){
         if(enteringVehicle>=0){playerVelocity={};}
         else if(occupied<0){
@@ -781,8 +786,10 @@ void update(float dt){
             Vec2 f=forward(cameraYaw),r{-f.z,f.x};
             Vec2 input=f*(float(keys[ui::bindings[int(ui::Action::Forward)]])-float(keys[ui::bindings[int(ui::Action::Backward)]]))+
                 r*(float(keys[ui::bindings[int(ui::Action::Right)]])-float(keys[ui::bindings[int(ui::Action::Left)]]));
-            Vec2 desired=norm(input)*(swimming?95.0f:carriedPed>=0?105.0f:
-                keys[ui::bindings[int(ui::Action::Sprint)]]?250.0f:160.0f);
+            bool slowWalk=keys[VK_MENU]||keys[VK_LMENU]||keys[VK_RMENU];
+            bool running=!crouched&&!slowWalk&&keys[ui::bindings[int(ui::Action::Sprint)]];
+            Vec2 desired=norm(input)*(swimming?95.0f:crouched?75.0f:
+                slowWalk?80.0f:carriedPed>=0?105.0f:running?250.0f:160.0f);
             float response=grounded?10.0f:3.0f;
 #ifdef MINI_CITY_JOLT
             if(debug_menu::flyMode)response=10.0f;
@@ -808,11 +815,11 @@ void update(float dt){
             physics::stepCharacterVertical(dt,keys[VK_SPACE]);
 #endif
             if(len(input)>0.01f){
-                bool running=keys[ui::bindings[int(ui::Action::Sprint)]];walkPhase+=dt*(running?13.0f:8.0f);
+                walkPhase+=dt*(running?13.0f:crouched||slowWalk?5.0f:8.0f);
                 stepTimer-=dt;
                 if(stepTimer<=0){audio::play(swimming?audio::Effect::Splash:audio::Effect::Step,
                     player.z>=BEACH_START?1:0);
-                    stepTimer=running?0.29f:0.43f;}
+                    stepTimer=running?0.29f:crouched||slowWalk?0.62f:0.43f;}
             }else stepTimer=0;
             if(leftMouse&&(rightMouse||weapons::stats(weapon).melee||keys[VK_SPACE]))shoot();
             }
@@ -865,10 +872,12 @@ void update(float dt){
             }
             if(occupied>=0){
                 player=v.p;
-                // The chase camera follows the vehicle smoothly around corners.
-                float difference=std::atan2(std::sin(v.angle-cameraYaw),std::cos(v.angle-cameraYaw));
+#ifndef MINI_CITY_JOLT
+                float difference=std::atan2(std::sin(v.angle-cameraYaw),
+                    std::cos(v.angle-cameraYaw));
                 if(vehicleLookTime<=0&&!leftMouse)
                     cameraYaw+=difference*std::min(1.0f,dt*5.0f);
+#endif
                 if(leftMouse)shoot();
             }
         }
@@ -1057,7 +1066,7 @@ void update(float dt){
                     applyDamage(float(zoneDamage));
                     spawnHitFlash(bullet,point,true);
                     if(occupied>=0)damageVehicle(occupied,damage*0.5f);
-                    impacts.push_back({{point.x,point.z},0.7f,true});bullet.life=0;
+                    impacts.push_back({{point.x,point.z},1.8f,true});bullet.life=0;
                     audio::playAt(audio::Effect::Hit,point.x,point.z);break;
                 }
                 continue;
@@ -1124,7 +1133,8 @@ void update(float dt){
                 police::report(ped.police?police::Crime::AttackOfficer:
                     ped.alive?police::Crime::Assault:police::Crime::Murder,
                     {point.x,point.z},bullet.silent,ped.alive||ped.police);
-                impacts.push_back({{point.x,point.z},0.7f,bullet.streamType==0});bullet.life=0;
+                impacts.push_back({{point.x,point.z},bullet.streamType==0?1.8f:0.7f,
+                    bullet.streamType==0});bullet.life=0;
                 audio::playAt(audio::Effect::Hit,point.x,point.z);break;}
         }
         bullet.distance+=len(next-bullet.p);
@@ -1135,6 +1145,7 @@ void update(float dt){
     bullets.erase(std::remove_if(bullets.begin(),bullets.end(),[](const Bullet& b){return b.life<=0;}),bullets.end());
     for(auto& impact:impacts)impact.life-=dt;
     impacts.erase(std::remove_if(impacts.begin(),impacts.end(),[](const Impact& i){return i.life<=0;}),impacts.end());
+    if(impacts.size()>128)impacts.erase(impacts.begin(),impacts.end()-128);
     for(auto& flash:hitFlashes)flash.life-=dt;
     hitFlashes.erase(std::remove_if(hitFlashes.begin(),hitFlashes.end(),
         [](const HitFlash& flash){return flash.life<=0;}),hitFlashes.end());
@@ -1143,6 +1154,18 @@ void update(float dt){
     fire::update(dt);
     auto propsBegin=std::chrono::steady_clock::now();
     props::update(dt);
+#ifdef MINI_CITY_JOLT
+    // Jolt writes the current chassis pose during props::update. Follow that pose,
+    // rather than the previous tick's angle used while collecting drive input.
+    if(occupied>=0&&occupied<int(vehicles.size())){
+        const Vehicle& driven=vehicles[occupied];
+        player=driven.p;
+        float difference=std::atan2(std::sin(driven.angle-cameraYaw),
+            std::cos(driven.angle-cameraYaw));
+        if(vehicleLookTime<=0&&!leftMouse)
+            cameraYaw+=difference*std::min(1.0f,dt*9.0f);
+    }
+#endif
     auto propsEnd=std::chrono::steady_clock::now();
     float elapsedPhysics=std::chrono::duration<float,std::milli>(physicsEnd-physicsBegin).count()+
         std::chrono::duration<float,std::milli>(propsEnd-propsBegin).count();

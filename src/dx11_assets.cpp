@@ -157,6 +157,7 @@ void loadMeshes(const std::wstring& folder){
     effectSprite("effect/flame",L"flame.png");
     effectSprite("effect/smoke",L"smoke.png");
     effectSprite("effect/flash",L"flash.png");
+    effectSprite("effect/blood",L"blood_splat.png");
     Mesh shockwave;
     shockwave.minX=shockwave.minZ=-0.5f;
     shockwave.maxX=shockwave.maxZ=0.5f;
@@ -171,6 +172,44 @@ void loadMeshes(const std::wstring& folder){
     auto rc=ringVertex(0.5f,0.5f,1,1),rd=ringVertex(-0.5f,0.5f,0,1);
     shockwave.vertices={ra,rb,rc,ra,rc,rd};
     meshes.emplace("effect/shockwave",std::move(shockwave));
+    Mesh bloodDecal=meshes.at("effect/shockwave");
+    bloodDecal.textureFile=(std::filesystem::path(folder).parent_path().parent_path()/
+        "effects"/"blood_splat.png").wstring();
+    meshes.emplace("effect/blood-decal",std::move(bloodDecal));
+    Mesh markerRing;
+    markerRing.minX=markerRing.minZ=-0.5f;
+    markerRing.maxX=markerRing.maxZ=0.5f;
+    markerRing.minY=0;markerRing.maxY=1;
+    markerRing.transparent=true;markerRing.castsShadow=false;
+    for(int segment=0;segment<32;++segment){
+        float a=float(segment)*6.2831853f/32.0f;
+        float b=float(segment+1)*6.2831853f/32.0f;
+        auto v=[](float angle,float radius,float alpha){
+            return Vertex{std::cos(angle)*radius,0,std::sin(angle)*radius,
+                0,1,0,0,0,1,1,1,alpha};
+        };
+        auto a0=v(a,0.38f,0.72f),a1=v(a,0.5f,0.08f);
+        auto b0=v(b,0.38f,0.72f),b1=v(b,0.5f,0.08f);
+        markerRing.vertices.insert(markerRing.vertices.end(),{a0,a1,b1,a0,b1,b0});
+    }
+    meshes.emplace("marker/ring",std::move(markerRing));
+    Mesh markerPillar;
+    markerPillar.minX=markerPillar.minZ=-0.5f;
+    markerPillar.maxX=markerPillar.maxZ=0.5f;
+    markerPillar.minY=0;markerPillar.maxY=1;
+    markerPillar.transparent=true;markerPillar.castsShadow=false;
+    for(int segment=0;segment<24;++segment){
+        float a=float(segment)*6.2831853f/24.0f;
+        float b=float(segment+1)*6.2831853f/24.0f;
+        auto v=[](float angle,float height,float alpha){
+            return Vertex{std::cos(angle)*0.46f,height,std::sin(angle)*0.46f,
+                std::cos(angle),0,std::sin(angle),0,0,1,1,1,alpha};
+        };
+        auto a0=v(a,0,0.26f),a1=v(a,1,0.0f);
+        auto b0=v(b,0,0.26f),b1=v(b,1,0.0f);
+        markerPillar.vertices.insert(markerPillar.vertices.end(),{a0,b0,b1,a0,b1,a1});
+    }
+    meshes.emplace("marker/pillar",std::move(markerPillar));
     Mesh bullet;
     bullet.minX=-0.5f;bullet.maxX=0.5f;
     bullet.minY=0;bullet.maxY=1;
@@ -244,7 +283,10 @@ void loadMeshes(const std::wstring& folder){
         "marina/marina-bayfront","marina/marina-bayfront-lod",
         "nature/tree_palmDetailedTall","nature/tree_palmDetailedShort","nature/tree_oak",
         "nature/tree_detailed","nature/plant_bushDetailed","nature/grass_large",
-        "vehicles/sedan","vehicles/sports-car","vehicles/motorboat"
+        "vehicles/sedan","vehicles/sports-car","vehicles/motorboat",
+        "vehicles/traffic-1","vehicles/traffic-2","vehicles/traffic-3",
+        "vehicles/traffic-4","vehicles/traffic-5",
+        "weapons/pistol","weapons/ak","weapons/lightning"
     };
     std::vector<std::string> names(std::begin(fixedNames),std::end(fixedNames));
     const auto buildingFolder=std::filesystem::path(folder)/L"buildings";
@@ -421,6 +463,23 @@ void loadMeshes(const std::wstring& folder){
         auto source=meshes.find(key);
         if(source!=meshes.end()&&meshes.find(key+"-lod")==meshes.end())
             meshes.emplace(key+"-lod",distantBox(source->second,1,1,1));
+    }
+    // Window panes and thin trim should receive shadows but not cast their
+    // own unstable sub-pixel shadows back onto the same facade.
+    for(int index=0;index<30;++index){
+        std::string number=std::to_string(index);
+        std::string base=std::string("buildings/urban-")+(index<10?"0":"")+number;
+        for(const char* suffix:{"","-lod"}){
+            std::string key=base+suffix;
+            auto source=meshes.find(key);
+            if(source==meshes.end())continue;
+            Mesh proxy=distantBox(source->second,1,1,1);
+            proxy.textured=false;
+            proxy.textureFile.clear();
+            proxy.materialRanges.clear();
+            auto inserted=meshes.emplace(key+"-shadow",std::move(proxy));
+            source->second.shadowProxy=&inserted.first->second;
+        }
     }
     for(int i=0;i<4;++i){
         std::string key="characters/"+std::string(people[i]);

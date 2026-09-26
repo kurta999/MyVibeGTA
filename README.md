@@ -12,7 +12,7 @@ The C++ sources and headers are in `src/`. Initialize the pinned Jolt v5.6.0 sub
 git submodule update --init
 ```
 
-With CMake and either LLVM `clang++`/Ninja or Visual Studio C++ on Windows:
+With CMake and Visual Studio C++ (or LLVM `clang++` plus Ninja) on Windows:
 
 ```powershell
 ./build.ps1
@@ -28,7 +28,7 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-The game loads the `assets/` and `data/` folders beside the executable. CMake copies both folders after building. `build.ps1` builds the DX11 executable and both smoke tests in `build-jolt-ninja/` with Clang or `build-msvc/` with Visual Studio, then copies the executable to the project root. Jolt is pinned to v5.6.0 under `third_party/JoltPhysics/`; its MIT license is included in packages. The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted from Git; their baked runtime meshes are included. Before rebuilding those nature meshes from source, restore the files with `./tools/fetch_city_sources.ps1 -AssetIds island_tree_03,jacaranda_tree`. To regenerate baked meshes and skinning clips after editing a source GLB, run `python tools/convert_assets.py` with Python 3. The converter uses only the Python standard library. Converted static GLBs now export per-material `.pbr` ranges with base color, normal, metallic/roughness, occlusion, and emissive maps when those maps exist in the source. The 30 generated urban building atlases and most vegetation assets still contain mainly base color, so their map coverage remains future asset work.
+The game loads the `assets/` and `data/` folders beside the executable. CMake copies both folders after building. `build.ps1` can be run from any working directory. It prefers Visual Studio C++, uses Clang only with Ninja, builds the DX11 game and both smoke tests, then copies the executable to the project root. It reports an error if the running game prevents that copy. Use `./test.ps1` to build and run both tests. Jolt is pinned to v5.6.0 under `third_party/JoltPhysics/`; its MIT license is included in packages. The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted from Git; their baked runtime meshes are included. Before rebuilding those nature meshes from source, restore the files with `./tools/fetch_city_sources.ps1 -AssetIds island_tree_03,jacaranda_tree`. To regenerate baked meshes and skinning clips after editing a source GLB, run `python tools/convert_assets.py` with Python 3. The converter uses only the Python standard library. Converted static GLBs now export per-material `.pbr` ranges with base color, normal, metallic/roughness, occlusion, and emissive maps when those maps exist in the source. The 30 generated urban building atlases and most vegetation assets still contain mainly base color, so their map coverage remains future asset work.
 
 Run `./package.ps1` to build the DX11 game, copy its executable with runtime and source assets, `data/`, provenance manifests, and license records, smoke-test day, night, causeway, and each distant biome from the copied folder, and create a zip under `dist/`. Use `./package.ps1 -SkipBuild` to package the latest existing build. `-IncludeOpenGL` includes the existing fallback executable without rebuilding it.
 
@@ -40,6 +40,8 @@ GitHub Actions builds and runs both CMake smoke tests on Windows for pull reques
 | --- | --- |
 | W / A / S / D | Move or drive |
 | Shift | Run on foot |
+| Hold Alt | Walk slowly on foot |
+| Left Ctrl | Toggle crouch movement |
 | Space | Jump |
 | S / Space while driving | Brake / handbrake for controlled drifts |
 | Move mouse | Rotate the camera in every gameplay view without aiming |
@@ -77,7 +79,7 @@ Grass terrain in the city, countryside, and savanna now has deterministic, low-p
 
 ## DX11 visual quality
 
-The DX11 scene now renders to a floating-point color target and runs a final pass with spatial edge smoothing, depth-based ambient occlusion, restrained bloom, exposure, tone mapping, and color grading by biome and time of day. The sky gradient, cloud layers, and distant silhouette shift through sunrise, daylight, sunset, and night. A visual terrain skirt softens the playable world edge. City blocks have varied storefront fronts, awnings, and rooftop equipment. Sun shadows use four comparison samples, and active fires tint nearby geometry. Converted static GLBs retain separate glTF material ranges and their base-color, normal, metallic/roughness, occlusion, and emissive textures when available; `tools/convert_assets.py` writes adjacent `.pbr` metadata. Procedural road, ground, foliage, and vehicle surfaces use material roughness and metalness defaults. The HUD is composited after post-processing to keep text sharp. F1 reveals the full control legend; the normal HUD keeps it compact.
+The DX11 scene now renders to a floating-point color target and runs a final pass with selectable FXAA, SSAO, screen-space reflections, restrained bloom, exposure, tone mapping, and color grading by biome and time of day. Reflections, FXAA, and SSAO each have independent Off/Medium/High settings in Graphics. Water and rain-wet roads use screen-space reflections with a sky fallback; vehicle paint gets a sky reflection contribution. The sky gradient, cloud layers, and distant silhouette shift through sunrise, daylight, sunset, and night. A visual terrain skirt softens the playable world edge. City blocks have varied storefront fronts, awnings, and rooftop equipment. Sun shadows use four comparison samples, and active fires tint nearby geometry. Converted static GLBs retain separate glTF material ranges and their base-color, normal, metallic/roughness, occlusion, and emissive textures when available; `tools/convert_assets.py` writes adjacent `.pbr` metadata. Procedural road, ground, foliage, and vehicle surfaces use material roughness and metalness defaults. The HUD is composited after post-processing to keep text sharp. F1 reveals the full control legend; the normal HUD keeps it compact.
 
 Graphics settings now have mouse and arrow-key sliders for draw distance and LOD distance. The maximum draw distance is 9,375 world units, five times the previous Far limit of 1,875. Existing Near, Standard, and Far settings migrate to the new sliders. Regional terrain becomes coarser beyond the near field, while distant foliage is thinned and nearby leaves fade out of the camera's view to keep the expanded range usable. Use `--smoke --graphics-menu --screenshot --1080p` to capture the settings screen.
 

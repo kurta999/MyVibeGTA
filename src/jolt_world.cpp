@@ -57,6 +57,8 @@ std::vector<JPH::BodyID> vehicleBodies;
 std::vector<JPH::Ref<JPH::VehicleConstraint>> vehicleConstraints;
 std::vector<game::Vec2> vehicleSynced;
 JPH::Ref<JPH::CharacterVirtual> playerCharacter;
+JPH::Ref<JPH::CapsuleShape> standingShape,crouchingShape;
+bool playerCrouched=false;
 JPH::Ref<JPH::CharacterVirtualSettings> pedestrianSettings;
 std::vector<JPH::Ref<JPH::CharacterVirtual>> pedCharacters;
 std::vector<JPH::BodyID> staticBodies;
@@ -181,6 +183,7 @@ void shutdown(){
     propBodies.clear();vehicleBodies.clear();vehicleConstraints.clear();vehicleSynced.clear();
     staticBodies.clear();buildingBodies.clear();streamedCellX=streamedCellZ=-1;
     world.reset();jobs.reset();allocator.reset();
+    standingShape=nullptr;crouchingShape=nullptr;playerCrouched=false;
 }
 void reset(){
     shutdown();
@@ -311,7 +314,9 @@ void reset(){
         vehicleConstraints.push_back(constraint);
     }
     JPH::Ref<JPH::CharacterVirtualSettings> characterSettings=new JPH::CharacterVirtualSettings();
-    characterSettings->mShape=new JPH::CapsuleShape(8.0f,10.0f);
+    standingShape=new JPH::CapsuleShape(8.0f,10.0f);
+    crouchingShape=new JPH::CapsuleShape(3.0f,10.0f);
+    characterSettings->mShape=standingShape.GetPtr();
     characterSettings->mShapeOffset=JPH::Vec3(0,18,0);
     characterSettings->mMaxSlopeAngle=game::PI*0.28f;
     characterSettings->mSupportingVolume=JPH::Plane(JPH::Vec3::sAxisY(),-10.0f);
@@ -342,6 +347,33 @@ void addPed(){
 }
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     if(!playerCharacter||!world)return;
+    if(game::crouched!=playerCrouched){
+        float oldOffset=playerCrouched?13.0f:18.0f;
+        playerCharacter->SetShapeOffset(JPH::Vec3(0,game::crouched?13.0f:18.0f,0));
+        const JPH::Shape* target=game::crouched?
+            static_cast<const JPH::Shape*>(crouchingShape.GetPtr()):standingShape.GetPtr();
+        if(playerCharacter->SetShape(target,0.1f,
+            world->GetDefaultBroadPhaseLayerFilter(Layer::moving),
+            world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator))
+            playerCrouched=game::crouched;
+        else{
+            playerCharacter->SetShapeOffset(JPH::Vec3(0,oldOffset,0));
+            game::crouched=playerCrouched;
+        }
+    }
+    // The terrain outside the region is only a visual skirt. Keep the virtual
+    // character over the physics floor, including when loading an old save
+    // made after stepping off the edge.
+    constexpr float edge=12.0f;
+    game::Vec2 playable{
+        std::clamp(game::player.x,edge,regions::WIDTH-edge),
+        std::clamp(game::player.z,edge,regions::DEPTH-edge)};
+    if(playable.x!=game::player.x||playable.z!=game::player.z){
+        game::player=playable;
+        game::playerY=std::max(0.0f,game::playerY);
+        playerCharacter->SetPosition(JPH::RVec3(playable.x,game::playerY,playable.z));
+        playerCharacter->SetLinearVelocity(JPH::Vec3::sZero());
+    }
     syncBuildingColliders(game::player);
     auto position=playerCharacter->GetPosition();
     if(game::len(game::Vec2{float(position.GetX()),float(position.GetZ())}-game::player)>8||
@@ -365,6 +397,12 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
         world->GetDefaultBroadPhaseLayerFilter(Layer::moving),
         world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
     position=playerCharacter->GetPosition();
+    float safeX=std::clamp(float(position.GetX()),edge,regions::WIDTH-edge);
+    float safeZ=std::clamp(float(position.GetZ()),edge,regions::DEPTH-edge);
+    if(safeX!=float(position.GetX())||safeZ!=float(position.GetZ())){
+        playerCharacter->SetPosition(JPH::RVec3(safeX,std::max(0.0f,float(position.GetY())),safeZ));
+        position=playerCharacter->GetPosition();
+    }
     game::player={float(position.GetX()),float(position.GetZ())};
     game::playerY=swimming?float(position.GetY()):std::max(0.0f,float(position.GetY()));
     game::playerVerticalSpeed=playerCharacter->GetLinearVelocity().GetY();

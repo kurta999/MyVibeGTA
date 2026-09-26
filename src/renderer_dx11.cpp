@@ -244,7 +244,7 @@ float4 PS(Output input):SV_TARGET{
     float4 base=input.color;
     int material=(int)(params.x+0.5);
     bool modelTexture=frac(params.x)>0.1;
-    if(material==0||material==7||material==8||material==9||material==11||material==15)
+    if(material==0||material==3||material==7||material==8||material==9||material==11||material==15)
         base.rgb=pow(saturate(base.rgb),2.2);
     if(material==1||modelTexture)
         base*=diffuseTexture.Sample(linearSampler,input.uv);
@@ -272,7 +272,7 @@ float4 PS(Output input):SV_TARGET{
         float3 bitangent=normalize(cross(normal,tangent));
         normal=normalize(lerp(normal,normalize(tangent*bump.x+
             bitangent*bump.y+normal*bump.z),0.48));
-    }else if(material>=2){
+    }else if(material>=2&&material!=3){
         float scale=material==2||material==3||material==11||material==12?0.055:
             material==4?0.085:material==5?0.25:material==6?0.11:
             material==7?0.028:material==8?0.022:0.03;
@@ -298,6 +298,11 @@ float4 PS(Output input):SV_TARGET{
         normal=normalize(lerp(normal,mapped,strength*0.55));
     }
     float precipitation=weatherAndTime.x;
+    if(material==3){
+        float2 wave=input.world.xz*0.055+weatherAndTime.w*0.35;
+        normal=normalize(float3(0.055*sin(wave.x+wave.y*0.7),1.0,
+            0.055*cos(wave.y-wave.x*0.6)));
+    }
     float snow=weatherAndTime.y;
     float night=weatherAndTime.z;
     if(snow>0&&input.world.y<220&&normal.y>0.55&&material!=13&&material!=14){
@@ -318,7 +323,7 @@ float4 PS(Output input):SV_TARGET{
             normal=normalize(tangent*mapped.x+bitangent*mapped.y+normal*mapped.z);
         }
     }
-    float roughness=clamp(materialPbr.x,0.06,1.0);
+    float roughness=material==3?0.09:clamp(materialPbr.x,0.06,1.0);
     float metallic=saturate(materialPbr.y);
     if((mapFlags&2)!=0){
         float4 orm=modelOrmTexture.Sample(linearSampler,input.uv);
@@ -395,11 +400,21 @@ float4 PS(Output input):SV_TARGET{
         float fresnelWet=pow(1-ndv,3);
         lit+=fogColor.rgb*(0.08+0.22*fresnelWet)*precipitation;
     }
+    if(material==6&&ambient.w>0.5){
+        float3 reflected=reflect(-viewDirection,normal);
+        float horizon=saturate(reflected.y*0.5+0.5);
+        float3 environment=lerp(fogColor.rgb*0.65,fogColor.rgb*1.45,horizon);
+        float fresnelPaint=0.08+0.42*pow(1-ndv,3);
+        lit+=environment*fresnelPaint*(1-roughness)*
+            (ambient.w>1.5?1.0:0.65);
+    }
     lit+=((mapFlags&8)!=0?modelEmissiveTexture.Sample(linearSampler,input.uv).rgb:
         base.rgb)*materialPbr.z;
     float distanceToEye=distance(input.world,eye.xyz);
     float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
-    return float4(lerp(lit,fogColor.rgb,fog),material==15?0.2:base.a);
+    float reflectionMask=material==3?0.10:
+        road&&precipitation>0.05?1.0-0.78*precipitation:base.a;
+    return float4(lerp(lit,fogColor.rgb,fog),reflectionMask);
 }
 void PSShadowAlpha(Output input){
     float4 base=diffuseTexture.Sample(linearSampler,input.uv);
@@ -442,24 +457,32 @@ float3 sampleColor(float2 uv){return sceneColor.SampleLevel(linearSampler,satura
 float4 PS(Input input):SV_TARGET{
     float2 uv=input.uv,stepSize=pixelSize.xy;
     float3 center=sampleColor(uv);
-    float3 north=sampleColor(uv+float2(0,-stepSize.y));
-    float3 south=sampleColor(uv+float2(0,stepSize.y));
-    float3 east=sampleColor(uv+float2(stepSize.x,0));
-    float3 west=sampleColor(uv+float2(-stepSize.x,0));
-    float l=luminance(center);
-    float contrast=max(max(luminance(north),luminance(south)),
-        max(luminance(east),luminance(west)))-
-        min(min(luminance(north),luminance(south)),
-        min(luminance(east),luminance(west)));
-    if(effects.z>0.5&&contrast>max(0.055,l*0.12)){
-        float horizontal=abs(luminance(north)-luminance(south));
-        float vertical=abs(luminance(east)-luminance(west));
-        float3 blend=horizontal>vertical?(north+south)*0.5:(east+west)*0.5;
-        center=lerp(center,blend,0.42);
+    if(effects.z>0.5){
+        float lumaM=luminance(center);
+        float lumaNW=luminance(sampleColor(uv+float2(-1,-1)*stepSize));
+        float lumaNE=luminance(sampleColor(uv+float2(1,-1)*stepSize));
+        float lumaSW=luminance(sampleColor(uv+float2(-1,1)*stepSize));
+        float lumaSE=luminance(sampleColor(uv+float2(1,1)*stepSize));
+        float lumaMin=min(lumaM,min(min(lumaNW,lumaNE),min(lumaSW,lumaSE)));
+        float lumaMax=max(lumaM,max(max(lumaNW,lumaNE),max(lumaSW,lumaSE)));
+        if(lumaMax-lumaMin>max(0.04,lumaMax*0.12)){
+            float2 dir=float2(-((lumaNW+lumaNE)-(lumaSW+lumaSE)),
+                (lumaNW+lumaSW)-(lumaNE+lumaSE));
+            float reduce=max((lumaNW+lumaNE+lumaSW+lumaSE)*0.25*0.125,0.0078125);
+            dir=clamp(dir/(min(abs(dir.x),abs(dir.y))+reduce),-8.0,8.0)*stepSize;
+            float3 a=0.5*(sampleColor(uv+dir*(-1.0/6.0))+
+                sampleColor(uv+dir*(1.0/6.0)));
+            if(effects.z>1.5){
+                float3 b=a*0.5+0.25*(sampleColor(uv+dir*(-0.5))+
+                    sampleColor(uv+dir*0.5));
+                float lumaB=luminance(b);
+                center=lumaB<lumaMin||lumaB>lumaMax?a:b;
+            }else center=lerp(center,a,0.72);
+        }
     }
     float4 surface=sceneColor.SampleLevel(linearSampler,uv,0);
     float d=sceneDepth.SampleLevel(linearSampler,uv,0).r;
-    if(effects.w>0.05&&surface.a<0.5&&d<0.9999){
+    if(effects.w>0.5&&surface.a<0.95&&d<0.9999){
         float4 clip=float4(uv.x*2-1,1-uv.y*2,d,1);
         float4 world=mul(clip,inverseViewProjection);
         world.xyz/=world.w;
@@ -467,8 +490,9 @@ float4 PS(Input input):SV_TARGET{
         float3 reflected=reflect(incoming,float3(0,1,0));
         float3 reflection=skyHorizon.rgb;
         bool hit=false;
-        [loop] for(int i=0;i<14;++i){
-            float3 ray=world.xyz+reflected*(8+i*13);
+        int steps=effects.w>1.5?24:10;
+        [loop] for(int i=0;i<steps;++i){
+            float3 ray=world.xyz+reflected*(6+i*(effects.w>1.5?9:17));
             float4 projected=mul(float4(ray,1),viewProjection);
             float3 ndc=projected.xyz/max(projected.w,0.001);
             float2 rayUv=float2(ndc.x*0.5+0.5,0.5-ndc.y*0.5);
@@ -480,7 +504,7 @@ float4 PS(Input input):SV_TARGET{
                 hit=true;break;
             }
         }
-        center=lerp(center,reflection,hit?0.60*effects.w:0.28*effects.w);
+        center=lerp(center,reflection,(hit?0.66:0.40)*(1-surface.a));
     }
     if(d>=0.9999){
         float4 farPoint=mul(float4(uv.x*2-1,1-uv.y*2,1,1),inverseViewProjection);
@@ -502,18 +526,21 @@ float4 PS(Input input):SV_TARGET{
         center=lerp(center,skyHorizon.rgb*0.66,
             1-smoothstep(ridge,ridge+0.014,ray.y));
     }
-    if(effects.x>0.01&&d<0.9999){
+    if(effects.x>0.5&&d<0.9999){
         float z=linearDepth(d),occlusion=0;
-        float2 taps[8]={float2(-1,0),float2(1,0),float2(0,-1),float2(0,1),
-            float2(-0.7,-0.7),float2(0.7,-0.7),float2(-0.7,0.7),float2(0.7,0.7)};
-        [unroll] for(int i=0;i<8;++i){
+        float2 taps[16]={float2(-1,0),float2(1,0),float2(0,-1),float2(0,1),
+            float2(-0.7,-0.7),float2(0.7,-0.7),float2(-0.7,0.7),float2(0.7,0.7),
+            float2(-2,0),float2(2,0),float2(0,-2),float2(0,2),
+            float2(-1.4,-1.4),float2(1.4,-1.4),float2(-1.4,1.4),float2(1.4,1.4)};
+        int tapCount=effects.x>1.5?16:8;
+        [loop] for(int i=0;i<tapCount;++i){
             float2 at=uv+taps[i]*stepSize*5;
             float neighbor=linearDepth(sceneDepth.SampleLevel(linearSampler,saturate(at),0).r);
             float difference=z-neighbor;
             occlusion+=smoothstep(0.45,8.0,difference)*
                 (1-smoothstep(14.0,42.0,difference));
         }
-        center*=1-effects.x*occlusion/8.0;
+        center*=1-(effects.x>1.5?0.52:0.35)*occlusion/tapCount;
     }
     if(effects.y>0.01){
         float3 glow=0;
@@ -694,6 +721,7 @@ bool prepareInstances(){
     instanceData.clear();instanceBatches.clear();
     for(const auto& model:models){
         if(!cacheModel(model.source))return false;
+        if(model.source->shadowProxy&&!cacheModel(model.source->shadowProxy))return false;
         if(instanceBatches.empty()||instanceBatches.back().mesh!=model.source||
            instanceBatches.back().material!=model.material)
             instanceBatches.push_back({model.source,model.material,UINT(instanceData.size()),0});
@@ -735,7 +763,7 @@ bool createStaticGeometry(){
 }
 void setTessellation(int material){
     bool enabled=ui::graphicsQuality>0&&
-        (material==2||material==4||material==10||material==11||material==12);
+        (material==2||material==4||material==10||material==11);
     context->IASetPrimitiveTopology(enabled?D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST:
         D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->HSSetShader(enabled?sceneHS:nullptr,nullptr,0);
@@ -760,16 +788,18 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false)
     for(const auto& batch:instanceBatches){
         if(batch.mesh->transparent!=transparent)continue;
         if(shadow&&!batch.mesh->castsShadow)continue;
+        const dx11::Mesh* drawn=shadow&&batch.mesh->shadowProxy?
+            batch.mesh->shadowProxy:batch.mesh;
         // Imported foliage already has dense leaf geometry. Hull/domain
         // tessellation multiplies its cost without improving the silhouette.
-        setTessellation(batch.mesh->textured&&batch.material==4?0:batch.material);
-        ID3D11Buffer* buffers[]={meshBuffers.at(batch.mesh),instanceBuffer};
+        setTessellation(drawn->textured&&batch.material==4?0:batch.material);
+        ID3D11Buffer* buffers[]={meshBuffers.at(drawn),instanceBuffer};
         UINT strides[]={sizeof(dx11::Vertex),sizeof(InstanceData)},offsets[]={0,0};
         context->IASetVertexBuffers(0,2,buffers,strides,offsets);
-        const auto& ranges=batch.mesh->materialRanges;
+        const auto& ranges=drawn->materialRanges;
         for(size_t part=0;part<std::max<size_t>(1,ranges.size());++part){
             const dx11::MaterialRange* range=ranges.empty()?nullptr:&ranges[part];
-            auto texture=modelTextures.find(batch.mesh);
+            auto texture=modelTextures.find(drawn);
             ID3D11ShaderResourceView* base=range?pbrTexture(range->baseFile):
                 texture==modelTextures.end()?nullptr:texture->second;
             bool hasModelTexture=base!=nullptr;
@@ -783,13 +813,13 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false)
                     (!range->ormFile.empty()?2:0)|
                     (!range->occlusionFile.empty()?4:0)|
                     (!range->emissiveFile.empty()?8:0));
-            }else if(batch.material!=14&&batch.mesh->textured){
-                constants.materialPbr.x=batch.mesh->roughness;
-                constants.materialPbr.y=batch.mesh->metallic;
+            }else if(batch.material!=14&&drawn->textured){
+                constants.materialPbr.x=drawn->roughness;
+                constants.materialPbr.y=drawn->metallic;
             }
             context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
             if(shadow){
-                bool alpha=batch.mesh->alphaTest&&hasModelTexture;
+                bool alpha=drawn->alphaTest&&hasModelTexture;
                 context->PSSetShader(alpha?alphaShadowPS:nullptr,nullptr,0);
                 if(alpha)context->PSSetShaderResources(0,1,&base);
             }else{
@@ -805,7 +835,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false)
                 context->PSSetShaderResources(0,4,resources);
                 context->PSSetShaderResources(5,4,resources+5);
             }
-            context->DrawInstanced(range?range->count:UINT(batch.mesh->vertices.size()),
+            context->DrawInstanced(range?range->count:UINT(drawn->vertices.size()),
                 batch.count,range?range->start:0,batch.start);
             ++drawCalls;
         }
@@ -923,7 +953,8 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     constants.weatherAndTime={conditions.snow?0.0f:conditions.precipitation,
         conditions.snow?std::max(0.5f,conditions.precipitation):
             biome==regions::Biome::Snow?0.75f:0.0f,
-        night,gameHour};
+        night,worldTime};
+    constants.ambient.w=float(ui::reflectionQuality);
     struct LocalLight {XMFLOAT4 position,color;float distance;};
     std::vector<LocalLight> lights;
     auto addLight=[&](float x,float y,float z,float radius,
@@ -944,19 +975,20 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             if(vehicle.exploded||std::hypot(vehicle.p.x-player.x,vehicle.p.z-player.z)>390)continue;
             Vec2 facing=forward(vehicle.angle);
             Vec2 side{-facing.z,facing.x};
-            float front=vehicle.kind==Kind::Bike?13.0f:23.0f;
+            float front=vehicle.kind==Kind::Bike?13.0f:24.05f;
             float width=vehicle.kind==Kind::Bike?0.0f:8.0f;
+            float blink=std::fmod(worldTime,0.9f)<0.18f?1.3f:0.18f;
             for(float sign:{-1.0f,1.0f}){
                 if(width==0&&sign>0)continue;
                 addLight(vehicle.p.x+facing.x*front+side.x*width*sign,
-                    vehicle.rideHeight+12,
+                    vehicle.rideHeight+(width==0?17.0f:9.5f),
                     vehicle.p.z+facing.z*front+side.z*width*sign,
-                    125,1.0f,0.94f,0.72f,1.7f*night);
+                    125,1.0f,0.94f,0.72f,1.7f*night*blink);
                 if(width>0)
                     addLight(vehicle.p.x-facing.x*front+side.x*width*sign,
-                        vehicle.rideHeight+12,
+                        vehicle.rideHeight+9.7f,
                         vehicle.p.z-facing.z*front+side.z*width*sign,
-                        45,1.0f,0.09f,0.04f,0.75f*night);
+                        45,1.0f,0.09f,0.04f,0.75f*night*blink);
             }
         }
     }
@@ -1129,7 +1161,9 @@ void render(){
     float daylight=std::clamp(solar*2.3f+0.42f,0.0f,1.0f);
     int requestedShadowSize=ui::shadowQuality==0?0:ui::shadowQuality==1?1024:2048;
     if(requestedShadowSize!=shadowSize&&!createShadowTargets(requestedShadowSize))createShadowTargets(0);
-    Vec2 focus=previousPlayer*(1.0f-renderAlpha)+player*renderAlpha;
+    // Driving and aiming render against the latest simulation pose.
+    Vec2 focus=(occupied>=0||rightMouse)?player:
+        previousPlayer*(1.0f-renderAlpha)+player*renderAlpha;
     camera::Pose pose=camera::compute(focus,playerY,rightMouse&&occupied<0&&!ui::paused(),occupied);
     SceneConstants constants=constantsForFrame(pose,solar,daylight);
     UINT stride=sizeof(dx11::Vertex),offset=0;
@@ -1241,9 +1275,9 @@ void render(){
     post.skyHorizon.x=post.skyHorizon.x*(1-cloudFade)+overcast.x*cloudFade;
     post.skyHorizon.y=post.skyHorizon.y*(1-cloudFade)+overcast.y*cloudFade;
     post.skyHorizon.z=post.skyHorizon.z*(1-cloudFade)+overcast.z*cloudFade;
-    post.effects={ui::graphicsQuality>0?0.48f:0.30f,
-        ui::graphicsQuality>0?0.12f:0.0f,1.0f,
-        weather::current().snow?0.0f:weather::current().precipitation};
+    post.effects={float(ui::aoQuality),
+        ui::graphicsQuality>0?0.12f:0.0f,float(ui::antiAliasingQuality),
+        float(ui::reflectionQuality)};
     context->UpdateSubresource(postBuffer,0,nullptr,&post,0,0);
     context->IASetInputLayout(nullptr);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

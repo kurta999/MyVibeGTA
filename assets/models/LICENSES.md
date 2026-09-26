@@ -13,6 +13,9 @@ All models in `source/` and geometry baked from them in `baked/` are CC0.
 | `source/vehicles/sedan.glb` | Quaternius, [Car](https://poly.pizza/m/unqqkULtRU) | CC0 as stated on model page |
 | `source/vehicles/sports-car.glb` | Quaternius, [Sports Car](https://poly.pizza/m/1mkmFkAz5v) | CC0 as stated on model page |
 | `source/vehicles/motorboat.glb` | Quaternius, [Boat](https://poly.pizza/m/5UEl54KsuC) | CC0 as stated on model page |
+| `source/ggbot-cars/Car 01` through `Car 05` | GGBotNet, [PSX Style Cars](https://opengameart.org/content/psx-style-cars) | CC0 1.0 |
+| `source/pistol/Pistol.gltf`, `source/ak/AK.gltf` | loafbrr_1, [Pistol](https://opengameart.org/content/pistol-5) and [AK](https://opengameart.org/content/ak) | CC0 1.0 |
+| `source/lightning/lightning.glb` | LonesomeDucky, [Lightning Pump Action Rifle](https://opengameart.org/content/lightning-pump-action-rifle) | CC0 1.0 |
 | `source/polyhaven/tree_small_02`, `fir_sapling`, `quiver_tree_01`, `quiver_tree_02`, `island_tree_01`, `island_tree_02`, `island_tree_03`, `jacaranda_tree`, `pine_sapling_small` | [Poly Haven](https://polyhaven.com/models) tree assets | CC0 |
 | `source/polyhaven/shrub_*`, `wild_rooibos_bush`, `fern_02`, `nettle_plant`, `periwinkle_plant`, `weed_plant_02`, `crystalline_iceplant` | [Poly Haven](https://polyhaven.com/models) forest plants | CC0 |
 | `source/polyhaven/modular_urban_apartments_facade`, `modular_factory_facade` | [Poly Haven](https://polyhaven.com/models) facade textures | CC0 |

@@ -21,15 +21,17 @@ if ($packageName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
 $packageDirectory = Join-Path $outputDirectory $packageName
 New-Item -ItemType Directory -Path $packageDirectory | Out-Null
 
-$builtDirect3D = if (Get-Command clang++ -ErrorAction SilentlyContinue) {
-    Join-Path $PSScriptRoot 'build-jolt-ninja\MiniCity3D.exe'
-} else {
-    Join-Path $PSScriptRoot 'build-msvc\Release\MiniCity3D.exe'
-}
-$direct3DSource = if ($Direct3DExecutable -eq 'MiniCity3D.exe' -and
-    (Test-Path -LiteralPath $builtDirect3D)) {
-    $builtDirect3D
-} else { Join-Path $PSScriptRoot $Direct3DExecutable }
+$builtDirect3D = @(
+    (Join-Path $PSScriptRoot 'build-msvc\Release\MiniCity3D.exe'),
+    (Join-Path $PSScriptRoot 'build-msvc-v18\Release\MiniCity3D.exe'),
+    (Join-Path $PSScriptRoot 'build-jolt-ninja\MiniCity3D.exe')
+) | Where-Object { Test-Path -LiteralPath $_ } |
+    Sort-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } -Descending |
+    Select-Object -First 1
+$direct3DSource = if (-not $SkipBuild -or $Direct3DExecutable -ne 'MiniCity3D.exe') {
+    Join-Path $PSScriptRoot $Direct3DExecutable
+} elseif ($builtDirect3D) { $builtDirect3D }
+else { Join-Path $PSScriptRoot $Direct3DExecutable }
 Copy-Item -LiteralPath $direct3DSource `
     -Destination (Join-Path $packageDirectory 'MiniCity3D.exe')
 $executables = @('MiniCity3D.exe')
@@ -53,7 +55,8 @@ $modelDestination = Join-Path $assetDestination 'models'
 New-Item -ItemType Directory -Path $modelDestination | Out-Null
 Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
 Copy-Item -LiteralPath (Join-Path $modelSource 'source') -Destination $modelDestination -Recurse
-foreach ($fileName in @('LICENSES.md', 'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md')) {
+foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md',
+        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'data') -Destination $packageDirectory -Recurse

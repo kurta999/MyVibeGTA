@@ -24,12 +24,13 @@ float fieldOfView(){
 }
 Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     Vec2 f=forward(cameraYaw),right{-f.z,f.x};
+    float stance=game::crouched&&occupied<0?10.0f:0.0f;
     bool first=(cameraMode==CameraMode::FirstClose||cameraMode==CameraMode::FirstWide);
     bool scope=occupied<0&&(scopeBlend>0||telescopeActive||
         (aiming&&weapon==weapons::indexOf("sniper")));
     if(first||scope){
         Vec3 eye{focus.x+(occupied>=0?right.x*8:0),
-            playerHeight+(occupied>=0?29.0f:31.0f),
+            playerHeight+(occupied>=0?29.0f:31.0f-stance),
             focus.z+(occupied>=0?right.z*8:0)};
         float cosine=std::cos(cameraPitch);
         Vec3 direction{f.x*cosine,std::sin(cameraPitch),f.z*cosine};
@@ -39,12 +40,12 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     float distance=overview?250.0f:aiming?95.0f:
         occupied>=0?175.0f:cameraMode==CameraMode::ThirdFar?220.0f:125.0f;
     float height=(overview?330.0f:aiming?52.0f:occupied>=0?85.0f:
-        cameraMode==CameraMode::ThirdFar?95.0f:68.0f)+playerHeight;
+        cameraMode==CameraMode::ThirdFar?95.0f:68.0f)+playerHeight-stance;
     float shoulder=aiming?23.0f:0.0f;
     float lookDistance=overview?15.0f:aiming?240.0f:55.0f;
     float lookHeight=(overview?18.0f:aiming?16.0f+std::tan(cameraPitch)*240.0f:
-        (occupied>=0?12.0f:17.0f)+std::sin(cameraPitch)*55.0f)+playerHeight;
-    Vec3 anchor{focus.x,playerHeight+(occupied>=0?35.0f:25.0f),focus.z};
+        (occupied>=0?12.0f:17.0f)+std::sin(cameraPitch)*55.0f)+playerHeight-stance;
+    Vec3 anchor{focus.x,playerHeight+(occupied>=0?35.0f:25.0f)-stance,focus.z};
     Vec3 desired{focus.x-f.x*distance+right.x*shoulder,height,
         focus.z-f.z*distance+right.z*shoulder};
     Vec3 safe=desired;
@@ -132,5 +133,16 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
         if(groundDistance>=0)best=std::min(best,groundDistance);
     }
     return pose.eye+direction*best;
+}
+Vec3 weaponMuzzle(Vec2 position,float height,float yaw,Vec3 target){
+    Vec2 facing=forward(yaw),side{-facing.z,facing.x};
+    Vec3 hand{position.x+facing.x*6+side.x*6,height+20,
+        position.z+facing.z*6+side.z*6};
+    Vec3 direction=norm(target-hand);
+    if(len(direction)<0.001f)direction={facing.x,0,facing.z};
+    const std::string& id=weapons::stats(weapon).id;
+    float reach=id=="pistol"||id=="silenced-pistol"?10.0f:
+        id=="smg"?13.0f:18.0f;
+    return hand+direction*reach;
 }
 }

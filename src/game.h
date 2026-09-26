@@ -61,7 +61,7 @@ struct Bullet{Vec3 p,v;float life;int damage;float gravity;float distance=0,rang
     bool hostile=false,rocket=false;float explosionRadius=0;int explosionDamage=0;
     int streamType=0;bool silent=false,arrow=false;int sourceWeapon=-1;};
 struct Impact{Vec2 p;float life;bool person;};
-struct HitFlash{Vec3 p;float life;Color c;};
+struct HitFlash{Vec3 p;float life;Color c;bool person=false;};
 struct Blast{Vec3 p;float life=0,radius=0;};
 struct Debris{Vec3 p,v;float life,rotation,spin,w,h,d;int tile;};
 struct RagdollPart{Vec3 p,rest,origin;float qx,qy,qz,qw,yaw;int style,part;};
@@ -111,6 +111,7 @@ extern Vec2 playerVelocity;
 extern float playerY,playerVerticalSpeed;
 extern bool grounded;
 extern bool swimming;
+extern bool crouched;
 extern std::vector<Building> buildings;
 extern std::vector<Tree> trees;
 extern std::vector<Ped> peds;
