@@ -166,6 +166,15 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         preview.life=0.2f;preview.range=650;preview.damage=52;
         bullets.push_back(preview);
     }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--burn-preview")&&
+       !peds.empty()&&!vehicles.empty()){
+        player=previousPlayer={80,100};cameraYaw=0;
+        auto& car=vehicles.front();
+        car.p={190,100};car.angle=PI;car.lightsOn=true;car.lightsManual=true;
+        fire::igniteVehicle(car);
+        auto& ped=peds.front();ped.p={175,140};ped.alive=true;
+        fire::ignitePed(ped);
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--aim-up")){
         cameraYaw=0;cameraPitch=0.6f;rightMouse=true;
     }

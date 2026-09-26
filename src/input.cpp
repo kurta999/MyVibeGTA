@@ -104,6 +104,13 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(wp=='F'){interact();if(commerce::menu()!=commerce::Menu::None)releaseAim();}
             if(wp==VK_TAB)cycleInteraction();
             if(wp=='G')carryDrop();
+            if(wp=='H'&&occupied>=0&&occupied<int(vehicles.size())&&
+               vehicles[occupied].kind!=Kind::Boat){
+                Vehicle& vehicle=vehicles[occupied];
+                vehicle.lightsManual=true;vehicle.lightsOn=!vehicle.lightsOn;
+                message=vehicle.lightsOn?"HEADLIGHTS ON":"HEADLIGHTS OFF";
+                messageTime=2;
+            }
             if(wp=='B'&&health>0&&occupied<0){
                 telescopeActive=!telescopeActive;
                 if(telescopeActive){scopeLevel=0;releaseAim();}

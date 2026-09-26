@@ -108,6 +108,8 @@ Prioritize one finished street and beach approach: improved camera and aiming, v
 
 - **DX11 graphics polish pass:** city blocks have varied storefront and roof details, filtered sun shadows and lower ambient fill, layered sky clouds and a visual terrain skirt, near-camera foliage thinning, clustered grass, varied fire sprites with local fire light, and an F1-expanded control overlay. Saved draw-distance and LOD sliders replace the three discrete choices. The draw slider reaches 9,375 units, five times the old Far camera limit; distant terrain and vegetation use coarser representations. The DX11 build, simulation and asset suites, default and maximum-distance captures, and 120-frame maximum-distance downtown and woods samples passed on the development machine. This does not complete full PBR asset coverage or broader hardware validation.
 
+- **Fire and headlights pass:** Peds and vehicles carry a timed burn state after contact with flames, including flamethrower hits. Burning peds flee and lose health until death; vehicles that ignite or reach severe damage lose durability until they explode. Fire follows each moving target visually in DX11, and foam or water extinguishes it. Car and motorcycle headlights switch on at entry and H toggles them, with visible lamps and local lights even during the day. The DX11 build and simulation checks cover the state progression and controls, and a night burn preview frame was visually checked; interactive tuning remains open.
+
 ## Quality checks
 
 - Maintain a runnable build after every milestone.

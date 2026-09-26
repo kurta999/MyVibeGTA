@@ -14,6 +14,8 @@ Material groundAt(game::Vec2 p);
 Material surfaceAt(game::Vec3 p);
 void reset();
 bool ignite(game::Vec2 p,Material material=Material::Count);
+void ignitePed(game::Ped& ped);
+void igniteVehicle(game::Vehicle& vehicle);
 void extinguish(game::Vec2 p,float radius,float strength);
 void update(float dt);
 float intensityAt(game::Vec2 p);

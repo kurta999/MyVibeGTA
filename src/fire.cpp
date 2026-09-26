@@ -2,6 +2,9 @@
 #include "data_file.h"
 #include "weather.h"
 #include "regions.h"
+#ifdef MINI_CITY_JOLT
+#include "jolt_world.h"
+#endif
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -42,7 +45,13 @@ void refresh(){
     }
 }
 void hurtNearby(){
-    if(flames.empty())return;
+    const bool hadSurfaceFlames=!flames.empty();
+    if(flames.empty()&&
+       std::none_of(game::peds.begin(),game::peds.end(),
+           [](const game::Ped& ped){return ped.alive&&ped.burnTime>0;})&&
+       std::none_of(game::vehicles.begin(),game::vehicles.end(),
+           [](const game::Vehicle& vehicle){return !vehicle.exploded&&vehicle.burnTime>0;}))
+        return;
     float playerDamage=0;
     for(const auto& flame:flames)if(game::len(game::player-flame.p)<19)
         playerDamage=std::max(playerDamage,rule(flame.material).damagePerSecond*flame.intensity);
@@ -52,19 +61,28 @@ void hurtNearby(){
         float damage=0;
         for(const auto& flame:flames)if(game::len(ped.p-flame.p)<18)
             damage=std::max(damage,rule(flame.material).damagePerSecond*flame.intensity);
-        if(damage<=0)continue;
-        int amount=std::max(1,int(damage*0.5f));
-        int absorbed=std::min(ped.armor,amount);
-        ped.armor-=absorbed;ped.health-=amount-absorbed;
-        ped.panic=std::max(ped.panic,3.0f);
+        if(damage>0)ignitePed(ped);
+        if(ped.burnTime<=0)continue;
+        ped.burnTime=std::max(0.0f,ped.burnTime-0.5f);
+        ped.health-=6;
+        ped.hitFlash=std::max(ped.hitFlash,0.2f);
         if(ped.health<=0){ped.alive=false;ped.respawn=ped.police?999999:45;
-            ped.corpseVisualDelay=0;}
+            ped.burnTime=0;ped.corpseVisualDelay=6;
+#ifdef MINI_CITY_JOLT
+            jolt_world::spawnRagdoll(ped,{0,0,0});
+#endif
+        }
     }
     for(int index=0;index<int(game::vehicles.size());++index){
-        float damage=0;
+        auto& vehicle=game::vehicles[index];
+        if(vehicle.exploded)continue;
+        bool touchingFlame=false;
         for(const auto& flame:flames)if(game::len(game::vehicles[index].p-flame.p)<25)
-            damage=std::max(damage,rule(flame.material).damagePerSecond*flame.intensity);
-        if(damage>0)game::damageVehicle(index,damage*0.5f);
+            touchingFlame=true;
+        if(touchingFlame)igniteVehicle(vehicle);
+        if(vehicle.burnTime<=0)continue;
+        vehicle.burnTime=std::max(0.0f,vehicle.burnTime-0.5f);
+        game::damageVehicle(index,12.0f);
     }
     for(auto& prop:game::props)if(prop.alive){
         for(const auto& flame:flames)if(game::len(prop.p-flame.p)<18){
@@ -78,7 +96,7 @@ void hurtNearby(){
             auto& tree=game::trees[index];
             if(!tree.destroyed&&game::len(tree.p-flame.p)<23)tree.burning=true;
         }
-    for(auto& tree:game::trees)if(!tree.destroyed){
+    for(auto& tree:game::trees)if(hadSurfaceFlames&&!tree.destroyed){
         if(!tree.burning)continue;
         tree.health-=5;
         if(tree.health<=0){tree.health=0;tree.destroyed=true;tree.burning=false;}
@@ -226,6 +244,19 @@ bool ignite(game::Vec2 p,Material material){
     if(newFire)refresh();
     return true;
 }
+void ignitePed(game::Ped& ped){
+    if(!ped.alive)return;
+    if(ped.burnTime<=0){
+        ped.state=game::PedState::Flee;
+        ped.target=ped.p+game::forward(ped.angle+game::PI)*150.0f;
+    }
+    ped.panic=std::max(ped.panic,4.0f);
+    ped.alertTime=std::max(ped.alertTime,4.0f);
+    ped.burnTime=std::max(ped.burnTime,12.0f);
+}
+void igniteVehicle(game::Vehicle& vehicle){
+    if(!vehicle.exploded)vehicle.burnTime=std::max(vehicle.burnTime,16.0f);
+}
 void extinguish(game::Vec2 p,float radius,float strength){
     if(radius<=0||strength<=0)return;
     int x0=std::max(0,int(std::floor((p.x-radius)/cellSize)));
@@ -244,6 +275,9 @@ void extinguish(game::Vec2 p,float radius,float strength){
         auto& tree=game::trees[index];
         if(game::len(tree.p-p)<=radius)tree.burning=false;
     }
+    for(auto& ped:game::peds)if(game::len(ped.p-p)<=radius)ped.burnTime=0;
+    for(auto& vehicle:game::vehicles)
+        if(game::len(vehicle.p-p)<=radius)vehicle.burnTime=0;
     refresh();
 }
 void update(float dt){

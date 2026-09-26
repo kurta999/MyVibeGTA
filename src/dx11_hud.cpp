@@ -333,7 +333,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         const auto& vehicle=game::vehicles[game::occupied];
         const char* name=vehicle.kind==game::Kind::Boat?"BOAT":vehicle.kind==game::Kind::Bike?"BIKE":
             vehicle.kind==game::Kind::SportCar?"SPORT CAR":"CAR";
-        std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  S brake  |  SPACE drift  |  E exit",
+        std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  SPACE drift  |  H lights  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
     }else if(ui::showHelp)std::snprintf(textBuffer,sizeof(textBuffer),
         "WASD move  |  SHIFT run  |  ALT slow  |  LCTRL crouch  |  RMB aim  |  LMB fire");

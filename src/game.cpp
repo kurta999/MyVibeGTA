@@ -109,14 +109,22 @@ float vehicleHealth(int index){
     const Vehicle& vehicle=vehicles[index];
     return physics::tuning(vehicle.kind).maxHealth*(1.0f-vehicle.damage/100.0f);
 }
+bool vehicleLightsOn(const Vehicle& vehicle){
+    return !vehicle.exploded&&vehicle.kind!=Kind::Boat&&
+        (vehicle.lightsManual?vehicle.lightsOn:
+            std::sin((gameHour-6)*PI/12.0f)<0.12f);
+}
 void damageVehicle(int index,float amount){
     if(index<0||index>=int(vehicles.size())||!std::isfinite(amount)||amount<=0)return;
     Vehicle& vehicle=vehicles[index];
     if(vehicle.exploded)return;
     const auto tuning=physics::tuning(vehicle.kind);
     vehicle.damage=std::min(100.0f,vehicle.damage+amount/tuning.maxHealth*100.0f);
-    if(vehicle.damage<100)return;
-    vehicle.exploded=true;vehicle.explosionVisualTime=1.4f;
+    if(vehicle.damage<100){
+        if(vehicle.damage>=80)fire::igniteVehicle(vehicle);
+        return;
+    }
+    vehicle.exploded=true;vehicle.burnTime=0;vehicle.explosionVisualTime=1.4f;
     blasts.push_back({{vehicle.p.x,vehicle.rideHeight+15.0f,vehicle.p.z},
         0.75f,95.0f});
     fire::ignite(vehicle.p,fire::Material::Metal);
@@ -199,7 +207,7 @@ bool repairVehicle(int index){
     if(vehicle.exploded||vehicle.damage<physics::tuning(vehicle.kind).smokeThreshold||
        len(player-vehicle.p)>65)return false;
     if(repairKits<=0){announce("Need a repair kit.",3);return false;}
-    --repairKits;vehicle.damage=0;vehicle.explosionVisualTime=0;
+    --repairKits;vehicle.damage=0;vehicle.burnTime=0;vehicle.explosionVisualTime=0;
     announce("VEHICLE REPAIRED",3);audio::play(audio::Effect::Pickup);
     savegame::save();return true;
 }
@@ -577,6 +585,9 @@ void enterExit(){
         enteringVehicle=index;vehicleEntryTime=0.65f;playerVelocity={};
 #else
         occupied=index;player=vehicles[index].p;cameraYaw=vehicles[index].angle;
+        if(vehicles[index].kind!=Kind::Boat){
+            vehicles[index].lightsOn=true;vehicles[index].lightsManual=true;
+        }
         audio::play(vehicles[index].kind==Kind::Boat?audio::Effect::Splash:audio::Effect::Engine);
 #endif
     }
@@ -748,6 +759,9 @@ void update(float dt){
         if(vehicleEntryTime<=0){
             occupied=enteringVehicle;enteringVehicle=-1;vehicleEntryTime=0;
             player=vehicles[occupied].p;cameraYaw=vehicles[occupied].angle;
+            if(vehicles[occupied].kind!=Kind::Boat){
+                vehicles[occupied].lightsOn=true;vehicles[occupied].lightsManual=true;
+            }
             playerY=0;playerVerticalSpeed=0;playerVelocity={};grounded=true;airTime=0;
             audio::play(vehicles[occupied].kind==Kind::Boat?
                 audio::Effect::Splash:audio::Effect::Engine);
@@ -1027,6 +1041,9 @@ void update(float dt){
                    len(Vec2{point.x-car.p.x,point.z-car.p.z})>=radius)continue;
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point);
+                if(bullet.streamType==1)fire::igniteVehicle(vehicles[vehicleIndex]);
+                else if(bullet.streamType==2||bullet.streamType==3)
+                    vehicles[vehicleIndex].burnTime=0;
                 damageVehicle(vehicleIndex,bullet.rocket?
                     physics::tuning(car.kind).maxHealth:
                     bullet.streamType>=2?0:
@@ -1091,6 +1108,8 @@ void update(float dt){
                 point.y>=2&&point.y<=37){
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point,true);
+                if(bullet.streamType==1)fire::ignitePed(ped);
+                else if(bullet.streamType==2||bullet.streamType==3)ped.burnTime=0;
                 Vec2 side{-std::sin(ped.angle),std::cos(ped.angle)};
                 float lateral=(point.x-ped.p.x)*side.x+(point.z-ped.p.z)*side.z;
                 bool headshot=bullet.streamType==0&&point.y>=29;

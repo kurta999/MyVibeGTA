@@ -118,13 +118,14 @@ void update(float dt){
             if(!regions::homeForPed(ped.id,ped.p))ped.p=randomWalkable();
             ped.target=ped.p;
             ped.alive=true;ped.health=100;ped.panic=0;ped.hostile=false;ped.fireCooldown=0;
+            ped.burnTime=0;
             ped.state=PedState::Wander;ped.alertTime=0;ped.knockback={};
             ped.sightMemory=0;ped.tacticTimer=0;ped.burstShots=0;
             ped.armor=ped.maxArmor;ped.cash=content::rollPedCash(ped.armed);
             ped.looted=false;ped.carried=false;ped.knockedDown=0;
             ped.impactAnimationTotal=0;ped.vehicleImpactCooldown=0;
             ped.pinned=false;ped.pinAnchor={};}continue;}
-        if(!ped.police&&!ped.hostile&&ped.state==PedState::Wander&&
+        if(!ped.police&&!ped.hostile&&ped.burnTime<=0&&ped.state==PedState::Wander&&
            len(ped.p-player)>1200)continue;
         if(ped.knockedDown>0){
             ped.knockedDown=std::max(0.0f,ped.knockedDown-dt);
@@ -145,6 +146,11 @@ void update(float dt){
         ped.fireCooldown=std::max(0.0f,ped.fireCooldown-dt);
         ped.tacticTimer=std::max(0.0f,ped.tacticTimer-dt);
         ped.sightMemory=std::max(0.0f,ped.sightMemory-dt);
+        if(ped.burnTime>0){
+            ped.state=PedState::Flee;ped.hostile=false;
+            ped.alertTime=std::max(ped.alertTime,1.0f);
+            ped.panic=std::max(ped.panic,1.0f);
+        }
         float distanceToPlayer=len(player-ped.p);
         bool canSee=ped.armed&&distanceToPlayer<360&&clearLine(ped.p,player);
         if(canSee){ped.lastKnown=player;ped.sightMemory=3.5f;}

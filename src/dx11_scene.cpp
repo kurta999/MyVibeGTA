@@ -984,7 +984,7 @@ void vehicles(){
             Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
             model(carName,{v.p.x,v.rideHeight,v.p.z},
                 {26,carHeights[v.kind==game::Kind::SportCar?0:variant],48},yaw,tint);
-            if(std::sin((game::gameHour-6)*game::PI/12.0f)<0.12f&&!v.exploded){
+            if(game::vehicleLightsOn(v)){
                 Vec2 side{-facing.z,facing.x};
                 const float sideOffsets[]={8.0f,9.2f,7.6f,8.9f,8.4f,8.0f};
                 const float frontHeights[]={10.0f,7.8f,10.1f,8.2f,10.2f,9.6f};
@@ -1002,7 +1002,6 @@ void vehicles(){
                     }
                     found=lampDepths.emplace(body,depths).first;
                 }
-                float blink=std::fmod(game::worldTime,0.9f)<0.18f?1.3f:0.18f;
                 for(int sideIndex=0;sideIndex<2;++sideIndex){
                     float sign=sideIndex==0?-1.0f:1.0f;
                     Vec2 front=v.p+facing*found->second[sideIndex]+
@@ -1010,9 +1009,9 @@ void vehicles(){
                     Vec2 rear=v.p+facing*found->second[sideIndex+2]+
                         side*(sign*sideOffsets[geometry]);
                     carLamp(front,v.rideHeight+frontHeights[geometry],facing,side,
-                        3.0f,1.7f,true,{blink,blink*0.94f,blink*0.76f});
+                        3.0f,1.7f,true,{1.0f,0.94f,0.76f});
                     carLamp(rear,v.rideHeight+9.7f,facing,side,
-                        3.1f,1.7f,false,{blink,blink*0.12f,blink*0.08f});
+                        3.1f,1.7f,false,{1.0f,0.12f,0.08f});
                 }
             }
         }else if(v.kind==game::Kind::Bike){
@@ -1040,7 +1039,7 @@ void vehicles(){
                  2.0f,2.0f,game::rgb(45,47,49));
             sphere({steering.x+facing.x*2,steering.y-3,steering.z+facing.z*2},
                 3.0f,game::rgb(246,224,170));
-            if(std::sin((game::gameHour-6)*game::PI/12.0f)<0.12f&&!v.exploded)
+            if(game::vehicleLightsOn(v))
                 glowBox({front.x,front.y+8,front.z},{4,4,2},yaw,
                     game::rgb(255,239,189));
         }else{
@@ -1290,6 +1289,25 @@ void effects(){
     for(const auto& flame:fire::active())if(close(flame.p,500))
         handler.fireColumn({flame.p.x,0,flame.p.z},flame.intensity,
             grassHash(int(flame.p.x),int(flame.p.z),41));
+    for(std::size_t index=0;index<game::peds.size();++index){
+        const auto& ped=game::peds[index];
+        if(ped.alive&&ped.burnTime>0&&close(ped.p,500)){
+            Vec2 side{-std::sin(ped.angle),std::cos(ped.angle)};
+            for(float sign:{-1.0f,1.0f})
+                handler.fireColumn({ped.p.x+side.x*sign*7,7,
+                    ped.p.z+side.z*sign*7},0.55f,
+                    grassHash(int(index),int(sign*ped.p.z),73));
+        }
+    }
+    for(std::size_t index=0;index<game::vehicles.size();++index){
+        const auto& vehicle=game::vehicles[index];
+        if(!vehicle.exploded&&vehicle.burnTime>0&&close(vehicle.p,500)){
+            Vec2 facing=game::forward(vehicle.angle);
+            handler.fireColumn({vehicle.p.x+facing.x*9,vehicle.rideHeight+11,
+                vehicle.p.z+facing.z*9},0.8f,
+                grassHash(int(index),int(vehicle.p.x),91));
+        }
+    }
     for(const auto& vehicle:game::vehicles)
         if(close(vehicle.p,500)&&
            (vehicle.exploded||vehicle.damage>=physics::tuning(vehicle.kind).smokeThreshold)){

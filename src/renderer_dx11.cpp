@@ -869,11 +869,14 @@ bool createStates(){
     blend.RenderTarget[0].SrcBlend=D3D11_BLEND_SRC_ALPHA;
     blend.RenderTarget[0].DestBlend=D3D11_BLEND_INV_SRC_ALPHA;
     blend.RenderTarget[0].BlendOp=D3D11_BLEND_OP_ADD;
-    blend.RenderTarget[0].SrcBlendAlpha=D3D11_BLEND_ONE;
-    blend.RenderTarget[0].DestBlendAlpha=D3D11_BLEND_ZERO;
+    // Scene alpha stores the reflection mask. Transparent effects must keep
+    // the mask beneath them instead of turning their soft edges reflective.
+    blend.RenderTarget[0].SrcBlendAlpha=D3D11_BLEND_ZERO;
+    blend.RenderTarget[0].DestBlendAlpha=D3D11_BLEND_ONE;
     blend.RenderTarget[0].BlendOpAlpha=D3D11_BLEND_OP_ADD;
     blend.RenderTarget[0].RenderTargetWriteMask=D3D11_COLOR_WRITE_ENABLE_ALL;
     if(FAILED(device->CreateBlendState(&blend,&alphaBlend)))return false;
+    blend.RenderTarget[0].SrcBlendAlpha=D3D11_BLEND_ONE;
     blend.RenderTarget[0].DestBlendAlpha=D3D11_BLEND_INV_SRC_ALPHA;
     if(FAILED(device->CreateBlendState(&blend,&hudBlend)))return false;
     D3D11_SAMPLER_DESC sample{};sample.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -971,30 +974,35 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             addLight(8066.0f,36,float(z),95,1.0f,0.78f,0.50f,1.4f*night);
         for(const auto& shop:commerce::shops)
             addLight(shop.p.x,20,shop.p.z,65,0.35f,0.90f,1.0f,0.95f*night);
-        for(const auto& vehicle:vehicles){
-            if(vehicle.exploded||std::hypot(vehicle.p.x-player.x,vehicle.p.z-player.z)>390)continue;
-            Vec2 facing=forward(vehicle.angle);
-            Vec2 side{-facing.z,facing.x};
-            float front=vehicle.kind==Kind::Bike?13.0f:24.05f;
-            float width=vehicle.kind==Kind::Bike?0.0f:8.0f;
-            float blink=std::fmod(worldTime,0.9f)<0.18f?1.3f:0.18f;
-            for(float sign:{-1.0f,1.0f}){
-                if(width==0&&sign>0)continue;
-                addLight(vehicle.p.x+facing.x*front+side.x*width*sign,
-                    vehicle.rideHeight+(width==0?17.0f:9.5f),
-                    vehicle.p.z+facing.z*front+side.z*width*sign,
-                    125,1.0f,0.94f,0.72f,1.7f*night*blink);
-                if(width>0)
-                    addLight(vehicle.p.x-facing.x*front+side.x*width*sign,
-                        vehicle.rideHeight+9.7f,
-                        vehicle.p.z-facing.z*front+side.z*width*sign,
-                        45,1.0f,0.09f,0.04f,0.75f*night*blink);
-            }
+    }
+    for(const auto& vehicle:vehicles){
+        if(!vehicleLightsOn(vehicle)||
+           std::hypot(vehicle.p.x-player.x,vehicle.p.z-player.z)>390)continue;
+        Vec2 facing=forward(vehicle.angle);
+        Vec2 side{-facing.z,facing.x};
+        float front=vehicle.kind==Kind::Bike?13.0f:24.05f;
+        float width=vehicle.kind==Kind::Bike?0.0f:8.0f;
+        for(float sign:{-1.0f,1.0f}){
+            if(width==0&&sign>0)continue;
+            addLight(vehicle.p.x+facing.x*front+side.x*width*sign,
+                vehicle.rideHeight+(width==0?17.0f:9.5f),
+                vehicle.p.z+facing.z*front+side.z*width*sign,
+                125,1.0f,0.94f,0.72f,1.7f);
+            if(width>0)
+                addLight(vehicle.p.x-facing.x*front+side.x*width*sign,
+                    vehicle.rideHeight+9.7f,
+                    vehicle.p.z-facing.z*front+side.z*width*sign,
+                    45,1.0f,0.09f,0.04f,0.75f);
         }
     }
     for(const auto& flame:fire::active())
         addLight(flame.p.x,12,flame.p.z,70+flame.intensity*25,
             1.0f,0.29f,0.08f,0.85f+flame.intensity*0.65f);
+    for(const auto& ped:peds)if(ped.alive&&ped.burnTime>0)
+        addLight(ped.p.x,18,ped.p.z,75,1.0f,0.30f,0.08f,1.2f);
+    for(const auto& vehicle:vehicles)if(!vehicle.exploded&&vehicle.burnTime>0)
+        addLight(vehicle.p.x,vehicle.rideHeight+20,vehicle.p.z,105,
+            1.0f,0.30f,0.08f,1.5f);
     std::sort(lights.begin(),lights.end(),[](const LocalLight& a,const LocalLight& b){
         return a.distance<b.distance;});
     for(size_t i=0;i<std::min<size_t>(lights.size(),12);++i){
