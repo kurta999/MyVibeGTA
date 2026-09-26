@@ -205,6 +205,21 @@ void carjacked(int index){
         peds[v.reservedBy].state=PedState::Attack;
     }
     v.reservedBy=-1;v.trafficState=TrafficState::Parked;v.trafficRoute=-1;
+    v.desiredSpeed=0;
+    jolt_world::stopVehicle(index);
+}
+bool canPlayerEnter(int index){
+    if(!validCar(index)||health<=0||occupied>=0||enteringVehicle>=0)return false;
+    const auto& v=vehicles[index];
+    if(v.exploded||std::max(std::abs(v.speed),len(v.velocity))>MAX_CARJACK_SPEED||
+       len(v.p-player)>=85||std::abs(playerY)>18||!clearLine(player,v.p))return false;
+    // Do not allow reaching through thin walls that the coarse visibility probe misses.
+    Vec2 delta=v.p-player;int steps=std::max(1,int(std::ceil(len(delta)/3)));
+    for(int n=1;n<steps;++n){Vec2 p=player+delta*(float(n)/steps);
+        for(const auto& b:buildings)
+            if(p.x>b.x&&p.x<b.x+b.w&&p.z>b.z&&p.z<b.z+b.d)return false;
+    }
+    return true;
 }
 void release(Ped& ped){
     ped_navigation::clear(ped);

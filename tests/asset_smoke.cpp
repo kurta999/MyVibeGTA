@@ -13,6 +13,46 @@
 int main(){
     static_assert(sizeof(dx11::SkinVertex)==68);
     dx11::loadMeshes(L"assets/models/baked");
+    for(const char* name:{"traffic-1","traffic-2","traffic-3","traffic-4","traffic-5","sports-car","sedan"}){
+        std::string key=std::string("vehicles/")+name;
+        const auto* body=dx11::mesh(key);const auto* glass=dx11::mesh(key+"-glass");
+        assert(body&&glass&&glass->transparent&&!glass->castsShadow&&!glass->textured);
+        assert(glass->vertices.size()>=30&&body->vertices.size()>glass->vertices.size());
+        assert(body->minY==glass->minY&&body->maxY==glass->maxY&&body->minZ==glass->minZ);
+        for(const auto& v:glass->vertices)assert(v.a>0&&v.a<0.3f);
+    }
+    for(const char* name:{"seagull","crow","sparrow","parrot","dove"}){
+        std::wstring texture;
+        for(int pose=0;pose<9;++pose){
+            const auto* bird=dx11::mesh(std::string("birds/")+name+
+                (pose==8?"-dead":"-flap-"+std::to_string(pose)));
+            assert(bird&&bird->vertices.size()>300&&bird->textured);
+            assert(std::filesystem::exists(bird->textureFile));
+            if(pose<8)for(const auto& v:bird->vertices){
+                assert(std::abs(v.x)<=0.52f&&std::abs(v.y)*0.7f<=0.40f&&std::abs(v.z)<=0.60f);
+            }
+            if(pose==0)texture=bird->textureFile;else assert(texture==bird->textureFile);
+        }
+    }
+    for(const char* species:{"tiger","elephant","cat","dog","pig","cow","capybara",
+        "bear","goat","donkey","roe-deer","deer","weasel","beaver","mouse"}){
+        const std::string key=std::string("animals/")+species;
+        const auto* base=dx11::mesh(key);
+        assert(base&&base->vertices.size()>300&&base->textured);
+        assert(std::filesystem::exists(base->textureFile));
+        for(const std::string& suffix:{"-dead","-walk-0","-walk-1","-walk-2",
+            "-walk-3","-walk-4","-walk-5","-walk-6","-walk-7"}){
+            const auto* pose=dx11::mesh(key+suffix);
+            assert(pose&&pose->vertices.size()==base->vertices.size()&&pose->textured);
+            assert(pose->textureFile==base->textureFile);
+            bool changed=false;
+            for(std::size_t i=0;i<pose->vertices.size();++i){
+                const auto& a=pose->vertices[i];const auto& b=base->vertices[i];
+                if(a.x!=b.x||a.y!=b.y||a.z!=b.z)changed=true;
+            }
+            assert(changed);
+        }
+    }
     const auto* grass=dx11::mesh("primitive/grass-tuft");
     const auto* bullet=dx11::mesh("primitive/bullet");
     assert(grass&&grass->vertices.size()==9&&!grass->castsShadow);
@@ -75,7 +115,12 @@ int main(){
         dx11::mesh("vehicles/sedan")->textureFile.empty());
     for(int variant=1;variant<=5;++variant){
         const auto* car=dx11::mesh("vehicles/traffic-"+std::to_string(variant));
-        assert(car&&car->textured&&car->vertices.size()>900);
+        const auto* glass=dx11::mesh("vehicles/traffic-"+std::to_string(variant)+"-glass");
+        assert(car&&car->textured&&glass&&car->vertices.size()+glass->vertices.size()>900);
+        std::ifstream original("assets/models/baked/vehicles/traffic-"+std::to_string(variant)+".m3d",std::ios::binary);
+        original.seekg(4);std::uint32_t vertexCount=0;
+        original.read(reinterpret_cast<char*>(&vertexCount),sizeof(vertexCount));
+        assert(car->vertices.size()+glass->vertices.size()==vertexCount);
         assert(std::filesystem::exists(car->textureFile));
     }
     for(const char* name:{"pistol","ak","lightning"}){

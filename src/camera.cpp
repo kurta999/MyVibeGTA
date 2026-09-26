@@ -1,4 +1,8 @@
 #include "camera.h"
+#ifdef MINI_CITY_JOLT
+#include "wildlife.h"
+#include "birds.h"
+#endif
 #include "weapons.h"
 #include <algorithm>
 #include <cmath>
@@ -128,6 +132,17 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
         best=std::min(best,boxHit(pose.eye,direction,
             {goal.x-18,0,goal.z-18},{goal.x+18,45,goal.z+18},best));
     }
+#ifdef MINI_CITY_JOLT
+    for(const auto& animal:wildlife::animals)if(animal.health>0){
+        float r=wildlife::radius(animal),h=wildlife::species()[animal.species].height;
+        best=std::min(best,boxHit(pose.eye,direction,
+            {animal.p.x-r,0,animal.p.z-r},{animal.p.x+r,h,animal.p.z+r},best));
+    }
+    for(const auto& bird:birds::flock)if(bird.health>0){
+        float entry=0;
+        if(birds::segmentHit(bird,pose.eye,pose.eye+direction*best,entry))best*=entry;
+    }
+#endif
     if(direction.y<-0.00001f){
         float groundDistance=-pose.eye.y/direction.y;
         if(groundDistance>=0)best=std::min(best,groundDistance);

@@ -56,7 +56,7 @@ New-Item -ItemType Directory -Path $modelDestination | Out-Null
 Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
 Copy-Item -LiteralPath (Join-Path $modelSource 'source') -Destination $modelDestination -Recurse
 foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md',
-        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md')) {
+        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'data') -Destination $packageDirectory -Recurse

@@ -158,6 +158,28 @@ void trafficScenarios(){
     fixture();player=vehicles[0].p+Vec2{0,55};
     traffic::carjacked(0);
     assert(vehicles[0].driver==-1&&peds[0].drivingVehicle==-1&&peds[0].grievance>0);
+    // The actual E/enterExit path can steal moving traffic up to the low-speed limit.
+    fixture();ticks(90);
+    assert(std::abs(vehicles[0].speed)>35);
+    player=vehicles[0].p+Vec2{0,55};jolt_world::teleportCharacter(player,0);
+    assert(traffic::canPlayerEnter(0));
+    assert(game::interactionPrompt().find("STEAL")!=std::string::npos);
+    game::enterExit();
+    assert(enteringVehicle==0&&vehicles[0].driver==-1&&peds[0].drivingVehicle==-1);
+    assert(peds[0].grievance>0&&vehicles[0].speed==0&&len(vehicles[0].velocity)==0);
+    Vec2 theftPosition=vehicles[0].p;
+    for(int n=0;n<45;++n)game::update(dt);
+    assert(occupied==0&&enteringVehicle==-1&&len(vehicles[0].p-theftPosition)<8);
+    assert(vehicles[0].driver==-1); // no AI/player double ownership
+    fixture();player=vehicles[0].p+Vec2{0,55};
+    vehicles[0].speed=traffic::MAX_CARJACK_SPEED+1;vehicles[0].velocity={vehicles[0].speed,0};
+    game::enterExit();assert(enteringVehicle==-1&&vehicles[0].driver==0);
+    // Reverse and lateral speed count too, and walls/roof height prevent remote theft.
+    vehicles[0].speed=-traffic::MAX_CARJACK_SPEED-1;assert(!traffic::canPlayerEnter(0));
+    vehicles[0].speed=0;vehicles[0].velocity={0,traffic::MAX_CARJACK_SPEED+1};assert(!traffic::canPlayerEnter(0));
+    vehicles[0].velocity={};playerY=80;assert(!traffic::canPlayerEnter(0));playerY=0;
+    buildings.push_back({400,300,100,2,50,{1,1,1},"theft-wall"});
+    assert(!traffic::canPlayerEnter(0));
     // Once close and stopped, a pursuer exits and uses existing melee combat.
     fixture();player=vehicles[0].p+Vec2{70,0};damageVehicle(0,2,true);ticks(120);
     assert(peds[0].drivingVehicle==-1&&peds[0].hostile);

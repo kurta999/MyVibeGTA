@@ -9,6 +9,8 @@ void update(float dt);
 void provoke(game::Ped& ped,game::Vec2 origin);
 void damaged(int vehicle,float amount);
 void carjacked(int vehicle);
+constexpr float MAX_CARJACK_SPEED=90.0f;
+bool canPlayerEnter(int vehicle);
 bool updatePed(game::Ped& ped,float dt);
 void release(game::Ped& ped);
 void afterLoad();

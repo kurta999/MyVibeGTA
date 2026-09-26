@@ -12,6 +12,8 @@
 #include "weapons.h"
 #ifdef MINI_CITY_JOLT
 #include "debug_menu.h"
+#include "wildlife.h"
+#include "birds.h"
 #endif
 #include "content.h"
 #include "physics.h"
@@ -191,6 +193,42 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             magazine[weapon]=weapons::stats(weapon).magazine;
         }
     }
+#ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--birds")){
+        player=previousPlayer={4500,4500};cameraYaw=0;cameraPitch=0.5f;
+        birds::flock.clear();
+        for(int i=0;i<5;++i){birds::Bird bird;
+            bird.id="preview-"+std::to_string(i);bird.species=i;bird.health=birds::species()[i].health;
+            bird.p=bird.home={4640.0f+float(i%2)*25,95.0f+float(i%2)*22,4420.0f+float(i)*40};
+            bird.angle=game::PI*0.25f;bird.phase=i*0.8f;birds::flock.push_back(bird);
+        }
+        if(std::strstr(commandLine,"--bird-fall")){birds::hurt(0,1000);birds::update(0.15f);}
+        message="Seagull / Crow / Sparrow / Parrot / Dove";messageTime=10;
+    }
+#endif
+#ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--animals")){
+        player=previousPlayer={4020,9360};cameraYaw=-game::PI*0.5f;cameraPitch=-0.16f;
+        // Clear only this smoke-test staging area so all imported species can be inspected.
+        for(auto& tree:trees)if(len(tree.p-Vec2{4020,9140})<390){
+            tree.destroyed=true;tree.p={-10000,-10000};
+        }
+        wildlife::animals.clear();
+        for(int i=0;i<int(wildlife::species().size());++i){
+            wildlife::Animal a;a.species=i;a.id="preview-"+std::to_string(i);
+            a.p=a.home={3870.0f+(i%5)*72.0f,9210.0f-(i/5)*85.0f};
+            a.health=wildlife::species()[i].health;a.angle=game::PI*0.25f;
+            a.phase=i*0.7f;a.state=wildlife::State::Wander;a.timer=10;
+            a.target=a.p+game::Vec2{20,20};wildlife::animals.push_back(a);
+        }
+        message="Forest wildlife: 15 species | F loot | G carry / drop";messageTime=10;
+        if(std::strstr(commandLine,"--animal-corpse")||std::strstr(commandLine,"--animal-carry")){
+            auto& animal=wildlife::animals[4];animal.p=player+forward(cameraYaw)*24;
+            wildlife::hurt(4,1000,player,true);
+            if(std::strstr(commandLine,"--animal-carry")){carryDrop();wildlife::update(1.0f/60);}
+        }
+    }
+#endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--combat-preview")&&
        peds.size()>=2){
         player=previousPlayer={300,250};cameraYaw=0;cameraPitch=0;
@@ -321,6 +359,16 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int tick=0;tick<5;++tick)update(1.0f/60.0f);
         keys[VK_SPACE]=true;update(1.0f/60.0f);keys[VK_SPACE]=false;
         for(int tick=0;tick<12;++tick)update(1.0f/60.0f);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--driver-preview")){
+        bool bike=std::strstr(commandLine,"--bike")!=nullptr;
+        for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==(bike?Kind::Bike:Kind::Car)){
+            jolt_world::teleportVehicle(i,{4500,4500},0);
+            occupied=i;vehicles[i].driver=-1;player=previousPlayer=vehicles[i].p;
+            if(std::strstr(commandLine,"--damaged"))vehicles[i].damage=63;
+            cameraYaw=2.2f;cameraPitch=0;rightMouse=true;cameraMode=CameraMode::ThirdNear;
+            break;
+        }
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--entry")){
         int car=-1;

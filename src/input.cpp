@@ -53,7 +53,7 @@ void applyMouseDelta(LONG x,LONG y){
     float sensitivity=ui::mouseSensitivity*0.001f;
     cameraYaw+=x*sensitivity;
     cameraPitch+=y*sensitivity*(ui::invertY?1.0f:-1.0f);
-    cameraPitch=std::clamp(cameraPitch,-0.85f,0.8f);
+    cameraPitch=std::clamp(cameraPitch,-0.85f,1.4f);
     if(occupied>=0&&(x||y))vehicleLookTime=2.0f;
 }
 

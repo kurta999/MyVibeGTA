@@ -1,0 +1,167 @@
+[
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "tiger",
+    "license": "CC-BY 3.0",
+    "title": "Tiger",
+    "page": "https://poly.pizza/m/5A3w06FXUup",
+    "sha256": "7247cb1a4d28033d347cadbc8e053472773f441fd171fa9c56090497da9f7863",
+    "download": "https://static.poly.pizza/460ff96a-ea48-4b39-b38c-d0c7daa06a3c.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "elephant",
+    "license": "CC-BY 3.0",
+    "title": "Elephant",
+    "page": "https://poly.pizza/m/a27MA0rXyyj",
+    "sha256": "58508ba4a8d026d54091cc13651906783254ad37226213c42638d6d7fca4b130",
+    "download": "https://static.poly.pizza/b8ca84f2-02b2-4c84-92c0-b5f8b0eee90e.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "cat",
+    "license": "CC-BY 3.0",
+    "title": "Cat",
+    "page": "https://poly.pizza/m/6dM1J6f6pm9",
+    "sha256": "9301389d2b7352dfbd12ebf60b382fe30442ea7fcab75a0a0ab728dc3fa1f88c",
+    "download": "https://static.poly.pizza/5d32eb38-9546-4ce4-aa77-bcef9328ee61.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "dog",
+    "license": "CC-BY 3.0",
+    "title": "Beagle",
+    "page": "https://poly.pizza/m/0BnDT3T1wTE",
+    "sha256": "04d8ea35984d34921e39a983ce5951960af65f2ac85998fa40cae6398e647d47",
+    "download": "https://static.poly.pizza/75de184c-31e8-4343-8ce3-ffaaf256c32e.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "pig",
+    "license": "CC-BY 3.0",
+    "title": "Pig",
+    "page": "https://poly.pizza/m/6XC3XssJIU_",
+    "sha256": "a4ce7cc7a899deb9bbb2432b84251cac849e519f2a389eb9377e79bd27f10dbc",
+    "download": "https://static.poly.pizza/b8cef0ea-b6ce-41f4-b5a6-4a9c9c9d5903.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "cow",
+    "license": "CC-BY 3.0",
+    "title": "Cow",
+    "page": "https://poly.pizza/m/0OToIgkcVM7",
+    "sha256": "d50d78a7c65480c25603d6140a45c3e4c02c125f2ef4fd76c600207fa34b76f1",
+    "download": "https://static.poly.pizza/61736f55-5c58-402d-9a4e-7e52fcd7e387.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "capybara",
+    "license": "CC-BY 3.0",
+    "title": "Capybara",
+    "page": "https://poly.pizza/m/66d-mKAgF17",
+    "sha256": "2e39a472e4fb7b81266a9bad59c0f56f950aca4603f32990f4388c5a602bd045",
+    "download": "https://static.poly.pizza/16badcb5-6b34-43f3-af1f-06c4fe23efba.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "bear",
+    "license": "CC-BY 3.0",
+    "title": "Black bear",
+    "page": "https://poly.pizza/m/56ym_pyVnel",
+    "sha256": "04b739edaf4758849952757737ab97a7350370bdfbc662a96d7b6d4b75bc43d8",
+    "download": "https://static.poly.pizza/cba1e1c9-f4aa-4f12-8d58-2ba5baf1aa2b.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "goat",
+    "license": "CC-BY 3.0",
+    "title": "Goat",
+    "page": "https://poly.pizza/m/d7dImmjtF8E",
+    "sha256": "168736a532e53356f948c8d110cc897ea0ed3699c788515752ac0322ec2a72e4",
+    "download": "https://static.poly.pizza/6f11087b-2aae-4bea-8a18-c1e8428d31b0.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "donkey",
+    "license": "CC-BY 3.0",
+    "title": "Donkey",
+    "page": "https://poly.pizza/m/dv8Isf3WRlE",
+    "sha256": "f18fab449cbdf97cd13529a03604680aaf16c28a5eea1f7d6a138785346ea47c",
+    "download": "https://static.poly.pizza/1de95fab-900b-470b-b419-b80a7a1eb4ee.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "roe-deer",
+    "license": "CC-BY 3.0",
+    "title": "Deer",
+    "page": "https://poly.pizza/m/0tJzk22c46S",
+    "sha256": "4daa19b253efe5a999fe77aa59acee6368040abe0e9a38c4b67abe1ee8cf1c03",
+    "download": "https://static.poly.pizza/97330635-4675-4937-ac24-6eeb5ac4ebe8.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose. Fawn source adapted in game proportions as a small roe-deer stand-in; not a taxonomically exact source model."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "deer",
+    "license": "CC-BY 3.0",
+    "title": "Deer",
+    "page": "https://poly.pizza/m/fUo4AIcd8XR",
+    "sha256": "9c910cf905565e5e59a7286da8f992d5374f695f38aecd25d33f425dda3c53d9",
+    "download": "https://static.poly.pizza/002f5e83-adaa-426b-8a93-dbb20868dcfb.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "weasel",
+    "license": "CC-BY 3.0",
+    "title": "Long-tailed weasel",
+    "page": "https://poly.pizza/m/4fUZKhsSs42",
+    "sha256": "895780bde426e6d41b9c5c8d7a763c1f8ad64613a062f9c180c77921d2b78532",
+    "download": "https://static.poly.pizza/27a660d4-5ce5-419e-a7e8-b1514ae0c70a.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "beaver",
+    "license": "CC-BY 3.0",
+    "title": "Beaver",
+    "page": "https://poly.pizza/m/fwtA7VLrXPr",
+    "sha256": "37e595b4916758e1c03ef816e4fa4f334e797fa90f095ccdd34832a522d097f1",
+    "download": "https://static.poly.pizza/fb953f9b-18e0-4c1e-9df0-dc69d1499aab.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  },
+  {
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "id": "mouse",
+    "license": "CC-BY 3.0",
+    "title": "Spiny mouse",
+    "page": "https://poly.pizza/m/eto2qFhG6XY",
+    "sha256": "4124c0bd00520961cf04b034f3e621ac13ade761fcb1a4d84e13bcafbda8d0e3",
+    "download": "https://static.poly.pizza/1409c88d-c80d-4349-980c-1343869b9b65.glb",
+    "modifications": "Normalized scale; original texture; eight procedural gait deformations and side-lying death pose."
+  }
+]

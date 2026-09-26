@@ -347,7 +347,9 @@ void buildHud(unsigned char* pixels,int width,int height){
     }
     map(18,height-169,180,140,false);
     int statusX=width-360;
-    rect(statusX,12,348,156,RGB(31,41,49));
+    bool inVehicle=game::occupied>=0&&game::occupied<int(game::vehicles.size());
+    int vehicleHudHeight=inVehicle?48:0;
+    rect(statusX,12,348,156+vehicleHudHeight,RGB(31,41,49));
     std::snprintf(textBuffer,sizeof(textBuffer),"%02d:%02d       $%06d",hour,minute,game::money);
     label(statusX+15,19,textBuffer,RGB(255,231,166));
     for(int star=0;star<4;++star)
@@ -432,21 +434,33 @@ void buildHud(unsigned char* pixels,int width,int height){
     rect(statusX+130,130,204,18,RGB(48,74,105));
     rect(statusX+130,130,int(204*std::clamp(game::armor,0.0f,100.0f)/100.0f),18,
         RGB(80,159,225));
+    if(inVehicle){
+        const auto& vehicle=game::vehicles[game::occupied];
+        float damage=std::clamp(vehicle.damage,0.0f,100.0f);
+        const char* name=vehicle.kind==game::Kind::Bike?"BIKE":vehicle.kind==game::Kind::Boat?"BOAT":"CAR";
+        COLORREF color=damage>=80?RGB(242,87,75):damage>=45?RGB(244,174,71):RGB(111,209,189);
+        rect(statusX+14,156,320,1,RGB(96,110,117));
+        std::snprintf(textBuffer,sizeof(textBuffer),"%s DAMAGE %d%%",name,int(std::round(damage)));
+        label(statusX+15,164,textBuffer,color);
+        rect(statusX+15,189,319,9,RGB(48,74,78));
+        rect(statusX+15,189,int(319*damage/100),9,color);
+    }
+    int missionY=181+vehicleHudHeight;
     if(game::activeMission>=0){
         const auto& mission=game::missions[game::activeMission];
-        rect(width-360,181,348,96,RGB(31,41,49));
+        rect(width-360,missionY,348,96,RGB(31,41,49));
         std::snprintf(textBuffer,sizeof(textBuffer),"%s   %d sec",mission.name,int(game::missionTime));
-        label(width-346,189,textBuffer,RGB(255,221,137));
+        label(width-346,missionY+8,textBuffer,RGB(255,221,137));
         std::snprintf(textBuffer,sizeof(textBuffer),"Objective %d / %d",
             game::missionStep+1,int(mission.goals.size()));
-        label(width-346,218,textBuffer,RGB(225,235,224));
-        label(width-346,246,game::missionObjective(),RGB(225,235,224));
+        label(width-346,missionY+37,textBuffer,RGB(225,235,224));
+        label(width-346,missionY+65,game::missionObjective(),RGB(225,235,224));
     }else if(game::nextMission()>=0){
         int next=game::nextMission();
-        rect(width-360,181,348,58,RGB(31,41,49));
+        rect(width-360,missionY,348,58,RGB(31,41,49));
         std::snprintf(textBuffer,sizeof(textBuffer),"NEXT: %s",game::missions[next].name);
-        label(width-346,189,textBuffer,RGB(255,221,137));
-        label(width-346,214,"Follow gold map line, then press F",RGB(225,235,224));
+        label(width-346,missionY+8,textBuffer,RGB(255,221,137));
+        label(width-346,missionY+33,"Follow gold map line, then press F",RGB(225,235,224));
     }
     std::string prompt=game::interactionPrompt();
     std::string carry=game::carryPrompt();

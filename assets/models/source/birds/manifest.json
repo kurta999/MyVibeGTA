@@ -1,0 +1,57 @@
+[
+  {
+    "page": "https://poly.pizza/m/6Tpj_vcWP3f",
+    "title": "Flying seagull",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "download": "https://static.poly.pizza/ee7ad6b3-ebdc-4494-ba1e-8b6190004df5.glb",
+    "sha256": "6cedd0b9b3c26818b34b920c542fd02fac3822d55fab7c2517fb50f1a4766e20",
+    "license": "CC-BY 3.0",
+    "id": "seagull",
+    "modifications": "Normalized source textured body; procedural eight-pose wing flapping and rolled death pose."
+  },
+  {
+    "page": "https://poly.pizza/m/1MIvWQ5Q3R9",
+    "title": "Crow",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "download": "https://static.poly.pizza/1c028e7d-76a8-4711-b6e9-b279e71f985b.glb",
+    "sha256": "e7077e3fcd834feaf7ec7e47153b6200c239256a025f6886199d0b9189ea6790",
+    "license": "CC-BY 3.0",
+    "id": "crow",
+    "modifications": "Normalized source textured body; procedural eight-pose wing flapping and rolled death pose. Perched body tilted forward with added feather-shaped flight wings sampling the original texture."
+  },
+  {
+    "page": "https://poly.pizza/m/3rTjKefT184",
+    "title": "Sparrow",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "download": "https://static.poly.pizza/8eab0575-29bc-4c34-a372-d0f12083db66.glb",
+    "sha256": "c37ab6840d187d67bd14c7529ce5bb39a10139a47388049cdc086de971608a47",
+    "license": "CC-BY 3.0",
+    "id": "sparrow",
+    "modifications": "Normalized source textured body; procedural eight-pose wing flapping and rolled death pose. Perched body tilted forward with added feather-shaped flight wings sampling the original texture."
+  },
+  {
+    "page": "https://poly.pizza/m/dfNjMLtO0pd",
+    "title": "Parrot",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "download": "https://static.poly.pizza/9916df1b-dd5d-4072-bda3-c120ae6e5917.glb",
+    "sha256": "52c904f00dd236e181b3f037ee93a1209889ab6c7794b8c1095bb4ccff75a73b",
+    "license": "CC-BY 3.0",
+    "id": "parrot",
+    "modifications": "Normalized source textured body; procedural eight-pose wing flapping and rolled death pose. Perched body tilted forward with added feather-shaped flight wings sampling the original texture."
+  },
+  {
+    "page": "https://poly.pizza/m/2jmH3trzPFf",
+    "title": "Dove",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "author": "Poly by Google",
+    "download": "https://static.poly.pizza/7ef274a4-4d73-4eee-96e4-209ba68a3146.glb",
+    "sha256": "ea2f360138e8c0310635acd7e37d0bea87cb8ba0e6f6fe643acf1fed1a245d3a",
+    "license": "CC-BY 3.0",
+    "id": "dove",
+    "modifications": "Normalized source textured body; procedural eight-pose wing flapping and rolled death pose. Perched body tilted forward with added feather-shaped flight wings sampling the original texture."
+  }
+]

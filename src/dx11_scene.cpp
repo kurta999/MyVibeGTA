@@ -11,6 +11,8 @@
 #include "weather.h"
 #include "regions.h"
 #include "debug_menu.h"
+#include "wildlife.h"
+#include "birds.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -192,6 +194,38 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
     float rising=std::clamp(game::playerVerticalSpeed/230.0f,0.0f,1.0f);
     auto applyMotion=[&](Vec3& p,Vec3& n,const float parts[6]){
         if(motion==0)return;
+        if(motion==4||motion==5){
+            // Articulate the idle skin around hips, knees and shoulders. Keep
+            // the original character's clothes, face and skin weights.
+            bool bike=motion==5;
+            auto bend=[&](Vec3 point,float pivotY,float pivotZ,float angle){
+                float y=point.y-pivotY,z=point.z-pivotZ;
+                return Vec3{point.x,pivotY+std::cos(angle)*y+std::sin(angle)*z,
+                    pivotZ-std::sin(angle)*y+std::cos(angle)*z};
+            };
+            float hip=bounds->minY+bodyHeight*0.50f;
+            float knee=bounds->minY+bodyHeight*0.27f;
+            float thigh=bike?1.05f:1.45f;
+            Vec3 leg=bend(p,hip,centerZ,thigh);
+            Vec3 bentKnee=bend({p.x,knee,centerZ},hip,centerZ,thigh);
+            float legAngle=thigh;
+            if(p.y<knee){leg=bend(leg,bentKnee.y,bentKnee.z,-thigh);legAngle=0;}
+            if(bike)leg.x+=(parts[5]-parts[4])*bodyHeight*0.055f;
+            float legWeight=std::clamp(parts[4]+parts[5],0.0f,1.0f);
+            Vec3 original=p;p=p+(leg-p)*legWeight;
+            Vec3 legNormal=bend(n,0,0,legAngle);n=n+(legNormal-n)*legWeight;
+            float armWeight=std::clamp(parts[2]+parts[3],0.0f,1.0f);
+            float shoulder=bounds->minY+bodyHeight*0.77f;
+            float armAngle=bike?0.95f:1.25f;
+            Vec3 arm=bend(original,shoulder,centerZ,armAngle);
+            p=p+(arm-original)*armWeight;
+            Vec3 armNormal=bend(n,0,0,armAngle);n=n+(armNormal-n)*armWeight;
+            if(bike){
+                p=bend(p,hip,centerZ,-0.22f);
+                n=bend(n,0,0,-0.22f);
+            }
+            return;
+        }
         float left=waveSin,right=-left;
         float armWave=parts[2]*left+parts[3]*right;
         float legWave=parts[4]*right+parts[5]*left;
@@ -816,7 +850,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
             target=camera::traceReticle(pose,weapons::stats(game::weapon).range);
             Vec3 fromHand=target-hand;
             aimPitch=std::clamp(std::atan2(fromHand.y,
-                std::sqrt(fromHand.x*fromHand.x+fromHand.z*fromHand.z)),-0.85f,0.8f);
+                std::sqrt(fromHand.x*fromHand.x+fromHand.z*fromHand.z)),-0.85f,1.4f);
         }
     }
     int action=actionOverride>=0?actionOverride:armed?3:running?2:moving?1:0;
@@ -871,6 +905,48 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
             Vec3 leftMuzzle=muzzle+Vec3{-r.x*14,0,-r.z*14};
             if(!asset||!heldWeapon(asset,leftHand,leftMuzzle,width,gunHeight))
                 beam(leftHand,leftMuzzle,3.6f,3.0f,game::rgb(46,48,52));
+        }
+    }
+}
+void animals(){
+    for(const auto& bird:birds::flock){
+        if(game::len(Vec2{bird.p.x,bird.p.z}-game::player)>1100)continue;
+        const auto& kind=birds::species()[bird.species];
+        std::string name=std::string("birds/")+kind.id+(bird.health<=0?"-dead":
+            "-flap-"+std::to_string(int(bird.phase*8/(2*game::PI))%8));
+        const Mesh* source=mesh(name);if(!source)continue;
+        float yaw=game::PI*0.5f-bird.angle;
+        // Fixed scales across flap frames keep the body still while the wings move.
+        float sx=kind.span,sy=kind.span*0.7f,sz=kind.length;
+        if(bird.health<=0){sx=kind.span*0.7f;sy=4.0f;}
+        modelInstances->push_back({source,2,sx,sy,sz,std::cos(yaw),std::sin(yaw),
+            bird.p.x,bird.p.y,bird.p.z,0,0,0,1,bird.hit>0?0.4f:1.0f,bird.hit>0?0.4f:1.0f});
+        if(bird.health<=0&&!bird.settled){
+            auto& instance=modelInstances->back();
+            instance.sinPitch=std::sin(bird.phase)*0.5f;
+            instance.cosPitch=std::sqrt(1-instance.sinPitch*instance.sinPitch);
+        }
+    }
+    for(const auto& animal:wildlife::animals){
+        if(game::len(animal.p-game::player)>850)continue;
+        const auto& kind=wildlife::species()[animal.species];
+        std::string name=std::string("animals/")+kind.id;
+        Vec3 size{kind.width,kind.height,kind.length};
+        float height=animal.carried?game::playerY+23.0f:0.0f;
+        if(animal.health<=0){name+="-dead";size={kind.height,kind.width,kind.length};}
+        else if(animal.state==wildlife::State::Wander||animal.state==wildlife::State::Flee||
+                animal.state==wildlife::State::Play||animal.state==wildlife::State::Attack){
+            int frame=int(animal.phase*8/(2*game::PI))%8;
+            name+="-walk-"+std::to_string(frame);
+            if(animal.state==wildlife::State::Play)
+                height+=std::max(0.0f,std::sin(animal.phase*2))*kind.height*0.12f;
+        }
+        Color tint=animal.hit>0?Color{1,0.5f,0.4f}:Color{1,1,1};
+        model(name,{animal.p.x,height,animal.p.z},size,game::PI*0.5f-animal.angle,tint);
+        if(animal.attackTime>0&&!modelInstances->empty()){
+            auto& instance=modelInstances->back();
+            float pitch=std::sin(animal.attackTime/0.35f*game::PI)*0.23f;
+            instance.sinPitch=std::sin(pitch);instance.cosPitch=std::cos(pitch);
         }
     }
 }
@@ -998,6 +1074,15 @@ void vehicles(){
         Color paint=v.exploded?game::rgb(38,39,41):v.c;
         Vec2 facing=game::forward(v.angle);
         float yaw=game::PI/2-v.angle;
+        bool playerDriver=game::occupied==int(&v-game::vehicles.data())&&game::health>0;
+        int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
+            game::peds[v.driver].style:-1;
+        auto driver=[&](Vec2 seat,float bottom,Vec3 size,bool bike){
+            if(style<0||v.exploded)return;
+            const char* names[]={"casual-man","hoodie-man","casual-woman","beach-man"};
+            skinnedCharacter(std::string("characters/")+names[style%4],
+                {seat.x,v.rideHeight+bottom,seat.z},size,yaw,0,0,nullptr,0,bike?5:4,0);
+        };
         if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){
             std::uint32_t key=2166136261u;
             for(unsigned char ch:v.id)key=(key^ch)*16777619u;
@@ -1009,6 +1094,11 @@ void vehicles(){
             Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
             model(carName,{v.p.x,v.rideHeight,v.p.z},
                 {26,carHeights[v.kind==game::Kind::SportCar?0:variant],48},yaw,tint);
+            float cabinHeight=carHeights[v.kind==game::Kind::SportCar?0:variant];
+            model(carName+"-glass",{v.p.x,v.rideHeight,v.p.z},{26,cabinHeight,48},yaw,tint);
+            Vec2 side{-facing.z,facing.x};
+            driver(v.p-side*5.5f,-cabinHeight*0.07f,
+                {10,cabinHeight*0.95f,11},false);
             if(game::vehicleLightsOn(v)){
                 Vec2 side{-facing.z,facing.x};
                 const float sideOffsets[]={8.0f,9.2f,7.6f,8.9f,8.4f,8.0f};
@@ -1040,6 +1130,7 @@ void vehicles(){
                 }
             }
         }else if(v.kind==game::Kind::Bike){
+            driver(v.p-facing*5,4,{15,35,14},true);
             for(float offset:{-12.0f,12.0f}){
                 Vec3 wheel{v.p.x+facing.x*offset,v.rideHeight+1,
                     v.p.z+facing.z*offset};
@@ -1069,6 +1160,7 @@ void vehicles(){
                     game::rgb(255,239,189));
         }else{
             model("vehicles/motorboat",{v.p.x,v.rideHeight-2,v.p.z},{24,22,48},yaw);
+            driver(v.p-facing*6,1,{13,30,13},false);
         }
     }
 }
@@ -1416,7 +1508,7 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buckets=groups;modelInstances=&instances;instances.clear();
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
     regionalTerrain();marinaScenery();weatherGroundDetails();nightSky();clouds();buildings();vegetation();streetlights();
-    vehicles();people();markers();effects();
+    vehicles();people();animals();markers();effects();
     float solar=std::sin((game::gameHour-6)*game::PI/12),angle=(game::gameHour-6)*game::PI/12;
     if(solar>=0)
         sphere({game::player.x+std::cos(angle)*820,solar*600+130,

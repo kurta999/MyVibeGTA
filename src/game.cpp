@@ -20,6 +20,8 @@
 #include "jolt_world.h"
 #include "traffic.h"
 #include "debug_menu.h"
+#include "wildlife.h"
+#include "birds.h"
 #endif
 #include "ai.h"
 #include "content.h"
@@ -171,6 +173,16 @@ void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
     fire::ignite({point.x,point.z},fire::surfaceAt(point));
     audio::playAt(audio::Effect::Hit,point.x,point.z);
     Vec2 center{point.x,point.z};
+#ifdef MINI_CITY_JOLT
+    for(int i=0;i<int(wildlife::animals.size());++i){
+        float distance=len(wildlife::animals[i].p-center);
+        if(distance<radius)wildlife::hurt(i,int(damage*(1-distance/radius)),center,playerCaused);
+    }
+    for(int i=0;i<int(birds::flock.size());++i){
+        float distance=len(birds::flock[i].p-point);
+        if(distance<radius)birds::hurt(i,int(damage*(1-distance/radius)));
+    }
+#endif
     float playerDistance=len(player-center);
     if(health>0&&playerDistance<radius)
         applyDamage(damage*(1-playerDistance/radius));
@@ -377,6 +389,10 @@ void reset(){
     police::reset();
     fire::reset();
     props::reset();
+#ifdef MINI_CITY_JOLT
+    wildlife::reset();
+    birds::reset();
+#endif
 }
 void move(Vec2& p,Vec2 d,float radius,Kind kind){
     Vec2 trial{p.x+d.x,p.z};if(valid(trial,kind,radius))p.x=trial.x;
@@ -388,7 +404,7 @@ bool clearLine(Vec2 a,Vec2 b){
     return true;
 }
 namespace {
-enum class InteractionType{None,Loot,Pickpocket,Repair,Shop,House,Ladder,Tree,Mission};
+enum class InteractionType{None,Loot,AnimalLoot,Pickpocket,Repair,Shop,House,Ladder,Tree,Mission};
 struct Interaction{InteractionType type=InteractionType::None;int index=-1;};
 std::vector<Interaction> availableInteractions(){
     std::vector<Interaction> options;
@@ -403,6 +419,10 @@ std::vector<Interaction> availableInteractions(){
         }
     }
     if(corpse>=0)options.push_back({InteractionType::Loot,corpse});
+#ifdef MINI_CITY_JOLT
+    int animal=wildlife::nearbyCorpse(true);
+    if(animal>=0)options.push_back({InteractionType::AnimalLoot,animal});
+#endif
     int target=-1;float targetDistance=29;
     for(int i=0;i<int(peds.size());++i){
         const Ped& ped=peds[i];
@@ -459,13 +479,25 @@ void cycleInteraction(){
 }
 std::string interactionPrompt(){
     if(traversal::active())return "W/S CLIMB  |  F LET GO  |  SPACE JUMP FROM TREE";
+    std::string vehicleHint;
+#ifdef MINI_CITY_JOLT
+    float nearestVehicle=85;
+    for(int i=0;i<int(vehicles.size());++i)if(traffic::canPlayerEnter(i)&&len(vehicles[i].p-player)<nearestVehicle){
+        nearestVehicle=len(vehicles[i].p-player);
+        vehicleHint=vehicles[i].driver>=0?"E  STEAL SLOW VEHICLE":"E  ENTER VEHICLE";
+    }
+#endif
     auto options=availableInteractions();
-    if(options.empty())return {};
+    if(options.empty())return vehicleHint;
     int selected=std::clamp(interactionSelection,0,int(options.size())-1);
     Interaction action=options[selected];
     std::string prompt;
     switch(action.type){
     case InteractionType::Loot:prompt="F  LOOT BODY";break;
+#ifdef MINI_CITY_JOLT
+    case InteractionType::AnimalLoot:prompt=std::string("F  LOOT ")+
+        wildlife::species()[wildlife::animals[action.index].species].name;break;
+#endif
     case InteractionType::Pickpocket:prompt="F  PICKPOCKET";break;
     case InteractionType::Repair:prompt="F  REPAIR VEHICLE  (KITS "+
         std::to_string(repairKits)+")";break;
@@ -478,9 +510,14 @@ std::string interactionPrompt(){
     }
     if(options.size()>1)prompt+="  |  TAB CHOOSE "+std::to_string(selected+1)+
         "/"+std::to_string(options.size());
+    if(!vehicleHint.empty())prompt+="  |  "+vehicleHint;
     return prompt;
 }
 std::string carryPrompt(){
+#ifdef MINI_CITY_JOLT
+    if(wildlife::carrying())return "G  DROP ANIMAL";
+    if(carriedPed<0&&wildlife::nearbyCorpse(false)>=0)return "G  CARRY ANIMAL";
+#endif
     if(carriedPed>=0)return "G  DROP BODY";
     if(health<=0||occupied>=0)return {};
     for(const Ped& ped:peds)if(!ped.alive&&!ped.carried&&len(ped.p-player)<38&&
@@ -491,6 +528,9 @@ void interact(){
     if(traversal::active()){traversal::detach();return;}
     Interaction action=chooseInteraction();
     interactionSelection=0;
+#ifdef MINI_CITY_JOLT
+    if(action.type==InteractionType::AnimalLoot){wildlife::loot(action.index);savegame::save();return;}
+#endif
     if(action.type==InteractionType::Loot){
         Ped& ped=peds[action.index];
         int found=ped.cash;ped.cash=0;ped.looted=true;
@@ -520,6 +560,9 @@ void interact(){
     else if(action.type==InteractionType::Mission)startMission();
 }
 void carryDrop(){
+#ifdef MINI_CITY_JOLT
+    if(carriedPed<0&&wildlife::carryDrop())return;
+#endif
     if(carriedPed>=0){
         Ped& ped=peds[carriedPed];ped.carried=false;
         Vec2 candidate=player+forward(cameraYaw)*20;
@@ -544,10 +587,19 @@ void carryDrop(){
     announce("Carrying body. Press G to drop.",3);
 }
 void clearCarry(){
+#ifdef MINI_CITY_JOLT
+    wildlife::clearCarry();
+#endif
     carriedPed=-1;
     for(auto& ped:peds)ped.carried=false;
 }
-bool carryingBody(){return carriedPed>=0;}
+bool carryingBody(){
+#ifdef MINI_CITY_JOLT
+    return carriedPed>=0||wildlife::carrying();
+#else
+    return carriedPed>=0;
+#endif
+}
 void spawnDebris(const Ped& ped,Vec3 impulse){
 #ifdef MINI_CITY_JOLT
     jolt_world::spawnRagdoll(ped,impulse);
@@ -573,7 +625,7 @@ void spawnDebris(const Ped& ped,Vec3 impulse){
 }
 void enterExit(){
     if(enteringVehicle>=0)return;
-    if(carriedPed>=0)carryDrop();
+    if(carryingBody())carryDrop();
     if(occupied>=0){
         Vehicle& v=vehicles[occupied];Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
         if(v.kind==Kind::Boat){
@@ -592,14 +644,18 @@ void enterExit(){
     float best=85;int index=-1;
     for(int i=0;i<int(vehicles.size());++i){
         float d=len(vehicles[i].p-player);
+#ifdef MINI_CITY_JOLT
+        if(traffic::canPlayerEnter(i)&&d<best){best=d;index=i;}
+#else
         if(!vehicles[i].exploded&&std::abs(vehicles[i].speed)<35&&d<best){best=d;index=i;}
+#endif
     }
     if(index>=0){
         telescopeActive=false;
         bool hadDriver=vehicles[index].driver>=0;
 #ifdef MINI_CITY_JOLT
         traffic::carjacked(index);
-        if(vehicles[index].driver>=0)return;
+        if(vehicles[index].driver>=0){announce("The driver's exit is blocked.",2);return;}
 #endif
         if(hadDriver||vehicles[index].id.rfind("traffic-",0)==0){
             police::report(police::Crime::CarTheft,player,true);
@@ -617,7 +673,7 @@ void enterExit(){
     }
 }
 void startReload(){
-    if(health<=0||carriedPed>=0||reloadRemaining>0)return;
+    if(health<=0||carryingBody()||reloadRemaining>0)return;
     const auto& stats=weapons::stats(weapon);
     if(stats.melee)return;
     if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||
@@ -638,7 +694,7 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
     savegame::save();
 }
 void shoot(){
-    if(health<=0||carriedPed>=0||fireCooldown>0||telescopeActive)return;
+    if(health<=0||carryingBody()||fireCooldown>0||telescopeActive)return;
     const auto& stats=weapons::stats(weapon);
     bool unarmed=keys[VK_SPACE]&&!rightMouse&&occupied<0;
     if(unarmed||stats.melee){
@@ -658,6 +714,10 @@ void shoot(){
                 !clearLine(player,ped.p))continue;
             nearest=distance;target=index;
         }
+#ifdef MINI_CITY_JOLT
+        int animal=wildlife::meleeTarget(nearest);
+        if(animal>=0){wildlife::hurt(animal,damage,player,true);return;}
+#endif
         if(target>=0){
             Ped& ped=peds[target];
             int absorbed=std::min(ped.armor,damage);
@@ -690,6 +750,9 @@ void shoot(){
     magazine[weapon]-=shots;
     audio::play(stats.silenced?audio::Effect::SilencedShot:audio::Effect::Shot,weapon);
     if(!stats.silenced){
+#ifdef MINI_CITY_JOLT
+        wildlife::scare(player,260);
+#endif
         ai::notifyGunshot(player);
         police::report(stats.streamType==1?police::Crime::Arson:police::Crime::Gunfire,
             player,false);
@@ -744,7 +807,7 @@ void shoot(){
                 stats.silenced,stats.arrow,weapon});
         }
     }
-    cameraPitch=std::clamp(cameraPitch+stats.recoilKick,-0.85f,0.8f);
+    cameraPitch=std::clamp(cameraPitch+stats.recoilKick,-0.85f,1.4f);
     fireCooldown=stats.secondsBetweenShots;
 }
 void applyStreamEffect(const Bullet& bullet,Vec3 point){
@@ -845,7 +908,7 @@ void update(float dt){
             bool slowWalk=keys[VK_MENU]||keys[VK_LMENU]||keys[VK_RMENU];
             bool running=!crouched&&!slowWalk&&keys[ui::bindings[int(ui::Action::Sprint)]];
             Vec2 desired=norm(input)*(swimming?95.0f:crouched?75.0f:
-                slowWalk?80.0f:carriedPed>=0?105.0f:running?250.0f:160.0f);
+                slowWalk?80.0f:carryingBody()?105.0f:running?250.0f:160.0f);
             float response=grounded?10.0f:3.0f;
 #ifdef MINI_CITY_JOLT
             if(debug_menu::flyMode)response=10.0f;
@@ -954,6 +1017,12 @@ void update(float dt){
     police::update(dt);
     ai::update(dt);
     activeAi=ai::activeCount();
+#ifdef MINI_CITY_JOLT
+    wildlife::update(dt);
+    activeAi+=wildlife::activeCount();
+    birds::update(dt);
+    activeAi+=birds::activeCount();
+#endif
     for(auto& pickup:pickups){
         if(!pickup.available){pickup.respawn-=dt;if(pickup.respawn<=0)pickup.available=true;continue;}
         if(occupied<0&&len(player-pickup.p)<24){
@@ -976,6 +1045,7 @@ void update(float dt){
         bool wallHit=bulletSolidSegment(bullet.p,next,wallPoint);
         if(wallHit)next=wallPoint;
         Vec3 impactPoint=next;
+        int hitBird=-1;
         int samples=std::clamp(int(std::ceil(len(next-bullet.p)/4.0f)),1,64);
         Vec2 horizontalStart{bullet.p.x,bullet.p.z};
         Vec2 horizontalEnd{next.x,next.z};
@@ -988,7 +1058,7 @@ void update(float dt){
             auto consider=[&](Vec2 center,float radius,float low,float high){
                 float entry=0;
                 if(bulletCylinderSegment(bullet.p,next,center,radius,low,high,entry)&&
-                   entry<nearest){nearest=entry;dynamicHit=true;}
+                   entry<nearest){nearest=entry;dynamicHit=true;hitBird=-1;}
             };
             for(const auto& prop:props)if(prop.alive)
                 consider(prop.p,prop.barrel?12.0f:14.0f,prop.y,prop.y+25);
@@ -1006,6 +1076,16 @@ void update(float dt){
                     consider(tree.p,6.0f*std::min(tree.scale,4.0f),
                         0,tree.height*tree.scale*0.6f);
             }
+#ifdef MINI_CITY_JOLT
+            for(const auto& animal:wildlife::animals)if(animal.health>0)
+                consider(animal.p,wildlife::radius(animal),0,wildlife::species()[animal.species].height);
+            for(int i=0;i<int(birds::flock.size());++i){
+                float entry=0;
+                if(birds::segmentHit(birds::flock[i],bullet.p,next,entry,true)&&entry<nearest){
+                    nearest=entry;dynamicHit=true;hitBird=i;
+                }
+            }
+#endif
             if(bullet.hostile){
                 if(health>0)consider(player,occupied>=0?19.0f:11.0f,
                     2,occupied>=0?43.0f:playerY+37);
@@ -1083,6 +1163,18 @@ void update(float dt){
                 audio::playAt(audio::Effect::Hit,point.x,point.z);break;
             }
             if(hitTree)break;
+#ifdef MINI_CITY_JOLT
+            if(hitBird>=0||birds::hit(point,bullet.streamType>=2?0:damage)){
+                if(hitBird>=0)birds::hurt(hitBird,damage);
+                spawnHitFlash(bullet,point,true);bullet.life=0;
+                audio::playAt(audio::Effect::Hit,point.x,point.z);break;
+            }
+            if(wildlife::hit(point,bullet.streamType>=2?0:damage,
+                    {bullet.p.x,bullet.p.z},!bullet.hostile)){
+                spawnHitFlash(bullet,point,true);bullet.life=0;
+                audio::playAt(audio::Effect::Hit,point.x,point.z);break;
+            }
+#endif
             if(bullet.hostile){
                 float radius=occupied>=0?19.0f:11.0f;
                 float height=occupied>=0?43.0f:playerY+37;

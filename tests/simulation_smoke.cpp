@@ -73,7 +73,31 @@ double connectedPlayableArea(){
 
 void trafficScenarios();
 void navigationScenarios();
+void wildlifeScenarios();
+void birdScenarios();
+void driverScenarios();
+void vehicleCollisionScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&std::string(argv[1])=="--vehicle-collisions-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();vehicleCollisionScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--drivers-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();driverScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--birds-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();birdScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--wildlife-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();wildlifeScenarios();return 0;
+    }
     if(argc>1&&(std::string(argv[1])=="--traffic-only"||std::string(argv[1])=="--navigation-only")){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());

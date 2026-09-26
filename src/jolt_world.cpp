@@ -57,26 +57,36 @@ std::vector<JPH::BodyID> propBodies;
 std::vector<JPH::BodyID> vehicleBodies;
 // The physics jobs are single threaded. Queue contacts and apply gameplay
 // damage after Update, when the physics world is no longer locked.
-std::vector<std::pair<int,float>> playerCarContacts;
+struct VehicleImpact {float speed=0;bool playerCaused=false;};
+std::vector<VehicleImpact> vehicleImpacts;
 class TrafficContacts final:public JPH::ContactListener {
-    void record(const JPH::Body& a,const JPH::Body& b){
-        int occupied=game::occupied;
-        if(occupied<0||occupied>=int(vehicleBodies.size())||
-           std::abs(game::vehicles[occupied].speed)<10)return;
-        JPH::BodyID other;
-        if(a.GetID()==vehicleBodies[occupied])other=b.GetID();
-        else if(b.GetID()==vehicleBodies[occupied])other=a.GetID();
-        else return;
-        float speed=(a.GetLinearVelocity()-b.GetLinearVelocity()).Length();
-        if(speed<12)return;
-        for(int i=0;i<int(vehicleBodies.size());++i)if(vehicleBodies[i]==other){
-            playerCarContacts.push_back({i,speed});break;}
+    void record(const JPH::Body& a,const JPH::Body& b,const JPH::ContactManifold& contact){
+        // Tire grip, steering and brakes can change velocity sharply without
+        // hitting anything. Only closing speed along a real contact normal is
+        // an impact; tangential sliding and separation must not cause damage.
+        JPH::RVec3 point=contact.mRelativeContactPointsOn1.empty()?
+            a.GetCenterOfMassPosition():contact.GetWorldSpaceContactPointOn1(0);
+        float speed=(a.GetPointVelocity(point)-b.GetPointVelocity(point)).Dot(contact.mWorldSpaceNormal);
+        if(speed<=12)return;
+        int first=-1,second=-1;
+        for(int i=0;i<int(vehicleBodies.size());++i){
+            if(vehicleBodies[i]==a.GetID())first=i;
+            if(vehicleBodies[i]==b.GetID())second=i;
+        }
+        auto collect=[&](int index,int other){
+            if(index<0||index>=int(vehicleImpacts.size()))return;
+            auto& impact=vehicleImpacts[index];
+            impact.speed=std::max(impact.speed,speed);
+            if(other>=0&&other==game::occupied&&other<int(game::vehicles.size())&&
+               std::abs(game::vehicles[other].speed)>=10)impact.playerCaused=true;
+        };
+        collect(first,second);collect(second,first);
     }
 public:
     void OnContactAdded(const JPH::Body& a,const JPH::Body& b,
-        const JPH::ContactManifold&,JPH::ContactSettings&) override{record(a,b);}
+        const JPH::ContactManifold& contact,JPH::ContactSettings&) override{record(a,b,contact);}
     void OnContactPersisted(const JPH::Body& a,const JPH::Body& b,
-        const JPH::ContactManifold&,JPH::ContactSettings&) override{record(a,b);}
+        const JPH::ContactManifold& contact,JPH::ContactSettings&) override{record(a,b,contact);}
 };
 TrafficContacts trafficContacts;
 std::vector<JPH::Ref<JPH::VehicleConstraint>> vehicleConstraints;
@@ -526,6 +536,18 @@ void teleportVehicle(std::size_t index,game::Vec2 position,float angle){
     bodies.SetAngularVelocity(vehicleBodies[index],JPH::Vec3::sZero());
     vehicleSynced[index]=position;
 }
+void stopVehicle(std::size_t index){
+    if(index>=game::vehicles.size())return;
+    auto& vehicle=game::vehicles[index];
+    vehicle.velocity={};vehicle.speed=0;vehicle.yawRate=0;
+    driveVehicle(index,0,0,0,true);
+    if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
+    auto& bodies=world->GetBodyInterface();
+    // Preserve suspension height and vertical velocity; stop planar motion only.
+    float vertical=bodies.GetLinearVelocity(vehicleBodies[index]).GetY();
+    bodies.SetLinearVelocity(vehicleBodies[index],JPH::Vec3(0,vertical,0));
+    bodies.SetAngularVelocity(vehicleBodies[index],JPH::Vec3::sZero());
+}
 int wheelContactCount(std::size_t index){
     if(index>=vehicleConstraints.size()||!vehicleConstraints[index])return 0;
     int count=0;
@@ -661,13 +683,8 @@ void step(float dt){
             bodies.AddForce(vehicleBodies[i],JPH::Vec3(0,550*std::max(0.0f,acceleration),0));
         }
     }
-    playerCarContacts.clear();
+    vehicleImpacts.assign(vehicleBodies.size(),{});
     world->Update(dt,1,allocator.get(),jobs.get());
-    for(auto [index,speed]:playerCarContacts){
-        if(index>=int(game::vehicles.size())||game::vehicles[index].collisionCooldown>0)continue;
-        game::damageVehicle(index,std::max(1.0f,(speed-12)*0.12f),true);
-        game::vehicles[index].collisionCooldown=0.35f;
-    }
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid())continue;
         auto position=bodies.GetCenterOfMassPosition(vehicleBodies[i]);
@@ -684,13 +701,15 @@ void step(float dt){
         auto velocity=bodies.GetLinearVelocity(vehicleBodies[i]);
         auto& vehicle=game::vehicles[i];
         game::Vec2 resolved{velocity.GetX(),velocity.GetZ()};
-        float collisionSpeed=game::len(vehicle.velocity-resolved);
-        if(collisionSpeed>60&&!vehicle.exploded&&vehicle.collisionCooldown<=0){
-            game::damageVehicle(int(i),(collisionSpeed-60)*0.18f*
-                physics::tuning(vehicle.kind).collisionDamageScale);
+        const auto impact=vehicleImpacts[i];
+        float threshold=impact.playerCaused?12.0f:60.0f;
+        if(impact.speed>threshold&&!vehicle.exploded&&vehicle.collisionCooldown<=0){
+            float amount=impact.playerCaused?std::max(1.0f,(impact.speed-12)*0.12f):
+                (impact.speed-60)*0.18f*physics::tuning(vehicle.kind).collisionDamageScale;
+            game::damageVehicle(int(i),amount,impact.playerCaused);
             vehicle.collisionCooldown=0.35f;
-            if(collisionSpeed>135)
-                if(int(i)==game::occupied)game::applyDamage((collisionSpeed-135)*0.045f);
+            if(impact.speed>135)
+                if(int(i)==game::occupied)game::applyDamage((impact.speed-135)*0.045f);
         }
         vehicle.p={position.GetX(),position.GetZ()};
         vehicleSynced[i]=vehicle.p;

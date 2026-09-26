@@ -289,7 +289,17 @@ void loadMeshes(const std::wstring& folder){
         "weapons/pistol","weapons/ak","weapons/lightning"
     };
     std::vector<std::string> names(std::begin(fixedNames),std::end(fixedNames));
+    const auto animalFolder=std::filesystem::path(folder)/L"animals";
+    if(std::filesystem::exists(animalFolder))
+        for(const auto& entry:std::filesystem::directory_iterator(animalFolder))
+            if(entry.is_regular_file()&&entry.path().extension()==L".m3d")
+                names.push_back("animals/"+entry.path().stem().string());
     const auto buildingFolder=std::filesystem::path(folder)/L"buildings";
+    const auto birdFolder=std::filesystem::path(folder)/L"birds";
+    if(std::filesystem::exists(birdFolder))
+        for(const auto& entry:std::filesystem::directory_iterator(birdFolder))
+            if(entry.is_regular_file()&&entry.path().extension()==L".m3d")
+                names.push_back("birds/"+entry.path().stem().string());
     if(std::filesystem::exists(buildingFolder))
         for(const auto& entry:std::filesystem::directory_iterator(buildingFolder)){
             if(!entry.is_regular_file()||entry.path().extension()!=L".m3d")continue;
@@ -336,6 +346,18 @@ void loadMeshes(const std::wstring& folder){
                 L"marina/MarinaFacade_Color.png").wstring();
             result.textured=true;
         }
+        if(path.rfind("animals/",0)==0){
+            std::string base=path;
+            auto action=base.find("-walk-");if(action!=std::string::npos)base.resize(action);
+            action=base.find("-dead");if(action!=std::string::npos)base.resize(action);
+            result.textureFile=(std::filesystem::path(folder)/(base+".png")).wstring();
+            result.textured=std::filesystem::exists(result.textureFile);
+        }
+        if(path.rfind("birds/",0)==0){
+            std::string base=path.substr(0,path.find('-',6));
+            result.textureFile=(std::filesystem::path(folder)/(base+".png")).wstring();
+            result.textured=std::filesystem::exists(result.textureFile);
+        }
         auto materialPath=std::filesystem::path(folder)/wide;
         materialPath.replace_extension(L".pbr");
         std::ifstream materialFile(materialPath);
@@ -369,6 +391,27 @@ void loadMeshes(const std::wstring& folder){
         }
         result.alphaTest=(path.rfind("nature/tree_",0)==0||
                           path.rfind("nature/bush_",0)==0)&&result.textured;
+        if(path.rfind("vehicles/",0)==0){
+            std::ifstream windows(folder+L"\\"+wide+L".glass");
+            std::vector<bool> isGlass(result.vertices.size()/3,false);
+            unsigned index=0;bool found=false;
+            while(windows>>index)if(index<isGlass.size()){isGlass[index]=true;found=true;}
+            if(found){
+                Mesh glass=result;glass.vertices.clear();glass.materialRanges.clear();
+                glass.textured=false;glass.textureFile.clear();glass.transparent=true;
+                glass.castsShadow=false;
+                std::vector<Vertex> body;body.reserve(result.vertices.size());
+                for(std::size_t i=0;i<result.vertices.size();++i){
+                    auto vertex=result.vertices[i];
+                    if(isGlass[i/3]){
+                        vertex.r=0.35f;vertex.g=0.53f;vertex.b=0.61f;vertex.a=0.18f;
+                        glass.vertices.push_back(vertex);
+                    }else body.push_back(vertex);
+                }
+                result.vertices=std::move(body);
+                meshes.emplace(path+"-glass",std::move(glass));
+            }
+        }
         meshes.emplace(path,std::move(result));
     }
     // Baked LODs use the detailed mesh's own atlas.
@@ -493,7 +536,7 @@ std::vector<const Mesh*> regionalMeshes(){
     for(const auto& entry:meshes){
         const std::string& name=entry.first;
         if(name.rfind("nature/",0)==0||name.rfind("buildings/urban-",0)==0||
-           name.rfind("marina/",0)==0)
+           name.rfind("marina/",0)==0||name.rfind("animals/",0)==0||name.rfind("birds/",0)==0)
             result.push_back(&entry.second);
     }
     return result;

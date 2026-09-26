@@ -8,6 +8,8 @@
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
 #include "traffic.h"
+#include "wildlife.h"
+#include "birds.h"
 #endif
 #include <algorithm>
 #include <cmath>
@@ -151,6 +153,23 @@ bool save(){
         ok&=write(section,"Health",tree.health,temporary);
         ok&=write(section,"Destroyed",tree.destroyed?1:0,temporary);
     }
+#ifdef MINI_CITY_JOLT
+    for(const auto& animal:wildlife::animals){
+        std::string section="Animal."+animal.id;
+        ok&=write(section,"Health",animal.health,temporary);
+        ok&=write(section,"Looted",animal.looted?1:0,temporary);
+        ok&=write(section,"X",int(animal.p.x*100),temporary);
+        ok&=write(section,"Z",int(animal.p.z*100),temporary);
+        ok&=write(section,"Angle",int(animal.angle*1000),temporary);
+    }
+    for(const auto& bird:birds::flock)if(bird.health<birds::species()[bird.species].health){
+        std::string section="Bird."+bird.id;
+        ok&=write(section,"Health",bird.health,temporary);
+        ok&=write(section,"X",int(bird.p.x*100),temporary);
+        ok&=write(section,"Y",int(bird.p.y*100),temporary);
+        ok&=write(section,"Z",int(bird.p.z*100),temporary);
+    }
+#endif
     WritePrivateProfileStringA(nullptr,nullptr,nullptr,temporary.c_str());
     if(!ok||!MoveFileExA(temporary.c_str(),file.c_str(),
             MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
@@ -311,6 +330,29 @@ bool load(){
     game::activeMission=-1;game::missionStep=0;
 #ifdef MINI_CITY_JOLT
     traffic::afterLoad();
+    for(auto& bird:birds::flock){
+        std::string section="Bird."+bird.id;
+        bird.health=std::clamp(read(section,"Health",bird.health,file),0,birds::species()[bird.species].health);
+        game::Vec3 p{read(section,"X",int(bird.p.x*100),file)/100.0f,
+            read(section,"Y",int(bird.p.y*100),file)/100.0f,
+            read(section,"Z",int(bird.p.z*100),file)/100.0f};
+        if(p.x>20&&p.x<regions::WIDTH-20&&p.z>20&&p.z<regions::DEPTH-20&&p.y>=2&&p.y<1800&&
+           (bird.health<=0||birds::clearFlight(p,p,birds::radius(bird))))bird.p=p;
+        if(bird.health<=0){bird.velocity={};bird.settled=false;}
+    }
+    for(auto& animal:wildlife::animals){
+        std::string section="Animal."+animal.id;
+        animal.health=std::clamp(read(section,"Health",animal.health,file),0,
+            wildlife::species()[animal.species].health);
+        animal.looted=animal.health==0&&read(section,"Looted",0,file)!=0;
+        game::Vec2 p{read(section,"X",int(animal.p.x*100),file)/100.0f,
+            read(section,"Z",int(animal.p.z*100),file)/100.0f};
+        if(wildlife::walkable(p,wildlife::radius(animal)))animal.p=p;
+        if(animal.health>0)animal.home=animal.p;
+        animal.angle=std::clamp(read(section,"Angle",0,file)/1000.0f,-6.284f,6.284f);
+        animal.state=animal.health>0?wildlife::State::Idle:wildlife::State::Dead;
+        animal.target=animal.p;
+    }
 #endif
     return true;
 }
