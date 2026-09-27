@@ -45,6 +45,9 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
         occupied>=0?175.0f:cameraMode==CameraMode::ThirdFar?220.0f:125.0f;
     float height=(overview?330.0f:aiming?52.0f:occupied>=0?85.0f:
         cameraMode==CameraMode::ThirdFar?95.0f:68.0f)+playerHeight-stance;
+#ifdef MINI_CITY_JOLT
+    if(wildlife::riding()&&!aiming&&!overview){distance=std::max(distance,175.0f);height+=10;}
+#endif
     float shoulder=aiming?23.0f:0.0f;
     float lookDistance=overview?15.0f:aiming?240.0f:55.0f;
     float lookHeight=(overview?18.0f:aiming?16.0f+std::tan(cameraPitch)*240.0f:

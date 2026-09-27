@@ -330,7 +330,7 @@ void update(float dt){
     for(int i=0;i<int(vehicles.size());++i){
         auto& v=vehicles[i];
         if(i==occupied||i==enteringVehicle)continue;
-        if(!validPed(v.driver))continue;
+        if(!validPed(v.driver)){jolt_world::coastVehicle(i,dt);continue;}
         auto& driver=peds[v.driver];
         if(!driver.alive){release(driver);continue;}
         if(v.exploded||v.owned||v.burnTime>0){jolt_world::driveVehicle(i,0,0,dt,true);continue;}

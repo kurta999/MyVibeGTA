@@ -5,6 +5,7 @@
 #include "../src/savegame.h"
 #include "../src/weapons.h"
 #include "../src/jolt_world.h"
+#include "../src/dx11_assets.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -97,6 +98,43 @@ void wildlifeScenarios(){
             if(regions::roadAt(p)){assert(!wildlife::walkable(p,10));testedRoad=true;}
         }
     assert(testedWater&&testedRoad);
+    // Real E interaction, full simulation movement, rendered rider, obstacles,
+    // dismount and death cleanup for both rideable species.
+    buildings.clear();vehicles.clear();props.clear();peds.clear();trees.clear();
+    dx11::loadMeshes(L"assets/models/baked");
+    for(int kind:{0,1}){
+        wildlife::animals={animal(kind,{4500,4500})};
+        player={4500,4465};previousPlayer=player;playerY=0;health=PLAYER_MAX_HEALTH;
+        occupied=-1;enteringVehicle=-1;swimming=false;grounded=true;cameraYaw=0;
+        jolt_world::reset();
+        assert(interactionPrompt().find("RIDE")!=std::string::npos);
+        enterExit();assert(wildlife::mountedIndex()==0);
+        keys['W']=true;Vec2 start=player;
+        for(int tick=0;tick<120;++tick)update(1.0f/60);
+        keys['W']=false;
+        assert(len(player-start)>50&&len(player-wildlife::animals[0].p)<0.01f);
+        assert(health==PLAYER_MAX_HEALTH&&grounded&&!swimming);
+        std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
+        std::vector<dx11::ModelInstance> instances;
+        cameraMode=CameraMode::ThirdNear;dx11::buildScene(groups,instances);
+        assert(groups[5].size()==dx11::skinMesh("characters/hoodie-man")->vertices.size());
+        for(const auto& vertex:groups[5]){
+            assert(std::isfinite(vertex.y)&&vertex.y>playerY-1);
+            assert(len(Vec2{vertex.x,vertex.z}-player)<40);
+        }
+        buildings.push_back({player.x+70,player.z-100,25,200,100,{1,1,1},"ride-wall"});
+        keys['W']=true;keys[VK_SHIFT]=true;
+        for(int tick=0;tick<180;++tick)update(1.0f/60);
+        keys['W']=false;keys[VK_SHIFT]=false;
+        assert(player.x<buildings.back().x-wildlife::radius(wildlife::animals[0]));
+        buildings.clear();enterExit();assert(!wildlife::riding()&&playerY==0);
+        Vec2 onFoot=player;update(1.0f/60);assert(len(player-onFoot)<1);
+        enterExit();assert(wildlife::riding());
+        wildlife::hurt(0,10000,player+Vec2{100,0},false);
+        assert(!wildlife::riding()&&wildlife::animals[0].state==State::Dead);
+    }
+    wildlife::animals={animal(2,{4500,4500})};player={4500,4480};playerY=0;
+    assert(!wildlife::mount(0));
     // Real stable population IDs survive reset/load; carry becomes a ground corpse.
     reset();auto& saved=wildlife::animals[0];
     const std::string savedId=saved.id;
@@ -107,6 +145,11 @@ void wildlifeScenarios(){
     const auto& loaded=wildlife::animals[0];
     assert(loaded.id==savedId&&loaded.health==0&&loaded.looted&&!loaded.carried);
     assert(loaded.state==State::Dead&&money==cash);
+    reset();
+    player=wildlife::animals[0].p+Vec2{0,30};playerY=0;swimming=false;
+    enterExit();assert(wildlife::riding());
+    assert(savegame::save()&&savegame::load());
+    assert(!wildlife::riding()&&occupied<0&&playerY==0);
     // Sleeping populations do not drift while the player is elsewhere.
     player={300,250};Vec2 asleep=wildlife::animals.back().p;tick(5);
     assert(len(asleep-wildlife::animals.back().p)<0.001f);

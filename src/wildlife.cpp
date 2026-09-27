@@ -2,13 +2,17 @@
 #include "game_internal.h"
 #include "regions.h"
 #include "audio.h"
+#include "jolt_world.h"
+#include "traversal.h"
+#include "debug_menu.h"
+#include "ui.h"
 #include <random>
 
 namespace wildlife {
 using namespace game;
 std::vector<Animal> animals;
 namespace {
-int carried=-1,active=0;
+int carried=-1,active=0,mounted=-1;
 // World units follow the existing 37-unit-tall pedestrian scale.
 const std::vector<Species> catalog={
     {"tiger","Tiger",20,25,55,76,180,24,90,true,true,45},
@@ -63,11 +67,11 @@ void steer(Animal& a,Vec2 destination,float speed,float dt){
 }
 const std::vector<Species>& species(){return catalog;}
 float radius(const Animal& a){return std::max(2.0f,catalog[a.species].width*0.55f);}
-bool walkable(Vec2 p,float r){
+bool walkable(Vec2 p,float r,bool allowRoad){
     if(p.x<r||p.z<r||p.x>regions::WIDTH-r||p.z>regions::DEPTH-r||
-       solid(p,r)||regions::waterAt(p)||regions::roadAt(p))return false;
+       solid(p,r)||regions::waterAt(p)||(!allowRoad&&regions::roadAt(p)))return false;
     for(Vec2 offset:{Vec2{r,0},{-r,0},{0,r},{0,-r}})
-        if(regions::waterAt(p+offset)||regions::roadAt(p+offset))return false;
+        if(regions::waterAt(p+offset)||(!allowRoad&&regions::roadAt(p+offset)))return false;
     for(int index:regions::nearbyTreeIndices(p,r+30)){
         if(index<0||index>=int(trees.size()))continue;
         const auto& tree=trees[index];
@@ -77,8 +81,81 @@ bool walkable(Vec2 p,float r){
     for(const auto& car:vehicles)if(len(p-car.p)<r+26)return false;
     return true;
 }
+bool riding(){return mounted>=0&&mounted<int(animals.size());}
+int mountedIndex(){return riding()?mounted:-1;}
+namespace {
+bool canMount(int i){
+    if(!living(i)||riding()||health<=0||occupied>=0||enteringVehicle>=0||
+       carryingBody()||traversal::active()||debug_menu::flyMode||swimming||std::abs(playerY)>8)return false;
+    const auto& a=animals[i];
+    return (a.species==0||a.species==1)&&
+        len(player-a.p)<std::max(radius(a),catalog[a.species].length*0.5f)+30&&clearLine(player,a.p);
+}
+void riderPose(){
+    const auto& a=animals[mounted];
+    // These meshes' backs reach almost to their full height. Align the rider's
+    // hip (half of the 37-unit skin) to the back, rather than burying the torso.
+    player=a.p;playerY=catalog[a.species].height*(a.species==1?1.0f:0.94f)+1-18.5f;
+    playerVelocity={};playerVerticalSpeed=0;airTime=0;
+    swimming=false;grounded=true;crouched=false;
+    jolt_world::teleportCharacter(player,playerY);
+}
+}
+int nearbyMount(){
+    int best=-1;float distance=100;
+    for(int i=0;i<int(animals.size());++i)if(canMount(i)&&len(player-animals[i].p)<distance){
+        best=i;distance=len(player-animals[i].p);
+    }
+    return best;
+}
+bool mount(int i){
+    if(!canMount(i))return false;
+    mounted=i;auto& a=animals[i];
+    a.state=State::Idle;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
+    telescopeActive=false;cameraYaw=a.angle;riderPose();previousPlayer=player;
+    announce(std::string("Riding ")+catalog[a.species].name+". WASD move, Shift run, E dismount.",4);
+    return true;
+}
+bool dismount(bool force){
+    if(!riding())return false;
+    auto& a=animals[mounted];
+    float clearance=std::max(radius(a),catalog[a.species].length*0.5f)+18;
+    for(float turn:{PI/2,-PI/2,PI,-PI/4,PI/4,0.0f}){
+        Vec2 out=a.p+forward(a.angle+turn)*clearance;
+        if(!walkable(out,12,true)||!clearLine(a.p,out))continue;
+        player=previousPlayer=out;playerY=0;playerVerticalSpeed=0;playerVelocity={};
+        grounded=true;swimming=false;airTime=0;
+        a.home=a.target=a.p;a.state=a.health>0?State::Idle:State::Dead;a.timer=2;
+        mounted=-1;jolt_world::teleportCharacter(player,0);return true;
+    }
+    if(force){mounted=-1;grounded=false;playerVelocity={};return true;}
+    announce("No clear space to dismount.",2);return false;
+}
+void updateRider(float dt){
+    if(!riding())return;
+    if(!living(mounted)||health<=0||occupied>=0||debug_menu::flyMode){dismount(true);return;}
+    auto& a=animals[mounted];const auto& s=catalog[a.species];
+    Vec2 facing=forward(cameraYaw),side{-facing.z,facing.x};
+    Vec2 input=facing*(float(keys[ui::bindings[int(ui::Action::Forward)]])-float(keys[ui::bindings[int(ui::Action::Backward)]]))+
+        side*(float(keys[ui::bindings[int(ui::Action::Right)]])-float(keys[ui::bindings[int(ui::Action::Left)]]));
+    Vec2 delta=norm(input)*(s.speed*(keys[ui::bindings[int(ui::Action::Sprint)]]?1.65f:1.0f)*dt);
+    Vec2 before=a.p;
+    // Substeps and a full-body clearance prevent fast rides clipping obstacles.
+    float clearance=std::max(radius(a),s.length*0.45f);
+    int steps=std::max(1,int(std::ceil(len(delta)/4)));
+    for(int step=0;step<steps;++step){
+        Vec2 next=a.p+delta*(1.0f/steps);
+        if(!walkable(next,clearance,true))break;
+        a.p=next;
+    }
+    float moved=len(a.p-before);
+    if(moved>0.001f){a.angle=std::atan2(delta.z,delta.x);a.phase+=moved*0.17f;}
+    a.state=moved>0.001f?State::Wander:State::Idle;
+    a.home=a.target=a.p;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
+    riderPose();
+}
 void reset(){
-    animals.clear();carried=-1;active=0;
+    animals.clear();carried=-1;active=0;mounted=-1;
     std::mt19937 rng(914271);std::uniform_real_distribution<float> unit(0,1);
     const float xs[]={3000,4000,5000,6000,7000},zs[]={1300,3900,6400,9000};
     for(int grove=0;grove<20;++grove)for(int slot=0;slot<8;++slot){
@@ -107,16 +184,17 @@ void hurt(int i,int damage,Vec2 attacker,bool playerCaused,int source){
     a.threat=attacker;a.playerThreat=playerCaused;a.peer=source;a.alert=9;
     a.state=s.defensive?State::Attack:State::Flee;
     if(!a.health){a.state=State::Dead;a.alert=0;a.peer=-1;a.attackTime=0;
+        if(i==mounted)dismount(true);
         if(impacts.size()<128)impacts.push_back({a.p,8,true});}
     if(hitFlashes.size()<128)hitFlashes.push_back({{a.p.x,s.height*0.5f,a.p.z},0.18f,{0.7f,0.08f,0.05f},true});
     // Herd members see the attack and flee; they do not gain player omniscience.
     for(int j=0;j<int(animals.size());++j){auto& other=animals[j];
-        if(j!=i&&other.health>0&&other.species==a.species&&len(other.p-a.p)<120){
+        if(j!=i&&j!=mounted&&other.health>0&&other.species==a.species&&len(other.p-a.p)<120){
             other.threat=attacker;other.alert=5;other.state=State::Flee;
             other.playerThreat=false;other.peer=-1;}}
 }
 void scare(Vec2 origin,float range){
-    for(auto& a:animals)if(a.health>0&&len(a.p-origin)<range&&a.state!=State::Attack){
+    for(auto& a:animals)if(&a-animals.data()!=mounted&&a.health>0&&len(a.p-origin)<range&&a.state!=State::Attack){
         a.threat=origin;a.alert=4;a.state=State::Flee;a.peer=-1;a.playerThreat=false;}
 }
 int meleeTarget(float range){
@@ -137,6 +215,7 @@ bool hit(Vec3 p,int damage,Vec2 origin,bool playerCaused){
 }
 void update(float dt){
     active=0;
+    if(riding()&&(!living(mounted)||health<=0||occupied>=0))dismount(true);
     if(carried>=0){if(health<=0||occupied>=0||swimming)drop();
         else {auto& a=animals[carried];a.p=player+forward(cameraYaw)*18;a.angle=cameraYaw;}}
     for(int i=0;i<int(animals.size());++i){auto& a=animals[i];
@@ -144,6 +223,7 @@ void update(float dt){
         a.cooldown=std::max(0.0f,a.cooldown-dt);
         if(a.health<=0||len(a.p-player)>850)continue;
         ++active;const auto& s=catalog[a.species];
+        if(i==mounted)continue;
         a.timer-=dt;a.alert=std::max(0.0f,a.alert-dt);
         if(a.state==State::Flee){
             if(a.alert<=0){a.state=State::Idle;a.timer=1;continue;}
@@ -176,7 +256,7 @@ void update(float dt){
         if(a.timer<=0){
             int prey=-1,friendIndex=-1;float nearest=140;
             for(int j=0;j<int(animals.size());++j){const auto& other=animals[j];
-                if(j==i||other.health<=0||!clearLine(a.p,other.p))continue;
+                if(j==i||j==mounted||other.health<=0||!clearLine(a.p,other.p))continue;
                 float distance=len(other.p-a.p);
                 if(distance<100&&other.species==a.species&&
                    (other.state==State::Idle||other.state==State::Wander))friendIndex=j;
@@ -199,7 +279,7 @@ void update(float dt){
     }
 }
 int nearbyCorpse(bool unlooted){
-    if(health<=0||occupied>=0)return -1;
+    if(health<=0||occupied>=0||riding())return -1;
     int best=-1;float distance=38;
     for(int i=0;i<int(animals.size());++i){const auto& a=animals[i];float d=len(a.p-player);
         if(a.health==0&&!a.carried&&(!unlooted||!a.looted)&&d<distance&&

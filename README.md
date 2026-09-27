@@ -40,6 +40,10 @@ GitHub Actions builds and runs the CMake simulation, wildlife, bird, traffic, na
 
 Fifteen animal types inhabit the twenty countryside forests: tiger, elephant, cat, dog, pig, cow, capybara, bear, goat, donkey, roe deer, deer, weasel, beaver, and mouse. Forest centers lie at X = 3000/4000/5000/6000/7000 and Z = 1300/3900/6400/9000. Each grove has up to eight animals with stable save IDs. They wander around their home, play with their own species, flee threats, retaliate, and hunt smaller animals according to species. Distant wildlife sleeps until approached.
 
+Press **E** near a living elephant or tiger to mount it, use **WASD** to ride relative to the camera and **Shift** to run, then **E** to dismount into clear space. Ridden animals can cross roads but stop at water and obstacles. The rider is visible in third person; mounted combat is disabled. Loading a save returns you to the ground. Use `--smoke --day --animals --animal-ride --screenshot` to preview the elephant rider; add `--tiger` for the tiger.
+
+Vehicles can be exited into water with **E**, immediately switching to swimming. Empty moving vehicles release throttle and steering and gradually coast to a stop.
+
 Use your regular guns, bow, melee attacks, or explosives. **F loots** a dead animal once (supplies converted to cash); **G carries/drops** its corpse. Carrying slows movement and prevents firing/reloading; entering a vehicle drops the corpse. Damage, death, corpse position, and looted status survive save/load. Carried bodies load on the ground. All species can be carried in this arcade implementation, including large animals.
 
 Models include their original base-color textures and [per-model attribution](assets/models/ANIMALS.md). The roe-deer slot uses an adapted generic fawn model. Walking uses eight procedural mesh poses, play adds a hop, attacks lunge, and death uses a side-lying pose; these are not rigged animal animations or Jolt ragdolls. Wildlife uses bounded obstacle steering; complex navigation and interactive behavior tuning remain future work.

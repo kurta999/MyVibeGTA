@@ -548,6 +548,31 @@ void stopVehicle(std::size_t index){
     bodies.SetLinearVelocity(vehicleBodies[index],JPH::Vec3(0,vertical,0));
     bodies.SetAngularVelocity(vehicleBodies[index],JPH::Vec3::sZero());
 }
+void coastVehicle(std::size_t index,float dt){
+    if(!world||index>=vehicleBodies.size()||index>=game::vehicles.size()||
+       vehicleBodies[index].IsInvalid())return;
+    auto& vehicle=game::vehicles[index];
+    auto& bodies=world->GetBodyInterface();
+    if(!bodies.IsActive(vehicleBodies[index])&&game::len(vehicle.p-vehicleSynced[index])<=3)return;
+    if(vehicle.kind==game::Kind::Boat)physics::stepVehicle(vehicle,0,0,dt);
+    // Driver inputs persist in Jolt. Release them and cut engine power, while
+    // preserving chassis momentum and contacts. Gentle drag settles a rolling
+    // empty car over several seconds rather than applying the parking brake.
+    driveVehicle(index,0,0,dt);
+    if(index<vehicleConstraints.size()&&vehicleConstraints[index])
+        static_cast<JPH::WheeledVehicleController*>(vehicleConstraints[index]->GetController())->GetEngine().mMaxTorque=0;
+    auto velocity=bodies.GetLinearVelocity(vehicleBodies[index]);
+    float drag=std::exp(-0.65f*dt);
+    float speed=std::hypot(velocity.GetX(),velocity.GetZ());
+    if(speed<0.75f){
+        if(index<vehicleConstraints.size()&&vehicleConstraints[index])
+            static_cast<JPH::WheeledVehicleController*>(vehicleConstraints[index]->GetController())->SetDriverInput(0,0,1,1);
+        bodies.SetLinearVelocity(vehicleBodies[index],JPH::Vec3(0,velocity.GetY(),0));
+        return;
+    }
+    bodies.SetLinearVelocity(vehicleBodies[index],JPH::Vec3(
+        velocity.GetX()*drag,velocity.GetY(),velocity.GetZ()*drag));
+}
 int wheelContactCount(std::size_t index){
     if(index>=vehicleConstraints.size()||!vehicleConstraints[index])return 0;
     int count=0;

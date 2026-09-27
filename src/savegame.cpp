@@ -347,7 +347,8 @@ bool load(){
         animal.looted=animal.health==0&&read(section,"Looted",0,file)!=0;
         game::Vec2 p{read(section,"X",int(animal.p.x*100),file)/100.0f,
             read(section,"Z",int(animal.p.z*100),file)/100.0f};
-        if(wildlife::walkable(p,wildlife::radius(animal)))animal.p=p;
+        if(wildlife::walkable(p,wildlife::radius(animal),true))animal.p=p;
+        if(game::len(animal.p-animal.home)>420)animal.home=animal.p;
         if(animal.health>0)animal.home=animal.p;
         animal.angle=std::clamp(read(section,"Angle",0,file)/1000.0f,-6.284f,6.284f);
         animal.state=animal.health>0?wildlife::State::Idle:wildlife::State::Dead;

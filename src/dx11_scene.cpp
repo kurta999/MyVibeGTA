@@ -194,10 +194,10 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
     float rising=std::clamp(game::playerVerticalSpeed/230.0f,0.0f,1.0f);
     auto applyMotion=[&](Vec3& p,Vec3& n,const float parts[6]){
         if(motion==0)return;
-        if(motion==4||motion==5){
+        if(motion>=4&&motion<=7){
             // Articulate the idle skin around hips, knees and shoulders. Keep
             // the original character's clothes, face and skin weights.
-            bool bike=motion==5;
+            bool bike=motion>=5;
             auto bend=[&](Vec3 point,float pivotY,float pivotZ,float angle){
                 float y=point.y-pivotY,z=point.z-pivotZ;
                 return Vec3{point.x,pivotY+std::cos(angle)*y+std::sin(angle)*z,
@@ -210,7 +210,8 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
             Vec3 bentKnee=bend({p.x,knee,centerZ},hip,centerZ,thigh);
             float legAngle=thigh;
             if(p.y<knee){leg=bend(leg,bentKnee.y,bentKnee.z,-thigh);legAngle=0;}
-            if(bike)leg.x+=(parts[5]-parts[4])*bodyHeight*0.055f;
+            if(bike)leg.x+=(parts[5]-parts[4])*bodyHeight*
+                (motion==7?0.30f:motion==6?0.16f:0.055f);
             float legWeight=std::clamp(parts[4]+parts[5],0.0f,1.0f);
             Vec3 original=p;p=p+(leg-p)*legWeight;
             Vec3 legNormal=bend(n,0,0,legAngle);n=n+(legNormal-n)*legWeight;
@@ -220,7 +221,7 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
             Vec3 arm=bend(original,shoulder,centerZ,armAngle);
             p=p+(arm-original)*armWeight;
             Vec3 armNormal=bend(n,0,0,armAngle);n=n+(armNormal-n)*armWeight;
-            if(bike){
+            if(motion==5){
                 p=bend(p,hip,centerZ,-0.22f);
                 n=bend(n,0,0,-0.22f);
             }
@@ -985,7 +986,12 @@ void people(){
             ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
             false,phase);
     }
-    if(game::occupied<0&&game::health>0&&!camera::firstPersonActive()){
+    if(wildlife::riding()&&game::health>0&&!camera::firstPersonActive()){
+        const auto& animal=wildlife::animals[wildlife::mountedIndex()];
+        skinnedCharacter("characters/hoodie-man",{animal.p.x,game::playerY,animal.p.z},
+            {17,37,15},game::PI/2-animal.angle,0,0,nullptr,0,animal.species==1?7:6,0);
+    }
+    if(game::occupied<0&&!wildlife::riding()&&game::health>0&&!camera::firstPersonActive()){
         bool entering=game::enteringVehicle>=0&&
             std::size_t(game::enteringVehicle)<game::vehicles.size();
         bool climbing=traversal::active();

@@ -222,6 +222,13 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             a.target=a.p+game::Vec2{20,20};wildlife::animals.push_back(a);
         }
         message="Forest wildlife: 15 species | F loot | G carry / drop";messageTime=10;
+        if(std::strstr(commandLine,"--animal-ride")){
+            int index=std::strstr(commandLine,"--tiger")?0:1;
+            auto& animal=wildlife::animals[index];
+            animal.p=animal.home={4020,9280};animal.angle=0;
+            player=previousPlayer=animal.p+Vec2{0,30};playerY=0;
+            wildlife::mount(index);cameraYaw=-0.6f;cameraPitch=-0.12f;
+        }
         if(std::strstr(commandLine,"--animal-corpse")||std::strstr(commandLine,"--animal-carry")){
             auto& animal=wildlife::animals[4];animal.p=player+forward(cameraYaw)*24;
             wildlife::hurt(4,1000,player,true);

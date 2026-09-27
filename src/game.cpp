@@ -408,6 +408,9 @@ enum class InteractionType{None,Loot,AnimalLoot,Pickpocket,Repair,Shop,House,Lad
 struct Interaction{InteractionType type=InteractionType::None;int index=-1;};
 std::vector<Interaction> availableInteractions(){
     std::vector<Interaction> options;
+#ifdef MINI_CITY_JOLT
+    if(wildlife::riding())return options;
+#endif
     if(health<=0||occupied>=0)return options;
     int corpse=-1;float corpseDistance=38;
     for(int i=0;i<int(peds.size());++i){
@@ -478,10 +481,17 @@ void cycleInteraction(){
     interactionSelection=options.size()>1?(interactionSelection+1)%int(options.size()):0;
 }
 std::string interactionPrompt(){
+#ifdef MINI_CITY_JOLT
+    if(wildlife::riding())return "WASD RIDE  |  SHIFT RUN  |  E DISMOUNT";
+#endif
     if(traversal::active())return "W/S CLIMB  |  F LET GO  |  SPACE JUMP FROM TREE";
     std::string vehicleHint;
 #ifdef MINI_CITY_JOLT
+    int mount=wildlife::nearbyMount();
+    if(mount>=0)vehicleHint=std::string("E  RIDE ")+
+        wildlife::species()[wildlife::animals[mount].species].name;
     float nearestVehicle=85;
+    if(mount>=0)nearestVehicle=len(wildlife::animals[mount].p-player);
     for(int i=0;i<int(vehicles.size());++i)if(traffic::canPlayerEnter(i)&&len(vehicles[i].p-player)<nearestVehicle){
         nearestVehicle=len(vehicles[i].p-player);
         vehicleHint=vehicles[i].driver>=0?"E  STEAL SLOW VEHICLE":"E  ENTER VEHICLE";
@@ -561,6 +571,7 @@ void interact(){
 }
 void carryDrop(){
 #ifdef MINI_CITY_JOLT
+    if(wildlife::riding())return;
     if(carriedPed<0&&wildlife::carryDrop())return;
 #endif
     if(carriedPed>=0){
@@ -625,9 +636,39 @@ void spawnDebris(const Ped& ped,Vec3 impulse){
 }
 void enterExit(){
     if(enteringVehicle>=0)return;
+#ifdef MINI_CITY_JOLT
+    if(wildlife::riding()){wildlife::dismount();return;}
+    if(traversal::active()||health<=0)return;
+#endif
     if(carryingBody())carryDrop();
     if(occupied>=0){
         Vehicle& v=vehicles[occupied];Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
+#ifdef MINI_CITY_JOLT
+        // Water is a valid swimming exit; solid() deliberately rejects it for
+        // ground navigation. Keep bounds and obstacles in the exit test.
+        auto exitAt=[&](Vec2 out){
+            if(out.x<12||out.z<12||out.x>regions::WIDTH-12||out.z>regions::DEPTH-12)return false;
+            for(int step=1;step<=12;++step){
+                Vec2 point=v.p+(out-v.p)*(step/12.0f);
+                for(const auto& b:buildings)if(inside(b,point,12))return false;
+            }
+            for(const auto& other:vehicles)
+                if(&other!=&v&&len(out-other.p)<38)return false;
+            for(const auto& prop:props)if(prop.alive&&len(out-prop.p)<26)return false;
+            player=previousPlayer=out;occupied=-1;
+            playerY=0;playerVerticalSpeed=0;playerVelocity={};airTime=0;
+            swimming=regions::waterAt(out);grounded=!swimming;
+            jolt_world::teleportCharacter(out,0);
+            if(swimming)audio::play(audio::Effect::Splash);
+            return true;
+        };
+        if(v.kind==Kind::Boat&&v.p.x<WORLD_W&&v.p.z>SHORE-40&&
+           v.p.z<SHORE+105&&exitAt({v.p.x,SHORE-22}))return;
+        for(int sign:{1,-1})
+            if(exitAt(v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f))))return;
+        for(int sign:{-1,1})if(exitAt(v.p+forward(v.angle)*(sign*50.0f)))return;
+        announce("No clear space to exit.",2);return;
+#else
         if(v.kind==Kind::Boat){
             if(v.p.z<SHORE+105){Vec2 dock{v.p.x,SHORE-22};
                 if(!solid(dock,12)){player=dock;occupied=-1;swimming=false;
@@ -640,6 +681,7 @@ void enterExit(){
         for(int sign:{1,-1}){Vec2 out=v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f));
             if(!solid(out,12)){player=out;occupied=-1;return;}}
         return;
+#endif
     }
     float best=85;int index=-1;
     for(int i=0;i<int(vehicles.size());++i){
@@ -650,6 +692,12 @@ void enterExit(){
         if(!vehicles[i].exploded&&std::abs(vehicles[i].speed)<35&&d<best){best=d;index=i;}
 #endif
     }
+#ifdef MINI_CITY_JOLT
+    int mount=wildlife::nearbyMount();
+    if(mount>=0&&(index<0||len(wildlife::animals[mount].p-player)<best)){
+        wildlife::mount(mount);return;
+    }
+#endif
     if(index>=0){
         telescopeActive=false;
         bool hadDriver=vehicles[index].driver>=0;
@@ -694,6 +742,9 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
     savegame::save();
 }
 void shoot(){
+#ifdef MINI_CITY_JOLT
+    if(wildlife::riding())return;
+#endif
     if(health<=0||carryingBody()||fireCooldown>0||telescopeActive)return;
     const auto& stats=weapons::stats(weapon);
     bool unarmed=keys[VK_SPACE]&&!rightMouse&&occupied<0;
@@ -898,6 +949,9 @@ void update(float dt){
     if(occupied>=0||enteringVehicle>=0)crouched=false;
     if(health>0){
         if(enteringVehicle>=0){playerVelocity={};}
+#ifdef MINI_CITY_JOLT
+        else if(wildlife::riding()){wildlife::updateRider(dt);}
+#endif
         else if(occupied<0){
             if(traversal::active()){
                 traversal::update(dt);

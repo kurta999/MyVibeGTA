@@ -464,7 +464,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     }
     std::string prompt=game::interactionPrompt();
     std::string carry=game::carryPrompt();
-    if(!prompt.empty())label(width/2-125,height-74,prompt.c_str(),RGB(255,226,153));
+    if(!prompt.empty())label(width/2-125,height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
     if(!carry.empty())label(width/2-125,height-51,carry.c_str(),RGB(210,228,244));
     if(camera::zoomActive()&&game::scopeBlend>0.85f&&!ui::paused())scopeOverlay(width,height);
     else if(game::occupied<0&&game::rightMouse&&!ui::paused()){

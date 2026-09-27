@@ -1,5 +1,7 @@
 #include "../src/game.h"
 #include "../src/jolt_world.h"
+#include "../src/regions.h"
+#include "../src/traffic.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -49,5 +51,38 @@ void vehicleCollisionScenarios(){
         jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
     }
     assert(vehicles[0].damage>0&&vehicles[0].p.x<5320);
+    // Exit with throttle still held: momentum survives, controls do not latch,
+    // and the empty chassis comes to rest without an artificial collision.
+    buildings.clear();trees.clear();
+    for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike}){
+        car={};car.kind=kind;car.p={12000,2000};car.id="coast-test";
+        vehicles={car};player=car.p;occupied=0;health=PLAYER_MAX_HEALTH;
+        jolt_world::reset();
+        for(int tick=0;tick<300;++tick){jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);}
+        float speed=len(vehicles[0].velocity);Vec2 start=vehicles[0].p;
+        assert(speed>100);keys['W']=true;
+        enterExit();assert(occupied<0&&len(vehicles[0].velocity)>speed*0.99f);
+        traffic::update(dt);jolt_world::step(dt);assert(len(vehicles[0].velocity)>speed*0.8f);
+        for(int tick=0;tick<1200;++tick){traffic::update(dt);jolt_world::step(dt);}
+        keys['W']=false;
+        std::printf("Coasting vehicle %d: %.1f -> %.2f, travel %.1f\n",int(kind),speed,len(vehicles[0].velocity),len(vehicles[0].p-start));
+        std::fflush(stdout);
+        assert(len(vehicles[0].velocity)<2&&len(vehicles[0].p-start)>20);
+        assert(vehicles[0].damage==0);
+    }
+    for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike,Kind::Boat}){
+        car={};car.kind=kind;car.p={850,SHORE+200};vehicles={car};
+        player=car.p;occupied=0;playerY=0;swimming=false;
+        jolt_world::reset();enterExit();
+        assert(occupied<0&&swimming&&regions::waterAt(player));
+        Vec2 start=player;
+        for(int tick=0;tick<30;++tick)jolt_world::moveCharacter({30,0},false,dt);
+        assert(swimming&&len(player-start)>5&&std::abs(playerY)<3);
+    }
+    // A wall beside a submerged car still blocks that door.
+    car={};car.p={850,SHORE+200};vehicles={car};occupied=0;player=car.p;
+    buildings.push_back({800,car.p.z+20,100,40,100,{1,1,1},"exit-wall"});
+    jolt_world::reset();enterExit();
+    assert(occupied<0&&swimming&&player.z<car.p.z);
     std::puts("Vehicle collision scenarios passed: empty-road braking/turning/drifting and real wall damage.");
 }

@@ -19,6 +19,7 @@ void addPed();
 void driveVehicle(std::size_t index,float throttle,float steering,float dt,bool brake=false);
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle);
 void stopVehicle(std::size_t index);
+void coastVehicle(std::size_t index,float dt);
 int wheelContactCount(std::size_t index);
 std::size_t activeBuildingColliderCount();
 std::size_t activePedCharacterCount();
