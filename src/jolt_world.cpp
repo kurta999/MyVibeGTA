@@ -15,6 +15,7 @@
 #include "jolt_world.h"
 #include "regions.h"
 #include "physics.h"
+#include "ai.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -394,6 +395,7 @@ void addPed(){
 }
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     if(!playerCharacter||!world)return;
+    game::Vec2 before=game::player;
     if(game::crouched!=playerCrouched){
         float oldOffset=playerCrouched?13.0f:18.0f;
         playerCharacter->SetShapeOffset(JPH::Vec3(0,game::crouched?13.0f:18.0f,0));
@@ -450,6 +452,29 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
         playerCharacter->SetPosition(JPH::RVec3(safeX,std::max(0.0f,float(position.GetY())),safeZ));
         position=playerCharacter->GetPosition();
     }
+    if(game::playerY<25&&!swimming&&game::occupied<0){
+        game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
+        for(auto& ped:game::peds){
+            if(!ped.alive||ped.drivingVehicle>=0||
+               std::abs(ped.p.x-candidate.x)>19||
+               std::abs(ped.p.z-candidate.z)>19||
+               game::len(candidate-ped.p)>=18.0f)continue;
+            float previousDistance=game::len(before-ped.p);
+            if(previousDistance<18.0f&&
+               game::len(candidate-ped.p)>=previousDistance)continue;
+            game::Vec2 away=game::norm(before-ped.p);
+            if(game::len(away)<0.01f)away=game::norm(candidate-ped.p);
+            if(game::len(away)<0.01f)away=game::forward(ped.angle);
+            candidate=previousDistance<18.0f?before:ped.p+away*18.0f;
+            ai::pedestrianContact(ped,game::len(horizontal),candidate);
+        }
+        if(game::len(candidate-game::Vec2{float(position.GetX()),float(position.GetZ())})>0.001f){
+            playerCharacter->SetPosition(JPH::RVec3(candidate.x,position.GetY(),candidate.z));
+            JPH::Vec3 velocity=playerCharacter->GetLinearVelocity();
+            playerCharacter->SetLinearVelocity(JPH::Vec3(0,velocity.GetY(),0));
+            position=playerCharacter->GetPosition();
+        }
+    }
     game::player={float(position.GetX()),float(position.GetZ())};
     game::playerY=swimming?float(position.GetY()):std::max(0.0f,float(position.GetY()));
     game::playerVerticalSpeed=playerCharacter->GetLinearVelocity().GetY();
@@ -484,7 +509,35 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
         world->GetDefaultBroadPhaseLayerFilter(Layer::moving),
         world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
     position=character->GetPosition();
-    ped.p={float(position.GetX()),float(position.GetZ())};
+    game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
+    if(game::health>0&&game::occupied<0&&game::playerY<25&&
+       game::len(candidate-game::player)<18.0f){
+        float previousDistance=game::len(ped.p-game::player);
+        if(previousDistance>=18.0f||
+           game::len(candidate-game::player)<previousDistance){
+        game::Vec2 away=game::norm(ped.p-game::player);
+        if(game::len(away)<0.01f)away=game::forward(ped.angle);
+        candidate=previousDistance<18.0f?ped.p:game::player+away*18.0f;
+        ai::pedestrianContact(ped,game::len(horizontal),game::player);
+        }
+    }
+    for(std::size_t other=0;other<game::peds.size();++other){
+        if(other==index||!game::peds[other].alive||
+           game::peds[other].drivingVehicle>=0||
+           std::abs(game::peds[other].p.x-candidate.x)>17||
+           std::abs(game::peds[other].p.z-candidate.z)>17||
+           game::len(candidate-game::peds[other].p)>=16.0f)continue;
+        float previousDistance=game::len(ped.p-game::peds[other].p);
+        if(previousDistance<16.0f&&
+           game::len(candidate-game::peds[other].p)>=previousDistance)continue;
+        game::Vec2 away=game::norm(ped.p-game::peds[other].p);
+        if(game::len(away)<0.01f)away=game::forward(ped.angle);
+        candidate=previousDistance<16.0f?ped.p:
+            game::peds[other].p+away*16.0f;
+    }
+    if(game::len(candidate-game::Vec2{float(position.GetX()),float(position.GetZ())})>0.001f)
+        character->SetPosition(JPH::RVec3(candidate.x,position.GetY(),candidate.z));
+    ped.p=candidate;
 }
 void driveVehicle(std::size_t index,float throttle,float steering,float,bool brake){
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;

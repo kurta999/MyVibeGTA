@@ -10,6 +10,7 @@
 #include "input.h"
 #include "logging.h"
 #include "weapons.h"
+#include "ai.h"
 #ifdef MINI_CITY_JOLT
 #include "debug_menu.h"
 #include "wildlife.h"
@@ -193,6 +194,25 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             magazine[weapon]=weapons::stats(weapon).magazine;
         }
     }
+#ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--ped-social-preview")){
+        player=previousPlayer={300,250};playerY=0;cameraYaw=0;cameraPitch=-0.08f;
+        cameraMode=CameraMode::ThirdNear;peds.clear();
+        Ped visitor{};visitor.id="preview-visitor";visitor.p={335,250};
+        visitor.target=visitor.p;visitor.style=2;visitor.speed=0;
+        Ped neighbor=visitor;neighbor.id="preview-neighbor";neighbor.p={385,260};
+        neighbor.target=neighbor.p;neighbor.style=0;
+        Ped friendPed=visitor;friendPed.id="preview-friend";friendPed.p={405,260};
+        friendPed.target=friendPed.p;friendPed.style=3;
+        peds={visitor,neighbor,friendPed};
+        jolt_world::teleportCharacter(player,0);
+        ai::talkToPed(0);
+        bool fight=std::strstr(commandLine,"--ped-fight-preview")!=nullptr;
+        ai::startSocial(1,2,fight);
+        if(fight)ai::update(0.12f);
+        messageTime=0;
+    }
+#endif
 #ifdef MINI_CITY_JOLT
     if(smoke&&commandLine&&std::strstr(commandLine,"--birds")){
         player=previousPlayer={4500,4500};cameraYaw=0;cameraPitch=0.5f;

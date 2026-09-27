@@ -111,6 +111,8 @@ float vehicleHit(Vec3 origin,Vec3 direction,const Vehicle& vehicle,float limit){
 Vec3 traceReticle(const Pose& pose,float maximumDistance){
     Vec3 direction=norm(pose.target-pose.eye);
     float best=maximumDistance;
+    const Ped* aimedPed=nullptr;
+    float pedDistance=maximumDistance;
     for(const auto& building:buildings)
         best=std::min(best,boxHit(pose.eye,direction,
             {building.x,0,building.z},{building.x+building.w,building.h,building.z+building.d},best));
@@ -119,9 +121,11 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
         if(index==occupied||vehicle.exploded)continue;
         best=std::min(best,vehicleHit(pose.eye,direction,vehicle,best));
     }
-    for(const auto& ped:peds)if(ped.alive)
-        best=std::min(best,boxHit(pose.eye,direction,
-            {ped.p.x-10,2,ped.p.z-10},{ped.p.x+10,37,ped.p.z+10},best));
+    for(const auto& ped:peds)if(ped.alive){
+        float hit=boxHit(pose.eye,direction,
+            {ped.p.x-10,2,ped.p.z-10},{ped.p.x+10,37,ped.p.z+10},best);
+        if(hit<best){best=hit;pedDistance=hit;aimedPed=&ped;}
+    }
     for(const auto& prop:props)if(prop.alive){
         float radius=prop.barrel?12.0f:14.0f;
         best=std::min(best,boxHit(pose.eye,direction,
@@ -150,7 +154,14 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
         float groundDistance=-pose.eye.y/direction.y;
         if(groundDistance>=0)best=std::min(best,groundDistance);
     }
-    return pose.eye+direction*best;
+    Vec3 result=pose.eye+direction*best;
+    // The camera picks a rectangular envelope, while bullets use a round
+    // character hitbox. Aim at the selected character's centerline so a shot
+    // from the offset hand does not skim past a corner of that envelope.
+    if(aimedPed&&best>=pedDistance-0.001f){
+        result.x=aimedPed->p.x;result.z=aimedPed->p.z;
+    }
+    return result;
 }
 Vec3 weaponMuzzle(Vec2 position,float height,float yaw,Vec3 target){
     Vec2 facing=forward(yaw),side{-facing.z,facing.x};

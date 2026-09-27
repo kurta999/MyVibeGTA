@@ -77,7 +77,13 @@ void wildlifeScenarios();
 void birdScenarios();
 void driverScenarios();
 void vehicleCollisionScenarios();
+void pedScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&std::string(argv[1])=="--peds-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();pedScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--vehicle-collisions-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());

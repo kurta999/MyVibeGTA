@@ -62,6 +62,7 @@ std::vector<int> armedKills;
 float reloadRemaining=0,recoil=0;
 float meleeVisualTime=0;
 float shotVisualTime=0;
+float playerContactVisualTime=0,playerTalkTime=0;
 int meleeVisualAction=10;
 int reloadingWeapon=-1;
 int carriedPed=-1;
@@ -365,7 +366,7 @@ void reset(){
     carriedPed=-1;
     interactionSelection=0;
     fireCooldown=0;reloadRemaining=0;reloadingWeapon=-1;recoil=0;
-    meleeVisualTime=0;shotVisualTime=0;meleeVisualAction=10;
+    meleeVisualTime=0;shotVisualTime=0;playerContactVisualTime=0;playerTalkTime=0;meleeVisualAction=10;
     cameraYaw=0;cameraPitch=0;cameraMode=CameraMode::ThirdNear;
     scopeLevel=0;scopeBlend=0;vehicleLookTime=0;telescopeActive=false;invulnerable=0;
     money=0;activeMission=-1;missionStep=0;missionTime=0;showMap=false;worldTime=0;gameHour=16.5f;
@@ -404,7 +405,7 @@ bool clearLine(Vec2 a,Vec2 b){
     return true;
 }
 namespace {
-enum class InteractionType{None,Loot,AnimalLoot,Pickpocket,Repair,Shop,House,Ladder,Tree,Mission};
+enum class InteractionType{None,Loot,AnimalLoot,Pickpocket,Talk,Repair,Shop,House,Ladder,Tree,Mission};
 struct Interaction{InteractionType type=InteractionType::None;int index=-1;};
 std::vector<Interaction> availableInteractions(){
     std::vector<Interaction> options;
@@ -437,6 +438,16 @@ std::vector<Interaction> availableInteractions(){
         target=i;targetDistance=distance;
     }
     if(target>=0)options.push_back({InteractionType::Pickpocket,target});
+    int talk=-1;float talkDistance=43;
+    if(playerY<12&&!swimming&&!traversal::active())
+        for(int i=0;i<int(peds.size());++i){
+            const Ped& ped=peds[i];float distance=len(ped.p-player);
+            if(ped.alive&&ped.drivingVehicle<0&&!ped.hostile&&!ped.police&&
+               ped.knockedDown<=0&&distance<talkDistance&&clearLine(player,ped.p)){
+                talk=i;talkDistance=distance;
+            }
+        }
+    if(talk>=0)options.push_back({InteractionType::Talk,talk});
     int repair=-1;float repairDistance=65;
     for(int i=0;i<int(vehicles.size());++i){
         const Vehicle& vehicle=vehicles[i];
@@ -509,6 +520,7 @@ std::string interactionPrompt(){
         wildlife::species()[wildlife::animals[action.index].species].name;break;
 #endif
     case InteractionType::Pickpocket:prompt="F  PICKPOCKET";break;
+    case InteractionType::Talk:prompt="F  TALK";break;
     case InteractionType::Repair:prompt="F  REPAIR VEHICLE  (KITS "+
         std::to_string(repairKits)+")";break;
     case InteractionType::Shop:prompt="F  SHOP: "+commerce::shops[action.index].name;break;
@@ -562,7 +574,8 @@ void interact(){
             announce("STOLE $"+std::to_string(stolen),3);
             savegame::save();
         }
-    }else if(action.type==InteractionType::Repair)repairVehicle(action.index);
+    }else if(action.type==InteractionType::Talk)ai::talkToPed(action.index);
+    else if(action.type==InteractionType::Repair)repairVehicle(action.index);
     else if(action.type==InteractionType::Shop)commerce::openShop(action.index);
     else if(action.type==InteractionType::House)commerce::openHouse(action.index);
     else if(action.type==InteractionType::Ladder)traversal::startLadder(action.index);
@@ -895,6 +908,8 @@ void update(float dt){
     vehicleLookTime=std::max(0.0f,vehicleLookTime-dt);
     meleeVisualTime=std::max(0.0f,meleeVisualTime-dt);
     shotVisualTime=std::max(0.0f,shotVisualTime-dt);
+    playerContactVisualTime=std::max(0.0f,playerContactVisualTime-dt);
+    playerTalkTime=std::max(0.0f,playerTalkTime-dt);
     recoil=std::max(0.0f,recoil-dt*2.2f);
     if(reloadRemaining>0){reloadRemaining-=dt;
         if(reloadRemaining<=0&&reloadingWeapon>=0){

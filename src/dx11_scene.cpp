@@ -187,7 +187,7 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
     };
     float bodyHeight=std::max(0.01f,bounds->maxY-bounds->minY);
     float motionPhase=motion==2?game::playerY*6.2831853f/42.0f:
-        game::worldTime*(motion==1?8.0f:6.0f);
+        game::worldTime*(motion==1?8.0f:motion==8?3.0f:6.0f);
     float waveSin=std::sin(motionPhase),waveCos=std::cos(motionPhase);
     float tilt=motion==1?1.05f:motion==2?0.10f:motion==3?0.12f:0.0f;
     float coTilt=std::cos(tilt),siTilt=std::sin(tilt);
@@ -230,6 +230,13 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         float left=waveSin,right=-left;
         float armWave=parts[2]*left+parts[3]*right;
         float legWave=parts[4]*right+parts[5]*left;
+        if(motion==8){
+            float arms=parts[2]+parts[3];
+            p.y+=bodyHeight*arms*(0.12f+0.06f*waveSin);
+            p.z+=bodyHeight*arms*(0.12f+0.04f*waveCos);
+            p.x+=bodyHeight*(parts[2]-parts[3])*0.035f*waveCos;
+            return;
+        }
         if(motion==1){
             p.x+=bodyHeight*0.17f*(parts[3]*(0.5f-0.5f*waveSin)-
                 parts[2]*(0.5f+0.5f*waveSin));
@@ -841,6 +848,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     Vec3 target{};
     float aimPitch=0;
     bool playerWeapon=playerControlled&&!game::telescopeActive&&
+        game::playerTalkTime<=0&&
         !game::swimming&&!traversal::active()&&game::enteringVehicle<0&&
         !weapons::stats(game::weapon).melee&&
         !(game::meleeVisualTime>0&&game::meleeVisualAction==10);
@@ -866,7 +874,8 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
         else if(moving)name+=(running?"-run":"-walk")+std::to_string((int(game::worldTime*(running?10:6)+p.x))%4);
         model(name,{p.x,height,p.z},bodySize,game::PI/2-angle);
     }
-    bool meleeHeld=playerControlled&&weapons::stats(game::weapon).melee;
+    bool meleeHeld=playerControlled&&game::playerTalkTime<=0&&
+        weapons::stats(game::weapon).melee;
     if(armed||meleeHeld||playerWeapon){
         if(playerControlled&&weapons::stats(game::weapon).arrow){
             Vec3 across{-f.z*12,0,f.x*12};
@@ -974,17 +983,19 @@ void people(){
             continue;
         }
         bool hit=ped.hitFlash>0;
+        bool contact=ped.contactVisualTime>0;
         bool attacking=ped.attackVisualTime>0;
         bool entering=ped.state==game::PedState::EnterVehicle;
-        int action=hit?4:attacking?(ped.armed?6:10):entering?9:-1;
+        int action=hit||contact?4:attacking?(ped.armed?6:10):entering?9:-1;
         float phase=hit?std::clamp(1.0f-ped.hitFlash/0.3f,0.0f,1.0f):
+            contact?std::clamp(1.0f-ped.contactVisualTime/0.42f,0.0f,1.0f):
             attacking?std::clamp(1.0f-ped.attackVisualTime/
                 (ped.armed?0.32f:0.42f),0.0f,1.0f):
             entering?std::clamp(ped.boardingTime/0.75f,0.0f,1.0f):-1.0f;
         character(ped.p,ped.angle,ped.style,ped.armed,
             ped.panic>0||game::len(ped.target-ped.p)>10,
             ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
-            false,phase);
+            false,phase,ped.state==game::PedState::Talk?8:0);
     }
     if(wildlife::riding()&&game::health>0&&!camera::firstPersonActive()){
         const auto& animal=wildlife::animals[wildlife::mountedIndex()];
@@ -1020,10 +1031,12 @@ void people(){
         else if(game::shotVisualTime>0)
             actionPhase=std::clamp(1.0f-game::shotVisualTime/0.32f,0.0f,1.0f);
         bool moving=game::len(game::playerVelocity)>15;
-        int motion=game::swimming?1:climbing?2:falling?3:0;
+        int motion=game::swimming?1:climbing?2:falling?3:
+            game::playerTalkTime>0?8:0;
         int action=entering?9:game::swimming?2:climbing?1:falling?2:
             game::meleeVisualTime>0?game::meleeVisualAction:
-            game::shotVisualTime>0?6:game::reloadRemaining>0?7:-1;
+            game::shotVisualTime>0?6:game::playerContactVisualTime>0?4:
+            game::reloadRemaining>0?7:-1;
         float weight=entering?1.0f:game::swimming||climbing?0.6f:
             falling?std::min(1.0f,game::airTime*6):
             game::shotVisualTime>0||game::meleeVisualTime>0?1.0f:

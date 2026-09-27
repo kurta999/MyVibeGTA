@@ -46,7 +46,7 @@ if(BUILD_TESTING)
   list(TRANSFORM SIMULATION_SOURCES PREPEND "src/")
   add_executable(simulation_smoke tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
       tests/navigation_scenarios.cpp tests/wildlife_scenarios.cpp tests/bird_scenarios.cpp
-      tests/driver_scenarios.cpp tests/vehicle_collision_scenarios.cpp
+      tests/driver_scenarios.cpp tests/vehicle_collision_scenarios.cpp tests/ped_scenarios.cpp
       src/dx11_scene.cpp src/dx11_assets.cpp ${SIMULATION_SOURCES})
   target_compile_features(simulation_smoke PRIVATE cxx_std_17)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
@@ -60,6 +60,8 @@ if(BUILD_TESTING)
   add_test(NAME bird_scenarios COMMAND simulation_smoke --birds-only)
   add_test(NAME driver_scenarios COMMAND simulation_smoke --drivers-only)
   add_test(NAME vehicle_collision_scenarios COMMAND simulation_smoke --vehicle-collisions-only)
+  add_test(NAME ped_scenarios COMMAND simulation_smoke --peds-only)
+  set_tests_properties(ped_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(vehicle_collision_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(driver_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(bird_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")

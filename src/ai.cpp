@@ -68,6 +68,7 @@ void reactToHit(Ped& ped,Vec2 threat){
     traffic::provoke(ped,threat);
 #endif
     ped.hostile=true;
+    ped.socialPartner=-1;ped.socialTime=0;
     ped.panic=5;ped.alertTime=5;
     ped.lastKnown=threat;ped.sightMemory=4;
     ped.fireCooldown=std::max(ped.fireCooldown,0.28f);
@@ -77,6 +78,47 @@ void reactToHit(Ped& ped,Vec2 threat){
         ped.state=PedState::Attack;
         ped.target=threat;
     }
+}
+
+void pedestrianContact(Ped& ped,float speed,Vec2 from){
+    if(!ped.alive||ped.drivingVehicle>=0||ped.knockedDown>0)return;
+    if(ped.contactVisualTime>0.18f)return;
+    ped.contactVisualTime=0.42f;
+    ped.angle=std::atan2(from.z-ped.p.z,from.x-ped.p.x);
+    if(ped.state==PedState::Wander)ped.target=ped.p;
+    if(speed>190){
+        ped.knockedDown=ped.impactAnimationTotal=0.8f;
+        ped.knockback=norm(ped.p-from)*85.0f;
+    }
+    playerContactVisualTime=std::max(playerContactVisualTime,0.26f);
+}
+bool talkToPed(int index){
+    if(index<0||index>=int(peds.size())||health<=0||occupied>=0||playerY>12)return false;
+    Ped& ped=peds[index];
+    if(!ped.alive||ped.drivingVehicle>=0||ped.hostile||ped.police||
+       ped.knockedDown>0||len(player-ped.p)>43||!clearLine(player,ped.p))return false;
+    ped.state=PedState::Talk;ped.socialPartner=-1;ped.socialTime=2.6f;
+    ped.socialCooldown=8;ped.target=ped.p;
+    ped.angle=std::atan2(player.z-ped.p.z,player.x-ped.p.x);
+    playerTalkTime=2.6f;announce("You exchange a few words.",2);
+    return true;
+}
+bool startSocial(int first,int second,bool fight){
+    if(first<0||second<0||first==second||first>=int(peds.size())||
+       second>=int(peds.size()))return false;
+    Ped& a=peds[first];Ped& b=peds[second];
+    if(!a.alive||!b.alive||a.drivingVehicle>=0||b.drivingVehicle>=0||
+       a.police||b.police||a.hostile||b.hostile||a.knockedDown>0||b.knockedDown>0||
+       a.state!=PedState::Wander||b.state!=PedState::Wander||
+       len(a.p-b.p)>65||!clearLine(a.p,b.p))return false;
+    for(auto* ped:{&a,&b}){
+        ped->state=fight?PedState::Fight:PedState::Talk;
+        ped->socialTime=fight?7.0f:4.0f;
+        ped->socialCooldown=fight?18.0f:10.0f;
+        ped->target=ped->p;
+    }
+    a.socialPartner=second;b.socialPartner=first;
+    return true;
 }
 
 bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
@@ -135,12 +177,16 @@ void update(float dt){
             ped.state=PedState::Wander;ped.alertTime=0;ped.knockback={};
             ped.sightMemory=0;ped.tacticTimer=0;ped.burstShots=0;
             ped.attackVisualTime=0;ped.hitFlash=0;
+            ped.contactVisualTime=ped.socialTime=ped.socialCooldown=0;
+            ped.socialPartner=-1;
             ped.armor=ped.maxArmor;ped.cash=content::rollPedCash(ped.armed);
             ped.looted=false;ped.carried=false;ped.knockedDown=0;
             ped.impactAnimationTotal=0;ped.vehicleImpactCooldown=0;
             ped.pinned=false;ped.pinAnchor={};}continue;}
         ped.hitFlash=std::max(0.0f,ped.hitFlash-dt);
         ped.attackVisualTime=std::max(0.0f,ped.attackVisualTime-dt);
+        ped.contactVisualTime=std::max(0.0f,ped.contactVisualTime-dt);
+        ped.socialCooldown=std::max(0.0f,ped.socialCooldown-dt);
         if(!ped.police&&!ped.hostile&&ped.grievance<=0&&ped.drivingVehicle<0&&
            ped.burnTime<=0&&ped.state==PedState::Wander&&
            len(ped.p-player)>1200)continue;
@@ -155,6 +201,45 @@ void update(float dt){
 #else
             move(ped.p,push,9,Kind::Car);
 #endif
+            continue;
+        }
+        if(ped.state==PedState::Talk||ped.state==PedState::Fight){
+            ped.socialTime-=dt;
+            bool withPlayer=ped.state==PedState::Talk&&ped.socialPartner<0;
+            bool valid=withPlayer?health>0&&occupied<0&&
+                len(player-ped.p)<75&&playerTalkTime>0:
+                ped.socialPartner>=0&&ped.socialPartner<int(peds.size())&&
+                peds[ped.socialPartner].alive&&
+                peds[ped.socialPartner].socialPartner==int(&ped-peds.data())&&
+                len(peds[ped.socialPartner].p-ped.p)<100;
+            if(ped.socialTime<=0||!valid||ped.burnTime>0){
+                ped.state=PedState::Wander;ped.socialPartner=-1;
+                ped.target=ped.p;ped.socialTime=0;continue;
+            }
+            Ped* partner=withPlayer?nullptr:&peds[ped.socialPartner];
+            Vec2 point=withPlayer?player:partner->p;
+            ped.angle=std::atan2(point.z-ped.p.z,point.x-ped.p.x);
+            float distance=len(point-ped.p);
+            if(ped.state==PedState::Fight&&distance>24){
+#ifdef MINI_CITY_JOLT
+                Vec2 velocity=ped_navigation::velocity(ped,point,ped.speed,dt);
+                if(distance<420)jolt_world::movePed(std::size_t(&ped-peds.data()),velocity,dt);
+                else move(ped.p,velocity*dt,9,Kind::Car);
+#else
+                move(ped.p,norm(point-ped.p)*ped.speed*dt,9,Kind::Car);
+#endif
+            }else if(ped.state==PedState::Fight&&ped.fireCooldown<=0){
+                ped.attackVisualTime=0.42f;ped.fireCooldown=0.95f;
+                partner->health-=18;partner->hitFlash=0.3f;
+                partner->knockback=norm(partner->p-ped.p)*75;
+                audio::playAt(audio::Effect::Hit,partner->p.x,partner->p.z);
+                if(partner->health<=0){
+                    partner->alive=false;partner->respawn=45;
+                    partner->corpseVisualDelay=6;
+                    spawnDebris(*partner,{0,105,0});
+                }
+            }
+            ped.fireCooldown=std::max(0.0f,ped.fireCooldown-dt);
             continue;
         }
 #ifdef MINI_CITY_JOLT
@@ -243,6 +328,16 @@ void update(float dt){
         if(ped.state==PedState::Wander&&(len(ped.target-ped.p)<7||randi(3000)==0)){
             for(int n=0;n<15;++n){Vec2 target=ped.p+Vec2{randf(-170,170),randf(-170,170)};
                 if(!solid(target,12)){ped.target=target;break;}}
+        }
+        if(ped.state==PedState::Wander&&ped.socialCooldown<=0&&
+           distanceToPlayer<350&&randi(900)==0){
+            for(int j=0;j<int(peds.size());++j){
+                auto& other=peds[j];
+                if(&other==&ped||other.socialCooldown>0||
+                   len(other.p-ped.p)>65)continue;
+                if(startSocial(int(&ped-peds.data()),j,randi(14)==0))break;
+            }
+            if(ped.state!=PedState::Wander)continue;
         }
         float moveSpeed=ped.speed*(ped.panic>0?1.7f:1.0f);
 #ifdef MINI_CITY_JOLT

@@ -41,7 +41,7 @@ struct Building{float x,z,w,d,h;Color c;std::string id;};
 struct Tree{Vec2 p;bool palm=false;int variant=0;float scale=1;
     int health=100;bool burning=false,destroyed=false;std::string id;
     std::string modelId;float crownWidth=54,height=68,climbHeight=0;};
-enum class PedState{Wander,Investigate,Flee,TakeCover,Defend,Attack,SeekVehicle,EnterVehicle,Drive};
+enum class PedState{Wander,Investigate,Flee,TakeCover,Defend,Attack,SeekVehicle,EnterVehicle,Drive,Talk,Fight};
 struct PedNavigation {
     std::vector<Vec2> path;std::size_t next=0;
     Vec2 goal{},previous{};float repath=0,stuck=0;bool planned=false;
@@ -52,6 +52,8 @@ struct Ped{Vec2 p,target;float speed,angle,respawn=0;bool alive=true;Color shirt
     Vec2 lastKnown{};float sightMemory=0,tacticTimer=0;int burstShots=0;bool strafeRight=false;
     std::string id;int cash=0;bool looted=false,carried=false;float corpseVisualDelay=0,knockedDown=0;
     float impactAnimationTotal=0,vehicleImpactCooldown=0;
+    float contactVisualTime=0,socialTime=0,socialCooldown=0;
+    int socialPartner=-1;
     bool police=false;int weaponIndex=0;float accuracy=0.045f;
     bool pinned=false;Vec2 pinAnchor{};float burnTime=0;
     int drivingVehicle=-1,seekingVehicle=-1;
@@ -119,6 +121,7 @@ extern std::vector<int> armedKills;
 extern float reloadRemaining,recoil;
 extern float meleeVisualTime;
 extern float shotVisualTime;
+extern float playerContactVisualTime,playerTalkTime;
 extern int meleeVisualAction;
 extern const char* weaponNames[];
 extern Vec2 player;
