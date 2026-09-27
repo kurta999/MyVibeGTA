@@ -4,6 +4,8 @@
 #undef NDEBUG
 #endif
 #include <cassert>
+#include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <filesystem>
@@ -12,6 +14,76 @@
 
 int main(){
     static_assert(sizeof(dx11::SkinVertex)==68);
+    assert(dx11::chooseDetailedLod(101,80,100,200,false,false));
+    assert(dx11::chooseDetailedLod(94,90,100,200,true,true));
+    assert(!dx11::chooseDetailedLod(87,90,100,200,true,true));
+    assert(!dx11::chooseDetailedLod(105,90,100,200,true,false));
+    assert(dx11::chooseDetailedLod(115,90,100,200,true,false));
+    assert(!dx11::chooseDetailedLod(200,221,100,200,true,true));
+    assert(!dx11::chooseDetailedLod(200,181,100,200,true,false));
+    {
+        const auto fixture=std::filesystem::temp_directory_path()/
+            ("minicity-m3d2-"+std::to_string(
+                std::chrono::steady_clock::now().time_since_epoch().count()));
+        std::filesystem::create_directories(fixture/"weapons");
+        const auto meshPath=fixture/"weapons/pistol.m3d";
+        const auto materialPath=fixture/"weapons/pistol.pbr";
+        auto writeMesh=[&](std::uint32_t lastIndex){
+            std::ofstream file(meshPath,std::ios::binary);
+            const std::uint32_t counts[2]={3,3};
+            const dx11::Vertex vertices[3]={{0,0,0,0,1,0,0,0,1,1,1,1},
+                {1,0,0,0,1,0,1,0,1,1,1,1},
+                {0,0,1,0,1,0,0,1,1,1,1,1}};
+            const std::uint32_t indices[3]={0,1,lastIndex};
+            file.write("M3D2",4);
+            file.write(reinterpret_cast<const char*>(counts),sizeof(counts));
+            file.write(reinterpret_cast<const char*>(vertices),sizeof(vertices));
+            file.write(reinterpret_cast<const char*>(indices),sizeof(indices));
+        };
+        writeMesh(2);
+        {std::ofstream file(materialPath);file<<"0 3 0.7 0 0 - - - - - MASK 0.37\n";}
+        dx11::loadMeshes(fixture.wstring());
+        const auto* masked=dx11::mesh("weapons/pistol");
+        assert(masked&&masked->indices.size()==3&&masked->materialRanges.size()==1);
+        assert(masked->materialRanges[0].alphaTest&&
+            std::abs(masked->materialRanges[0].alphaCutoff-0.37f)<0.0001f);
+        {std::ofstream file(materialPath);file<<"0 3 0.7 0 0 - - - - - BLEND 0.5\n";}
+        dx11::loadMeshes(fixture.wstring());
+        assert(!dx11::mesh("weapons/pistol"));
+        {std::ofstream file(materialPath);file<<"0 3 0.7 0 0 - - - - - MASK 0.37\n";}
+        writeMesh(3);
+        dx11::loadMeshes(fixture.wstring());
+        assert(!dx11::mesh("weapons/pistol"));
+        std::filesystem::remove_all(fixture);
+    }
+    {
+        dx11::Mesh opaqueA{},opaqueB{},glass{};
+        glass.transparent=true;
+        auto instance=[](const dx11::Mesh* source,int material,float x){
+            dx11::ModelInstance result{};
+            result.source=source;result.material=material;result.x=x;
+            result.scaleX=result.scaleY=result.scaleZ=1;
+            result.cosYaw=result.cosPitch=1;
+            return result;
+        };
+        std::vector<dx11::ModelInstance> items{
+            instance(&glass,3,10),instance(&opaqueA,2,0),
+            instance(&glass,3,30),instance(&opaqueB,1,0),
+            instance(&glass,3,20)};
+        dx11::sortInstancesForRendering(items,0,0,0);
+        assert(items[0].source==&opaqueB&&items[1].source==&opaqueA);
+        assert(items[2].x==30&&items[3].x==20&&items[4].x==10);
+        dx11::sortInstancesForRendering(items,40,0,0);
+        assert(items[2].x==10&&items[3].x==20&&items[4].x==30);
+        opaqueA.minX=-1;opaqueA.maxX=3;
+        opaqueA.minY=0;opaqueA.maxY=4;
+        opaqueA.minZ=-2;opaqueA.maxZ=2;
+        auto transformed=instance(&opaqueA,2,10);
+        transformed.scaleX=2;transformed.centerX=0;
+        auto bounds=dx11::instanceBounds(transformed);
+        assert(bounds.x==12&&bounds.y==2&&bounds.z==0);
+        assert(bounds.radius>6&&bounds.radius<7);
+    }
     dx11::loadMeshes(L"assets/models/baked");
     for(const char* name:{"traffic-1","traffic-2","traffic-3","traffic-4","traffic-5","sports-car","sedan"}){
         std::string key=std::string("vehicles/")+name;
@@ -126,10 +198,20 @@ int main(){
     for(const char* name:{"pistol","ak","lightning"}){
         const auto* gun=dx11::mesh(std::string("weapons/")+name);
         assert(gun&&gun->textured&&gun->vertices.size()>2000);
+        assert(!gun->indices.empty()&&gun->vertices.size()<gun->indices.size());
+        for(auto index:gun->indices)assert(index<gun->vertices.size());
         assert(!gun->materialRanges.empty());
         for(const auto& range:gun->materialRanges)
-            assert(range.count>0&&std::filesystem::exists(range.baseFile));
+            assert(range.count>0&&range.start+range.count<=gun->indices.size()&&
+                std::filesystem::exists(range.baseFile));
     }
+    const auto* indexedPistol=dx11::mesh("weapons/pistol");
+    assert(indexedPistol&&indexedPistol->indices.size()==7611);
+    assert(indexedPistol->vertices.size()<indexedPistol->indices.size());
+    for(auto index:indexedPistol->indices)
+        assert(index<indexedPistol->vertices.size());
+    assert(indexedPistol->materialRanges[0].count==indexedPistol->indices.size());
+    assert(dx11::mesh("vehicles/sedan")->indices.empty());
     assert(dx11::mesh("nature/tree_oak-lod"));
     std::ifstream manifest("assets/models/NATURE_MANIFEST.csv");
     assert(manifest);

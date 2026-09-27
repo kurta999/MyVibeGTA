@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <sstream>
 
@@ -107,6 +108,46 @@ Mesh distantPerson(const Mesh& original,int style){
     return result;
 }
 }
+bool chooseDetailedLod(float pixels,float distance,float threshold,float cap,
+                       bool hasPrevious,bool previousDetailed){
+    if(!hasPrevious)return pixels>=threshold&&distance<=cap;
+    if(previousDetailed)return pixels>=threshold*0.88f&&distance<=cap*1.10f;
+    return pixels>threshold*1.12f&&distance<cap*0.90f;
+}
+BoundingSphere instanceBounds(const ModelInstance& model){
+    const Mesh& mesh=*model.source;
+    const float localX=(mesh.minX+mesh.maxX)*0.5f-model.centerX;
+    const float localY=(mesh.minY+mesh.maxY)*0.5f-model.minY;
+    const float localZ=(mesh.minZ+mesh.maxZ)*0.5f-model.centerZ;
+    const float pitchedX=localX*model.scaleX;
+    const float pitchedY=model.cosPitch*localY*model.scaleY+
+                         model.sinPitch*localZ*model.scaleZ;
+    const float pitchedZ=-model.sinPitch*localY*model.scaleY+
+                         model.cosPitch*localZ*model.scaleZ;
+    const float halfX=(mesh.maxX-mesh.minX)*0.5f*model.scaleX;
+    const float halfY=(mesh.maxY-mesh.minY)*0.5f*model.scaleY;
+    const float halfZ=(mesh.maxZ-mesh.minZ)*0.5f*model.scaleZ;
+    return {model.x+model.cosYaw*pitchedX+model.sinYaw*pitchedZ,
+            model.y+pitchedY,
+            model.z-model.sinYaw*pitchedX+model.cosYaw*pitchedZ,
+            std::sqrt(halfX*halfX+halfY*halfY+halfZ*halfZ)+2.0f};
+}
+void sortInstancesForRendering(std::vector<ModelInstance>& instances,
+                               float eyeX,float eyeY,float eyeZ){
+    auto distanceSquared=[&](const ModelInstance& model){
+        const auto sphere=instanceBounds(model);
+        const float dx=sphere.x-eyeX,dy=sphere.y-eyeY,dz=sphere.z-eyeZ;
+        return dx*dx+dy*dy+dz*dz;
+    };
+    std::stable_sort(instances.begin(),instances.end(),[&](const auto& a,const auto& b){
+        if(a.source->transparent!=b.source->transparent)
+            return !a.source->transparent;
+        if(a.source->transparent)return distanceSquared(a)>distanceSquared(b);
+        if(a.material!=b.material)return a.material<b.material;
+        return std::less<const Mesh*>{}(a.source,b.source);
+    });
+}
+
 void loadMeshes(const std::wstring& folder){
     meshes.clear();
     skins.clear();
@@ -321,9 +362,21 @@ void loadMeshes(const std::wstring& folder){
         if(!file)continue;
         char magic[4]{};uint32_t count=0;
         file.read(magic,4);file.read(reinterpret_cast<char*>(&count),4);
-        if(magic[0]!='M'||magic[1]!='3'||magic[2]!='D'||magic[3]!='1'||count>3000000)continue;
+        const bool indexed=std::string(magic,4)=="M3D2";
+        if(!indexed&&std::string(magic,4)!="M3D1")continue;
+        uint32_t indexCount=0;
+        if(indexed)file.read(reinterpret_cast<char*>(&indexCount),4);
+        if(count==0||count>3000000||
+           (indexed&&(indexCount==0||indexCount>9000000||indexCount%3)))continue;
         Mesh result;result.vertices.resize(count);
         file.read(reinterpret_cast<char*>(result.vertices.data()),count*sizeof(Vertex));
+        if(indexed){
+            result.indices.resize(indexCount);
+            file.read(reinterpret_cast<char*>(result.indices.data()),
+                      indexCount*sizeof(uint32_t));
+            if(std::any_of(result.indices.begin(),result.indices.end(),
+                [count](uint32_t index){return index>=count;}))continue;
+        }
         if(!file)continue;
         result.minX=result.minY=result.minZ=std::numeric_limits<float>::max();
         result.maxX=result.maxY=result.maxZ=std::numeric_limits<float>::lowest();
@@ -362,6 +415,7 @@ void loadMeshes(const std::wstring& folder){
         materialPath.replace_extension(L".pbr");
         std::ifstream materialFile(materialPath);
         std::string materialLine;
+        bool invalidMaterial=false;
         while(std::getline(materialFile,materialLine)){
             if(materialLine.empty()||materialLine[0]=='#')continue;
             std::istringstream fields(materialLine);
@@ -369,8 +423,9 @@ void loadMeshes(const std::wstring& folder){
             std::string base,normal,orm,occlusion,emissive;
             if(!(fields>>range.start>>range.count>>range.roughness>>range.metallic>>
                  range.emissive>>base>>normal>>orm>>occlusion>>emissive)||
-               range.count==0||range.start+range.count>count){
-                result.materialRanges.clear();break;
+               range.count==0||range.start>uint32_t(indexed?indexCount:count)||
+               range.count>uint32_t(indexed?indexCount:count)-range.start){
+                invalidMaterial=true;break;
             }
             auto resolve=[&](const std::string& name){
                 return name=="-"?std::wstring{}:
@@ -379,8 +434,20 @@ void loadMeshes(const std::wstring& folder){
             range.baseFile=resolve(base);range.normalFile=resolve(normal);
             range.ormFile=resolve(orm);range.occlusionFile=resolve(occlusion);
             range.emissiveFile=resolve(emissive);
+            std::string alphaMode;
+            if(fields>>alphaMode){
+                if(alphaMode!="OPAQUE"&&alphaMode!="MASK"){
+                    invalidMaterial=true;break;
+                }
+                range.alphaTest=alphaMode=="MASK";
+                if(!(fields>>range.alphaCutoff)||range.alphaCutoff<0||
+                   range.alphaCutoff>1){
+                    invalidMaterial=true;break;
+                }
+            }
             result.materialRanges.push_back(std::move(range));
         }
+        if(invalidMaterial)continue;
         if(!result.materialRanges.empty()){
             result.roughness=result.materialRanges.front().roughness;
             result.metallic=result.materialRanges.front().metallic;
@@ -393,22 +460,26 @@ void loadMeshes(const std::wstring& folder){
                           path.rfind("nature/bush_",0)==0)&&result.textured;
         if(path.rfind("vehicles/",0)==0){
             std::ifstream windows(folder+L"\\"+wide+L".glass");
-            std::vector<bool> isGlass(result.vertices.size()/3,false);
+            const std::size_t triangleCount=indexed?result.indices.size()/3:
+                result.vertices.size()/3;
+            std::vector<bool> isGlass(triangleCount,false);
             unsigned index=0;bool found=false;
             while(windows>>index)if(index<isGlass.size()){isGlass[index]=true;found=true;}
             if(found){
-                Mesh glass=result;glass.vertices.clear();glass.materialRanges.clear();
+                Mesh glass=result;glass.vertices.clear();glass.indices.clear();
+                glass.materialRanges.clear();
                 glass.textured=false;glass.textureFile.clear();glass.transparent=true;
                 glass.castsShadow=false;
-                std::vector<Vertex> body;body.reserve(result.vertices.size());
-                for(std::size_t i=0;i<result.vertices.size();++i){
-                    auto vertex=result.vertices[i];
+                std::vector<Vertex> body;body.reserve(triangleCount*3);
+                for(std::size_t i=0;i<triangleCount*3;++i){
+                    auto vertex=result.vertices[indexed?result.indices[i]:i];
                     if(isGlass[i/3]){
                         vertex.r=0.35f;vertex.g=0.53f;vertex.b=0.61f;vertex.a=0.18f;
                         glass.vertices.push_back(vertex);
                     }else body.push_back(vertex);
                 }
                 result.vertices=std::move(body);
+                result.indices.clear();
                 meshes.emplace(path+"-glass",std::move(glass));
             }
         }

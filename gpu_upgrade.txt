@@ -1,0 +1,112 @@
+# Realistic assets and DX11 rendering upgrade
+
+## Goal and execution
+
+Upgrade the models and supporting engine features to deliver polished, realistic gameplay in one finished district before expanding across the map.
+
+- Use free assets first, including appropriately licensed account-based downloads.
+- Target 1080p/60 FPS on an RTX 3060-class GPU. **Lower FPS on this PC’s Radeon 680M is acceptable** and will be reported accurately.
+- Develop only the Direct3D 11 `MiniCity3D` target; preserve the OpenGL fallback.
+- Keep existing gameplay, physics, missions, and save compatibility.
+- At implementation start, save this plan as `graphics-upgrade-plan.md` and maintain milestone status and verification results there.
+- Execute all milestones continuously without routine approval stops. Continue independent work if asset access is blocked; report unavoidable account, permission, or licensing dependencies explicitly.
+
+**Current status:** planning is complete; the plan has not been saved and implementation has not started because this session remains in Plan mode.
+
+## 1. Asset acquisition and import pipeline
+
+Build the showcase around the existing starting street and nearby green space: one detailed car, two pedestrian variants, one animated wolf species, and three detailed building variations.
+
+Starting assets are the previously identified free Classic Sedan, Renderpeople rigged samples, animated Grey Wolf, and the existing Poly Haven apartment/factory source models. Validate actual downloaded contents and licenses before integration. Do not purchase assets.
+
+- Preserve indexed geometry, material sections, tangents, UV sets, vertex colors, skeletons, hierarchy, and attachment transforms.
+- Convert FBX through a pinned Blender 4.5 LTS toolchain into the canonical glTF/GLB import path.
+- Normalize coordinate conventions and scale once during conversion; preserve natural proportions.
+- Import complete metallic/roughness materials, including base color, normal, occlusion, emissive, transparency, clearcoat, texture transforms, and sampler settings.
+- Bake unsupported source shader effects into compatible textures where possible; report unsupported required features instead of silently dropping them.
+- Introduce versioned cooked assets with backward-compatible readers for existing files.
+- Add a catalog mapping gameplay IDs to models, LODs, material sets, animation mappings, and attachment points.
+- Record sources, licenses, hashes, conversion settings, and dependency versions. Keep restricted source files private and exclude them from public packages.
+
+High-resolution source geometry must be reduced and baked before gameplay use. Initial LOD0 budgets are 60k triangles per car, 40k per pedestrian, and 30k per animal. Further LODs target approximately 50%, 20%, and 8% of that geometry while preserving silhouettes and material boundaries.
+
+## 2. Mipmaps, filtering, and texture management
+
+The current loader creates only one texture level. Replace this with a complete texture pipeline.
+
+- Generate full mip chains down to 1×1 for imported model textures and tileable world materials.
+- Filter color maps in linear light and retain correct sRGB sampling. Treat normal, roughness, metallic, and occlusion maps as linear data.
+- Renormalize normal-map mips and apply normal-variance roughness adjustment to reduce distant specular shimmer.
+- Preserve alpha-test coverage across foliage, hair, and fur-card mip levels.
+- Add atlas padding and edge dilation before mip generation to prevent color bleeding.
+- Cook DDS textures using BC7 for color and packed material maps, BC5 for normals, and suitable single-channel compression for masks.
+- Support uncompressed fallbacks and generated mipmaps for legacy PNG/JPEG assets.
+- Add anisotropic filtering: 16× High, 8× Medium, 4× Low. Preserve per-material wrap/clamp behavior; use clamp sampling for screen-space passes.
+- Cache textures by resource identity and color-space interpretation to prevent incompatible reuse.
+- Use 2K textures by default, with selective 4K close-up surfaces.
+- Implement asynchronous loading, bounded GPU uploads, and distance-based mip residency. Keep coarse mips resident while finer levels load.
+- Preserve uncompressed HDR formats for lighting buffers and reflection data where compression would lose required range.
+
+Expose texture quality and filtering controls through persisted graphics settings.
+
+## 3. Lighting, materials, and image quality
+
+Extend the existing renderer through separately verifiable passes.
+
+**Materials and geometry**
+
+- Apply consistent energy-conserving metallic/roughness shading to sunlight and local lights.
+- Use correct tangent-space normals, handedness, normal strength, and transformed normals.
+- Add clearcoat car paint, Fresnel glass, masked hair/fur cards, cloth sheen, and a restrained skin-scattering approximation.
+- Separate opaque, masked, and transparent render queues. Sort transparency back-to-front and use per-material culling.
+- Preserve alpha masking in depth and shadow passes; stop applying generic model-wide cutoffs.
+
+**Lighting and shadows**
+
+- Add diffuse irradiance, prefiltered specular environment maps, and a BRDF lookup texture.
+- Bake local reflection and diffuse-light probes for day, dusk, and night in the showcase; blend with the time/weather system.
+- Replace the single sunlight shadow with three stabilized cascades on High, filtered edges, slope-aware bias, and smooth cascade transitions.
+- Add shadowed player headlights and a capped nearby streetlight shadow budget.
+- Keep emissive surfaces visually distinct from actual light sources.
+
+**Reflections and post-processing**
+
+- Add depth, normal/roughness, and motion-vector resources.
+- Replace flat-normal reflections with half-resolution SSR using surface normals, roughness, thickness checks, edge fading, and reflection-probe fallback.
+- Upgrade ambient occlusion with depth/normal sampling and edge-preserving filtering; apply it to indirect lighting.
+- Add a downsampled bloom chain, filmic tone mapping, bounded exposure adaptation, and consistent output color conversion.
+- Implement TAA with animated-object motion vectors, history rejection, and controlled sharpening. Reset history after camera cuts, teleports, and resizing.
+- Retain FXAA for Low and render the HUD after scene post-processing.
+- Add material, normal, roughness, mip-level, shadow-cascade, and motion-vector debug views.
+
+The target is convincing rasterized gameplay. Hardware ray tracing, Lumen/Nanite equivalents, strand hair, and a full material editor are outside this implementation.
+
+## 4. Animation, scene integration, and performance
+
+- Move ordinary pedestrian and animal deformation to GPU skinning across color, depth, shadow, and motion-vector passes.
+- Store skeleton hierarchy and local translation/rotation/scale animation; blend rotations with quaternions.
+- Preserve previous poses for motion vectors. Support larger skeletons through explicit joint limits and validated palette allocation.
+- Retarget existing humanoid gameplay actions offline. Preserve aiming, weapon attachment, climbing, melee, seated occupants, and Jolt ragdoll transitions.
+- Map wolf behavior to skeletal idle, locomotion, attack, hit, and death clips. Create missing required clips before marking integration complete.
+- Animate wheels and steering from vehicle state; align seats, door access points, and occupants with the new car.
+- Assemble detailed building geometry with recessed windows, storefronts, roof details, and complete PBR materials.
+- Add frustum culling, projected-size LOD selection with hysteresis, instancing, appropriate shadow LODs, and reduced distant animation update rates.
+- Preload the showcase working set and eliminate repeated per-frame allocations and unnecessary geometry uploads.
+- Add GPU timestamp queries, adapter identification, per-pass timing, draw/triangle counts, and texture residency metrics.
+- Handle resize/minimize, render-target recreation, failed resource creation, and device-loss reporting without stale-resource crashes.
+
+High targets the discrete GPU. Medium reduces reflections and shadows. Low disables SSR/local-light shadows and reduces texture, animation, and geometry budgets. Lower local FPS does not trigger removal of the requested High-quality features.
+
+## 5. Verification and delivery
+
+Each milestone must leave a runnable build.
+
+- **Asset validation:** indices, material ranges, texture channels, mip chains, alpha coverage, tangents, skeleton weights, clips, attachments, bounds, LODs, and legacy loading.
+- **Rendering validation:** daylight, dusk, night, rain, close-up materials, glass, fur edges, shadow transitions, mip transitions, and temporal stability.
+- **Gameplay regression:** walking, combat, aiming, ragdolls, climbing, driving, entry/exit, visible occupants, animal combat/carrying, missions, and save/load.
+- **Performance:** benchmark a deterministic 60-second route after warm-up with VSync disabled. Target average below 14 ms, p95 at or below 16.7 ms, and p99 below 25 ms on RTX 3060-class hardware. Report local measurements separately; do not claim untested hardware results.
+- **Packaging:** run existing CTest suites and packaged graphical smoke checks, verify runtime dependencies and attribution, and exclude restricted source files.
+- **Visual evidence:** provide matching before/after screenshots and inspect moving scenes for shimmer, ghosting, transparency errors, and animation defects.
+- **Final delivery:** saved plan with factual completion status, reproducible import/build commands, runnable package, screenshots, performance report, and explicit remaining limitations.
+
+Update `idea.md` only for integrated and verified results. Complete the showcase and engine work before considering map-wide asset replacement.

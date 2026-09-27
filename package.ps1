@@ -22,6 +22,8 @@ $packageDirectory = Join-Path $outputDirectory $packageName
 New-Item -ItemType Directory -Path $packageDirectory | Out-Null
 
 $builtDirect3D = @(
+    (Join-Path $PSScriptRoot 'MiniCity3D.exe'),
+    (Join-Path $PSScriptRoot 'build-msvc-ninja\MiniCity3D.exe'),
     (Join-Path $PSScriptRoot 'build-msvc\Release\MiniCity3D.exe'),
     (Join-Path $PSScriptRoot 'build-msvc-v18\Release\MiniCity3D.exe'),
     (Join-Path $PSScriptRoot 'build-jolt-ninja\MiniCity3D.exe')
@@ -54,7 +56,6 @@ $modelSource = Join-Path $assetSource 'models'
 $modelDestination = Join-Path $assetDestination 'models'
 New-Item -ItemType Directory -Path $modelDestination | Out-Null
 Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
-Copy-Item -LiteralPath (Join-Path $modelSource 'source') -Destination $modelDestination -Recurse
 foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md',
         'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination

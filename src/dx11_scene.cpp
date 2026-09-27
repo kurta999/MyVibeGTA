@@ -26,6 +26,24 @@ namespace {
 using game::Color;using game::Vec2;using game::Vec3;using game::RagdollPart;
 std::vector<Vertex>* buckets=nullptr;
 std::vector<ModelInstance>* modelInstances=nullptr;
+Vec3 lodEye{};
+float lodPixelScale=1;
+struct LodKey {
+    const Mesh* mesh;
+    float x,y,z;
+    bool operator==(const LodKey& other)const{
+        return mesh==other.mesh&&x==other.x&&y==other.y&&z==other.z;
+    }
+};
+struct LodKeyHash {
+    std::size_t operator()(const LodKey& key)const{
+        std::size_t hash=std::hash<const Mesh*>{}(key.mesh);
+        for(float value:{key.x,key.y,key.z})
+            hash^=std::hash<float>{}(value)+0x9e3779b9+(hash<<6)+(hash>>2);
+        return hash;
+    }
+};
+std::unordered_map<LodKey,bool,LodKeyHash> lodDetailChoice;
 Vertex vertex(Vec3 p,Vec3 n,float u,float v,Color c){return {p.x,p.y,p.z,n.x,n.y,n.z,u,v,c.r,c.g,c.b,1};}
 void triangle(int group,Vertex a,Vertex b,Vertex c){
     buckets[group].push_back(a);buckets[group].push_back(b);buckets[group].push_back(c);
@@ -94,15 +112,22 @@ void sphere(Vec3 center,float radius,Color tint){
 }
 void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint={1,1,1}){
     const Mesh* source=mesh(name);if(!source)return;
-    float lodScale=ui::lodDistanceScale();
-    if(name.rfind("nature/",0)==0&&
-       game::len(Vec2{position.x,position.z}-game::player)>
-           (name.rfind("nature/bush_",0)==0?90:160)*lodScale){
-        if(const Mesh* lod=mesh(name+"-lod"))source=lod;
-    }
-    if((name.rfind("buildings/",0)==0||name.rfind("marina/",0)==0)&&
-       game::len(Vec2{position.x,position.z}-game::player)>550*lodScale){
-        if(const Mesh* lod=mesh(name+"-lod"))source=lod;
+    bool nature=name.rfind("nature/",0)==0;
+    bool buildings=name.rfind("buildings/",0)==0||name.rfind("marina/",0)==0;
+    if(nature||buildings){
+        if(const Mesh* lod=mesh(name+"-lod")){
+            bool bush=name.rfind("nature/bush_",0)==0;
+            float scale=ui::lodDistanceScale();
+            float threshold=(bush?80.0f:nature?260.0f:120.0f)/scale;
+            float cap=(bush?135.0f:nature?240.0f:770.0f)*scale;
+            float distance=std::max(1.0f,game::len(position-lodEye));
+            float pixels=std::max({size.x,size.y,size.z})*lodPixelScale/distance;
+            LodKey key{source,position.x,position.y,position.z};
+            auto [choice,inserted]=lodDetailChoice.try_emplace(key,false);
+            choice->second=chooseDetailedLod(pixels,distance,threshold,cap,
+                !inserted,choice->second);
+            if(!choice->second)source=lod;
+        }
     }
     float sx=size.x/std::max(0.01f,source->maxX-source->minX);
     float sy=size.y/std::max(0.01f,source->maxY-source->minY);
@@ -1524,7 +1549,20 @@ void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]){
         ground(x-22,game::SHORE-25,x+22,game::SHORE+90,0.2f,game::rgb(160,139,111),4);
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances){
+    Vec2 focus=(game::occupied>=0||game::rightMouse)?game::player:
+        game::previousPlayer*(1.0f-game::renderAlpha)+
+            game::player*game::renderAlpha;
+    auto pose=camera::compute(focus,game::playerY,
+        game::rightMouse&&game::occupied<0&&!ui::paused(),game::occupied);
+    buildScene(groups,instances,pose.eye.x,pose.eye.y,pose.eye.z);
+}
+void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
+                float cameraX,float cameraY,float cameraZ){
     buckets=groups;modelInstances=&instances;instances.clear();
+    lodEye={cameraX,cameraY,cameraZ};
+    lodPixelScale=std::max(1,game::screenH)*0.5f/
+        std::tan(camera::fieldOfView()*game::PI/360.0f);
+    if(lodDetailChoice.size()>30000)lodDetailChoice.clear();
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
     regionalTerrain();marinaScenery();weatherGroundDetails();nightSky();clouds();buildings();vegetation();streetlights();
     vehicles();people();animals();markers();effects();

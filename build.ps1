@@ -35,12 +35,22 @@ if ($OpenGL) {
         throw 'CMake 3.20+ is required. Install it or add cmake.exe to PATH.'
     }
     if ($vsInstall) {
-        $generator = if ($vs2022) { 'Visual Studio 17 2022' }
-            else { 'Visual Studio 18 2026' }
-        $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
-        $buildDirectory = Join-Path $root $buildName
-        $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
-        & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON
+        $devShell = Join-Path $vsInstall 'Common7\Tools\Launch-VsDevShell.ps1'
+        if (Test-Path -LiteralPath $devShell) { & $devShell -Arch amd64 }
+        $ninja = Get-Command ninja -ErrorAction SilentlyContinue
+        if ($ninja -and (Get-Command cl -ErrorAction SilentlyContinue)) {
+            $buildDirectory = Join-Path $root 'build-msvc-ninja'
+            $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
+            & $cmake -S $root -B $buildDirectory -G Ninja `
+                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+        } else {
+            $generator = if ($vs2022) { 'Visual Studio 17 2022' }
+                else { 'Visual Studio 18 2026' }
+            $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
+            $buildDirectory = Join-Path $root $buildName
+            $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
+            & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON
+        }
     } else {
         $compiler = Get-Command clang++ -ErrorAction SilentlyContinue
         $ninja = Get-Command ninja -ErrorAction SilentlyContinue
@@ -55,7 +65,7 @@ if ($OpenGL) {
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
     & $cmake --build $buildDirectory --config Release `
-        --target MiniCity3D simulation_smoke asset_smoke --parallel 6
+        --target MiniCity3D simulation_smoke asset_smoke texture_mips_smoke --parallel 6
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)." }
     if ($RunTests) {
         $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'

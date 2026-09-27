@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <vector>
 #include "game.h"
 #include "audio.h"
 #include "ui.h"
@@ -34,7 +35,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     using namespace game;
     bool smoke=commandLine&&std::strstr(commandLine,"--smoke")!=nullptr;
     bool benchmark=smoke&&commandLine&&std::strstr(commandLine,"--benchmark")!=nullptr;
-    bool benchmarkTravel=benchmark&&commandLine&&
+    bool benchmarkRoute=benchmark&&commandLine&&
+        std::strstr(commandLine,"--benchmark-route")!=nullptr;
+    bool benchmarkTravel=benchmark&&!benchmarkRoute&&commandLine&&
         std::strstr(commandLine,"--benchmark-travel")!=nullptr;
     bool fullHd=smoke&&commandLine&&std::strstr(commandLine,"--1080p")!=nullptr;
     logging::initialize();
@@ -360,6 +363,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             "Arrow pin smoke: target not pinned");
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--no-shadows"))ui::shadowQuality=0;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--medium-shadows"))ui::shadowQuality=1;
 #ifdef MINI_CITY_JOLT
     if(smoke&&commandLine&&std::strstr(commandLine,"--traffic-preview")){
         player=previousPlayer={520,235};cameraYaw=0;cameraPitch=0;
@@ -416,17 +420,42 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         input::windowProc(win,WM_KEYDOWN,VK_F11,0);
     if(smoke){
         if(benchmark){
-            constexpr int frames=120;
+            const int frames=benchmarkRoute?3600:120;
             LARGE_INTEGER frequency{},start{},middle{},end{};
             QueryPerformanceFrequency(&frequency);
-            render();
-            std::array<double,frames> frameTimes{};
+            std::vector<double> frameTimes(frames);
             const std::array<Vec2,6> travelStops{{{12000,8500},{7800,8500},
                 {5000,6000},{12000,3000},{12000,14000},{4000,14000}}};
+            const std::array<Vec2,6> routeStops{{{300,250},{8125,9210},
+                {1200,1790},{4400,9000},{12000,3000},{4000,14500}}};
+            const std::array<float,6> routeYaw{{0,0,PI/2,PI,PI/2,0}};
+            if(benchmarkRoute){
+                player=previousPlayer=routeStops[0];playerY=0;occupied=-1;
+                cameraYaw=routeYaw[0];cameraPitch=0;
+#ifdef MINI_CITY_JOLT
+                jolt_world::teleportCharacter(player,0);
+#endif
+                for(int tick=0;tick<120;++tick){update(1.0f/60.0f);render();}
+                logging::write("Benchmark route v1: 120 warm-up ticks, six 10-second segments, fixed 60 Hz, VSync off");
+            }else render();
             double simulationTotal=0,renderTotal=0,physicsTotal=0;
-            double drawTotal=0,aiTotal=0;
+            double drawTotal=0,aiTotal=0,triangleTotal=0;
+            double gpuShadowTotal=0,gpuSceneTotal=0,gpuPostTotal=0;
+            int gpuSamples=0;
             for(int frame=0;frame<frames;++frame){
                 QueryPerformanceCounter(&start);
+                if(benchmarkRoute){
+                    int segment=frame/600;
+                    if(frame%600==0){
+                        player=previousPlayer=routeStops[segment];playerY=0;occupied=-1;
+#ifdef MINI_CITY_JOLT
+                        jolt_world::teleportCharacter(player,0);
+#endif
+                    }
+                    float progress=float(frame%600)/600.0f;
+                    cameraYaw=routeYaw[segment]+0.22f*std::sin(progress*2*PI);
+                    keys[ui::bindings[int(ui::Action::Forward)]]=true;
+                }
                 if(benchmarkTravel&&frame%20==0){
                     player=travelStops[frame/20];playerY=0;occupied=-1;
 #ifdef MINI_CITY_JOLT
@@ -438,7 +467,12 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 QueryPerformanceCounter(&middle);
                 render();
                 drawTotal+=drawCalls;
+                triangleTotal+=double(triangleCount);
                 aiTotal+=activeAi;
+                if(gpuShadowMs>=0){
+                    gpuShadowTotal+=gpuShadowMs;gpuSceneTotal+=gpuSceneMs;
+                    gpuPostTotal+=gpuPostMs;++gpuSamples;
+                }
                 QueryPerformanceCounter(&end);
                 frameTimes[frame]=1000.0*(end.QuadPart-start.QuadPart)/
                     double(frequency.QuadPart);
@@ -447,6 +481,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 renderTotal+=1000.0*(end.QuadPart-middle.QuadPart)/
                     double(frequency.QuadPart);
             }
+            if(benchmarkRoute)keys[ui::bindings[int(ui::Action::Forward)]]=false;
             double total=0;
             for(double duration:frameTimes)total+=duration;
             std::sort(frameTimes.begin(),frameTimes.end());
@@ -460,13 +495,23 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             char result[384]{};
             std::snprintf(result,sizeof(result),
                 "Benchmark%s %dx%d: avg %.2f ms (sim %.2f, physics %.2f, render %.2f), p95 %.2f ms, p99 %.2f ms, max %.2f ms, draws %.0f, active AI %.0f over %d frames, %zu flames, RAM %.0f MiB, nearby trees %zu/%zu, decorations %zu/%zu",
-                benchmarkTravel?" travel":"",screenW,screenH,total/frames,
+                benchmarkRoute?" route v1":benchmarkTravel?" travel":"",
+                screenW,screenH,total/frames,
                 simulationTotal/frames,physicsTotal/frames,renderTotal/frames,
                 p95,p99,frameTimes.back(),
                 drawTotal/frames,aiTotal/frames,frames,fire::active().size(),
                 memory.WorkingSetSize/1048576.0,nearTrees,trees.size(),
                 nearDecorations,regions::decorations().size());
             logging::write(result);
+            char gpuResult[240]{};
+            if(gpuSamples)
+                std::snprintf(gpuResult,sizeof(gpuResult),
+                    "GPU timing: shadow %.2f ms, scene %.2f ms, post/HUD %.2f ms (%d nonblocking samples); submitted triangles %.0f/frame",
+                    gpuShadowTotal/gpuSamples,gpuSceneTotal/gpuSamples,
+                    gpuPostTotal/gpuSamples,gpuSamples,triangleTotal/frames);
+            else std::snprintf(gpuResult,sizeof(gpuResult),
+                "GPU timing unavailable; submitted triangles %.0f/frame",triangleTotal/frames);
+            logging::write(gpuResult);
         }else render();
         audio::shutdown();shutdownRenderer();DestroyWindow(win);
         logging::write("Smoke render completed");logging::shutdown();return 0;}

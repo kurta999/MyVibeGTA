@@ -15,7 +15,7 @@ set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp au
     savegame.cpp camera.cpp props.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp)
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
-    src/renderer_dx11.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
+    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
     src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
@@ -79,4 +79,7 @@ if(BUILD_TESTING)
   add_test(NAME asset_smoke COMMAND asset_smoke)
   set_tests_properties(asset_smoke PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>")
+  add_executable(texture_mips_smoke tests/texture_mips_smoke.cpp src/dx11_texture_mips.cpp)
+  target_compile_features(texture_mips_smoke PRIVATE cxx_std_17)
+  add_test(NAME texture_mips_smoke COMMAND texture_mips_smoke)
 endif()

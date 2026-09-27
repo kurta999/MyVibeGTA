@@ -225,7 +225,7 @@ void map(int x,int y,int width,int height,bool large){
 void pauseMenu(int width,int height){
     if(!ui::paused())return;
     rect(0,0,width,height,RGB(20,29,38));
-    int menuHeight=ui::page==ui::Page::Graphics?640:500;
+    int menuHeight=ui::page==ui::Page::Graphics?680:500;
     int x=width/2-280,y=(height-menuHeight)/2;
     rect(x,y,560,menuHeight,RGB(34,45,56));
     label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 11",RGB(255,225,151));
@@ -241,22 +241,24 @@ void pauseMenu(int width,int height){
     }else if(ui::page==ui::Page::Graphics){
         const char* quality[]={"Low","Medium","High"};const char* sizes[]={"1280 x 720","1600 x 900","1920 x 1080"};
         const char* shadows[]={"Off","Medium","High"};
+        const char* filtering[]={"4x","8x","16x"};
         const char* items[]={quality[ui::graphicsQuality],sizes[ui::windowChoice],
             quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality],
-            shadows[ui::reflectionQuality],shadows[ui::antiAliasingQuality],shadows[ui::aoQuality]};
+            shadows[ui::reflectionQuality],shadows[ui::antiAliasingQuality],shadows[ui::aoQuality],
+            quality[ui::textureQuality],filtering[ui::filteringQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
             "Reflections (SSR)","Anti-aliasing (FXAA)","Ambient occlusion (SSAO)",
-            "Draw distance","LOD distance","Grass distance"};
-        for(int i=0;i<11;++i){int row=y+105+i*42;
+            "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance"};
+        for(int i=0;i<13;++i){int row=y+105+i*39;
             if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
-            if(i<8){
+            if(i<10){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
             }else{
-                int value=i==8?ui::drawDistance:i==9?ui::lodDistance:ui::grassDistance;
-                if(i==8)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
+                int value=i==10?ui::drawDistance:i==11?ui::lodDistance:ui::grassDistance;
+                if(i==10)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
                     names[i],1250.0f*ui::drawDistanceScale());
-                else if(i==10)std::snprintf(buffer,sizeof(buffer),"%s: %d m",names[i],40+value*2);
+                else if(i==12)std::snprintf(buffer,sizeof(buffer),"%s: %d m",names[i],40+value*2);
                 else std::snprintf(buffer,sizeof(buffer),"%s: %d%%",names[i],value);
                 label(x+42,row+5,buffer,RGB(239,241,229));
                 rect(x+290,row+12,220,8,RGB(58,72,82));
@@ -502,22 +504,30 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(game::health<=0){rect(width/2-145,height/2-48,290,96,RGB(35,42,48));
         label(width/2-65,height/2-24,"YOU DIED",RGB(252,124,115));
         label(width/2-94,height/2+8,"Press R to restart",RGB(247,242,233));}
-    if(game::debugHud){rect(width-276,height-166,261,152,RGB(30,42,48));
+    if(game::debugHud){rect(width-315,height-218,300,205,RGB(30,42,48));
         std::snprintf(textBuffer,sizeof(textBuffer),"FPS %.0f   FRAME %.1f ms",game::frameRate,game::frameMs);
-        label(width-265,height-157,textBuffer,RGB(224,245,220));
+        label(width-304,height-208,textBuffer,RGB(224,245,220));
         std::snprintf(textBuffer,sizeof(textBuffer),"SIM %.2f   PHYS %.2f ms",game::simulationMs,game::physicsMs);
-        label(width-265,height-129,textBuffer,RGB(224,245,220));
+        label(width-304,height-182,textBuffer,RGB(224,245,220));
+        if(game::gpuShadowMs>=0)
+            std::snprintf(textBuffer,sizeof(textBuffer),"GPU SH %.1f SC %.1f POST %.1f ms",
+                game::gpuShadowMs,game::gpuSceneMs,game::gpuPostMs);
+        else std::snprintf(textBuffer,sizeof(textBuffer),"GPU timing pending");
+        label(width-304,height-156,textBuffer,RGB(224,245,220));
         std::snprintf(textBuffer,sizeof(textBuffer),"DRAWS %d   ACTIVE AI %d",game::drawCalls,game::activeAi);
-        label(width-265,height-101,textBuffer,RGB(224,245,220));
+        label(width-304,height-130,textBuffer,RGB(224,245,220));
+        std::snprintf(textBuffer,sizeof(textBuffer),"SUBMITTED TRIS %llu",
+            static_cast<unsigned long long>(game::triangleCount));
+        label(width-304,height-104,textBuffer,RGB(224,245,220));
 #ifdef MINI_CITY_JOLT
         std::snprintf(textBuffer,sizeof(textBuffer),"JOLT BLD %zu   PED %zu   RAG %zu",
             jolt_world::activeBuildingColliderCount(),
             jolt_world::activePedCharacterCount(),game::ragdollParts.size()/6);
-        label(width-265,height-73,textBuffer,RGB(224,245,220));
+        label(width-304,height-78,textBuffer,RGB(224,245,220));
 #endif
         std::snprintf(textBuffer,sizeof(textBuffer),"FIRE %zu   SHOTS %zu   PROPS %zu",
             fire::active().size(),game::bullets.size(),game::props.size());
-        label(width-265,height-45,textBuffer,RGB(224,245,220));}
+        label(width-304,height-52,textBuffer,RGB(224,245,220));}
     if(ui::showHelp&&!ui::paused()&&!debug_menu::open)
         label(18,height-28,"F4 DEBUG MENU",RGB(197,211,213));
     if(commerce::menu()!=commerce::Menu::None&&!ui::paused()){

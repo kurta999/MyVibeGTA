@@ -1,9 +1,10 @@
 """Bake the selected CC0 OBJ/GLTF/GLB traffic and weapon meshes for MiniCity3D.
 
-Source files live in assets/models/source; the game loads compact M3D1 files and
+Source files live in assets/models/source; the game loads indexed M3D2 files and
 adjacent texture maps from assets/models/baked. Run with the bundled Python 3.
 """
 
+import argparse
 import base64
 import json
 import math
@@ -20,12 +21,26 @@ OUTPUT = ROOT / "assets/models/baked"
 
 def write_mesh(path, vertices):
     path.parent.mkdir(parents=True, exist_ok=True)
+    unique, indices, lookup = [], [], {}
+    for vertex in vertices:
+        packed = struct.pack("<12f", *vertex)
+        index = lookup.get(packed)
+        if index is None:
+            index = len(unique)
+            lookup[packed] = index
+            unique.append(packed)
+        indices.append(index)
+    if not indices or len(indices) % 3 or len(unique) > 3_000_000:
+        raise ValueError(f"Invalid indexed mesh: {path}")
     with path.open("wb") as target:
-        target.write(struct.pack("<4sI", b"M3D1", len(vertices)))
-        for vertex in vertices:
-            target.write(struct.pack("<12f", *vertex))
+        target.write(struct.pack("<4sII", b"M3D2", len(unique), len(indices)))
+        for vertex in unique:
+            target.write(vertex)
+        for index in indices:
+            target.write(struct.pack("<I", index))
     axes = list(zip(*(v[:3] for v in vertices)))
     print(path.relative_to(ROOT), len(vertices) // 3, "triangles",
+          len(unique), "unique vertices",
           [(round(min(axis), 3), round(max(axis), 3)) for axis in axes])
 
 
@@ -173,16 +188,29 @@ def convert_gun(source_name, filename, output_name, excluded=()):
             pbr = material.get("pbrMetallicRoughness", {})
             base = texture_name(pbr.get("baseColorTexture"))
             normal = texture_name(material.get("normalTexture"))
+            alpha_mode = material.get("alphaMode", "OPAQUE")
+            if alpha_mode not in ("OPAQUE", "MASK"):
+                raise ValueError(f"Unsupported alpha mode {alpha_mode} in {path}")
+            alpha_cutoff = material.get("alphaCutoff", 0.5)
             target.write(f"{start} {count} {pbr.get('roughnessFactor',0.75)} "
-                         f"{pbr.get('metallicFactor',0.15)} 0 {base} {normal} - - -\n")
+                         f"{pbr.get('metallicFactor',0.15)} 0 {base} {normal} - - - "
+                         f"{alpha_mode} {alpha_cutoff}\n")
 
 
 if __name__ == "__main__":
-    for number, texture in ((1,"car_blue.png"),(2,"car2_red.png"),
-                            (3,"car3_yellow.png"),(4,"car4_lightorange.png"),
-                            (5,"car5_green.png")):
-        convert_obj(f"Car {number:02d}", "Car" if number==1 else f"Car{number}",
-                    texture, f"traffic-{number}")
-    convert_gun("pistol", "Pistol.gltf", "pistol")
-    convert_gun("ak", "AK.gltf", "ak", excluded=("Bullet","BulletBox","BulletFired"))
-    convert_gun("lightning", "lightning.glb", "lightning")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--weapons-only", action="store_true")
+    parser.add_argument("--traffic-only", action="store_true")
+    args = parser.parse_args()
+    if args.weapons_only and args.traffic_only:
+        parser.error("Choose at most one asset group")
+    if not args.weapons_only:
+        for number, texture in ((1,"car_blue.png"),(2,"car2_red.png"),
+                                (3,"car3_yellow.png"),(4,"car4_lightorange.png"),
+                                (5,"car5_green.png")):
+            convert_obj(f"Car {number:02d}", "Car" if number==1 else f"Car{number}",
+                        texture, f"traffic-{number}")
+    if not args.traffic_only:
+        convert_gun("pistol", "Pistol.gltf", "pistol")
+        convert_gun("ak", "AK.gltf", "ak", excluded=("Bullet","BulletBox","BulletFired"))
+        convert_gun("lightning", "lightning.glb", "lightning")

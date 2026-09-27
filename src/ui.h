@@ -11,6 +11,8 @@ extern int shadowQuality;
 extern int reflectionQuality;
 extern int antiAliasingQuality;
 extern int aoQuality;
+extern int textureQuality;
+extern int filteringQuality;
 extern int vegetationDensity;
 extern int grassDistance;
 extern int effectsQuality;

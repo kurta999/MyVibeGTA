@@ -13,10 +13,13 @@ struct Vertex {
 struct MaterialRange {
     unsigned start=0,count=0;
     float roughness=0.82f,metallic=0,emissive=0;
+    bool alphaTest=false;
+    float alphaCutoff=0.5f;
     std::wstring baseFile,normalFile,ormFile,occlusionFile,emissiveFile;
 };
 struct Mesh {
     std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
     std::vector<MaterialRange> materialRanges;
     float minX=0,minY=0,minZ=0,maxX=0,maxY=0,maxZ=0;
     bool textured=false;
@@ -41,11 +44,19 @@ struct ModelInstance {
     float r,g,b;
     float sinPitch=0,cosPitch=1;
 };
+struct BoundingSphere {float x,y,z,radius;};
+bool chooseDetailedLod(float pixels,float distance,float threshold,float cap,
+                       bool hasPrevious,bool previousDetailed);
+BoundingSphere instanceBounds(const ModelInstance& instance);
+void sortInstancesForRendering(std::vector<ModelInstance>& instances,
+                               float eyeX,float eyeY,float eyeZ);
 void loadMeshes(const std::wstring& folder);
 const Mesh* mesh(const std::string& name);
 std::vector<const Mesh*> regionalMeshes();
 const SkinMesh* skinMesh(const std::string& name);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances);
+void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
+                float cameraX,float cameraY,float cameraZ);
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]);
 void buildHud(unsigned char* pixels,int width,int height);
 void shutdownHud();

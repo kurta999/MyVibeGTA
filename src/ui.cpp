@@ -9,7 +9,8 @@
 namespace ui {
 Page page=Page::Closed;
 int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
-    antiAliasingQuality=1,aoQuality=1,vegetationDensity=2,grassDistance=50,
+    antiAliasingQuality=1,aoQuality=1,textureQuality=2,filteringQuality=2,
+    vegetationDensity=2,grassDistance=50,
     effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,
     mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
@@ -29,7 +30,7 @@ void applyWindow(){
     AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
     SetWindowPos(game::win,nullptr,0,0,r.right-r.left,r.bottom-r.top,SWP_NOMOVE|SWP_NOZORDER);
 }
-int count(Page p){return p==Page::Main?7:p==Page::Graphics?11:p==Page::Controls?8:p==Page::Audio?1:0;}
+int count(Page p){return p==Page::Main?7:p==Page::Graphics?13:p==Page::Controls?8:p==Page::Audio?1:0;}
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
     WritePrivateProfileStringA(section,key,text,path.c_str());
@@ -51,6 +52,8 @@ void load(){
     reflectionQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Reflections",1,path.c_str())),0,2);
     antiAliasingQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","AntiAliasing",1,path.c_str())),0,2);
     aoQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","SSAO",1,path.c_str())),0,2);
+    textureQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Textures",2,path.c_str())),0,2);
+    filteringQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Filtering",2,path.c_str())),0,2);
     vegetationDensity=std::clamp(int(GetPrivateProfileIntA("Graphics","Vegetation",2,path.c_str())),0,2);
     grassDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","GrassDistance",50,path.c_str())),0,100);
     effectsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Effects",2,path.c_str())),0,2);
@@ -79,6 +82,8 @@ void save(){
     writeValue("Graphics","Reflections",reflectionQuality,path);
     writeValue("Graphics","AntiAliasing",antiAliasingQuality,path);
     writeValue("Graphics","SSAO",aoQuality,path);
+    writeValue("Graphics","Textures",textureQuality,path);
+    writeValue("Graphics","Filtering",filteringQuality,path);
     writeValue("Graphics","Vegetation",vegetationDensity,path);
     writeValue("Graphics","GrassDistance",grassDistance,path);
     writeValue("Graphics","Effects",effectsQuality,path);
@@ -135,9 +140,11 @@ void handleKey(int key){
         if(selection==5&&direction)reflectionQuality=std::clamp(reflectionQuality+direction,0,2);
         if(selection==6&&direction)antiAliasingQuality=std::clamp(antiAliasingQuality+direction,0,2);
         if(selection==7&&direction)aoQuality=std::clamp(aoQuality+direction,0,2);
-        if(selection==8&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
-        if(selection==9&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
-        if(selection==10&&direction)grassDistance=std::clamp(grassDistance+direction*2,0,100);
+        if(selection==8&&direction)textureQuality=std::clamp(textureQuality+direction,0,2);
+        if(selection==9&&direction)filteringQuality=std::clamp(filteringQuality+direction,0,2);
+        if(selection==10&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
+        if(selection==11&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
+        if(selection==12&&direction)grassDistance=std::clamp(grassDistance+direction*2,0,100);
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);
@@ -152,14 +159,14 @@ void handleMouse(int x,int y,bool dragging){
     if(page!=Page::Graphics)return;
     RECT client{};GetClientRect(game::win,&client);
     int left=(client.right-client.left)/2-280;
-    int top=(client.bottom-client.top)/2-320;
-    for(int row=8;row<=10;++row){
-        int rowY=top+105+row*42;
+    int top=(client.bottom-client.top)/2-340;
+    for(int row=10;row<=12;++row){
+        int rowY=top+105+row*39;
         if(y<rowY-5||y>rowY+38)continue;
         if(!dragging&&x<left+285)return;
         selection=row;
         int value=std::clamp((x-(left+290))*100/220,0,100);
-        int& setting=row==8?drawDistance:row==9?lodDistance:grassDistance;
+        int& setting=row==10?drawDistance:row==11?lodDistance:grassDistance;
         if(setting!=value){setting=value;save();}
         return;
     }

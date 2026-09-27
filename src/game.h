@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -95,6 +96,8 @@ extern bool keys[256],leftMouse,rightMouse,showMap;
 extern bool debugHud;
 extern float frameRate,frameMs,simulationMs,physicsMs;
 extern int drawCalls,activeAi;
+extern std::uint64_t triangleCount;
+extern float gpuShadowMs,gpuSceneMs,gpuPostMs;
 extern POINT lastMouse;
 extern float cameraYaw,cameraPitch,renderAlpha,health,fireCooldown,invulnerable,walkPhase,stepTimer,muzzleFlash;
 extern CameraMode cameraMode;

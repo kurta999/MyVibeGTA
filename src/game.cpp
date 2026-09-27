@@ -50,6 +50,8 @@ bool showMap=false;
 bool debugHud=false;
 float frameRate=0,frameMs=0,simulationMs=0,physicsMs=0;
 int drawCalls=0,activeAi=0;
+std::uint64_t triangleCount=0;
+float gpuShadowMs=-1,gpuSceneMs=-1,gpuPostMs=-1;
 std::string message;
 #ifdef MINI_CITY_JOLT
 bool screenshotRequested=false;
