@@ -4,6 +4,8 @@ A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Jolt P
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
+For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices from asset files through Direct3D 11 rendering, mipmaps, lighting, animation, camera movement, and collision, with graphics concepts explained for experienced programmers new to the subject.
+
 ## Contents
 
 - [Features](#features)
@@ -14,6 +16,7 @@ The project is an evolving prototype. Implementation and verification status are
 - [Tests and visual previews](#tests-and-visual-previews)
 - [Packaging](#packaging)
 - [Project layout](#project-layout)
+- [Technical Guide](TECHNICAL_README.md)
 - [Assets and attribution](#assets-and-attribution)
 - [Current limitations](#current-limitations)
 
@@ -249,6 +252,7 @@ The [Windows workflow](.github/workflows/windows-release.yml) builds and tests p
 | [`third_party/JoltPhysics/`](third_party/JoltPhysics/) | Pinned physics submodule |
 | [`idea.md`](idea.md) | Implementation roadmap and verified milestones |
 | [`graphics-upgrade-plan.md`](graphics-upgrade-plan.md) | Rendering roadmap and open work |
+| [`TECHNICAL_README.md`](TECHNICAL_README.md) | Detailed DX11 engine, asset, rendering, camera, and collision guide |
 | [`traffic-ai.md`](traffic-ai.md) | Traffic and retaliation behavior |
 
 The older top-down experiment is preserved in `src/prototype2d.cpp`.
