@@ -7,6 +7,7 @@ The project is an evolving prototype. Implementation and verification status are
 ## Contents
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Build and run](#build-and-run)
 - [Controls](#controls)
 - [Animals and destructible trees](#animals-and-destructible-trees)
@@ -27,6 +28,36 @@ The project is an evolving prototype. Implementation and verification status are
 - **Gameplay:** 17 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
 - **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
 - **Persistence:** saved progression, inventory, ownership, wildlife damage and loot, tree destruction, and graphics/control/audio settings.
+
+## Screenshots
+
+**Waterfront at sunset**
+
+![The player exploring the waterfront at sunset, with buildings, pedestrians, piers, and boats](github_screenshots/beach.png)
+
+**Driving through the city at night**
+
+![A car at a city intersection at night, with headlights and the vehicle damage HUD visible](github_screenshots/driving.png)
+
+**Countryside wildlife**
+
+![The player approaching a group of countryside animals, including an elephant, tiger, and bear](github_screenshots/wildlife.png)
+
+**Animals in the forest**
+
+![The player encountering a cow and pig among forest trees](github_screenshots/animals.png)
+
+**Riding a tiger**
+
+![The player riding a tiger through the countryside at dusk](github_screenshots/animal_riding.png)
+
+**City combat**
+
+![The player aiming a pistol during city combat at sunset, with wanted stars visible](github_screenshots/shooting.png)
+
+**Hit effects**
+
+![An armed pedestrian shooting the player, with a blood hit effect visible](github_screenshots/blood.png)
 
 ## Build and run
 
