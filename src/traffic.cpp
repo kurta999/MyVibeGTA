@@ -65,7 +65,7 @@ int nextRoad(Vehicle& v,const Ped& driver){
         std::vector<float> dist(nodes.size(),1e30f);
         using Item=std::pair<float,int>;
         std::priority_queue<Item,std::vector<Item>,std::greater<Item>> open;
-        dist[goal]=0;open.push({0,goal});
+        dist[goal]=0.0f;open.push({0.0f,goal});
         while(!open.empty()){
             auto [cost,i]=open.top();open.pop();if(cost>dist[i])continue;
             for(int j:nodes[i].links){float d=cost+len(nodes[i].p-nodes[j].p);
