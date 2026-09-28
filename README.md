@@ -80,7 +80,26 @@ CMake copies `assets/` and `data/` beside the game. Baked runtime assets are inc
 
 The Direct3D executable immediately opens a loading window with a progress bar, current stage, and elapsed time. It remains responsive while graphics initialize; closing it cancels at the next startup checkpoint. The game appears after its first frame is prepared. `--smoke` runs keep the loading window hidden.
 
-Startup prepares regional meshes and textures in advance to avoid uploads interrupting travel. A local normal launch measured 21.77 seconds, including 15.35 seconds preparing regional graphics, 1.39 seconds compiling shaders, and 1.50 seconds restoring the save. These timings depend on the machine and current load. Each stage and total startup time are logged in `MiniCity3D.log` beside the executable.
+Startup prepares regional meshes and textures in advance to avoid uploads interrupting travel. Independent image decoding, mipmap generation, and graphics shader compilation now use a bounded CPU worker pool. The default uses up to four workers, reserving a logical CPU for the main thread when possible. GPU uploads and renderer cache updates remain on the main thread, and loading workers finish before gameplay starts. Closing the loader cancels pending work and joins the workers before cleanup.
+
+Use `--loader-workers=1` for the serial reference, or `--loader-workers=2` through `--loader-workers=8` to select a worker count. Each stage and total startup time are logged in `MiniCity3D.log`, including decode/mipmap/upload timings and actual peak concurrency. `--validate-loading` additionally checksums the prepared textures and shader bytecode; hashing adds work, so leave it off for performance measurements. Measured results and verification are in [threading evidence](evidence/threading-20260928/README.md).
+
+To repeat matched startup measurements (three interleaved runs per worker count):
+
+```powershell
+./tools/measure_threading.ps1
+```
+
+`-Route` runs the six-scene 3,600-frame 1080p benchmark, while `-Travel` checks regional jumps. Smoke runs use a fixed random seed. The benchmark reports scene preparation, CPU deformation, grass rebuilds, uploads/culling, draw/HUD submission, and presentation separately.
+
+During gameplay a persistent pool also handles large CPU character/ragdoll deformation loops and grass-cache rebuild rows. Workers read the frame's unchanged world state and write separate preallocated output slots or private rows. The main thread joins them before merging results, uploading, or updating simulation again. Small deformation loops remain inline; ordinary humanoid clip deformation still runs on the GPU. `--scene-workers=1` selects serial scene preparation, and overrides accept 1–8 workers. Jolt physics and gameplay updates remain single threaded.
+
+To compare runtime scene workers while holding loading at four workers:
+
+```powershell
+./tools/measure_threading.ps1 -CompareScene -Travel -Workers 1,4
+./tools/measure_threading.ps1 -CompareScene -Route -Repeats 1 -Workers 1,4
+```
 
 The game embeds an original city icon at 16, 24, 32, 48, 64, 128, and 256 pixels for Explorer, the taskbar, and window captions. The resource is in `assets/app/`; regenerate it with `./tools/build_game_icon.ps1`.
 
