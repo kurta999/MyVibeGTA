@@ -94,7 +94,7 @@ bool available(const Item& item){
 }
 void changed(const std::string& description){
     game::announce(description,3);
-    savegame::save();
+    savegame::request();
 }
 }
 bool load(const char* path){

@@ -1,0 +1,42 @@
+2026-9-28 8:16:46  Application started
+2026-9-28 8:16:46  Startup: Starting Mini City 3D took 0.006 s
+2026-9-28 8:16:46  Startup: Starting Direct3D 11
+2026-9-28 8:16:46  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 8:16:46  Startup: Starting Direct3D 11 took 0.052 s
+2026-9-28 8:16:46  Startup: Compiling graphics shaders
+2026-9-28 8:16:47  Shader loading: workers 4, peak active 4, completed 15/15, wall 1.201 s, CPU 1.488 s
+2026-9-28 8:16:47  Startup: Compiling graphics shaders took 1.207 s
+2026-9-28 8:16:47  Startup: Creating graphics buffers and shadows
+2026-9-28 8:16:49  Startup: Creating graphics buffers and shadows took 1.041 s
+2026-9-28 8:16:49  Startup: Loading surface textures
+2026-9-28 8:16:49  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.510 s, decode CPU 0.298 s, mip CPU 0.793 s, upload 0.043 s
+2026-9-28 8:16:49  Startup: Loading surface textures took 0.510 s
+2026-9-28 8:16:49  Startup: Loading city models and animations
+2026-9-28 8:16:49  Startup: Loading city models and animations took 0.348 s
+2026-9-28 8:16:49  Startup: Preparing city geometry
+2026-9-28 8:16:49  Startup: Preparing city geometry took 0.002 s
+2026-9-28 8:16:49  Startup: Preparing regional textures
+2026-9-28 8:16:54  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 117/117, pending <= 4, wall 4.272 s, decode CPU 1.670 s, mip CPU 11.174 s, upload 0.141 s
+2026-9-28 8:16:54  Startup: Preparing regional textures took 4.272 s
+2026-9-28 8:16:54  Startup: Uploading regional graphics
+2026-9-28 8:16:54  Startup: Uploading regional graphics took 0.230 s
+2026-9-28 8:16:54  Startup: Loading HDR lighting
+2026-9-28 8:16:54  CPU scene workers: 4
+2026-9-28 8:16:54  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-9-28 8:16:54  Renderer initialized
+2026-9-28 8:16:54  Startup: Loading HDR lighting took 0.014 s
+2026-9-28 8:16:54  Startup: Starting audio and loading settings
+2026-9-28 8:16:54  Startup: Starting audio and loading settings took 0.381 s
+2026-9-28 8:16:54  Startup: Loading gameplay data
+2026-9-28 8:16:54  Startup: Loading gameplay data took 0.002 s
+2026-9-28 8:16:54  Startup: Building the city and physics world
+2026-9-28 8:16:54  Startup: Building the city and physics world took 0.015 s
+2026-9-28 8:16:54  Startup: Loading saved progress
+2026-9-28 8:16:54  Startup: Loading saved progress took 0.000 s
+2026-9-28 8:16:54  Startup: Preparing the first frame
+2026-9-28 8:16:54  GPU skinning: 9 ordinary poses, 136320 vertices; shared color/shadow buffer
+2026-9-28 8:16:55  Startup: Preparing the first frame took 0.302 s
+2026-9-28 8:16:55  Startup: Ready
+2026-9-28 8:16:55  Startup ready in 8.380 s
+2026-9-28 8:16:55  Smoke render completed
+2026-9-28 8:16:55  Application stopped

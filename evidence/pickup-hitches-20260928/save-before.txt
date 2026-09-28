@@ -1,0 +1,3 @@
+Synchronous save 1: 206.221 ms
+Synchronous save 2: 203.671 ms
+Synchronous save 3: 219.918 ms

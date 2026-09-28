@@ -14,6 +14,7 @@
 #include "wildlife.h"
 #include "birds.h"
 #include "jolt_world.h"
+#include "cpu_jobs.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -21,6 +22,7 @@
 #include <limits>
 #include <string>
 #include <unordered_map>
+#include <chrono>
 
 namespace dx11 {
 namespace {
@@ -30,6 +32,25 @@ std::vector<ModelInstance>* modelInstances=nullptr;
 std::vector<SkinInstance>* skinInstances=nullptr;
 Vec3 lodEye{};
 float lodPixelScale=1;
+cpu::Pool* sceneJobs=nullptr;
+SceneWorkStats workStats;
+// The game update and all renderer publication stay on the main thread. Jobs
+// read the frozen frame and write disjoint preallocated slots; join before any
+// captured locals, output vectors, world state, or D3D resources can change.
+template<class F> void sceneRange(std::size_t count,std::size_t minimum,F&& function){
+    if(!sceneJobs||sceneJobs->concurrency()==1||count<minimum){
+        for(std::size_t i=0;i<count;++i)function(i);return;
+    }
+    unsigned chunks=unsigned(std::min(std::size_t(sceneJobs->concurrency()),count));
+    std::vector<std::future<void>> pending;pending.reserve(chunks);
+    struct Join {std::vector<std::future<void>>& pending;~Join(){for(auto& job:pending)if(job.valid())job.wait();}} join{pending};
+    ++workStats.jobBatches;
+    for(unsigned chunk=0;chunk<chunks;++chunk){
+        auto first=count*chunk/chunks,last=count*(chunk+1)/chunks;
+        pending.push_back(sceneJobs->submit([&,first,last]{for(auto i=first;i<last;++i)function(i);}));
+    }
+    for(auto& job:pending)job.get();
+}
 struct LodKey {
     const Mesh* mesh;
     float x,y,z;
@@ -337,8 +358,10 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         skinInstances->push_back(std::move(instance));
         return true;
     }
-    auto& output=buckets[5];output.reserve(output.size()+skin->vertices.size());
-    for(const SkinVertex& input:skin->vertices){
+    auto& output=buckets[5];const auto start=output.size();output.resize(start+skin->vertices.size());
+    const auto started=std::chrono::steady_clock::now();
+    sceneRange(skin->vertices.size(),4096,[&](size_t index){
+        const SkinVertex& input=skin->vertices[index];
         Vec3 p{},n{};
         float parts[6]{};
         for(int influence=0;influence<4;++influence){
@@ -363,9 +386,11 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         Vec3 world{position.x+co*x+si*z,position.y+(p.y-bounds->minY)*sy,
             position.z-si*x+co*z};
         pitchArm(world,parts[2]+parts[3]);
-        output.push_back({world.x,world.y,world.z,(co*nx+si*nz)/length,ny/length,
-            (-si*nx+co*nz)/length,v.u,v.v,v.r,v.g,v.b,v.a});
-    }
+        output[start+index]={world.x,world.y,world.z,(co*nx+si*nz)/length,ny/length,
+            (-si*nx+co*nz)/length,v.u,v.v,v.r,v.g,v.b,v.a};
+    });
+    workStats.skinVertices+=skin->vertices.size();
+    workStats.skinMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
     return true;
 }
 float drawScale(){
@@ -786,6 +811,7 @@ void proceduralGrass(){
     int centerX=int(std::floor(game::player.x/recenter));
     int centerZ=int(std::floor(game::player.z/recenter));
     if(centerX!=cacheX||centerZ!=cacheZ||cacheDistance!=ui::grassDistance){
+        const auto started=std::chrono::steady_clock::now();
         cacheX=centerX;cacheZ=centerZ;cached.clear();
         cacheDistance=ui::grassDistance;
         Vec2 center{(centerX+0.5f)*recenter,(centerZ+0.5f)*recenter};
@@ -794,7 +820,12 @@ void proceduralGrass(){
         int x1=int(std::floor((center.x+covered)/cell));
         int z0=int(std::floor((center.z-covered)/cell));
         int z1=int(std::floor((center.z+covered)/cell));
-        for(int z=z0;z<=z1;++z)for(int x=x0;x<=x1;++x)
+        // Each row has a private result vector. Merge in original z/x/variant
+        // order so density selection, instances, and rendering remain stable.
+        std::vector<std::vector<GrassTuft>> rows(size_t(z1-z0+1));
+        sceneRange(rows.size(),8,[&](size_t row){
+          int z=z0+int(row);auto& tufts=rows[row];
+          for(int x=x0;x<=x1;++x)
             for(int variant=0;variant<2;++variant){
                 std::uint32_t seed=grassHash(x,z,variant+1);
                 if(grassUnit(grassHash(x/4,z/4,variant+73))<0.26f)continue;
@@ -811,8 +842,11 @@ void proceduralGrass(){
                 Color tint=biome==regions::Biome::Savanna?
                     game::rgb(119+tone,126+tone/2,65+tone/3):
                     game::rgb(68+tone/2,116+tone,57+tone/3);
-                cached.push_back({point,width,height,yaw,tint});
+                tufts.push_back({point,width,height,yaw,tint});
             }
+        });
+        for(const auto& row:rows)cached.insert(cached.end(),row.begin(),row.end());
+        workStats.grassMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
     }
     for(std::size_t index=0;index<cached.size();++index){
         if(ui::vegetationDensity==1&&index%2)continue;
@@ -1317,8 +1351,10 @@ void ragdollMesh(const RagdollPart* bodies){
     float cx=(bounds->minX+bounds->maxX)*0.5f;
     float cz=(bounds->minZ+bounds->maxZ)*0.5f;
     float co=std::cos(bodies[0].yaw),si=std::sin(bodies[0].yaw);
-    auto& output=buckets[5];output.reserve(output.size()+skin->vertices.size());
-    for(const SkinVertex& input:skin->vertices){
+    auto& output=buckets[5];const auto start=output.size();output.resize(start+skin->vertices.size());
+    const auto started=std::chrono::steady_clock::now();
+    sceneRange(skin->vertices.size(),4096,[&](size_t index){
+        const SkinVertex& input=skin->vertices[index];
         Vec3 world{},normal{};
         for(int influence=0;influence<4;++influence){
             float weight=input.weights[influence];unsigned joint=input.joints[influence];
@@ -1346,9 +1382,11 @@ void ragdollMesh(const RagdollPart* bodies){
         }
         normal=game::norm(normal);
         const auto& v=input.base;
-        output.push_back({world.x,world.y,world.z,normal.x,normal.y,normal.z,
-            v.u,v.v,v.r,v.g,v.b,v.a});
-    }
+        output[start+index]={world.x,world.y,world.z,normal.x,normal.y,normal.z,
+            v.u,v.v,v.r,v.g,v.b,v.a};
+    });
+    workStats.skinVertices+=skin->vertices.size();
+    workStats.skinMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
 }
 struct EffectHandler {
     void sprite(const char* type,Vec3 bottom,float width,float height,float yaw,
@@ -1609,7 +1647,9 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buildScene(groups,instances,pose.eye.x,pose.eye.y,pose.eye.z);
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
-                float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly){
+                float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly,cpu::Pool* jobs){
+    sceneJobs=jobs;workStats={};
+    struct ResetJobs {~ResetJobs(){sceneJobs=nullptr;}} resetJobs;
     buckets=groups;modelInstances=&instances;instances.clear();
     skinInstances=gpuSkins;if(skinInstances)skinInstances->clear();
     lodEye={cameraX,cameraY,cameraZ};
@@ -1628,4 +1668,5 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
         sphere({game::player.x+std::cos(angle)*820,solar*600+130,
             game::player.z-160},47.0f,game::rgb(255,230,151));
 }
+const SceneWorkStats& sceneWorkStats(){return workStats;}
 }

@@ -1,0 +1,36 @@
+2026-9-28 7:43:8  Application started
+2026-9-28 7:43:8  Startup: Starting Mini City 3D took 0.005 s
+2026-9-28 7:43:8  Startup: Starting Direct3D 11
+2026-9-28 7:43:8  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 7:43:8  Startup: Starting Direct3D 11 took 0.069 s
+2026-9-28 7:43:8  Startup: Compiling graphics shaders
+2026-9-28 7:43:9  Startup: Compiling graphics shaders took 1.501 s
+2026-9-28 7:43:9  Startup: Creating graphics buffers and shadows
+2026-9-28 7:43:10  Startup: Creating graphics buffers and shadows took 0.993 s
+2026-9-28 7:43:10  Startup: Loading surface textures
+2026-9-28 7:43:11  Startup: Loading surface textures took 0.995 s
+2026-9-28 7:43:11  Startup: Loading city models and animations
+2026-9-28 7:43:12  Startup: Loading city models and animations took 0.320 s
+2026-9-28 7:43:12  Startup: Preparing city geometry
+2026-9-28 7:43:12  Startup: Preparing city geometry took 0.001 s
+2026-9-28 7:43:12  Startup: Uploading regional graphics
+2026-9-28 7:43:23  Startup: Uploading regional graphics took 11.108 s
+2026-9-28 7:43:23  Startup: Loading HDR lighting
+2026-9-28 7:43:23  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-9-28 7:43:23  Renderer initialized
+2026-9-28 7:43:23  Startup: Loading HDR lighting took 0.015 s
+2026-9-28 7:43:23  Startup: Starting audio and loading settings
+2026-9-28 7:43:23  Startup: Starting audio and loading settings took 0.360 s
+2026-9-28 7:43:23  Startup: Loading gameplay data
+2026-9-28 7:43:23  Startup: Loading gameplay data took 0.002 s
+2026-9-28 7:43:23  Startup: Building the city and physics world
+2026-9-28 7:43:23  Startup: Building the city and physics world took 0.014 s
+2026-9-28 7:43:23  Startup: Loading saved progress
+2026-9-28 7:43:23  Startup: Loading saved progress took 0.000 s
+2026-9-28 7:43:23  Startup: Preparing the first frame
+2026-9-28 7:43:23  GPU skinning: 9 ordinary poses, 136320 vertices; shared color/shadow buffer
+2026-9-28 7:43:23  Startup: Preparing the first frame took 0.302 s
+2026-9-28 7:43:23  Startup: Ready
+2026-9-28 7:43:23  Startup ready in 15.685 s
+2026-9-28 7:43:24  Smoke render completed
+2026-9-28 7:43:24  Application stopped

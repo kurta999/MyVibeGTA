@@ -98,6 +98,7 @@ extern float frameRate,frameMs,simulationMs,physicsMs;
 extern int drawCalls,activeAi;
 extern std::uint64_t triangleCount;
 extern float gpuShadowMs,gpuSceneMs,gpuPostMs;
+extern float renderSceneMs,renderUploadMs,renderDrawMs,renderPresentMs;
 extern POINT lastMouse;
 extern float cameraYaw,cameraPitch,renderAlpha,health,fireCooldown,invulnerable,walkPhase,stepTimer,muzzleFlash;
 extern CameraMode cameraMode;

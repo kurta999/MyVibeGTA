@@ -1,0 +1,5 @@
+day: differing pixels 15/2073600; max channel delta 75; total delta 169; bounds 1410,575..1425,594
+night: differing pixels 3/2073600; max channel delta 24; total delta 91; bounds 542,207..1819,260
+woods: differing pixels 0/2073600; max channel delta 0; total delta 0; bounds 1920,1080..-1,-1
+day serial repeat: differing pixels 0/2073600; max channel delta 0; total delta 0; bounds 1920,1080..-1,-1
+night serial repeat: differing pixels 3/2073600; max channel delta 24; total delta 90; bounds 542,207..761,260

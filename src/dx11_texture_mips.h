@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <atomic>
 #include <vector>
 
 namespace dx11::texture {
@@ -10,5 +11,5 @@ struct Level {
     std::vector<std::uint8_t> pixels;
 };
 std::vector<Level> generate(unsigned width,unsigned height,
-    const std::uint8_t* bgra,Kind kind);
+    const std::uint8_t* bgra,Kind kind,const std::atomic<bool>* cancelled=nullptr);
 }

@@ -23,11 +23,13 @@ float coverage(const Level& level,float scale){
         covered+=std::min(255.0f,level.pixels[i]*scale)>=128.0f;
     return float(covered)/float(level.width*level.height);
 }
-void dilate(Level& level){
+bool dilate(Level& level,const std::atomic<bool>* cancelled){
     // Fill transparent texels with nearby opaque RGB before filtering. This
     // avoids dark fringes at cutout edges without changing alpha coverage.
     const auto original=level.pixels;
-    for(unsigned y=0;y<level.height;++y)for(unsigned x=0;x<level.width;++x){
+    for(unsigned y=0;y<level.height;++y){
+      if(cancelled&&cancelled->load(std::memory_order_relaxed))return false;
+      for(unsigned x=0;x<level.width;++x){
         const std::size_t at=(std::size_t(y)*level.width+x)*4;
         if(original[at+3])continue;
         int best=25,bx=-1,by=-1;
@@ -41,16 +43,18 @@ void dilate(Level& level){
             std::size_t from=(std::size_t(by)*level.width+bx)*4;
             std::memcpy(level.pixels.data()+at,original.data()+from,3);
         }
+      }
     }
+    return true;
 }
 }
 std::vector<Level> generate(unsigned width,unsigned height,
-    const std::uint8_t* bgra,Kind kind){
-    if(!width||!height||!bgra)return {};
+    const std::uint8_t* bgra,Kind kind,const std::atomic<bool>* cancelled){
+    if(!width||!height||!bgra||(cancelled&&cancelled->load()))return {};
     std::vector<Level> levels;
     Level first{width,height,std::vector<std::uint8_t>(std::size_t(width)*height*4)};
     std::memcpy(first.pixels.data(),bgra,first.pixels.size());
-    if(kind==Kind::MaskedColor)dilate(first);
+    if(kind==Kind::MaskedColor&&!dilate(first,cancelled))return {};
     if(kind==Kind::Normal)
         for(std::size_t i=3;i<first.pixels.size();i+=4)first.pixels[i]=255;
     const float originalCoverage=kind==Kind::MaskedColor?coverage(first,1):0;
@@ -59,7 +63,9 @@ std::vector<Level> generate(unsigned width,unsigned height,
         const Level& previous=levels.back();
         Level next{std::max(1u,width/2),std::max(1u,height/2),{}};
         next.pixels.resize(std::size_t(next.width)*next.height*4);
-        for(unsigned y=0;y<next.height;++y)for(unsigned x=0;x<next.width;++x){
+        for(unsigned y=0;y<next.height;++y){
+          if(cancelled&&cancelled->load(std::memory_order_relaxed))return {};
+          for(unsigned x=0;x<next.width;++x){
             float sum[4]{};
             unsigned x0=x*width/next.width,x1=(x+1)*width/next.width;
             unsigned y0=y*height/next.height,y1=(y+1)*height/next.height;
@@ -98,6 +104,7 @@ std::vector<Level> generate(unsigned width,unsigned height,
                 }
                 output[3]=byte(alpha);
             }
+          }
         }
         if(kind==Kind::MaskedColor&&originalCoverage>0&&originalCoverage<1){
             float lo=0,hi=8;
@@ -107,7 +114,7 @@ std::vector<Level> generate(unsigned width,unsigned height,
             }
             for(std::size_t i=3;i<next.pixels.size();i+=4)
                 next.pixels[i]=byte(next.pixels[i]*hi/255.0f);
-            dilate(next);
+            if(!dilate(next,cancelled))return {};
         }
         width=next.width;height=next.height;
         levels.push_back(std::move(next));

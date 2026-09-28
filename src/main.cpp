@@ -29,6 +29,7 @@
 #include "jolt_world.h"
 #include "startup.h"
 #include "resource.h"
+#include "dx11_assets.h"
 #endif
 #include <cstring>
 #include <cstdio>
@@ -46,7 +47,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
     startup::Session loading(!smoke);
 #endif
-    std::srand(unsigned(std::time(nullptr)));
+    std::srand(smoke?1u:unsigned(std::time(nullptr)));
     WNDCLASSA wc{};wc.style=CS_OWNDC;wc.lpfnWndProc=input::windowProc;wc.hInstance=instance;
     wc.hCursor=LoadCursor(nullptr,IDC_CROSS);wc.lpszClassName="MiniCity3D";
 #ifdef MINI_CITY_JOLT
@@ -571,6 +572,8 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             double simulationTotal=0,renderTotal=0,physicsTotal=0;
             double drawTotal=0,aiTotal=0,triangleTotal=0;
             double gpuShadowTotal=0,gpuSceneTotal=0,gpuPostTotal=0;
+            double sceneCpuTotal=0,uploadCpuTotal=0,drawCpuTotal=0,presentCpuTotal=0;
+            double skinCpuTotal=0,grassCpuTotal=0,skinVerticesTotal=0,sceneJobsTotal=0;
             int gpuSamples=0;
             for(int frame=0;frame<frames;++frame){
                 QueryPerformanceCounter(&start);
@@ -596,6 +599,13 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 physicsTotal+=physicsMs;
                 QueryPerformanceCounter(&middle);
                 render();
+                sceneCpuTotal+=renderSceneMs;uploadCpuTotal+=renderUploadMs;
+                drawCpuTotal+=renderDrawMs;presentCpuTotal+=renderPresentMs;
+#ifdef MINI_CITY_JOLT
+                const auto& sceneWork=dx11::sceneWorkStats();
+                skinCpuTotal+=sceneWork.skinMs;grassCpuTotal+=sceneWork.grassMs;
+                skinVerticesTotal+=sceneWork.skinVertices;sceneJobsTotal+=sceneWork.jobBatches;
+#endif
                 drawTotal+=drawCalls;
                 triangleTotal+=double(triangleCount);
                 aiTotal+=activeAi;
@@ -642,6 +652,14 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             else std::snprintf(gpuResult,sizeof(gpuResult),
                 "GPU timing unavailable; submitted triangles %.0f/frame",triangleTotal/frames);
             logging::write(gpuResult);
+            std::snprintf(gpuResult,sizeof(gpuResult),
+                "CPU scene work: deformation %.3f ms (%0.f vertices/frame), grass rebuild %.3f ms, %.2f parallel batches/frame",
+                skinCpuTotal/frames,skinVerticesTotal/frames,grassCpuTotal/frames,sceneJobsTotal/frames);
+            logging::write(gpuResult);
+            std::snprintf(gpuResult,sizeof(gpuResult),
+                "CPU rendering: scene %.3f ms, upload/cull %.3f ms, draw/HUD %.3f ms, present %.3f ms (seed 1)",
+                sceneCpuTotal/frames,uploadCpuTotal/frames,drawCpuTotal/frames,presentCpuTotal/frames);
+            logging::write(gpuResult);
         }else{
 #ifdef MINI_CITY_JOLT
             if(commandLine&&std::strstr(commandLine,"--bake-probes")){
@@ -683,6 +701,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     while(running){MSG msg{};while(PeekMessageA(&msg,nullptr,0,0,PM_REMOVE)){
         if(msg.message==WM_QUIT){running=false;break;}TranslateMessage(&msg);DispatchMessageA(&msg);}
         if(!running)break;
+        if(savegame::takeFailure()){
+            message="Could not autosave game. Try Save from the pause menu.";messageTime=5;
+            logging::write("Background autosave failed");
+        }
         input::syncLookCapture();
         QueryPerformanceCounter(&now);
         double dt=std::clamp(double(now.QuadPart-last.QuadPart)/double(frequency.QuadPart),0.0,0.25);last=now;
@@ -708,7 +730,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
         Sleep(1);
     }
+    if(!savegame::flush())logging::write("Final autosave failed");
     audio::shutdown();shutdownRenderer();logging::shutdown();
     return 0;
 }
-

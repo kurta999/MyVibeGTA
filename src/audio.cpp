@@ -22,6 +22,24 @@ IXAudio2* engine=nullptr;
 IXAudio2MasteringVoice* master=nullptr;
 bool comInitialized=false;
 std::array<Channel,16> channels;
+#ifdef MINI_CITY_JOLT
+// Immutable PCM lives until all voices have been destroyed. Noise-based sounds
+// rotate through four prepared takes rather than generating samples on play.
+constexpr int EFFECTS=int(Effect::Count);
+std::array<Channel,EFFECTS*6*4> prepared;
+std::array<unsigned,EFFECTS*6> takeCursor{};
+int normalizedVariant(Effect effect,int variant){
+    if(effect==Effect::Engine)return std::clamp(variant,0,5);
+    if(effect==Effect::Shot)return variant==2||variant==4?variant:0;
+    if(effect==Effect::Step)return variant==1?1:0;
+    return 0;
+}
+int takes(Effect effect){
+    return effect==Effect::Shot||effect==Effect::SilencedShot||effect==Effect::Step||
+        effect==Effect::Splash||effect==Effect::Hit||effect==Effect::Reload||
+        effect==Effect::Surf||effect==Effect::Skid?4:1;
+}
+#endif
 int voiceCursor=0;
 float listenerX=0,listenerZ=0,listenerYaw=0;
 uint32_t noiseState=0x4a3b2c1du;
@@ -79,6 +97,7 @@ void synthesize(Channel& channel,Effect effect,int variant){
 
 void submit(Effect effect,int variant,bool positioned,float x,float z){
     if(!engine||!master)return;
+    if(int(effect)<0||int(effect)>=int(Effect::Count))return;
     int chosen=-1;
     for(int i=0;i<int(channels.size());++i){
         int index=(voiceCursor+i)%int(channels.size());
@@ -95,7 +114,13 @@ void submit(Effect effect,int variant,bool positioned,float x,float z){
     voiceCursor=(chosen+1)%int(channels.size());
     Channel& channel=channels[chosen];
     channel.voice->Stop(0);channel.voice->FlushSourceBuffers();
+#ifdef MINI_CITY_JOLT
+    int clip=int(effect)*6+normalizedVariant(effect,variant);
+    const auto& samples=prepared[clip*4+takeCursor[clip]++%takes(effect)].samples;
+#else
     synthesize(channel,effect,variant);
+    const auto& samples=channel.samples;
+#endif
     float gains[2]={0.7071f,0.7071f};
     if(positioned){
         float dx=x-listenerX,dz=z-listenerZ;
@@ -108,8 +133,8 @@ void submit(Effect effect,int variant,bool positioned,float x,float z){
     }
     channel.voice->SetOutputMatrix(master,1,2,gains);
     XAUDIO2_BUFFER buffer{};
-    buffer.AudioBytes=UINT32(channel.samples.size()*sizeof(short));
-    buffer.pAudioData=reinterpret_cast<const BYTE*>(channel.samples.data());
+    buffer.AudioBytes=UINT32(samples.size()*sizeof(short));
+    buffer.pAudioData=reinterpret_cast<const BYTE*>(samples.data());
     buffer.Flags=XAUDIO2_END_OF_STREAM;
     if(SUCCEEDED(channel.voice->SubmitSourceBuffer(&buffer)))channel.voice->Start(0);
 }
@@ -128,6 +153,15 @@ bool init(){
     int ready=0;
     for(auto& channel:channels)if(SUCCEEDED(engine->CreateSourceVoice(&channel.voice,&format)))++ready;
     if(ready==0){shutdown();return false;}
+#ifdef MINI_CITY_JOLT
+    noiseState=0x4a3b2c1du;takeCursor={};
+    for(int effect=0;effect<EFFECTS;++effect)for(int variant=0;variant<6;++variant){
+        auto kind=Effect(effect);
+        if(normalizedVariant(kind,variant)!=variant)continue;
+        for(int take=0;take<takes(kind);++take)
+            synthesize(prepared[(effect*6+variant)*4+take],kind,variant);
+    }
+#endif
     return true;
 }
 void setListener(float x,float z,float yaw){listenerX=x;listenerZ=z;listenerYaw=yaw;}
@@ -139,6 +173,10 @@ void shutdown(){
         channel.voice->DestroyVoice();channel.voice=nullptr;channel.samples.clear();}
     if(master){master->DestroyVoice();master=nullptr;}
     if(engine){engine->Release();engine=nullptr;}
+#ifdef MINI_CITY_JOLT
+    for(auto& clip:prepared)clip.samples.clear();
+    takeCursor={};
+#endif
     if(comInitialized){CoUninitialize();comInitialized=false;}
 }
 }

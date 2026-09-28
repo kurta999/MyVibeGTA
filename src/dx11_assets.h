@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+namespace cpu {class Pool;}
 
 namespace dx11 {
 constexpr int MATERIAL_GROUPS=16;
@@ -76,7 +77,9 @@ const SkinMesh* skinMesh(const std::string& name);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
                 float cameraX,float cameraY,float cameraZ,
-                std::vector<SkinInstance>* gpuSkins=nullptr,bool staticOnly=false);
+                std::vector<SkinInstance>* gpuSkins=nullptr,bool staticOnly=false,cpu::Pool* jobs=nullptr);
+struct SceneWorkStats {std::size_t skinVertices=0;unsigned jobBatches=0;double skinMs=0,grassMs=0;};
+const SceneWorkStats& sceneWorkStats();
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]);
 void buildHud(unsigned char* pixels,int width,int height);
 void shutdownHud();

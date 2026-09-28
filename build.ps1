@@ -65,7 +65,7 @@ if ($OpenGL) {
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
     & $cmake --build $buildDirectory --config Release `
-        --target MiniCity3D simulation_smoke asset_smoke texture_mips_smoke probe_smoke startup_smoke --parallel 6
+        --target MiniCity3D simulation_smoke asset_smoke texture_mips_smoke texture_loading_smoke shader_loading_smoke probe_smoke startup_smoke save_jobs_smoke audio_smoke --parallel 6
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)." }
     # Cooked assets can change without relinking. Refresh the executable's
     # working set before tests even when Ninja reports no work to do.

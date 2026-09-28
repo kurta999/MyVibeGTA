@@ -1,0 +1,11 @@
+Actual loading window created after 0,050 s
+Actual game cancellation exited cleanly after 1,269 s; cancellation latency 1,042 s
+2026-9-28 8:20:3  Application started
+2026-9-28 8:20:3  Startup: Starting Mini City 3D took 0.006 s
+2026-9-28 8:20:3  Startup: Starting Direct3D 11
+2026-9-28 8:20:3  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 8:20:3  Startup: Starting Direct3D 11 took 0.046 s
+2026-9-28 8:20:3  Startup: Compiling graphics shaders
+2026-9-28 8:20:4  Shader loading: workers 4, peak active 4, completed 2/15, wall 1.182 s, CPU 0.023 s (stopped)
+2026-9-28 8:20:4  Startup cancelled in 1.235 s
+2026-9-28 8:20:4  Application stopped

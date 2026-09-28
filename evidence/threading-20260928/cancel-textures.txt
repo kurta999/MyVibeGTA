@@ -1,0 +1,21 @@
+2026-9-28 8:19:59  Application started
+2026-9-28 8:19:59  Startup: Starting Mini City 3D took 0.007 s
+2026-9-28 8:19:59  Startup: Starting Direct3D 11
+2026-9-28 8:19:59  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 8:19:59  Startup: Starting Direct3D 11 took 0.052 s
+2026-9-28 8:19:59  Startup: Compiling graphics shaders
+2026-9-28 8:20:0  Shader loading: workers 4, peak active 4, completed 15/15, wall 1.164 s, CPU 1.431 s
+2026-9-28 8:20:0  Startup: Compiling graphics shaders took 1.170 s
+2026-9-28 8:20:0  Startup: Creating graphics buffers and shadows
+2026-9-28 8:20:2  Startup: Creating graphics buffers and shadows took 1.348 s
+2026-9-28 8:20:2  Startup: Loading surface textures
+2026-9-28 8:20:2  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.542 s, decode CPU 0.306 s, mip CPU 0.831 s, upload 0.084 s
+2026-9-28 8:20:2  Startup: Loading surface textures took 0.542 s
+2026-9-28 8:20:2  Startup: Loading city models and animations
+2026-9-28 8:20:3  Startup: Loading city models and animations took 0.570 s
+2026-9-28 8:20:3  Startup: Preparing city geometry
+2026-9-28 8:20:3  Startup: Preparing city geometry took 0.003 s
+2026-9-28 8:20:3  Startup: Preparing regional textures
+2026-9-28 8:20:3  Texture loading: Preparing regional textures; workers 4, peak active 0, completed 0/117, pending <= 4, wall 0.202 s, decode CPU 0.000 s, mip CPU 0.000 s, upload 0.000 s (stopped)
+2026-9-28 8:20:3  Startup cancelled in 3.892 s
+2026-9-28 8:20:3  Application stopped

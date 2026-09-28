@@ -52,6 +52,7 @@ float frameRate=0,frameMs=0,simulationMs=0,physicsMs=0;
 int drawCalls=0,activeAi=0;
 std::uint64_t triangleCount=0;
 float gpuShadowMs=-1,gpuSceneMs=-1,gpuPostMs=-1;
+float renderSceneMs=0,renderUploadMs=0,renderDrawMs=0,renderPresentMs=0;
 std::string message;
 #ifdef MINI_CITY_JOLT
 bool screenshotRequested=false;
@@ -231,7 +232,7 @@ bool repairVehicle(int index){
     if(repairKits<=0){announce("Need a repair kit.",3);return false;}
     --repairKits;vehicle.damage=0;vehicle.burnTime=0;vehicle.explosionVisualTime=0;
     announce("VEHICLE REPAIRED",3);audio::play(audio::Effect::Pickup);
-    savegame::save();return true;
+    savegame::request();return true;
 }
 void missionCard(const std::string& title,const std::string& detail,float seconds=3){
     missionBannerTitle=title;missionBannerDetail=detail;missionBannerTime=seconds;
@@ -243,7 +244,7 @@ void completeMission(){
     missionCard("MISSION PASSED",std::string(m.name)+"  +$"+std::to_string(m.reward),4);
     audio::play(audio::Effect::Success);
     activeMission=-1;missionStep=0;
-    savegame::save();
+    savegame::request();
 }
 int nextMission(){
     for(int index=0;index<int(missions.size());++index)if(!missionDone[index])return index;
@@ -553,14 +554,14 @@ void interact(){
     Interaction action=chooseInteraction();
     interactionSelection=0;
 #ifdef MINI_CITY_JOLT
-    if(action.type==InteractionType::AnimalLoot){wildlife::loot(action.index);savegame::save();return;}
+    if(action.type==InteractionType::AnimalLoot){wildlife::loot(action.index);savegame::request();return;}
 #endif
     if(action.type==InteractionType::Loot){
         Ped& ped=peds[action.index];
         int found=ped.cash;ped.cash=0;ped.looted=true;
         creditMoney(found);
         announce("LOOTED $"+std::to_string(found),3);
-        savegame::save();
+        savegame::request();
     }else if(action.type==InteractionType::Pickpocket){
         Ped& ped=peds[action.index];
         if(randi(100)<content::pickpocketNoticePercent()){
@@ -574,7 +575,7 @@ void interact(){
             int stolen=ped.cash;ped.cash=0;
             creditMoney(stolen);
             announce("STOLE $"+std::to_string(stolen),3);
-            savegame::save();
+            savegame::request();
         }
     }else if(action.type==InteractionType::Talk)ai::talkToPed(action.index);
     else if(action.type==InteractionType::Repair)repairVehicle(action.index);
@@ -754,7 +755,7 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
     armedKills[weaponIndex]=std::min(100000,armedKills[weaponIndex]+1);
     if(armedKills[weaponIndex]==100&&weapons::stats(weaponIndex).dualWieldAllowed)
         announce("DUAL WIELD UNLOCKED: "+weapons::stats(weaponIndex).name,5);
-    savegame::save();
+    savegame::request();
 }
 void shoot(){
 #ifdef MINI_CITY_JOLT
@@ -1058,7 +1059,7 @@ void update(float dt){
             if(driftReward>0){
                 creditMoney(driftReward);
                 announce("DRIFT +$"+std::to_string(driftReward),3);
-                savegame::save();
+                savegame::request();
             }
             if(occupied>=0){
                 player=v.p;
@@ -1106,7 +1107,7 @@ void update(float dt){
                 magazine[pickup.weapon]=loaded;ammo[pickup.weapon]-=loaded;}
             weapon=pickup.weapon;announce(std::string("PICKED UP ")+weapons::stats(weapon).name+" + AMMO",4);
             audio::play(audio::Effect::Pickup);
-            savegame::save();
+            savegame::request();
         }
     }
     for(auto& bullet:bullets){

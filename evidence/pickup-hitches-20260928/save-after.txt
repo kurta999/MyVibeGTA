@@ -1,0 +1,6 @@
+Synchronous save 1: 8.904 ms
+Synchronous save 2: 18.643 ms
+Synchronous save 3: 4.223 ms
+Background save 1: caller 0.296 ms, completed 3.554 ms
+Background save 2: caller 0.271 ms, completed 3.375 ms
+Background save 3: caller 0.285 ms, completed 3.421 ms

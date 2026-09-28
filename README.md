@@ -177,6 +177,8 @@ A car starts near the player. Follow the gold map line to the next mission marke
 
 Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `savegame.ini`. These files, `MiniCity3D.log`, and the `screenshots/` directory are located beside the executable. Mission rewards and weapon pickups also trigger saves.
 
+In the DX11 game, autosaves capture a snapshot on the gameplay thread and write it on a dedicated worker. One active write and one pending snapshot bound the queue; newer requests replace an unwritten pending snapshot. The worker writes a complete temporary INI and replaces the destination after flushing it. Manual Save waits for completion, Load waits for pending writes, and normal shutdown drains them. Failed autosaves report a message while preserving the previous save. Sound effects reuse PCM prepared during startup, including four takes for noise-based sounds, and held-weapon graphics are prepared before gameplay. See [pickup hitch measurements](evidence/pickup-hitches-20260928/README.md).
+
 ## Animals and destructible trees
 
 Twenty countryside groves contain tigers, elephants, cats, dogs, pigs, cows, capybaras, bears, goats, donkeys, roe deer, deer, weasels, beavers, and mice. Grove centers use X = 3000/4000/5000/6000/7000 and Z = 1300/3900/6400/9000. Each grove has up to eight animals with stable save IDs; distant wildlife sleeps until approached.

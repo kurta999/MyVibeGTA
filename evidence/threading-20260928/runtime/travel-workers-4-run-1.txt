@@ -1,0 +1,90 @@
+2026-9-28 8:1:56  Application started
+2026-9-28 8:1:56  Startup: Starting Mini City 3D took 0.007 s
+2026-9-28 8:1:56  Startup: Starting Direct3D 11
+2026-9-28 8:1:56  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 8:1:56  Startup: Starting Direct3D 11 took 0.058 s
+2026-9-28 8:1:56  Startup: Compiling graphics shaders
+2026-9-28 8:1:57  Shader loading: workers 4, peak active 4, completed 15/15, wall 1.353 s, CPU 1.698 s
+2026-9-28 8:1:57  Startup: Compiling graphics shaders took 1.359 s
+2026-9-28 8:1:57  Startup: Creating graphics buffers and shadows
+2026-9-28 8:1:59  Startup: Creating graphics buffers and shadows took 1.458 s
+2026-9-28 8:1:59  Startup: Loading surface textures
+2026-9-28 8:1:59  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.653 s, decode CPU 0.386 s, mip CPU 1.086 s, upload 0.039 s
+2026-9-28 8:1:59  Startup: Loading surface textures took 0.653 s
+2026-9-28 8:1:59  Startup: Loading city models and animations
+2026-9-28 8:2:0  Startup: Loading city models and animations took 0.637 s
+2026-9-28 8:2:0  Startup: Preparing city geometry
+2026-9-28 8:2:0  Startup: Preparing city geometry took 0.002 s
+2026-9-28 8:2:0  Startup: Preparing regional textures
+2026-9-28 8:2:7  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 117/117, pending <= 4, wall 6.563 s, decode CPU 2.224 s, mip CPU 17.946 s, upload 0.158 s
+2026-9-28 8:2:7  Startup: Preparing regional textures took 6.563 s
+2026-9-28 8:2:7  Startup: Uploading regional graphics
+2026-9-28 8:2:7  Startup: Uploading regional graphics took 0.067 s
+2026-9-28 8:2:7  Startup: Loading HDR lighting
+2026-9-28 8:2:7  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-9-28 8:2:7  Renderer initialized
+2026-9-28 8:2:7  Startup: Loading HDR lighting took 0.023 s
+2026-9-28 8:2:7  Startup: Starting audio and loading settings
+2026-9-28 8:2:7  Startup: Starting audio and loading settings took 0.389 s
+2026-9-28 8:2:7  Startup: Loading gameplay data
+2026-9-28 8:2:7  Startup: Loading gameplay data took 0.002 s
+2026-9-28 8:2:7  Startup: Building the city and physics world
+2026-9-28 8:2:7  Startup: Building the city and physics world took 0.017 s
+2026-9-28 8:2:7  Startup: Loading saved progress
+2026-9-28 8:2:7  Startup: Loading saved progress took 0.000 s
+2026-9-28 8:2:7  Startup: Preparing the first frame
+2026-9-28 8:2:7  GPU skinning: 9 ordinary poses, 136320 vertices; shared color/shadow buffer
+2026-9-28 8:2:7  Travel frame at 300,250: scene 65.5 ms, uploads 208.6 ms, draw/HUD 18.4 ms, present 28.7 ms
+2026-9-28 8:2:7  Travel frame at 12000,8500: scene 16.3 ms, uploads 1.9 ms, draw/HUD 12.3 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 12000,8500: scene 14.0 ms, uploads 1.6 ms, draw/HUD 53.6 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 12000,8500: scene 26.1 ms, uploads 1.6 ms, draw/HUD 4.2 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 12000,8500: scene 12.6 ms, uploads 1.6 ms, draw/HUD 15.7 ms, present 0.3 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 17.0 ms, uploads 4.0 ms, draw/HUD 8.8 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 12.5 ms, uploads 2.4 ms, draw/HUD 30.3 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 26.7 ms, uploads 3.5 ms, draw/HUD 8.8 ms, present 0.8 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 26.9 ms, uploads 3.3 ms, draw/HUD 9.4 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 10.2 ms, uploads 2.2 ms, draw/HUD 25.3 ms, present 0.6 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 26.7 ms, uploads 3.4 ms, draw/HUD 8.7 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 9.5 ms, uploads 2.9 ms, draw/HUD 26.4 ms, present 0.6 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 26.5 ms, uploads 3.4 ms, draw/HUD 8.6 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 11.0 ms, uploads 4.3 ms, draw/HUD 24.8 ms, present 0.6 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 29.1 ms, uploads 3.4 ms, draw/HUD 8.9 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 10.0 ms, uploads 1.7 ms, draw/HUD 30.6 ms, present 1.1 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 31.4 ms, uploads 3.9 ms, draw/HUD 7.6 ms, present 0.4 ms
+2026-9-28 8:2:8  Travel frame at 7800,8500: scene 10.5 ms, uploads 1.6 ms, draw/HUD 37.2 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 26.5 ms, uploads 3.4 ms, draw/HUD 8.1 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 26.4 ms, uploads 3.4 ms, draw/HUD 8.7 ms, present 0.3 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 9.7 ms, uploads 1.6 ms, draw/HUD 32.8 ms, present 0.4 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 13.6 ms, uploads 1.8 ms, draw/HUD 28.6 ms, present 0.7 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 27.3 ms, uploads 3.2 ms, draw/HUD 8.3 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 27.3 ms, uploads 3.3 ms, draw/HUD 9.9 ms, present 0.3 ms
+2026-9-28 8:2:9  Travel frame at 7800,8500: scene 9.7 ms, uploads 1.7 ms, draw/HUD 27.6 ms, present 0.4 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 16.1 ms, uploads 5.0 ms, draw/HUD 14.7 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 20.0 ms, uploads 4.5 ms, draw/HUD 48.3 ms, present 0.4 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 9.9 ms, uploads 2.3 ms, draw/HUD 67.8 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 19.2 ms, uploads 3.8 ms, draw/HUD 48.3 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 19.0 ms, uploads 3.8 ms, draw/HUD 45.3 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 19.6 ms, uploads 3.9 ms, draw/HUD 47.9 ms, present 0.5 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 20.3 ms, uploads 3.6 ms, draw/HUD 46.5 ms, present 0.5 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 19.4 ms, uploads 3.9 ms, draw/HUD 50.4 ms, present 0.6 ms
+2026-9-28 8:2:9  Travel frame at 5000,6000: scene 19.6 ms, uploads 3.7 ms, draw/HUD 45.0 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 20.0 ms, uploads 3.7 ms, draw/HUD 47.3 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 19.3 ms, uploads 3.8 ms, draw/HUD 47.2 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 19.1 ms, uploads 3.9 ms, draw/HUD 46.2 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 18.9 ms, uploads 3.6 ms, draw/HUD 43.8 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 20.2 ms, uploads 3.8 ms, draw/HUD 49.6 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 19.5 ms, uploads 4.3 ms, draw/HUD 52.5 ms, present 0.4 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 17.3 ms, uploads 4.1 ms, draw/HUD 53.0 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 15.3 ms, uploads 3.3 ms, draw/HUD 54.1 ms, present 0.4 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 10.4 ms, uploads 3.3 ms, draw/HUD 57.5 ms, present 0.6 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 19.0 ms, uploads 4.1 ms, draw/HUD 42.6 ms, present 0.5 ms
+2026-9-28 8:2:10  Travel frame at 5000,6000: scene 14.9 ms, uploads 3.0 ms, draw/HUD 49.6 ms, present 0.4 ms
+2026-9-28 8:2:10  Travel frame at 12000,3000: scene 24.2 ms, uploads 1.4 ms, draw/HUD 42.1 ms, present 0.6 ms
+2026-9-28 8:2:12  Benchmark travel 1920x1080: avg 34.55 ms (sim 1.66, physics 1.20, render 32.89), p95 75.05 ms, p99 78.86 ms, max 81.84 ms, draws 283, active AI 18 over 120 frames, 0 flames, RAM 678 MiB, nearby trees 102/8483, decorations 0/6574
+2026-9-28 8:2:12  GPU timing: shadow 17.17 ms, scene 8.79 ms, post/HUD 5.07 ms (119 nonblocking samples); submitted triangles 8855610/frame
+2026-9-28 8:2:12  CPU rendering: scene 12.604 ms, upload/cull 2.071 ms, draw/HUD 17.758 ms, present 0.418 ms (seed 1)
+2026-9-28 8:2:12  Startup: Preparing the first frame took 4.468 s
+2026-9-28 8:2:12  Startup: Ready
+2026-9-28 8:2:12  Startup ready in 15.704 s
+2026-9-28 8:2:12  Smoke render completed
+2026-9-28 8:2:12  Application stopped

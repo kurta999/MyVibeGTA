@@ -3,6 +3,7 @@
 #include "../src/physics.h"
 #include "../src/props.h"
 #include "../src/savegame.h"
+#include "../src/audio.h"
 #include "../src/weapons.h"
 #include "../src/camera.h"
 #include "../src/input.h"
@@ -34,6 +35,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <chrono>
 
 double connectedPlayableArea(){
     constexpr int step=100;
@@ -78,7 +80,70 @@ void birdScenarios();
 void driverScenarios();
 void vehicleCollisionScenarios();
 void pedScenarios();
+void sceneJobScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&std::string(argv[1])=="--save-benchmark-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();
+        for(int run=0;run<3;++run){
+            auto begin=std::chrono::steady_clock::now();assert(savegame::save());
+            std::printf("Synchronous save %d: %.3f ms\n",run+1,
+                std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count());
+        }
+        for(int run=0;run<3;++run){
+            auto begin=std::chrono::steady_clock::now();savegame::request();
+            double requestMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();
+            assert(savegame::flush());
+            std::printf("Background save %d: caller %.3f ms, completed %.3f ms\n",run+1,requestMs,
+                std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count());
+        }
+        return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--autosave-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();game::money=123;savegame::request();
+        game::money=999;assert(savegame::load()&&game::money==123);
+        for(int i=0;i<100;++i){game::money=i;savegame::request();}
+        game::money=999;assert(savegame::flush()&&savegame::load()&&game::money==99);
+        char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,filename,MAX_PATH);
+        std::string file(filename);file=file.substr(0,file.find_last_of("\\/")+1)+"savegame.ini";
+        HANDLE locked=CreateFileA(file.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);
+        assert(locked!=INVALID_HANDLE_VALUE);
+        game::money=456;savegame::request();assert(!savegame::flush());CloseHandle(locked);
+        assert(savegame::takeFailure()&&!savegame::takeFailure());
+        // A later successful save recovers, and a failed replacement left the
+        // previous destination intact (load first waits for pending work).
+        assert(GetPrivateProfileIntA("Player","Money",0,file.c_str())==99);
+        assert(savegame::load()&&game::money==99);game::money=456;
+        assert(savegame::save()&&savegame::load()&&game::money==456);
+        game::reset();assert(!game::pickups.empty());
+        auto pickup=game::pickups.front();game::player=pickup.p;game::previousPlayer=pickup.p;
+        game::update(1.0f/60.0f);
+        assert(!game::pickups.front().available&&game::weapon==pickup.weapon);
+        game::weapon=0;assert(savegame::load()&&game::weapon==pickup.weapon);
+        std::puts("Autosave snapshot isolation, latest request, load/flush, replacement failure, recovery and weapon pickup passed");
+        return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--audio-benchmark-only"){
+        if(!audio::init()){std::puts("Audio device unavailable");return 1;}
+        audio::setVolume(0);
+        for(auto effect:{audio::Effect::Pickup,audio::Effect::Shot,audio::Effect::Surf}){
+            std::vector<double> times;
+            for(int i=0;i<100;++i){auto begin=std::chrono::steady_clock::now();audio::play(effect);
+                times.push_back(std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-begin).count());}
+            std::sort(times.begin(),times.end());
+            std::printf("Audio effect %d: median %.3f us, p95 %.3f us, max %.3f us\n",
+                int(effect),times[50],times[95],times.back());
+        }
+        audio::shutdown();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--scene-jobs-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();sceneJobScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--peds-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());

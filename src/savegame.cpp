@@ -10,6 +10,9 @@
 #include "traffic.h"
 #include "wildlife.h"
 #include "birds.h"
+#include "save_jobs.h"
+#include <map>
+#include <memory>
 #endif
 #include <algorithm>
 #include <cmath>
@@ -30,6 +33,36 @@ bool writeText(const std::string& section,const char* key,const std::string& val
 bool write(const std::string& section,const char* key,int value,const std::string& file){
     return writeText(section,key,std::to_string(value),file);
 }
+#ifdef MINI_CITY_JOLT
+struct Document {
+    std::map<std::string,std::string> sections;
+    std::string text() const {
+        std::string result;
+        for(const auto& section:sections)result+='['+section.first+"]\r\n"+section.second+"\r\n";
+        return result;
+    }
+};
+bool writeText(const std::string& section,const char* key,const std::string& value,Document& document){
+    document.sections[section]+=std::string(key)+'='+value+"\r\n";return true;
+}
+bool write(const std::string& section,const char* key,int value,Document& document){
+    return writeText(section,key,std::to_string(value),document);
+}
+bool writeDocument(const std::string& file,const std::string& text){
+    const auto temporary=file+".tmp";
+    HANDLE output=CreateFileA(temporary.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,
+        CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+    if(output==INVALID_HANDLE_VALUE)return false;
+    DWORD written=0;
+    bool ok=WriteFile(output,text.data(),DWORD(text.size()),&written,nullptr)&&written==text.size();
+    if(ok)ok=FlushFileBuffers(output)!=0;
+    CloseHandle(output);
+    if(ok)ok=MoveFileExA(temporary.c_str(),file.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=0;
+    if(!ok)DeleteFileA(temporary.c_str());return ok;
+}
+std::unique_ptr<Writer> pendingWriter;
+Writer& writer(){if(!pendingWriter)pendingWriter=std::make_unique<Writer>(writeDocument);return *pendingWriter;}
+#endif
 int read(const std::string& section,const char* key,int fallback,const std::string& file){
     return int(GetPrivateProfileIntA(section.c_str(),key,fallback,file.c_str()));
 }
@@ -38,8 +71,8 @@ std::string readText(const std::string& section,const char* key,const std::strin
     GetPrivateProfileStringA(section.c_str(),key,"",value,sizeof(value),file.c_str());
     return value;
 }
-bool saveCorpsePose(const std::string& section,const game::CorpseSnapshot& pose,
-    const std::string& file){
+template<class Target> bool saveCorpsePose(const std::string& section,const game::CorpseSnapshot& pose,
+    Target& file){
     char value[256]{};
     const auto& first=pose.parts[0];
     std::snprintf(value,sizeof(value),"%.3f,%.3f,%.3f,%.6f,%d",
@@ -84,9 +117,14 @@ bool loadCorpsePose(const std::string& section,const std::string& file,
     return true;
 }
 }
+#ifdef MINI_CITY_JOLT
+Document capture(){
+    Document temporary;
+#else
 bool save(){
     const std::string file=path(),temporary=file+".tmp";
     {std::ofstream clear(temporary,std::ios::trunc);if(!clear)return false;}
+#endif
     bool ok=true;
     ok&=write("Save","Version",game::PLAYER_MAX_HEALTH>100?3:2,temporary);
     ok&=write("Player","X",int(game::player.x),temporary);
@@ -170,6 +208,14 @@ bool save(){
         ok&=write(section,"Z",int(bird.p.z*100),temporary);
     }
 #endif
+#ifdef MINI_CITY_JOLT
+    return temporary;
+}
+bool save(){writer().submit(path(),capture().text());return flush();}
+void request(){writer().submit(path(),capture().text());}
+bool flush(){return !pendingWriter||pendingWriter->flush();}
+bool takeFailure(){return pendingWriter&&pendingWriter->takeFailure();}
+#else
     WritePrivateProfileStringA(nullptr,nullptr,nullptr,temporary.c_str());
     if(!ok||!MoveFileExA(temporary.c_str(),file.c_str(),
             MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)){
@@ -177,7 +223,14 @@ bool save(){
     }
     return true;
 }
+void request(){save();}
+bool flush(){return true;}
+bool takeFailure(){return false;}
+#endif
 bool load(){
+    // Wait for ordering even when the newest write failed; the previous
+    // successfully replaced file remains a valid load target.
+    flush();
     const std::string file=path();
     if(GetFileAttributesA(file.c_str())==INVALID_FILE_ATTRIBUTES)return false;
     int version=read("Save","Version",0,file);

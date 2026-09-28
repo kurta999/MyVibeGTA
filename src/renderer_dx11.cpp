@@ -12,6 +12,9 @@
 #include "camera.h"
 #include "dx11_assets.h"
 #include "dx11_texture_mips.h"
+#include "dx11_texture_loading.h"
+#include "dx11_shader_loading.h"
+#include "cpu_jobs.h"
 #include "dx11_probes.h"
 #include "ui.h"
 #include "weather.h"
@@ -26,11 +29,13 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cwchar>
 #include <fstream>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -41,6 +46,7 @@ using namespace DirectX;
 IDXGISwapChain* swapChain=nullptr;
 ID3D11Device* device=nullptr;
 ID3D11DeviceContext* context=nullptr;
+std::unique_ptr<cpu::Pool> scenePool;
 ID3D11RenderTargetView* target=nullptr;
 ID3D11Texture2D* sceneTexture=nullptr;
 ID3D11RenderTargetView* sceneTarget=nullptr;
@@ -1482,32 +1488,47 @@ float4 PS(Input input):SV_TARGET{
     return float4(sum,1);
 }
 )HLSL";
+unsigned loadingWorkers();
 bool createShaders(){
-    int compiled=0;
-    auto compileStartup=[&](const char* source,const char* entry,const char* profile,ID3DBlob** output){
-        if(!startup::report(5+25*compiled/15,"Compiling graphics shaders"))return false;
-        bool ok=compile(source,entry,profile,output);if(ok)++compiled;return ok;
-    };
     const std::string sceneSource=std::string(probeShader)+sceneShader;
     const std::string reflectionSource=std::string(probeShader)+reflectionShader;
-    ID3DBlob* skinned=nullptr;
-    if(!compileStartup(sceneSource.c_str(),"VSSkinned","vs_5_0",&skinned)){release(skinned);return false;}
-    ID3DBlob *vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr,*motionPixel=nullptr,*temporalPixel=nullptr,*temporalCopyPixel=nullptr;
-    if(!compileStartup(sceneSource.c_str(),"VS","vs_5_0",&vs)||!compileStartup(sceneSource.c_str(),"PS","ps_5_0",&ps)||
-       !compileStartup(sceneSource.c_str(),"VSInstanced","vs_5_0",&instanced)||
-       !compileStartup(sceneSource.c_str(),"PSShadowAlpha","ps_5_0",&shadowAlpha)||
-       !compileStartup(sceneSource.c_str(),"HS","hs_5_0",&hull)||!compileStartup(sceneSource.c_str(),"DS","ds_5_0",&domain)||
-       !compileStartup(hudShader,"VS","vs_5_0",&hudVertex)||!compileStartup(hudShader,"PS","ps_5_0",&hudPixel)||
-       !compileStartup(postShader,"PS","ps_5_0",&postPixel)||
-       !compileStartup(bloomShader,"PS","ps_5_0",&bloomPixel)||
-       !compileStartup(reflectionSource.c_str(),"PS","ps_5_0",&reflectionPixel)||
-       !compileStartup(motionShader,"PS","ps_5_0",&motionPixel)||
-       !compileStartup(temporalShader,"PS","ps_5_0",&temporalPixel)||
-       !compileStartup(temporalCopyShader,"PS","ps_5_0",&temporalCopyPixel)){
-        release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
-        release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
-        release(reflectionPixel);release(motionPixel);release(temporalPixel);
-        release(temporalCopyPixel);release(skinned);return false;}
+    std::vector<dx11::shader::Request> requests={
+        {sceneSource,"VSSkinned","vs_5_0"},{sceneSource,"VS","vs_5_0"},
+        {sceneSource,"PS","ps_5_0"},{sceneSource,"VSInstanced","vs_5_0"},
+        {sceneSource,"PSShadowAlpha","ps_5_0"},{sceneSource,"HS","hs_5_0"},
+        {sceneSource,"DS","ds_5_0"},{hudShader,"VS","vs_5_0"},{hudShader,"PS","ps_5_0"},
+        {postShader,"PS","ps_5_0"},{bloomShader,"PS","ps_5_0"},
+        {reflectionSource,"PS","ps_5_0"},{motionShader,"PS","ps_5_0"},
+        {temporalShader,"PS","ps_5_0"},{temporalCopyShader,"PS","ps_5_0"}};
+    std::vector<dx11::shader::Compiled> compiled;dx11::shader::Stats stats;
+    bool ok=dx11::shader::compileBatch(requests,loadingWorkers(),[](size_t done,size_t total){
+        return startup::report(5+int(25*done/std::max(size_t(1),total)),"Compiling graphics shaders");
+    },compiled,stats);
+    char timing[200]{};std::snprintf(timing,sizeof(timing),
+        "Shader loading: workers %u, peak active %u, completed %zu/%zu, wall %.3f s, CPU %.3f s%s",
+        stats.workers,stats.peakActive,stats.completed,requests.size(),stats.wallSeconds,stats.cpuSeconds,ok?"":" (stopped)");
+    logging::write(timing);
+    if(!ok){
+        for(size_t i=0;i<compiled.size();++i)if(!compiled[i].error.empty()){
+            std::ofstream log("shader-error.log",std::ios::app);
+            if(log)log<<requests[i].entry<<": "<<compiled[i].error<<'\n';
+            logging::write("Graphics shader compilation failed; see shader-error.log");
+            if(!std::strstr(GetCommandLineA(),"--smoke"))
+                MessageBoxA(win,compiled[i].error.c_str(),"Direct3D shader compile error",MB_ICONERROR);
+            break;
+        }
+        return false;
+    }
+    if(std::strstr(GetCommandLineA(),"--validate-loading")){
+        std::uint64_t checksum=14695981039346656037ULL;
+        for(const auto& item:compiled){const auto* bytes=static_cast<const unsigned char*>(item.blob->GetBufferPointer());
+            for(size_t i=0;i<item.blob->GetBufferSize();++i)checksum=(checksum^bytes[i])*1099511628211ULL;}
+        std::snprintf(timing,sizeof(timing),"Shader checksum: %016llx",static_cast<unsigned long long>(checksum));logging::write(timing);
+    }
+    ID3DBlob *skinned=nullptr,*vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr,*motionPixel=nullptr,*temporalPixel=nullptr,*temporalCopyPixel=nullptr;
+    ID3DBlob** destinations[]={&skinned,&vs,&ps,&instanced,&shadowAlpha,&hull,&domain,&hudVertex,&hudPixel,
+        &postPixel,&bloomPixel,&reflectionPixel,&motionPixel,&temporalPixel,&temporalCopyPixel};
+    for(size_t i=0;i<compiled.size();++i){*destinations[i]=compiled[i].blob.get();(*destinations[i])->AddRef();}
     HRESULT result=device->CreateVertexShader(vs->GetBufferPointer(),vs->GetBufferSize(),nullptr,&sceneVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(skinned->GetBufferPointer(),skinned->GetBufferSize(),nullptr,&skinVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(instanced->GetBufferPointer(),instanced->GetBufferSize(),nullptr,&instanceVS);
@@ -1556,25 +1577,17 @@ std::wstring textureKey(const std::wstring& file,dx11::texture::Kind kind){
     return file+L"#"+std::to_wstring(int(kind));
 }
 bool loadTexture(const std::wstring& file,ID3D11ShaderResourceView** view,
-    dx11::texture::Kind kind=dx11::texture::Kind::Color){
-    Gdiplus::Bitmap image(file.c_str());if(image.GetLastStatus()!=Gdiplus::Ok)return false;
-    UINT width=image.GetWidth(),height=image.GetHeight();
-    if(width==0||height==0||width>8192||height>8192)return false;
-    Gdiplus::Rect region(0,0,width,height);Gdiplus::BitmapData bits{};
-    if(image.LockBits(&region,Gdiplus::ImageLockModeRead,PixelFormat32bppARGB,&bits)!=Gdiplus::Ok)return false;
-    std::vector<unsigned char> pixels(size_t(width)*height*4);
-    for(UINT row=0;row<height;++row)
-        std::memcpy(pixels.data()+size_t(row)*width*4,
-            static_cast<const unsigned char*>(bits.Scan0)+ptrdiff_t(row)*bits.Stride,width*4);
-    image.UnlockBits(&bits);
-    auto levels=dx11::texture::generate(width,height,pixels.data(),kind);
+    dx11::texture::Kind kind=dx11::texture::Kind::Color);
+bool uploadTexture(const dx11::texture::Prepared& prepared,dx11::texture::Kind kind,
+                   ID3D11ShaderResourceView** view){
+    const auto& levels=prepared.levels;
     if(levels.empty())return false;
     std::vector<D3D11_SUBRESOURCE_DATA> initial(levels.size());
     for(size_t i=0;i<levels.size();++i){
         initial[i].pSysMem=levels[i].pixels.data();
         initial[i].SysMemPitch=levels[i].width*4;
     }
-    D3D11_TEXTURE2D_DESC description{};description.Width=width;description.Height=height;
+    D3D11_TEXTURE2D_DESC description{};description.Width=levels[0].width;description.Height=levels[0].height;
     description.MipLevels=UINT(levels.size());description.ArraySize=1;
     description.Format=(kind==dx11::texture::Kind::Color||
         kind==dx11::texture::Kind::MaskedColor)?
@@ -1586,12 +1599,56 @@ bool loadTexture(const std::wstring& file,ID3D11ShaderResourceView** view,
     if(SUCCEEDED(status))status=device->CreateShaderResourceView(texture,nullptr,view);
     release(texture);return SUCCEEDED(status);
 }
+bool loadTexture(const std::wstring& file,ID3D11ShaderResourceView** view,
+    dx11::texture::Kind kind){
+    return uploadTexture(dx11::texture::prepare({file,kind}),kind,view);
+}
+unsigned loadingWorkers(){
+    const char* option=std::strstr(GetCommandLineA(),"--loader-workers=");
+    if(!option)return dx11::texture::defaultLoadingWorkers();
+    char* end=nullptr;auto value=std::strtoul(option+17,&end,10);
+    return end!=option+17&&value>=1&&value<=8?unsigned(value):dx11::texture::defaultLoadingWorkers();
+}
+unsigned sceneWorkers(){
+    const char* option=std::strstr(GetCommandLineA(),"--scene-workers=");
+    if(!option)return dx11::texture::defaultLoadingWorkers();
+    char* end=nullptr;auto value=std::strtoul(option+16,&end,10);
+    return end!=option+16&&value>=1&&value<=8?unsigned(value):dx11::texture::defaultLoadingWorkers();
+}
+bool preloadTextures(const std::vector<dx11::texture::Request>& requests,
+    const std::function<bool(size_t,const dx11::texture::Prepared&)>& consume,
+    int start,int span,const char* stage){
+    dx11::texture::LoadingStats stats;
+    const bool validate=std::strstr(GetCommandLineA(),"--validate-loading")!=nullptr;
+    std::uint64_t checksum=14695981039346656037ULL;
+    bool ok=dx11::texture::prepareBatch(requests,loadingWorkers(),
+        [&](size_t index,const dx11::texture::Prepared& prepared){
+            if(!prepared.error.empty()||prepared.levels.empty()){
+                logging::write(("Texture preparation failed: "+std::filesystem::path(requests[index].file).u8string()+
+                    ": "+prepared.error).c_str());return false;
+            }
+            if(validate)for(const auto& level:prepared.levels)for(auto byte:level.pixels)
+                checksum=(checksum^byte)*1099511628211ULL;
+            return consume(index,prepared);
+        },[&](size_t done,size_t total){return startup::report(start+int(span*done/std::max(size_t(1),total)),stage);},stats);
+    char line[320]{};
+    std::snprintf(line,sizeof(line),
+        "Texture loading: %s; workers %u, peak active %u, completed %zu/%zu, pending <= %zu, wall %.3f s, decode CPU %.3f s, mip CPU %.3f s, upload %.3f s%s",
+        stage,stats.workers,stats.peakActive,stats.completed,requests.size(),stats.peakPending,
+        stats.wallSeconds,stats.decodeSeconds,stats.mipSeconds,stats.consumeSeconds,ok?"":" (stopped)");
+    logging::write(line);
+    if(validate){std::snprintf(line,sizeof(line),"Texture checksum: %s %016llx",stage,
+        static_cast<unsigned long long>(checksum));logging::write(line);}
+    return ok;
+}
 bool cachePbrTexture(const std::wstring& file,
     dx11::texture::Kind kind=dx11::texture::Kind::Color){
     auto key=textureKey(file,kind);
     if(file.empty()||pbrTextures.count(key))return true;
     ID3D11ShaderResourceView* view=nullptr;
-    if(!loadTexture(file,&view,kind))return false;
+    auto cached=sharedModelTextures.find(key);
+    if(cached!=sharedModelTextures.end()){view=cached->second;view->AddRef();}
+    else if(!loadTexture(file,&view,kind))return false;
     pbrTextures.emplace(key,view);
     return true;
 }
@@ -1732,6 +1789,7 @@ bool cacheModel(const dx11::Mesh* source){
         }else{
             if(!loadTexture(source->textureFile,&texture,source->alphaTest?
                 dx11::texture::Kind::MaskedColor:dx11::texture::Kind::Color))return false;
+            texture->AddRef(); // The shared cache owns a reference independently of meshes.
             sharedModelTextures.emplace(key,texture);
         }
         modelTextures.emplace(source,texture);
@@ -2516,17 +2574,25 @@ bool initRenderer(){
     if(!createGpuQueries())logging::write("GPU timestamp queries unavailable");
     std::wstring base=executableFolder();
     if(!startup::report(35,"Loading surface textures"))return false;
-    if(!loadTexture(base+L"\\assets\\texture_atlas.png",&textures[1]))return false;
+    std::vector<dx11::texture::Request> surfaceRequests;
+    std::vector<ID3D11ShaderResourceView**> surfaceViews;
+    auto surface=[&](const std::wstring& file,ID3D11ShaderResourceView** view,
+                     dx11::texture::Kind kind=dx11::texture::Kind::Color){
+        surfaceRequests.push_back({file,kind});surfaceViews.push_back(view);
+    };
+    surface(base+L"\\assets\\texture_atlas.png",&textures[1]);
     const wchar_t* materials[]={nullptr,nullptr,L"Bricks001",L"Concrete001",
         L"Bark001",L"Fabric001",L"Metal001",L"Asphalt001",L"Ground054",L"Grass001",nullptr};
     for(int i=2;i<10;++i){
         std::wstring path=base+L"\\assets\\materials\\"+materials[i];
-        if(!loadTexture(path+L"_Color.jpg",&detailTextures[i])||
-           !loadTexture(path+L"_NormalDX.jpg",&normalTextures[i],
-               dx11::texture::Kind::Normal))return false;
+        surface(path+L"_Color.jpg",&detailTextures[i]);
+        surface(path+L"_NormalDX.jpg",&normalTextures[i],dx11::texture::Kind::Normal);
     }
-    if(!loadTexture(base+L"\\assets\\models\\baked\\marina\\MarinaFacade_NormalDX.png",
-            &normalTextures[10],dx11::texture::Kind::Normal))return false;
+    surface(base+L"\\assets\\models\\baked\\marina\\MarinaFacade_NormalDX.png",
+        &normalTextures[10],dx11::texture::Kind::Normal);
+    if(!preloadTextures(surfaceRequests,[&](size_t index,const dx11::texture::Prepared& prepared){
+        return uploadTexture(prepared,surfaceRequests[index].kind,surfaceViews[index]);
+    },35,9,"Loading surface textures"))return false;
     detailTextures[11]=detailTextures[3];detailTextures[11]->AddRef();
     normalTextures[11]=normalTextures[3];normalTextures[11]->AddRef();
     detailTextures[12]=detailTextures[3];detailTextures[12]->AddRef();
@@ -2539,10 +2605,39 @@ bool initRenderer(){
     // A region jump must not synchronously upload dozens of nature and city
     // meshes on its first visible frame. Upload them behind the loading window;
     // the immutable buffers are shared by later instances.
-    const auto regionalMeshes=dx11::regionalMeshes();
+    auto regionalMeshes=dx11::regionalMeshes();
+    // Equipping a pickup must not decode its held-weapon texture or create its
+    // static buffers on the first gameplay frame that uses that weapon.
+    for(const char* name:{"weapons/pistol","weapons/ak","weapons/lightning"})
+        if(const auto* weaponMesh=dx11::mesh(name))regionalMeshes.push_back(weaponMesh);
+    // Gather and deduplicate before workers start. Only the main thread touches
+    // renderer caches and D3D; the CPU pipeline holds at most N prepared images.
+    std::map<std::wstring,dx11::texture::Request> uniqueTextures;
+    auto request=[&](const std::wstring& file,dx11::texture::Kind kind){
+        if(!file.empty()&&!sharedModelTextures.count(textureKey(file,kind)))
+            uniqueTextures.emplace(textureKey(file,kind),dx11::texture::Request{file,kind});
+    };
+    for(const auto* mesh:regionalMeshes){
+        if(mesh->materialRanges.empty())request(mesh->textureFile,mesh->alphaTest?
+            dx11::texture::Kind::MaskedColor:dx11::texture::Kind::Color);
+        for(const auto& range:mesh->materialRanges){
+            request(range.baseFile,range.alphaTest?dx11::texture::Kind::MaskedColor:dx11::texture::Kind::Color);
+            request(range.normalFile,dx11::texture::Kind::Normal);
+            request(range.ormFile,dx11::texture::Kind::Linear);
+            request(range.occlusionFile,dx11::texture::Kind::Linear);
+            request(range.emissiveFile,dx11::texture::Kind::Color);
+        }
+    }
+    std::vector<dx11::texture::Request> regionalRequests;
+    for(const auto& item:uniqueTextures)regionalRequests.push_back(item.second);
+    if(!preloadTextures(regionalRequests,[&](size_t index,const dx11::texture::Prepared& prepared){
+        ID3D11ShaderResourceView* view=nullptr;const auto& request=regionalRequests[index];
+        if(!uploadTexture(prepared,request.kind,&view))return false;
+        sharedModelTextures.emplace(textureKey(request.file,request.kind),view);return true;
+    },58,18,"Preparing regional textures"))return false;
     size_t uploaded=0;
     for(const dx11::Mesh* mesh:regionalMeshes){
-        if(!startup::report(58+int(20*uploaded/std::max(size_t(1),regionalMeshes.size())),
+        if(!startup::report(76+int(3*uploaded/std::max(size_t(1),regionalMeshes.size())),
             "Uploading regional graphics"))return false;
         if(!cacheModel(mesh)){
             logging::write("Regional resource prewarm incomplete; using on-demand loading");
@@ -2551,6 +2646,8 @@ bool initRenderer(){
         ++uploaded;
     }
     if(!startup::report(80,"Loading HDR lighting"))return false;
+    scenePool=std::make_unique<cpu::Pool>(sceneWorkers());
+    logging::write(("CPU scene workers: "+std::to_string(scenePool->concurrency())).c_str());
     return createProbes();
 }
 void render(){
@@ -2586,7 +2683,7 @@ void render(){
             origin.z+directions[face].z};
     }
     dx11::buildScene(groups,models,pose.eye.x,pose.eye.y,pose.eye.z,
-        skinCS?&gpuSkins:nullptr,probeBakeActive);
+        skinCS?&gpuSkins:nullptr,probeBakeActive,scenePool.get());
     if(skinCS)prepareSkins();
     else {gpuSkins.clear();skinVertexCount=0;}
     auto sceneBuilt=std::chrono::steady_clock::now();
@@ -2970,6 +3067,10 @@ void render(){
         ++temporalFrame;
     }
     auto afterPresent=std::chrono::steady_clock::now();
+    renderSceneMs=std::chrono::duration<float,std::milli>(sceneBuilt-renderBegin).count();
+    renderUploadMs=std::chrono::duration<float,std::milli>(instancesReady-sceneBuilt).count();
+    renderDrawMs=std::chrono::duration<float,std::milli>(beforePresent-instancesReady).count();
+    renderPresentMs=std::chrono::duration<float,std::milli>(afterPresent-beforePresent).count();
     if(std::strstr(GetCommandLineA(),"--benchmark-travel")&&
        std::chrono::duration<float,std::milli>(afterPresent-renderBegin).count()>30){
         char timing[200]{};
@@ -3008,6 +3109,7 @@ bool bakeReflectionProbes(){
     return !probeBakeFailed&&probeBakeFrame==36;
 }
 void shutdownRenderer(){
+    scenePool.reset();
     dx11::shutdownHud();
     if(context)context->ClearState();
     releaseGpuQueries();
@@ -3042,6 +3144,7 @@ void shutdownRenderer(){
     meshIndexBuffers.clear();
     for(auto& item:modelTextures)release(item.second);
     modelTextures.clear();
+    for(auto& item:sharedModelTextures)release(item.second);
     sharedModelTextures.clear();
     for(auto& item:pbrTextures)release(item.second);
     pbrTextures.clear();
