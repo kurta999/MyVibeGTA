@@ -20,6 +20,15 @@ void driveVehicle(std::size_t index,float throttle,float steering,float dt,bool 
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle);
 void stopVehicle(std::size_t index);
 void coastVehicle(std::size_t index,float dt);
+float treeRadius(const game::Tree& tree);
+struct TreeFragment {
+    game::Vec3 p{},size{};
+    float qx=0,qy=0,qz=0,qw=1;
+    bool foliage=false;
+};
+const std::vector<TreeFragment>& treeFragments();
+std::size_t activeTreeColliderCount();
+std::size_t activeAnimalColliderCount();
 int wheelContactCount(std::size_t index);
 std::size_t activeBuildingColliderCount();
 std::size_t activePedCharacterCount();

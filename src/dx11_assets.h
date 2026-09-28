@@ -26,16 +26,35 @@ struct Mesh {
     bool alphaTest=false;
     bool castsShadow=true;
     bool transparent=false;
+    bool temporalStable=true;
     const Mesh* shadowProxy=nullptr;
     std::wstring textureFile;
     float roughness=0.82f;
     float metallic=0.0f;
 };
 struct SkinVertex {Vertex base;std::uint8_t joints[4];float weights[4];};
+struct LodChain {
+    std::array<const Mesh*,4> meshes{};
+    std::array<float,4> minPixels{};
+};
+const LodChain* lodChain(const std::string& name);
+const std::vector<std::string>& assetIssues();
+unsigned chooseLodLevel(float pixels,const std::array<float,4>& minPixels,
+                        bool hasPrevious,unsigned previousLevel);
 struct SkinClip {std::string name;float duration=1;std::vector<std::array<float,16>> palettes;
     std::vector<std::array<float,3>> rightHands;unsigned frames=0;};
 struct SkinMesh {std::vector<SkinVertex> vertices;std::vector<SkinClip> clips;
     std::vector<std::uint8_t> bodyPartForJoint;unsigned jointCount=0;};
+constexpr unsigned MAX_GPU_SKIN_JOINTS=256;
+struct SkinInstance {
+    const SkinMesh* source=nullptr;
+    std::uint64_t identity=0;
+    std::vector<std::array<float,16>> palette;
+    // Scale, origin in the source mesh, yaw and world translation.
+    std::array<float,4> scale{},origin{},transform{};
+    std::array<float,4> yaw{};
+};
+void deformSkinCpu(const SkinInstance& instance,std::vector<Vertex>& output);
 struct ModelInstance {
     const Mesh* source;
     int material;
@@ -56,7 +75,8 @@ std::vector<const Mesh*> regionalMeshes();
 const SkinMesh* skinMesh(const std::string& name);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
-                float cameraX,float cameraY,float cameraZ);
+                float cameraX,float cameraY,float cameraZ,
+                std::vector<SkinInstance>* gpuSkins=nullptr,bool staticOnly=false);
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]);
 void buildHud(unsigned char* pixels,int width,int height);
 void shutdownHud();

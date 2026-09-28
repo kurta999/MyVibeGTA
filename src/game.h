@@ -177,6 +177,9 @@ bool repairVehicle(int index);
 float vehicleHealth(int index);
 bool vehicleLightsOn(const Vehicle& vehicle);
 void render();
+#ifdef MINI_CITY_JOLT
+bool bakeReflectionProbes();
+#endif
 bool initRenderer();
 void shutdownRenderer();
 }

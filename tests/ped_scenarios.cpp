@@ -9,6 +9,7 @@
 #endif
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 
 void pedScenarios(){
     using namespace game;
@@ -64,6 +65,26 @@ void pedScenarios(){
            std::abs(posed[5][i].y-idle[5][i].y)>0.02f||
            std::abs(posed[5][i].z-idle[5][i].z)>0.02f){changed=true;break;}
     assert(changed);
+    // Ordinary scene poses collected for GPU deformation must reproduce the
+    // established CPU geometry, including blended clip palettes and yaw/scale.
+    playerContactVisualTime=0;peds[0].contactVisualTime=0;
+    std::vector<dx11::SkinInstance> skins;
+    dx11::buildScene(idle,instances,4500,50,4450);
+    dx11::buildScene(posed,instances,4500,50,4450,&skins);
+    assert(skins.size()==2&&posed[5].empty());
+    std::vector<dx11::Vertex> reconstructed;
+    for(const auto& skin:skins)dx11::deformSkinCpu(skin,reconstructed);
+    assert(reconstructed.size()==idle[5].size());
+    for(std::size_t i=0;i<reconstructed.size();++i){
+        float actual[12],expected[12];
+        std::memcpy(actual,&reconstructed[i],sizeof(actual));
+        std::memcpy(expected,&idle[5][i],sizeof(expected));
+        for(int field=0;field<12;++field)assert(std::abs(actual[field]-expected[field])<0.0001f);
+    }
+    rightMouse=true;cameraPitch=0.4f;
+    dx11::buildScene(posed,instances,4500,50,4450,&skins);
+    assert(skins.size()==1&&!posed[5].empty()); // Pitched player aim retains procedural CPU pose.
+    rightMouse=false;cameraPitch=0;
     // Two civilians can talk or fight; fighting applies damage and death.
     peds.clear();Ped first{};first.id="first";first.p={4520,4500};
     first.target=first.p;first.speed=70;

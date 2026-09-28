@@ -24,6 +24,7 @@ constexpr float treeCellSize=256;
 constexpr int treeColumns=int(WIDTH/treeCellSize)+1;
 constexpr int treeRows=int(DEPTH/treeCellSize)+1;
 std::vector<std::vector<int>> treeBuckets(treeColumns*treeRows);
+std::size_t indexedTreeCount=0;
 std::vector<std::vector<int>> decorationBuckets(treeColumns*treeRows);
 std::string error;
 float cityX=10700,cityZ=7000,citySpacing=500;
@@ -260,6 +261,13 @@ std::vector<int> nearbyIndices(const std::vector<std::vector<int>>& buckets,
     return result;
 }
 std::vector<int> nearbyTreeIndices(game::Vec2 point,float radius){
+    // Scenario staging and runtime replacement can change the population.
+    if(indexedTreeCount!=game::trees.size()){
+        std::vector<int> result;
+        for(int i=0;i<int(game::trees.size());++i)
+            if(game::len(game::trees[i].p-point)<=radius)result.push_back(i);
+        return result;
+    }
     return nearbyIndices(treeBuckets,point,radius);
 }
 std::vector<int> nearbyDecorationIndices(game::Vec2 point,float radius){
@@ -463,6 +471,7 @@ void populate(){
         int z=std::clamp(int(point.z/treeCellSize),0,treeRows-1);
         treeBuckets[z*treeColumns+x].push_back(index);
     }
+    indexedTreeCount=game::trees.size();
     for(int index=0;index<regionalProps;){
         game::Vec2 point{xChoice(random),zChoice(random)};
         if(waterAt(point)||roadAt(point)||biomeAt(point)!=Biome::Desert||

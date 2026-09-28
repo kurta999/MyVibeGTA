@@ -1,0 +1,44 @@
+{
+  "cull_substitution": "DX11 currently draws all model materials double sided",
+  "discarded_animations": [
+    "Fire",
+    "Pump"
+  ],
+  "discarded_attributes": [
+    "COLOR_1",
+    "JOINTS_0",
+    "TANGENT",
+    "WEIGHTS_0"
+  ],
+  "discarded_skins": 1,
+  "double_sided_materials": [
+    0
+  ],
+  "excluded_nodes": [],
+  "flattened_node_hierarchy": true,
+  "retained_attributes": [
+    "COLOR_0",
+    "NORMAL",
+    "POSITION",
+    "TEXCOORD_0"
+  ],
+  "sampler_substitution": "DX11 model sampler uses clamp and graphics-setting anisotropy",
+  "schema": 1,
+  "source_attributes": [
+    "COLOR_0",
+    "COLOR_1",
+    "JOINTS_0",
+    "NORMAL",
+    "POSITION",
+    "TANGENT",
+    "TEXCOORD_0",
+    "WEIGHTS_0"
+  ],
+  "source_samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "source_sha256": "3f84f2b0d011ebfb142de7f7d9cfa7d57a59451a815b834b4f33603256c8f911"
+}

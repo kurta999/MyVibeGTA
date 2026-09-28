@@ -13,6 +13,7 @@
 #include "debug_menu.h"
 #include "wildlife.h"
 #include "birds.h"
+#include "jolt_world.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -26,6 +27,7 @@ namespace {
 using game::Color;using game::Vec2;using game::Vec3;using game::RagdollPart;
 std::vector<Vertex>* buckets=nullptr;
 std::vector<ModelInstance>* modelInstances=nullptr;
+std::vector<SkinInstance>* skinInstances=nullptr;
 Vec3 lodEye{};
 float lodPixelScale=1;
 struct LodKey {
@@ -44,6 +46,7 @@ struct LodKeyHash {
     }
 };
 std::unordered_map<LodKey,bool,LodKeyHash> lodDetailChoice;
+std::unordered_map<LodKey,unsigned,LodKeyHash> authoredLodChoice;
 Vertex vertex(Vec3 p,Vec3 n,float u,float v,Color c){return {p.x,p.y,p.z,n.x,n.y,n.z,u,v,c.r,c.g,c.b,1};}
 void triangle(int group,Vertex a,Vertex b,Vertex c){
     buckets[group].push_back(a);buckets[group].push_back(b);buckets[group].push_back(c);
@@ -114,7 +117,24 @@ void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint=
     const Mesh* source=mesh(name);if(!source)return;
     bool nature=name.rfind("nature/",0)==0;
     bool buildings=name.rfind("buildings/",0)==0||name.rfind("marina/",0)==0;
-    if(nature||buildings){
+    if(const LodChain* chain=lodChain(name)){
+        float distance=std::max(1.0f,game::len(position-lodEye));
+        float pixels=std::max({size.x,size.y,size.z})*lodPixelScale/distance*
+            ui::lodDistanceScale();
+        LodKey key{source,position.x,position.y,position.z};
+        auto [choice,inserted]=authoredLodChoice.try_emplace(key,0);
+        choice->second=chooseLodLevel(pixels,chain->minPixels,!inserted,choice->second);
+        if(std::strstr(GetCommandLineA(),"--smoke")){
+            const char* flags[4]={"--lod-level-0","--lod-level-1","--lod-level-2","--lod-level-3"};
+            for(unsigned level=0;level<4;++level)
+                if(std::strstr(GetCommandLineA(),flags[level]))choice->second=level;
+        }
+        source=chain->meshes[choice->second];
+        if(std::strstr(GetCommandLineA(),"--lod-view")){
+            const Color colors[4]={{0.25f,1,0.25f},{1,1,0.2f},{1,0.5f,0.2f},{1,0.2f,0.2f}};
+            tint=colors[choice->second];
+        }
+    }else if(nature||buildings){
         if(const Mesh* lod=mesh(name+"-lod")){
             bool bush=name.rfind("nature/bush_",0)==0;
             float scale=ui::lodDistanceScale();
@@ -156,7 +176,7 @@ void glowBox(Vec3 bottom,Vec3 size,float yaw,Color tint){
 }
 bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
                       int action,float actionWeight,Vec3* rightHand,float actionPhase,
-                      int motion,float aimPitch){
+                      int motion,float aimPitch,std::uint64_t identity=0){
     const SkinMesh* skin=skinMesh(name);
     const Mesh* bounds=mesh(name);
     if(!skin||!bounds||skin->clips.empty()||
@@ -307,6 +327,15 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
         *rightHand={position.x+co*x+si*z,position.y+(hand.y-bounds->minY)*sy,
             position.z-si*x+co*z};
         pitchArm(*rightHand,1.0f);
+    }
+    if(skinInstances&&motion==0&&std::abs(aimPitch)<0.001f&&
+       skin->jointCount<=MAX_GPU_SKIN_JOINTS){
+        SkinInstance instance;
+        instance.source=skin;instance.identity=identity;instance.palette=std::move(palette);
+        instance.scale={sx,sy,sz,0};instance.origin={centerX,bounds->minY,centerZ,0};
+        instance.transform={position.x,position.y,position.z,0};instance.yaw={co,si,0,0};
+        skinInstances->push_back(std::move(instance));
+        return true;
     }
     auto& output=buckets[5];output.reserve(output.size()+skin->vertices.size());
     for(const SkinVertex& input:skin->vertices){
@@ -861,7 +890,7 @@ void vegetation(){
 }
 void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,float height=0,
                int actionOverride=-1,float actionWeight=1,bool playerControlled=false,
-               float actionPhase=-1,int motion=0){
+               float actionPhase=-1,int motion=0,std::uint64_t identity=0){
     const char* choices[]={"casual-man","hoodie-man","casual-woman","beach-man"};
     std::string name="characters/"+std::string(choices[style%4]);
     const Vec3 proportions[]={
@@ -893,7 +922,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     bool detailed=game::len(p-game::player)<
         (combatPose?320.0f:220.0f)*ui::lodDistanceScale();
     if(!(detailed&&skinnedCharacter(name,{p.x,height,p.z},bodySize,game::PI/2-angle,
-            action,blend,&hand,actionPhase,motion,aimPitch))){
+            action,blend,&hand,actionPhase,motion,aimPitch,playerControlled?1:identity))){
         if(!detailed)name+="-lod";
         else if(armed)name+="-aim";
         else if(moving)name+=(running?"-run":"-walk")+std::to_string((int(game::worldTime*(running?10:6)+p.x))%4);
@@ -1020,7 +1049,8 @@ void people(){
         character(ped.p,ped.angle,ped.style,ped.armed,
             ped.panic>0||game::len(ped.target-ped.p)>10,
             ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
-            false,phase,ped.state==game::PedState::Talk?8:0);
+            false,phase,ped.state==game::PedState::Talk?8:0,
+            std::uint64_t(std::hash<std::string>{}(ped.id))|2);
     }
     if(wildlife::riding()&&game::health>0&&!camera::firstPersonActive()){
         const auto& animal=wildlife::animals[wildlife::mountedIndex()];
@@ -1526,6 +1556,28 @@ void effects(){
         }else model("primitive/box",{prop.p.x,prop.y,prop.p.z},
             {23,22,23},0,game::rgb(155,124,87));
     }
+    for(const auto& fragment:jolt_world::treeFragments()){
+        if(!close({fragment.p.x,fragment.p.z},800))continue;
+        const Mesh* source=mesh(fragment.foliage?"primitive/sphere":"primitive/cylinder");
+        if(!source)continue;
+        // Fragments use the complete physics rotation, including roll as they
+        // fall and settle. Ordinary model instances only support yaw/pitch.
+        RagdollPart pose{};pose.qx=fragment.qx;pose.qy=fragment.qy;
+        pose.qz=fragment.qz;pose.qw=fragment.qw;
+        Vec3 center{(source->minX+source->maxX)*0.5f,(source->minY+source->maxY)*0.5f,
+            (source->minZ+source->maxZ)*0.5f};
+        Vec3 scale{fragment.size.x/(source->maxX-source->minX),
+            fragment.size.y/(source->maxY-source->minY),fragment.size.z/(source->maxZ-source->minZ)};
+        Color tint=fragment.foliage?game::rgb(70,116,48):game::rgb(132,91,54);
+        std::size_t count=source->indices.empty()?source->vertices.size():source->indices.size();
+        for(std::size_t i=0;i<count;++i){
+            auto v=source->vertices[source->indices.empty()?i:source->indices[i]];
+            Vec3 local{(v.x-center.x)*scale.x,(v.y-center.y)*scale.y,(v.z-center.z)*scale.z};
+            Vec3 p=fragment.p+rotateBy(pose,local);
+            Vec3 n=game::norm(rotateBy(pose,{v.nx/scale.x,v.ny/scale.y,v.nz/scale.z}));
+            buckets[0].push_back(vertex(p,n,v.u,v.v,tint));
+        }
+    }
 }
 }
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]){
@@ -1557,14 +1609,19 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buildScene(groups,instances,pose.eye.x,pose.eye.y,pose.eye.z);
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
-                float cameraX,float cameraY,float cameraZ){
+                float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly){
     buckets=groups;modelInstances=&instances;instances.clear();
+    skinInstances=gpuSkins;if(skinInstances)skinInstances->clear();
     lodEye={cameraX,cameraY,cameraZ};
     lodPixelScale=std::max(1,game::screenH)*0.5f/
         std::tan(camera::fieldOfView()*game::PI/360.0f);
     if(lodDetailChoice.size()>30000)lodDetailChoice.clear();
+    if(authoredLodChoice.size()>30000)authoredLodChoice.clear();
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
-    regionalTerrain();marinaScenery();weatherGroundDetails();nightSky();clouds();buildings();vegetation();streetlights();
+    regionalTerrain();marinaScenery();
+    if(!staticOnly){weatherGroundDetails();nightSky();clouds();}
+    buildings();vegetation();streetlights();
+    if(staticOnly)return;
     vehicles();people();animals();markers();effects();
     float solar=std::sin((game::gameHour-6)*game::PI/12),angle=(game::gameHour-6)*game::PI/12;
     if(solar>=0)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-project(MiniCity3D LANGUAGES CXX)
+project(MiniCity3D LANGUAGES CXX RC)
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/JoltPhysics/Build/CMakeLists.txt")
   message(FATAL_ERROR "Jolt Physics v5.6.0 is required in third_party/JoltPhysics")
@@ -15,11 +15,12 @@ set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp au
     savegame.cpp camera.cpp props.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp)
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
-    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
+    src/startup.cpp assets/app/minicity.rc
+    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
     src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
-target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics)
+target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app)
 target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 d3d11 dxgi d3dcompiler psapi)
 add_custom_command(TARGET MiniCity3D POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -40,6 +41,13 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(startup_smoke tests/startup_smoke.cpp src/startup.cpp src/logging.cpp assets/app/minicity.rc)
+  target_compile_features(startup_smoke PRIVATE cxx_std_17)
+  target_compile_definitions(startup_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_include_directories(startup_smoke PRIVATE src assets/app)
+  target_link_libraries(startup_smoke PRIVATE user32 gdi32)
+  add_test(NAME startup_smoke COMMAND startup_smoke)
+  set_tests_properties(startup_smoke PROPERTIES TIMEOUT 15)
   set(SIMULATION_SOURCES game.cpp input.cpp ai.cpp content.cpp physics.cpp props.cpp savegame.cpp
       weapons.cpp camera.cpp audio.cpp ui.cpp fire.cpp police.cpp commerce.cpp traversal.cpp
       weather.cpp regions.cpp jolt_world.cpp debug_menu.cpp traffic.cpp ped_navigation.cpp wildlife.cpp birds.cpp)
@@ -82,4 +90,9 @@ if(BUILD_TESTING)
   add_executable(texture_mips_smoke tests/texture_mips_smoke.cpp src/dx11_texture_mips.cpp)
   target_compile_features(texture_mips_smoke PRIVATE cxx_std_17)
   add_test(NAME texture_mips_smoke COMMAND texture_mips_smoke)
+  add_executable(probe_smoke tests/probe_smoke.cpp src/dx11_probes.cpp)
+  target_compile_features(probe_smoke PRIVATE cxx_std_17)
+  target_compile_definitions(probe_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME probe_smoke COMMAND probe_smoke)
+  set_tests_properties(probe_smoke PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>")
 endif()

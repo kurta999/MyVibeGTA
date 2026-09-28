@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "asset": "Original MiniCity3D static district lighting",
+  "source_captures": [
+    {
+      "file": "probe-0-time-0-face-0.hdrface",
+      "sha256": "457c226f2d3fdfb9e2882c3c17f56be635badfd2e43169cacea8890dc873aee6"
+    },
+    {
+      "file": "probe-0-time-0-face-1.hdrface",
+      "sha256": "089a63b380d2f865863a5199cff476ad2d5bca05414b915054fed1d097db6b72"
+    },
+    {
+      "file": "probe-0-time-0-face-2.hdrface",
+      "sha256": "f390197df95eea380789199b92707c8bd7eb5a8cc475226d1ec8a378c874335a"
+    },
+    {
+      "file": "probe-0-time-0-face-3.hdrface",
+      "sha256": "ae6683dff55788fa9697612f662bbe82c1b91db609bbf8a359188acee81a4cff"
+    },
+    {
+      "file": "probe-0-time-0-face-4.hdrface",
+      "sha256": "214b7e20c54355c7aa9aff721c48b463efc23fabea62001156032794535e0554"
+    },
+    {
+      "file": "probe-0-time-0-face-5.hdrface",
+      "sha256": "9014d9f3ce3c8591c393ba2d2d61a84d4ce291971fc1109808f010c08a4be63a"
+    },
+    {
+      "file": "probe-0-time-1-face-0.hdrface",
+      "sha256": "683bc74d61ecf57d68eb2458e0142031a97d7eb6f268cb1011b5d702a70904d4"
+    },
+    {
+      "file": "probe-0-time-1-face-1.hdrface",
+      "sha256": "9d1c4bea75d4c150c7ae9160afdc044d2cb51dd1b45e24558dde71e5fcd68e85"
+    },
+    {
+      "file": "probe-0-time-1-face-2.hdrface",
+      "sha256": "ea2694cc0f30de4887992aabc36542fabbe53c7317ec8d1ab9dac638ae38bac5"
+    },
+    {
+      "file": "probe-0-time-1-face-3.hdrface",
+      "sha256": "1c3b7446e5c85fcce28cd4cd799b62e8a0685f0b06338fce2f318678e1ee46c1"
+    },
+    {
+      "file": "probe-0-time-1-face-4.hdrface",
+      "sha256": "044a69d9ca4b6453aae6ab51dafc9400a3b4a500cc00df1d599d370614f314b1"
+    },
+    {
+      "file": "probe-0-time-1-face-5.hdrface",
+      "sha256": "3c881e6519a65ced7d2a29d725a73188e82ea4439e28fec6b27383a06a485867"
+    },
+    {
+      "file": "probe-0-time-2-face-0.hdrface",
+      "sha256": "dc3c3d8aebfc790fc70a92e965e627fe7416e993b065eaa9b5cdfaee265e8ac6"
+    },
+    {
+      "file": "probe-0-time-2-face-1.hdrface",
+      "sha256": "63a9c80b1aab49bc81566034dc2157ca8fe7b959f89e5b47ad0c6ce185309650"
+    },
+    {
+      "file": "probe-0-time-2-face-2.hdrface",
+      "sha256": "55552757c8289b08f0794983e4f2c7f3d4308316d37519c5c955c300016c1401"
+    },
+    {
+      "file": "probe-0-time-2-face-3.hdrface",
+      "sha256": "8e90d9629a69a1da1b1d927bc271c4e04f892f16acc31d3ad88b800846ee9de7"
+    },
+    {
+      "file": "probe-0-time-2-face-4.hdrface",
+      "sha256": "18e2e48b2759da0812e56d46e17c77fd93c3169de3edc820a5dc9bb066d08cb8"
+    },
+    {
+      "file": "probe-0-time-2-face-5.hdrface",
+      "sha256": "c3171ed5913fa29057b3b6623f29110b01788494d0b1a725361942ca6f58fa52"
+    },
+    {
+      "file": "probe-1-time-0-face-0.hdrface",
+      "sha256": "cc5c4b85b195719d2deb56855734d22ea8ecb8990cfd2e0a37ac0ed5831f2a1b"
+    },
+    {
+      "file": "probe-1-time-0-face-1.hdrface",
+      "sha256": "9cb6eebb0d8a88326946aa1b4729f6f4d5824aa0a1a6f0ff3fa2139576d4f8ca"
+    },
+    {
+      "file": "probe-1-time-0-face-2.hdrface",
+      "sha256": "1c9a1b203a5398c966c9d89491754579e3783083d58c71b005255237f4faf631"
+    },
+    {
+      "file": "probe-1-time-0-face-3.hdrface",
+      "sha256": "b03938b947aa8f60bd4b560a1d8a16e19d76c0e86e3f4e582dcf30452658d81a"
+    },
+    {
+      "file": "probe-1-time-0-face-4.hdrface",
+      "sha256": "5143d7349aba96a3653f0a863081d5867f9e0bb11af87aaa1ca0a66119317272"
+    },
+    {
+      "file": "probe-1-time-0-face-5.hdrface",
+      "sha256": "4622da5e1e58aff424655c8ffe3c4620e33a555eb45df35a5fcc2195403c44b3"
+    },
+    {
+      "file": "probe-1-time-1-face-0.hdrface",
+      "sha256": "b9bffb43d572adb1db306da68fc0edaf67c9433277d212223146e3023ceac69e"
+    },
+    {
+      "file": "probe-1-time-1-face-1.hdrface",
+      "sha256": "eeacc729ba88dacf5aeb3399ddf5d4a84e2568668aa5a0c1a13d7029f2af6a87"
+    },
+    {
+      "file": "probe-1-time-1-face-2.hdrface",
+      "sha256": "4daa25f519a11f82ebb5c53924040fbff9b5f4c6493be8b6211357d6e8734d34"
+    },
+    {
+      "file": "probe-1-time-1-face-3.hdrface",
+      "sha256": "f1492a617bee196f89d9b2325893cc1fbacd108a3a6038c318f002fbe5419c63"
+    },
+    {
+      "file": "probe-1-time-1-face-4.hdrface",
+      "sha256": "a9e16b85e278fbf11cfeb506b37f631c0a6518fc3ee42e5bc8588043b752a034"
+    },
+    {
+      "file": "probe-1-time-1-face-5.hdrface",
+      "sha256": "bfd00762870e64e609ecc556dea49301473dc7401b60eea52fbf355d610d3b74"
+    },
+    {
+      "file": "probe-1-time-2-face-0.hdrface",
+      "sha256": "429cfc49b24f737055215920f51633762279417cad318cdef8613d0bdc479df8"
+    },
+    {
+      "file": "probe-1-time-2-face-1.hdrface",
+      "sha256": "359890fd9540a461b4123d828e25ff65749912611ea61be7d2ab09cbb1cab8a6"
+    },
+    {
+      "file": "probe-1-time-2-face-2.hdrface",
+      "sha256": "fe2d56a1cb39e4a8d94784d06f428be7afc477e0e49d0acfeec279706e8bc3f2"
+    },
+    {
+      "file": "probe-1-time-2-face-3.hdrface",
+      "sha256": "1c60962d3591feca88d5eb0fd4a8c34dbf05d31e33b44a7410089606c470dc7e"
+    },
+    {
+      "file": "probe-1-time-2-face-4.hdrface",
+      "sha256": "7e337b064066bbf250bb090ef480c91b33a5001463c3283edc5230c4deee7f6c"
+    },
+    {
+      "file": "probe-1-time-2-face-5.hdrface",
+      "sha256": "19355c5d5695291b82eb9cdf8a146654997f7ad562b1c9f5184a026a7b0f1876"
+    }
+  ],
+  "positions": [
+    [
+      100.0,
+      42.0,
+      100.0,
+      750.0
+    ],
+    [
+      300.0,
+      42.0,
+      350.0,
+      650.0
+    ]
+  ],
+  "hours": [
+    12.0,
+    18.5,
+    22.0
+  ],
+  "capture_settings": {
+    "schema": 1,
+    "faces": 36,
+    "size": 128,
+    "field_of_view": 90,
+    "hours": [
+      12,
+      18.5,
+      22
+    ],
+    "graphics": 2,
+    "shadows": 1,
+    "textures": 2,
+    "filtering": 2,
+    "vegetation": 2,
+    "grass_distance": 50,
+    "draw_distance": 21,
+    "lod_distance": 50,
+    "weather": "clear",
+    "world_time": 0,
+    "dynamic_geometry": false,
+    "dynamic_lights": false,
+    "probe_feedback": false,
+    "tone_mapping": false,
+    "coordinates": "D3D cube face orientation; world Y up"
+  },
+  "capture_executable_sha256": "0c9f30afc5fee905142203ecdbe77f9fca4e8533e5c6cc6b63dfbb452eed5ff4",
+  "cooker_sha256": "abff79d7d6979a2fc635efb1c40af5627f97c6df26441cd219c1d3363f1c3127",
+  "numpy": "2.3.5",
+  "tool": "tools/cook_probes.py",
+  "capture": "DX11 linear HDR static-only geometry, 128px faces, no probe feedback, no tone mapping",
+  "global_fallback": "Original analytic game sky gradient; no external HDRI",
+  "irradiance": "SH9; solid-angle weighted; cosine convolution divided by pi",
+  "specular": "GGX importance sampling, 512 Hammersley samples per output texel, roughness=mip/7",
+  "brdf": "128x128 RG32F split-sum DFG, 1024 Hammersley samples, Schlick-GGX visibility k=roughness^2/2",
+  "format": "MCPB1; RGBA16F complete cube mips, uncompressed linear HDR",
+  "limitations": [
+    "Single capture bounce from legacy ambient/direct lighting",
+    "No interior visibility volumes or box parallax correction",
+    "Time/weather blend is an approximation; moving objects excluded",
+    "Recapture when static geometry/materials or lights change"
+  ],
+  "output_sha256": "86a0fa5028d1aa8b7a87213184a1ac04404ba572af5c8dca27986508ce93ab61",
+  "seconds": 88.22
+}

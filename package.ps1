@@ -49,14 +49,14 @@ New-Item -ItemType Directory -Path $assetDestination | Out-Null
 foreach ($fileName in @('character_atlas.png', 'texture_atlas.png')) {
     Copy-Item -LiteralPath (Join-Path $assetSource $fileName) -Destination $assetDestination
 }
-foreach ($folderName in @('effects', 'materials')) {
+foreach ($folderName in @('effects', 'materials', 'lighting')) {
     Copy-Item -LiteralPath (Join-Path $assetSource $folderName) -Destination $assetDestination -Recurse
 }
 $modelSource = Join-Path $assetSource 'models'
 $modelDestination = Join-Path $assetDestination 'models'
 New-Item -ItemType Directory -Path $modelDestination | Out-Null
 Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
-foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md',
+foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md', 'SHOWCASE_SOURCES.md',
         'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
 }

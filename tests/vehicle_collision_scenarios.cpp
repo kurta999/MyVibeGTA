@@ -2,6 +2,8 @@
 #include "../src/jolt_world.h"
 #include "../src/regions.h"
 #include "../src/traffic.h"
+#include "../src/wildlife.h"
+#include "../src/dx11_assets.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -10,7 +12,7 @@
 
 void vehicleCollisionScenarios(){
     using namespace game;
-    buildings.clear();peds.clear();props.clear();
+    buildings.clear();peds.clear();props.clear();trees.clear();wildlife::animals.clear();
     constexpr float dt=1.0f/60;
     for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike}){
         Vehicle car{};car.kind=kind;car.id="collision-test";car.p={12000,2000};car.angle=PI/2;
@@ -51,6 +53,66 @@ void vehicleCollisionScenarios(){
         jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
     }
     assert(vehicles[0].damage>0&&vehicles[0].p.x<5320);
+    // Trunks stop walkers and low-speed cars. High closing speed breaks the
+    // tree once and replaces the trunk with falling physical fragments.
+    buildings.clear();occupied=-1;vehicles.clear();
+    Tree tree{};tree.p={4500,4500};tree.id="collision-tree";
+    trees={tree};player={4400,4500};playerY=0;jolt_world::reset();
+    assert(jolt_world::activeTreeColliderCount()==1);
+    for(int tick=0;tick<180;++tick)jolt_world::moveCharacter({80,0},false,dt);
+    assert(player.x<4486);
+    trees[0].destroyed=true;jolt_world::step(dt);
+    assert(jolt_world::activeTreeColliderCount()==0);
+    for(int tick=0;tick<90;++tick)jolt_world::moveCharacter({80,0},false,dt);
+    assert(player.x>4510);
+    for(float distance:{80.0f,450.0f}){
+        trees={tree};car={};car.kind=Kind::Car;car.id="tree-strike";
+        car.p=tree.p-Vec2{distance,0};vehicles={car};player=car.p;occupied=0;
+        health=PLAYER_MAX_HEALTH;jolt_world::reset();float peak=0;
+        for(int tick=0;tick<360&&!trees[0].destroyed;++tick){
+            jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
+            peak=std::max(peak,len(vehicles[0].velocity));
+        }
+        std::printf("Tree strike distance %.0f: peak %.1f, destroyed %d, fragments %zu\n",
+            distance,peak,trees[0].destroyed,jolt_world::treeFragments().size());
+        assert(vehicles[0].damage>0);
+        if(distance<100){assert(!trees[0].destroyed&&vehicles[0].p.x<4480);continue;}
+        assert(trees[0].destroyed&&trees[0].health==0&&!trees[0].burning);
+        assert(jolt_world::activeTreeColliderCount()==0&&jolt_world::treeFragments().size()==11);
+        Vec3 initial=jolt_world::treeFragments()[3].p;
+        for(int tick=0;tick<90;++tick)jolt_world::step(dt);
+        assert(len(jolt_world::treeFragments()[3].p-initial)>20);
+        dx11::loadMeshes(L"assets/models/baked");
+        std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
+        std::vector<dx11::ModelInstance> instances;dx11::buildScene(groups,instances);
+        std::size_t wood=0,leaves=0;
+        for(const auto& vertex:groups[0]){
+            if(std::abs(vertex.r-132/255.0f)<0.00001f&&std::abs(vertex.g-91/255.0f)<0.00001f)++wood;
+            if(std::abs(vertex.r-70/255.0f)<0.00001f&&std::abs(vertex.g-116/255.0f)<0.00001f)++leaves;
+        }
+        auto vertexCount=[](const dx11::Mesh* mesh){assert(mesh);return mesh->indices.empty()?mesh->vertices.size():mesh->indices.size();};
+        assert(wood>=8*vertexCount(dx11::mesh("primitive/cylinder")));
+        assert(leaves>=3*vertexCount(dx11::mesh("primitive/sphere")));
+        for(const auto& vertex:groups[0])assert(std::isfinite(vertex.x)&&std::isfinite(vertex.y)&&std::isfinite(vertex.z));
+        for(int tick=0;tick<720;++tick)jolt_world::step(dt);
+        assert(jolt_world::treeFragments().empty());
+    }
+    trees.clear();
+    // Contact damage applies to both occupied and empty moving vehicles; the
+    // animal collider disappears when killed, without repeated corpse damage.
+    for(bool driven:{true,false}){
+        car={};car.kind=Kind::Car;car.p={4100,4500};vehicles={car};
+        wildlife::Animal a{};a.species=0;a.id="car-hit-tiger";
+        a.p=a.home=a.target={4500,4500};a.health=180;a.timer=100;
+        wildlife::animals={a};player=car.p;occupied=driven?0:-1;playerY=0;
+        health=PLAYER_MAX_HEALTH;jolt_world::reset();
+        for(int tick=0;tick<360&&wildlife::animals[0].health>0;++tick){
+            jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
+        }
+        assert(wildlife::animals[0].health==0);
+        assert(jolt_world::activeAnimalColliderCount()==0&&vehicles[0].damage>0);
+    }
+    wildlife::animals.clear();
     // Exit with throttle still held: momentum survives, controls do not latch,
     // and the empty chassis comes to rest without an artificial collision.
     buildings.clear();trees.clear();

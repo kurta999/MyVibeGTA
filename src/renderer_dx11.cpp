@@ -7,16 +7,19 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 #include "game.h"
 #include "camera.h"
 #include "dx11_assets.h"
 #include "dx11_texture_mips.h"
+#include "dx11_probes.h"
 #include "ui.h"
 #include "weather.h"
 #include "regions.h"
 #include "commerce.h"
 #include "fire.h"
 #include "logging.h"
+#include "startup.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -26,6 +29,7 @@
 #include <cstring>
 #include <cwchar>
 #include <fstream>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -47,6 +51,20 @@ ID3D11ShaderResourceView* surfaceView=nullptr;
 ID3D11Texture2D* indirectTexture=nullptr;
 ID3D11RenderTargetView* indirectTarget=nullptr;
 ID3D11ShaderResourceView* indirectView=nullptr;
+ID3D11Texture2D* reflectionResponseTexture=nullptr;
+ID3D11RenderTargetView* reflectionResponseTarget=nullptr;
+ID3D11ShaderResourceView* reflectionResponseView=nullptr;
+ID3D11ShaderResourceView* probeView=nullptr;
+ID3D11ShaderResourceView* brdfView=nullptr;
+ID3D11Buffer* probeBuffer=nullptr;
+dx11::probes::Set probeSet;
+struct ProbeConstants {
+    XMFLOAT4 positions[2],sh[3][9],timeWeights,info;
+};
+bool probeBakeActive=false,probeBakeFailed=false;
+unsigned probeBakeFrame=0;
+constexpr XMFLOAT4 probePositions[2]={{100,42,100,750},{300,42,350,650}};
+constexpr float probeHours[3]={12,18.5f,22};
 ID3D11Texture2D* depthTexture=nullptr;
 ID3D11DepthStencilView* depthView=nullptr;
 ID3D11ShaderResourceView* depthViewSRV=nullptr;
@@ -61,6 +79,9 @@ ID3D11PixelShader* hudPS=nullptr;
 ID3D11PixelShader* postPS=nullptr;
 ID3D11PixelShader* bloomPS=nullptr;
 ID3D11PixelShader* reflectionPS=nullptr;
+ID3D11PixelShader* motionPS=nullptr;
+ID3D11PixelShader* temporalPS=nullptr;
+ID3D11PixelShader* temporalCopyPS=nullptr;
 ID3D11Buffer* postBuffer=nullptr;
 ID3D11Buffer* bloomBuffer=nullptr;
 ID3D11Texture2D* bloomTexture[3]{};
@@ -69,11 +90,51 @@ ID3D11ShaderResourceView* bloomView[3]{};
 ID3D11Texture2D* reflectionTexture=nullptr;
 ID3D11RenderTargetView* reflectionTarget=nullptr;
 ID3D11ShaderResourceView* reflectionView=nullptr;
+ID3D11Texture2D* postTexture=nullptr;
+ID3D11RenderTargetView* postTarget=nullptr;
+ID3D11ShaderResourceView* postView=nullptr;
+ID3D11Texture2D* motionTexture=nullptr;
+ID3D11RenderTargetView* motionTarget=nullptr;
+ID3D11ShaderResourceView* motionView=nullptr;
+ID3D11Texture2D* objectMotionTexture=nullptr;
+ID3D11RenderTargetView* objectMotionTarget=nullptr;
+ID3D11ShaderResourceView* objectMotionView=nullptr;
+ID3D11Texture2D* historyTexture[2]{};
+ID3D11RenderTargetView* historyTarget[2]{};
+ID3D11ShaderResourceView* historyView[2]{};
+int historyIndex=0;
+bool historyValid=false;
+unsigned temporalFrame=0;
+XMFLOAT4X4 previousViewProjection{};
+XMFLOAT3 previousCameraEye{},previousCameraForward{};
 ID3D11InputLayout* inputLayout=nullptr;
 ID3D11InputLayout* instanceLayout=nullptr;
 ID3D11Buffer* vertexBuffer=nullptr;
 ID3D11Buffer* staticBuffer=nullptr;
 ID3D11Buffer* instanceBuffer=nullptr;
+ID3D11ComputeShader* skinCS=nullptr;
+ID3D11Buffer* skinConstants=nullptr;
+ID3D11Buffer* skinOutput=nullptr;
+ID3D11UnorderedAccessView* skinOutputUav=nullptr;
+ID3D11Buffer* skinPreviousOutput=nullptr;
+ID3D11UnorderedAccessView* skinPreviousUav=nullptr;
+ID3D11VertexShader* skinVS=nullptr;
+ID3D11InputLayout* skinLayout=nullptr;
+struct PreviousSkin {dx11::SkinInstance pose;std::uint64_t frame;};
+std::unordered_map<std::uint64_t,PreviousSkin> previousSkins;
+std::uint64_t skinFrame=0;
+std::unordered_map<const dx11::SkinMesh*,ID3D11ShaderResourceView*> skinSources;
+std::vector<dx11::SkinInstance> gpuSkins;
+size_t skinCapacity=0,skinVertexCount=0;
+bool skinValidationDone=false;
+struct SkinConstants {
+    std::array<float,16> palette[dx11::MAX_GPU_SKIN_JOINTS];
+    std::array<float,16> previousPalette[dx11::MAX_GPU_SKIN_JOINTS];
+    std::array<float,4> scale,origin,transform,yaw;
+    std::array<float,4> previousScale,previousOrigin,previousTransform,previousYaw;
+    UINT count,start,joints,padding;
+};
+static_assert(sizeof(SkinConstants)%16==0);
 std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshBuffers;
 std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshIndexBuffers;
 std::unordered_map<const dx11::Mesh*,ID3D11ShaderResourceView*> modelTextures;
@@ -85,6 +146,12 @@ ID3D11RasterizerState* shadowRaster=nullptr;
 ID3D11Texture2D* shadowTexture=nullptr;
 ID3D11DepthStencilView* shadowDepth[3]{};
 ID3D11ShaderResourceView* shadowView=nullptr;
+ID3D11Texture2D* headlightShadowTexture=nullptr;
+ID3D11DepthStencilView* headlightShadowDepth=nullptr;
+ID3D11ShaderResourceView* headlightShadowView=nullptr;
+ID3D11Texture2D* streetShadowTexture=nullptr;
+ID3D11DepthStencilView* streetShadowDepth=nullptr;
+ID3D11ShaderResourceView* streetShadowView=nullptr;
 ID3D11SamplerState* shadowSampler=nullptr;
 int shadowSize=0;
 int shadowCascadeCount=0;
@@ -114,6 +181,8 @@ struct InstanceBatch {const dx11::Mesh* mesh;int material;UINT start,count;};
 std::vector<InstanceData> instanceData;
 std::vector<InstanceBatch> instanceBatches;
 std::array<std::vector<InstanceBatch>,3> shadowInstanceBatches;
+std::vector<InstanceBatch> headlightShadowInstanceBatches;
+std::vector<InstanceBatch> streetShadowInstanceBatches;
 std::vector<unsigned char> hudPixels;
 unsigned int screenshotSequence=0;
 bool deviceLost=false;
@@ -139,9 +208,17 @@ struct SceneConstants {
     XMFLOAT4 shadowInfo;
     XMFLOAT4 localLightPosition[12];
     XMFLOAT4 localLightColor[12];
+    XMFLOAT4X4 headlightViewProjection;
+    XMFLOAT4 headlightShadowInfo;
+    XMFLOAT4X4 streetViewProjection;
+    XMFLOAT4 streetShadowInfo;
+    XMFLOAT4 temporalInfo;
+    XMFLOAT4X4 previousViewProjection;
 };
 struct PostConstants {XMFLOAT4X4 viewProjection,inverseViewProjection;
-    XMFLOAT4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;};
+    XMFLOAT4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
+    XMFLOAT4X4 previousViewProjection;
+    XMFLOAT4 temporal;};
 template<class T> void release(T*& object){if(object){object->Release();object=nullptr;}}
 void releaseGpuQueries(){
     for(auto& frame:gpuQueries){
@@ -222,6 +299,133 @@ std::wstring executableFolder(){
     std::wstring result(filename);auto slash=result.find_last_of(L"\\/");
     return result.substr(0,slash);
 }
+bool createProbes(){
+    D3D11_BUFFER_DESC buffer{};buffer.ByteWidth=sizeof(ProbeConstants);
+    buffer.Usage=D3D11_USAGE_DEFAULT;buffer.BindFlags=D3D11_BIND_CONSTANT_BUFFER;
+    if(FAILED(device->CreateBuffer(&buffer,nullptr,&probeBuffer)))return false;
+    std::string error;
+    if(!dx11::probes::load(executableFolder()+L"\\assets\\lighting\\showcase.mcpb",probeSet,error)){
+        logging::write((error+"; retaining legacy ambient lighting").c_str());return true;
+    }
+    std::vector<D3D11_SUBRESOURCE_DATA> data(probeSet.subresources.size());
+    for(unsigned i=0;i<data.size();++i){
+        data[i].pSysMem=probeSet.subresources[i].data();
+        data[i].SysMemPitch=std::max(1u,probeSet.size>>(i%probeSet.mips))*8;
+    }
+    D3D11_TEXTURE2D_DESC texture{};texture.Width=texture.Height=probeSet.size;
+    texture.MipLevels=probeSet.mips;texture.ArraySize=dx11::probes::CUBE_COUNT*6;
+    texture.Format=DXGI_FORMAT_R16G16B16A16_FLOAT;texture.SampleDesc.Count=1;
+    texture.Usage=D3D11_USAGE_IMMUTABLE;texture.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+    texture.MiscFlags=D3D11_RESOURCE_MISC_TEXTURECUBE;
+    ID3D11Texture2D* resource=nullptr;
+    HRESULT result=device->CreateTexture2D(&texture,data.data(),&resource);
+    D3D11_SHADER_RESOURCE_VIEW_DESC view{};view.Format=texture.Format;
+    view.ViewDimension=D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+    view.TextureCubeArray.MipLevels=probeSet.mips;
+    view.TextureCubeArray.NumCubes=dx11::probes::CUBE_COUNT;
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(resource,&view,&probeView);
+    release(resource);
+    texture.Width=texture.Height=probeSet.lutSize;texture.MipLevels=texture.ArraySize=1;
+    texture.Format=DXGI_FORMAT_R32G32_FLOAT;texture.MiscFlags=0;
+    D3D11_SUBRESOURCE_DATA lut{};lut.pSysMem=probeSet.brdf.data();
+    lut.SysMemPitch=probeSet.lutSize*2*sizeof(float);
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&texture,&lut,&resource);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(resource,nullptr,&brdfView);
+    release(resource);
+    if(FAILED(result)){
+        release(probeView);release(brdfView);probeSet={};
+        logging::write("Probe resource allocation failed; retaining legacy ambient lighting");
+    }else{
+        // Keep the compact SH/position metadata; release CPU texture copies.
+        probeSet.subresources.clear();probeSet.brdf.clear();
+        logging::write("HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT");
+    }
+    return true;
+}
+void updateProbes(){
+    ProbeConstants constants{};
+    bool enabled=probeView&&brdfView&&!probeBakeActive&&
+        !std::strstr(GetCommandLineA(),"--no-probes");
+    const auto weights=dx11::probes::timeWeights(gameHour);
+    constants.timeWeights={weights[0],weights[1],weights[2],0};
+    constants.info={float(probeSet.mips?probeSet.mips-1:0),
+        1-weather::current().clouds*0.42f,enabled?1.0f:0.0f,
+        std::strstr(GetCommandLineA(),"--probe-weight-view")?2.0f:
+        std::strstr(GetCommandLineA(),"--probe-view")?1.0f:0.0f};
+    for(unsigned p=0;p<2;++p){
+        const auto& v=enabled?probeSet.positions[p]:
+            std::array<float,4>{probePositions[p].x,probePositions[p].y,probePositions[p].z,probePositions[p].w};
+        constants.positions[p]={v[0],v[1],v[2],v[3]};
+    }
+    for(unsigned provider=0;provider<3;++provider)for(unsigned i=0;i<9;++i){
+        XMFLOAT4& sh=constants.sh[provider][i];
+        unsigned first=provider==0?6:(provider-1)*3;
+        for(unsigned time=0;time<3;++time){const auto& c=probeSet.sh[first+time][i];
+            sh.x+=c[0]*weights[time];sh.y+=c[1]*weights[time];sh.z+=c[2]*weights[time];}
+    }
+    context->UpdateSubresource(probeBuffer,0,nullptr,&constants,0,0);
+    context->PSSetConstantBuffers(1,1,&probeBuffer);
+    ID3D11ShaderResourceView* views[]={probeView,brdfView};
+    context->PSSetShaderResources(11,2,views);
+    context->PSSetSamplers(3,1,&clampSampler);
+}
+bool captureProbe(const SceneConstants& constants){
+    ID3D11Texture2D *colorCopy=nullptr,*depthCopy=nullptr;
+    D3D11_TEXTURE2D_DESC desc{};sceneTexture->GetDesc(&desc);
+    desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;
+    desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;
+    HRESULT result=device->CreateTexture2D(&desc,nullptr,&colorCopy);
+    depthTexture->GetDesc(&desc);desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;
+    desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&desc,nullptr,&depthCopy);
+    D3D11_MAPPED_SUBRESOURCE color{},depth{};
+    bool colorMapped=false,depthMapped=false;
+    if(SUCCEEDED(result)){
+        context->OMSetRenderTargets(0,nullptr,nullptr);
+        context->CopyResource(colorCopy,sceneTexture);context->CopyResource(depthCopy,depthTexture);
+        result=context->Map(colorCopy,0,D3D11_MAP_READ,0,&color);colorMapped=SUCCEEDED(result);
+        if(SUCCEEDED(result)){result=context->Map(depthCopy,0,D3D11_MAP_READ,0,&depth);depthMapped=SUCCEEDED(result);}
+    }
+    bool ok=false;
+    if(SUCCEEDED(result)){
+        unsigned probe=probeBakeFrame/18,state=(probeBakeFrame/6)%3,face=probeBakeFrame%6;
+        std::vector<std::uint16_t> pixels(size_t(bufferW)*bufferH*4);
+        XMMATRIX inverse=XMMatrixInverse(nullptr,XMLoadFloat4x4(&constants.viewProjection));
+        float solar=std::sin((gameHour-6)*PI/12),day=std::clamp(solar*2.3f+0.42f,0.0f,1.0f);
+        float twilight=std::max(0.0f,1.0f-std::abs(solar)*4.0f);
+        float top[3]={0.015f+0.10f*day+twilight*0.10f,0.025f+0.32f*day-twilight*0.07f,0.09f+0.60f*day};
+        float horizon[3]={0.055f+0.55f*day+twilight*0.34f,0.075f+0.68f*day-twilight*0.18f,0.15f+0.69f*day-twilight*0.27f};
+        for(int y=0;y<bufferH;++y){
+            auto* source=reinterpret_cast<const std::uint16_t*>(static_cast<const char*>(color.pData)+size_t(y)*color.RowPitch);
+            auto* depths=reinterpret_cast<const std::uint32_t*>(static_cast<const char*>(depth.pData)+size_t(y)*depth.RowPitch);
+            for(int x=0;x<bufferW;++x){auto* output=pixels.data()+(size_t(y)*bufferW+x)*4;
+                std::copy_n(source+x*4,4,output);output[3]=DirectX::PackedVector::XMConvertFloatToHalf(1);
+                if((depths[x]&0xffffff)>=0xfffff0){
+                    XMVECTOR farPoint=XMVector3TransformCoord(XMVectorSet((x+0.5f)*2/bufferW-1,
+                        1-(y+0.5f)*2/bufferH,1,1),inverse);
+                    XMVECTOR ray=XMVector3Normalize(XMVectorSubtract(farPoint,
+                        XMVectorSet(constants.eye.x,constants.eye.y,constants.eye.z,1)));
+                    float gradient=std::clamp(0.34f+XMVectorGetY(ray)*1.8f,0.0f,1.0f);
+                    for(int c=0;c<3;++c)output[c]=DirectX::PackedVector::XMConvertFloatToHalf(
+                        std::max(0.0f,horizon[c]*(1-gradient)+top[c]*gradient));
+                }
+            }
+        }
+        auto folder=std::filesystem::path(executableFolder())/"probe-captures";
+        std::error_code error;std::filesystem::create_directories(folder,error);
+        char filename[48]{};std::snprintf(filename,sizeof(filename),"probe-%u-time-%u-face-%u.hdrface",probe,state,face);
+        std::ofstream file(folder/filename,std::ios::binary);
+        const std::uint32_t header[]={unsigned(bufferW),probe,state,face};
+        file.write("MCENV1\0\0",8);file.write(reinterpret_cast<const char*>(header),sizeof(header));
+        file.write(reinterpret_cast<const char*>(&probePositions[probe]),sizeof(XMFLOAT4));
+        file.write(reinterpret_cast<const char*>(&gameHour),sizeof(float));
+        file.write(reinterpret_cast<const char*>(pixels.data()),std::streamsize(pixels.size()*2));
+        ok=bool(file);
+        if(ok)logging::write(("Captured HDR "+std::string(filename)).c_str());
+    }
+    if(depthMapped)context->Unmap(depthCopy,0);if(colorMapped)context->Unmap(colorCopy,0);
+    release(depthCopy);release(colorCopy);return ok;
+}
 bool compile(const char* source,const char* entry,const char* profile,ID3DBlob** output){
     ID3DBlob* errors=nullptr;
     HRESULT status=D3DCompile(source,std::strlen(source),"MiniCityShader",nullptr,nullptr,
@@ -235,6 +439,277 @@ bool compile(const char* source,const char* entry,const char* profile,ID3DBlob**
     }
     release(errors);return SUCCEEDED(status);
 }
+const char* skinShader=R"HLSL(
+struct SkinVertex {float3 position;float3 normal;float2 uv;float4 color;
+    uint packedJoints;float4 weights;};
+StructuredBuffer<SkinVertex> source:register(t0);
+RWByteAddressBuffer destination:register(u0);
+RWByteAddressBuffer previousDestination:register(u1);
+cbuffer Skin:register(b0){
+    column_major float4x4 palette[256];
+    column_major float4x4 previousPalette[256];
+    float4 scale,origin,translation,yaw;
+    float4 previousScale,previousOrigin,previousTranslation,previousYaw;
+    uint vertexCount,vertexStart,jointCount,padding;
+};
+[numthreads(64,1,1)]
+void CS(uint3 id:SV_DispatchThreadID){
+    if(id.x>=vertexCount)return;
+    SkinVertex input=source[id.x];
+    float3 position=0,normal=0,previousPosition=0;
+    [unroll]for(uint influence=0;influence<4;++influence){
+        uint joint=(input.packedJoints>>(8*influence))&255;
+        float weight=input.weights[influence];
+        if(weight>0&&joint<jointCount){
+            position+=weight*mul(palette[joint],float4(input.position,1)).xyz;
+            normal+=weight*mul(palette[joint],float4(input.normal,0)).xyz;
+            previousPosition+=weight*mul(previousPalette[joint],float4(input.position,1)).xyz;
+        }
+    }
+    position=(position-origin.xyz)*scale.xyz;
+    float3 world=translation.xyz+float3(yaw.x*position.x+yaw.y*position.z,
+        position.y,-yaw.y*position.x+yaw.x*position.z);
+    normal/=scale.xyz;
+    float magnitude=max(0.0001,length(normal));
+    float3 worldNormal=float3(yaw.x*normal.x+yaw.y*normal.z,normal.y,
+        -yaw.y*normal.x+yaw.x*normal.z)/magnitude;
+    uint address=(vertexStart+id.x)*48;
+    destination.Store3(address,asuint(world));
+    destination.Store3(address+12,asuint(worldNormal));
+    destination.Store2(address+24,asuint(input.uv));
+    destination.Store4(address+32,asuint(input.color));
+    previousPosition=(previousPosition-previousOrigin.xyz)*previousScale.xyz;
+    float3 previousWorld=previousTranslation.xyz+float3(
+        previousYaw.x*previousPosition.x+previousYaw.y*previousPosition.z,
+        previousPosition.y,-previousYaw.y*previousPosition.x+previousYaw.x*previousPosition.z);
+    previousDestination.Store4((vertexStart+id.x)*16,asuint(float4(previousWorld,float(padding))));
+}
+)HLSL";
+bool createSkinResources(){
+    ID3DBlob* code=nullptr;
+    if(!compile(skinShader,"CS","cs_5_0",&code)){release(code);return false;}
+    HRESULT result=device->CreateComputeShader(code->GetBufferPointer(),
+        code->GetBufferSize(),nullptr,&skinCS);
+    release(code);
+    D3D11_BUFFER_DESC desc{};desc.ByteWidth=sizeof(SkinConstants);
+    desc.Usage=D3D11_USAGE_DEFAULT;desc.BindFlags=D3D11_BIND_CONSTANT_BUFFER;
+    if(SUCCEEDED(result))result=device->CreateBuffer(&desc,nullptr,&skinConstants);
+    if(FAILED(result)){release(skinCS);release(skinConstants);return false;}
+    return true;
+}
+bool cacheSkin(const dx11::SkinMesh* skin){
+    if(skinSources.count(skin))return true;
+    if(skin->jointCount==0||skin->jointCount>dx11::MAX_GPU_SKIN_JOINTS||
+       skin->vertices.empty()||skin->vertices.size()>300000)return false;
+    static_assert(sizeof(dx11::SkinVertex)==68&&sizeof(dx11::Vertex)==48);
+    D3D11_BUFFER_DESC desc{};
+    desc.ByteWidth=UINT(skin->vertices.size()*sizeof(dx11::SkinVertex));
+    desc.Usage=D3D11_USAGE_IMMUTABLE;desc.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+    desc.MiscFlags=D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    desc.StructureByteStride=sizeof(dx11::SkinVertex);
+    D3D11_SUBRESOURCE_DATA data{};data.pSysMem=skin->vertices.data();
+    ID3D11Buffer* buffer=nullptr;ID3D11ShaderResourceView* view=nullptr;
+    HRESULT result=device->CreateBuffer(&desc,&data,&buffer);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(buffer,nullptr,&view);
+    release(buffer);
+    if(FAILED(result)){release(view);return false;}
+    skinSources.emplace(skin,view);return true;
+}
+bool growSkinBuffer(size_t count){
+    if(count<=skinCapacity&&skinOutput&&skinOutputUav&&skinPreviousOutput&&skinPreviousUav)return true;
+    if(count>3000000)return false;
+    size_t capacity=std::min(size_t(3000000),std::max(count,skinCapacity*2+100000));
+    D3D11_BUFFER_DESC desc{};desc.ByteWidth=UINT(capacity*sizeof(dx11::Vertex));
+    desc.Usage=D3D11_USAGE_DEFAULT;
+    desc.BindFlags=D3D11_BIND_UNORDERED_ACCESS|D3D11_BIND_VERTEX_BUFFER;
+    desc.MiscFlags=D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+    ID3D11Buffer* buffer=nullptr;ID3D11UnorderedAccessView* view=nullptr;
+    HRESULT result=device->CreateBuffer(&desc,nullptr,&buffer);
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uav{};uav.Format=DXGI_FORMAT_R32_TYPELESS;
+    uav.ViewDimension=D3D11_UAV_DIMENSION_BUFFER;uav.Buffer.NumElements=desc.ByteWidth/4;
+    uav.Buffer.Flags=D3D11_BUFFER_UAV_FLAG_RAW;
+    if(SUCCEEDED(result))result=device->CreateUnorderedAccessView(buffer,&uav,&view);
+    ID3D11Buffer* previousBuffer=nullptr;ID3D11UnorderedAccessView* previousView=nullptr;
+    desc.ByteWidth=UINT(capacity*16);uav.Buffer.NumElements=desc.ByteWidth/4;
+    if(SUCCEEDED(result))result=device->CreateBuffer(&desc,nullptr,&previousBuffer);
+    if(SUCCEEDED(result))result=device->CreateUnorderedAccessView(previousBuffer,&uav,&previousView);
+    if(FAILED(result)){release(buffer);release(view);release(previousBuffer);release(previousView);return false;}
+    release(skinOutputUav);release(skinOutput);
+    release(skinPreviousUav);release(skinPreviousOutput);
+    skinOutput=buffer;skinOutputUav=view;skinCapacity=capacity;
+    skinPreviousOutput=previousBuffer;skinPreviousUav=previousView;
+    return true;
+}
+bool validateSkinOutput(const std::vector<dx11::SkinInstance>& previous,
+                        const std::vector<unsigned>& validity){
+    D3D11_BUFFER_DESC desc{};skinOutput->GetDesc(&desc);
+    desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;
+    desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;
+    ID3D11Buffer* staging=nullptr;
+    if(FAILED(device->CreateBuffer(&desc,nullptr,&staging)))return false;
+    context->CopyResource(staging,skinOutput);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    HRESULT result=context->Map(staging,0,D3D11_MAP_READ,0,&mapped);
+    bool valid=SUCCEEDED(result);float maxError=0;
+    if(valid){
+        std::vector<dx11::Vertex> expected;
+        for(const auto& instance:gpuSkins)dx11::deformSkinCpu(instance,expected);
+        const auto* actual=static_cast<const float*>(mapped.pData);
+        for(size_t i=0;i<expected.size()&&valid;++i){
+            float reference[12];std::memcpy(reference,&expected[i],sizeof(reference));
+            for(int field=0;field<12;++field){
+                float error=std::abs(actual[i*12+field]-reference[field]);
+                maxError=std::max(maxError,error);
+                float tolerance=field<3?0.003f:0.00003f;
+                if(!std::isfinite(actual[i*12+field])||error>tolerance)valid=false;
+            }
+        }
+        context->Unmap(staging,0);
+    }
+    release(staging);
+    skinPreviousOutput->GetDesc(&desc);desc.Usage=D3D11_USAGE_STAGING;
+    desc.BindFlags=0;desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;
+    if(FAILED(device->CreateBuffer(&desc,nullptr,&staging)))return false;
+    context->CopyResource(staging,skinPreviousOutput);
+    result=context->Map(staging,0,D3D11_MAP_READ,0,&mapped);
+    if(SUCCEEDED(result)){
+        const auto* actual=static_cast<const float*>(mapped.pData);size_t start=0;
+        for(size_t pose=0;pose<previous.size();++pose){
+            std::vector<dx11::Vertex> expected;dx11::deformSkinCpu(previous[pose],expected);
+            for(size_t i=0;i<expected.size();++i){
+                float reference[3]={expected[i].x,expected[i].y,expected[i].z};
+                for(int axis=0;axis<3;++axis){
+                    float value=actual[(start+i)*4+axis];
+                    float error=std::abs(value-reference[axis]);maxError=std::max(maxError,error);
+                    if(!std::isfinite(value)||error>0.003f)valid=false;
+                }
+                if(actual[(start+i)*4+3]!=float(validity[pose]))valid=false;
+            }
+            start+=expected.size();
+        }
+        context->Unmap(staging,0);
+    }else valid=false;
+    release(staging);
+    char line[180]{};
+    std::snprintf(line,sizeof(line),"GPU skin validation: %s; frame %llu, %zu vertices, %zu poses, %u prior poses, max error %.8f",
+        valid?"PASS":"FAIL",static_cast<unsigned long long>(skinFrame),skinVertexCount,
+        gpuSkins.size(),unsigned(std::count(validity.begin(),validity.end(),1u)),maxError);
+    logging::write(line);return valid;
+}
+void prepareSkins(){
+    ++skinFrame;
+    skinVertexCount=0;
+    for(const auto& instance:gpuSkins)skinVertexCount+=instance.source->vertices.size();
+    if(skinVertexCount==0)return;
+    bool ready=skinCS&&skinConstants&&growSkinBuffer(skinVertexCount);
+    for(const auto& instance:gpuSkins)ready=ready&&
+        instance.palette.size()==instance.source->jointCount&&cacheSkin(instance.source);
+    if(ready){
+        const bool validate=std::strstr(GetCommandLineA(),"--validate-gpu-skinning")&&
+            (skinFrame==1||skinFrame==30||skinFrame==60);
+        std::vector<dx11::SkinInstance> priorPoses;
+        std::vector<unsigned> priorValidity;
+        // A previous frame may still have this output bound to the input assembler.
+        ID3D11Buffer* emptyBuffers[2]{};UINT zeros[2]{};
+        context->IASetVertexBuffers(0,2,emptyBuffers,zeros,zeros);
+        context->CSSetShader(skinCS,nullptr,0);
+        context->CSSetConstantBuffers(0,1,&skinConstants);
+        ID3D11UnorderedAccessView* outputViews[2]={skinOutputUav,skinPreviousUav};
+        context->CSSetUnorderedAccessViews(0,2,outputViews,nullptr);
+        UINT start=0;
+        for(const auto& instance:gpuSkins){
+            SkinConstants constants{};
+            std::copy(instance.palette.begin(),instance.palette.end(),constants.palette);
+            constants.scale=instance.scale;constants.origin=instance.origin;
+            constants.transform=instance.transform;constants.yaw=instance.yaw;
+            constants.count=UINT(instance.source->vertices.size());constants.start=start;
+            constants.joints=instance.source->jointCount;
+            auto prior=previousSkins.find(instance.identity);
+            bool valid=instance.identity!=0&&prior!=previousSkins.end()&&
+                prior->second.frame+1==skinFrame&&prior->second.pose.source==instance.source;
+            if(valid){
+                float distanceSquared=0;
+                for(int axis=0;axis<3;++axis){
+                    float delta=instance.transform[axis]-prior->second.pose.transform[axis];
+                    distanceSquared+=delta*delta;
+                }
+                valid=distanceSquared<65*65;
+            }
+            const auto& previous=valid?prior->second.pose:instance;
+            std::copy(previous.palette.begin(),previous.palette.end(),constants.previousPalette);
+            constants.previousScale=previous.scale;constants.previousOrigin=previous.origin;
+            constants.previousTransform=previous.transform;constants.previousYaw=previous.yaw;
+            constants.padding=valid?1:0;
+            if(validate){priorPoses.push_back(previous);priorValidity.push_back(constants.padding);}
+            context->UpdateSubresource(skinConstants,0,nullptr,&constants,0,0);
+            auto* source=skinSources.at(instance.source);
+            context->CSSetShaderResources(0,1,&source);
+            context->Dispatch((constants.count+63)/64,1,1);start+=constants.count;
+        }
+        ID3D11UnorderedAccessView* emptyUavs[2]{};
+        ID3D11ShaderResourceView* emptyView=nullptr;
+        context->CSSetUnorderedAccessViews(0,2,emptyUavs,nullptr);
+        context->CSSetShaderResources(0,1,&emptyView);
+        context->CSSetShader(nullptr,nullptr,0);
+        if(!skinValidationDone){
+            char line[140]{};
+            std::snprintf(line,sizeof(line),"GPU skinning: %zu ordinary poses, %zu vertices; shared color/shadow buffer",
+                gpuSkins.size(),skinVertexCount);logging::write(line);
+            skinValidationDone=true;
+        }
+        if(validate)ready=validateSkinOutput(priorPoses,priorValidity);
+        for(auto item=previousSkins.begin();item!=previousSkins.end();){
+            if(item->second.frame+1<skinFrame)item=previousSkins.erase(item);
+            else ++item;
+        }
+        for(const auto& instance:gpuSkins)if(instance.identity!=0)
+            previousSkins.insert_or_assign(instance.identity,PreviousSkin{instance,skinFrame});
+    }
+    if(!ready){
+        for(const auto& instance:gpuSkins)dx11::deformSkinCpu(instance,groups[5]);
+        skinVertexCount=0;
+        release(skinCS);logging::write("GPU skinning unavailable; using CPU deformation");
+    }
+}
+const char* probeShader=R"HLSL(
+cbuffer Probes:register(b1){
+    float4 probePositions[2];float4 probeSh[3][9];
+    float4 probeTimeWeights;float4 probeInfo;
+};
+TextureCubeArray probeEnvironment:register(t11);
+Texture2D probeBrdf:register(t12);
+SamplerState probeSampler:register(s3);
+float3 spatialProbeWeights(float3 world){
+    float a=1-smoothstep(0,probePositions[0].w,distance(world,probePositions[0].xyz));
+    float b=1-smoothstep(0,probePositions[1].w,distance(world,probePositions[1].xyz));
+    float total=a+b;
+    return float3(max(0,1-total),a/max(1,total),b/max(1,total));
+}
+float3 diffuseProbe(float3 world,float3 n){
+    float basis[9]={0.282094792,0.488602512*n.y,0.488602512*n.z,
+        0.488602512*n.x,1.092548431*n.x*n.y,1.092548431*n.y*n.z,
+        0.315391565*(3*n.z*n.z-1),1.092548431*n.x*n.z,
+        0.546274215*(n.x*n.x-n.y*n.y)};
+    float3 weights=spatialProbeWeights(world),result=0;
+    [unroll] for(int p=0;p<3;++p){
+        float3 value=0;
+        [unroll] for(int i=0;i<9;++i)value+=probeSh[p][i].rgb*basis[i];
+        result+=max(0,value)*weights[p];
+    }
+    return result*probeInfo.y;
+}
+float3 specularProbe(float3 world,float3 ray,float roughness){
+    float3 weights=spatialProbeWeights(world),result=0;
+    [unroll] for(int p=0;p<3;++p)if(weights[p]>0.0001){
+        int firstCube=p==0?6:(p-1)*3;
+        [unroll] for(int time=0;time<3;++time)if(probeTimeWeights[time]>0.0001)
+            result+=probeEnvironment.SampleLevel(probeSampler,
+                float4(ray,firstCube+time),roughness*probeInfo.x).rgb*
+                weights[p]*probeTimeWeights[time];
+    }
+    return result*probeInfo.y;
+}
+)HLSL";
 const char* sceneShader=R"HLSL(
 cbuffer Scene : register(b0){
     row_major float4x4 viewProjection;
@@ -250,6 +725,12 @@ cbuffer Scene : register(b0){
     float4 shadowInfo;
     float4 localLightPosition[12];
     float4 localLightColor[12];
+    row_major float4x4 headlightViewProjection;
+    float4 headlightShadowInfo;
+    row_major float4x4 streetViewProjection;
+    float4 streetShadowInfo;
+    float4 temporalInfo;
+    row_major float4x4 previousViewProjection;
 };
 Texture2D diffuseTexture : register(t0);
 Texture2D detailTexture : register(t1);
@@ -260,6 +741,8 @@ Texture2D modelNormalTexture : register(t5);
 Texture2D modelOrmTexture : register(t6);
 Texture2D modelOcclusionTexture : register(t7);
 Texture2D modelEmissiveTexture : register(t8);
+Texture2D headlightShadowTexture : register(t9);
+Texture2D streetShadowTexture : register(t10);
 SamplerState linearSampler : register(s0);
 SamplerComparisonState shadowSampler : register(s1);
 SamplerState modelSampler : register(s2);
@@ -268,14 +751,27 @@ struct InstancedInput {
     float3 position:POSITION; float3 normal:NORMAL; float2 uv:TEXCOORD0; float4 color:COLOR0;
     float4 a:INSTANCE0; float4 b:INSTANCE1; float4 c:INSTANCE2; float4 tint:INSTANCE3;
 };
-struct Output { float4 position:SV_POSITION; float3 world:TEXCOORD1; float3 normal:NORMAL; float2 uv:TEXCOORD0; float4 color:COLOR0; float4 shadowPosition[3]:TEXCOORD2; };
+struct SkinnedInput {
+    float3 position:POSITION;float3 normal:NORMAL;float2 uv:TEXCOORD0;float4 color:COLOR0;
+    float4 previous:POSITION1;
+};
+struct Output { float4 position:SV_POSITION; float3 world:TEXCOORD1; float3 normal:NORMAL; float2 uv:TEXCOORD0; float4 color:COLOR0; float4 shadowPosition[3]:TEXCOORD2;
+    float4 previousPosition:TEXCOORD5;float previousValid:TEXCOORD6;};
 Output VS(Input input){
     Output result;
     result.position=mul(float4(input.position,1),viewProjection);
     [unroll] for(int i=0;i<3;++i)
         result.shadowPosition[i]=mul(float4(input.position,1),shadowViewProjection[i]);
     result.world=input.position;result.normal=input.normal;result.uv=input.uv;result.color=input.color;
+    result.previousPosition=0;result.previousValid=0;
     return result;
+}
+Output VSSkinned(SkinnedInput input){
+    Input current;current.position=input.position;current.normal=input.normal;
+    current.uv=input.uv;current.color=input.color;
+    Output result=VS(current);
+    result.previousPosition=mul(float4(input.previous.xyz,1),previousViewProjection);
+    result.previousValid=input.previous.w;return result;
 }
 Output VSInstanced(InstancedInput input){
     float3 local=float3((input.position.x-input.c.x)*input.a.x,
@@ -297,6 +793,7 @@ Output VSInstanced(InstancedInput input){
         result.shadowPosition[i]=mul(float4(world,1),shadowViewProjection[i]);
     result.world=world;result.normal=normal;result.uv=input.uv;
     result.color=float4(input.color.rgb*input.tint.rgb,input.color.a);
+    result.previousPosition=0;result.previousValid=0;
     return result;
 }
 struct TessFactors {float edge[3]:SV_TessFactor;float inside:SV_InsideTessFactor;};
@@ -347,6 +844,7 @@ Output DS(TessFactors factors,const OutputPatch<Output,3> patch,float3 bary:SV_D
     result.normal=normalize(patch[0].normal*bary.x+patch[1].normal*bary.y+patch[2].normal*bary.z);
     result.uv=patch[0].uv*bary.x+patch[1].uv*bary.y+patch[2].uv*bary.z;
     result.color=patch[0].color*bary.x+patch[1].color*bary.y+patch[2].color*bary.z;
+    result.previousPosition=0;result.previousValid=0;
     result.world+=result.normal*surfaceDisplacement(result.world,result.normal,result.uv);
     result.position=mul(float4(result.world,1),viewProjection);
     [unroll] for(int i=0;i<3;++i)
@@ -354,7 +852,8 @@ Output DS(TessFactors factors,const OutputPatch<Output,3> patch,float3 bary:SV_D
     return result;
 }
 struct SceneOutput {float4 color:SV_TARGET0;float4 surface:SV_TARGET1;
-    float4 indirect:SV_TARGET2;};
+    float4 indirect:SV_TARGET2;float4 motion:SV_TARGET3;
+    float4 reflectionResponse:SV_TARGET4;};
 float sampleSunShadow(float4 shadowPosition,float diffuse,int cascade){
     if(shadowPosition.w<=0)return 1;
     float3 projected=shadowPosition.xyz/shadowPosition.w;
@@ -369,9 +868,51 @@ float sampleSunShadow(float4 shadowPosition,float diffuse,int cascade){
                 projected.z-bias);
     return lerp(0.24,1.0,filtered*0.25);
 }
+float sampleHeadlightShadow(float3 world,float diffuse){
+    float4 position=mul(float4(world,1),headlightViewProjection);
+    if(position.w<=0)return 1;
+    float3 projected=position.xyz/position.w;
+    float2 uv=float2(projected.x*0.5+0.5,0.5-projected.y*0.5);
+    if(any(uv<=0.001)||any(uv>=0.999)||projected.z<=0||projected.z>=1)
+        return 1;
+    float bias=0.0015+0.003*(1-diffuse);
+    float filtered=0;
+    [unroll] for(int y=0;y<2;++y)
+        [unroll] for(int x=0;x<2;++x)
+            filtered+=headlightShadowTexture.SampleCmpLevelZero(shadowSampler,
+                uv+(float2(x,y)-0.5)*headlightShadowInfo.w*1.5,
+                projected.z-bias);
+    return filtered*0.25;
+}
+float sampleStreetShadow(float3 world,float diffuse){
+    float4 position=mul(float4(world,1),streetViewProjection);
+    if(position.w<=0)return 1;
+    float3 projected=position.xyz/position.w;
+    float2 uv=float2(projected.x*0.5+0.5,0.5-projected.y*0.5);
+    if(any(uv<=0.001)||any(uv>=0.999)||projected.z<=0||projected.z>=1)
+        return 1;
+    float bias=0.0015+0.003*(1-diffuse);
+    float filtered=0;
+    [unroll] for(int y=0;y<2;++y)
+        [unroll] for(int x=0;x<2;++x)
+            filtered+=streetShadowTexture.SampleCmpLevelZero(shadowSampler,
+                uv+(float2(x,y)-0.5)*streetShadowInfo.z*1.5,
+                projected.z-bias);
+    return filtered*0.25;
+}
 SceneOutput PS(Output input){
     SceneOutput output;
-    output.indirect=float4(0,0,0,0);
+    output.indirect=float4(0,0,0,0);output.reflectionResponse=0;
+    output.motion=0;
+    if(temporalInfo.y>0.5){
+        output.motion.w=-1;
+        if(input.previousValid>0.5&&input.previousPosition.w>0.00001){
+            float3 previous=input.previousPosition.xyz/input.previousPosition.w;
+            float2 previousUv=float2(previous.x*0.5+0.5,0.5-previous.y*0.5);
+            float valid=all(previousUv>=0)&&all(previousUv<=1)&&previous.z>0&&previous.z<1?1:-1;
+            output.motion=float4(input.position.xy*temporalInfo.zw-previousUv,previous.z,valid);
+        }
+    }
     float4 base=input.color;
     int material=(int)(params.x+0.5);
     bool modelTexture=frac(params.x)>0.1;
@@ -513,6 +1054,15 @@ SceneOutput PS(Output input){
         modelOcclusionTexture.Sample(modelSampler,input.uv).r:1.0;
     float3 lit=(base.rgb*ambient.rgb*(1-metallic)*0.75+
         f0*ambient.rgb*0.15)*occlusion;
+    if(probeInfo.z>0.5){
+        float3 fresnelIbl=f0+(max(1-roughness,f0)-f0)*pow(1-ndv,5);
+        float2 dfg=probeBrdf.SampleLevel(probeSampler,float2(ndv,roughness),0).rg;
+        float3 response=f0*dfg.x+dfg.y;
+        lit=((1-fresnelIbl)*(1-metallic)*base.rgb*
+            diffuseProbe(input.world,normal)+
+            specularProbe(input.world,reflect(-viewDirection,normal),roughness)*response)*occlusion;
+        output.reflectionResponse=float4(response*occlusion,1);
+    }
     float3 indirect=lit;
     float diffuse=saturate(dot(normal,normalize(sun.xyz)));
     float visibility=1;
@@ -563,15 +1113,22 @@ SceneOutput PS(Output input){
         float3 halfLocal=normalize(viewDirection+direction);
         float localSpecular=pow(max(0,dot(normal,halfLocal)),
             lerp(80.0,5.0,roughness));
+        float localVisibility=1.0;
+        if(headlightShadowInfo.z>0.5&&
+           (abs(i-headlightShadowInfo.x)<0.5||
+            abs(i-headlightShadowInfo.y)<0.5))
+            localVisibility=sampleHeadlightShadow(input.world,diffuseLocal);
+        if(streetShadowInfo.y>0.5&&abs(i-streetShadowInfo.x)<0.5)
+            localVisibility*=sampleStreetShadow(input.world,diffuseLocal);
         lit+=(base.rgb*(1-metallic)*diffuseLocal*0.9+
             f0*localSpecular*2.0)*localLightColor[i].rgb*
-            localLightColor[i].w*attenuation;
+            localLightColor[i].w*attenuation*localVisibility;
     }
     if(road&&precipitation>0.05){
         float fresnelWet=pow(1-ndv,3);
         lit+=fogColor.rgb*(0.08+0.22*fresnelWet)*precipitation;
     }
-    if(material==6&&ambient.w>0.5){
+    if(material==6&&ambient.w>0.5&&probeInfo.z<0.5){
         float3 reflected=reflect(-viewDirection,normal);
         float horizon=saturate(reflected.y*0.5+0.5);
         float3 environment=lerp(fogColor.rgb*0.65,fogColor.rgb*1.45,horizon);
@@ -581,13 +1138,17 @@ SceneOutput PS(Output input){
     }
     lit+=((mapFlags&8)!=0?modelEmissiveTexture.Sample(modelSampler,input.uv).rgb:
         base.rgb)*materialPbr.z;
+    if(probeInfo.w>1.5)lit=spatialProbeWeights(input.world);
+    else if(probeInfo.w>0.5)lit=indirect;
     float distanceToEye=distance(input.world,eye.xyz);
     float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
+    if(probeInfo.w>1.5)fog=0;
     float reflectionMask=material==3?0.10:
         road&&precipitation>0.05?1.0-0.78*precipitation:base.a;
     output.color=float4(lerp(lit,fogColor.rgb,fog),reflectionMask);
     output.surface=float4(normal*0.5+0.5,roughness);
-    output.indirect=float4(indirect*(1-fog),1);
+    output.indirect=float4(indirect*(1-fog),temporalInfo.x);
+    output.reflectionResponse.rgb*=1-fog;
     return output;
 }
 void PSShadowAlpha(Output input){
@@ -657,7 +1218,7 @@ float4 PS(Input input):SV_TARGET{
                     sampleColor(uv+dir*0.5));
                 float lumaB=luminance(b);
                 center=lumaB<lumaMin||lumaB>lumaMax?a:b;
-            }else center=lerp(center,a,0.72);
+            }else center=lerp(center,a,effects.z<1.0?0.45:0.72);
         }
     }
     float4 surface=sceneColor.SampleLevel(linearSampler,uv,0);
@@ -759,6 +1320,7 @@ cbuffer Post : register(b0){
 Texture2D sceneColor : register(t0);
 Texture2D sceneDepth : register(t1);
 Texture2D sceneSurface : register(t2);
+Texture2D sceneReflectionResponse : register(t3);
 SamplerState linearSampler : register(s0);
 struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
 float linearDepth(float d){return pixelSize.z*pixelSize.w/
@@ -769,7 +1331,11 @@ float4 PS(Input input):SV_TARGET{
     float4 surface=sceneColor.Load(int3(texel,0));
     float4 geometry=sceneSurface.Load(int3(texel,0));
     float depth=linearDepth(d);
-    if(d>=0.9999||surface.a>=0.95||geometry.w>=0.9)return float4(0,0,0,depth);
+    float4 response=sceneReflectionResponse.Load(int3(texel,0));
+    if(d>=0.9999||geometry.w>=0.9||
+       (probeInfo.z<0.5&&surface.a>=0.95)||
+       (probeInfo.z>0.5&&max(response.r,max(response.g,response.b))<0.01))
+        return float4(0,0,0,depth);
     float2 uv=input.uv;
     float4 clip=float4(uv.x*2-1,1-uv.y*2,d,1);
     float4 world=mul(clip,inverseViewProjection);
@@ -777,7 +1343,9 @@ float4 PS(Input input):SV_TARGET{
     float3 incoming=normalize(world.xyz-cameraEye.xyz);
     float3 normal=normalize(geometry.xyz*2-1);
     float3 reflected=reflect(incoming,normal);
-    float3 reflection=skyHorizon.rgb;
+    float3 environment=probeInfo.z>0.5?
+        specularProbe(world.xyz,reflected,geometry.w):skyHorizon.rgb;
+    float3 reflection=environment;
     bool hit=false;
     int steps=effects.w>1.5?24:10;
     [loop] for(int i=0;i<steps;++i){
@@ -795,9 +1363,98 @@ float4 PS(Input input):SV_TARGET{
         }
     }
     float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
+    if(probeInfo.z>0.5){
+        // The scene already contains probe specular. A miss keeps it; a hit
+        // replaces only that lobe, avoiding a second environment contribution.
+        float weight=hit?0.66*smoothstep(0,0.08,edge)*(1-geometry.w):0;
+        return float4((reflection-environment)*response.rgb*weight,depth);
+    }
     float weight=(hit?0.66*smoothstep(0,0.08,edge):0.25)*
         (1-surface.a)*(1-geometry.w);
     return float4((reflection-surface.rgb)*weight,depth);
+}
+)HLSL";
+const char* motionShader=R"HLSL(
+cbuffer Post : register(b0){
+    row_major float4x4 viewProjection,inverseViewProjection;
+    float4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
+    row_major float4x4 previousViewProjection;
+    float4 temporal;
+};
+Texture2D sceneDepth : register(t0);
+Texture2D sceneIndirect : register(t1);
+Texture2D objectMotion : register(t2);
+struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
+float4 PS(Input input):SV_TARGET{
+    float depth=sceneDepth.Load(int3(input.position.xy,0)).r;
+    float4 animated=objectMotion.Load(int3(input.position.xy,0));
+    if(temporal.x>0.5&&depth<0.9999&&animated.w!=0){
+        animated.w=animated.w>0?1:0;return animated;
+    }
+    if(temporal.x<0.5||depth>=0.9999||
+       sceneIndirect.Load(int3(input.position.xy,0)).a<0.5)
+        return float4(0,0,depth,0);
+    float4 clip=float4(input.uv.x*2-1,1-input.uv.y*2,depth,1);
+    float4 world=mul(clip,inverseViewProjection);
+    world/=max(0.00001,world.w);
+    float4 previous=mul(float4(world.xyz,1),previousViewProjection);
+    if(previous.w<=0)return float4(0,0,depth,0);
+    float3 ndc=previous.xyz/previous.w;
+    float2 previousUv=float2(ndc.x*0.5+0.5,0.5-ndc.y*0.5);
+    return float4(input.uv-previousUv,ndc.z,
+        all(previousUv>=0)&&all(previousUv<=1)&&ndc.z>0&&ndc.z<1?1:0);
+}
+)HLSL";
+const char* temporalShader=R"HLSL(
+cbuffer Post : register(b0){
+    row_major float4x4 viewProjection,inverseViewProjection;
+    float4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
+    row_major float4x4 previousViewProjection;
+    float4 temporal;
+};
+Texture2D currentColor : register(t0);
+Texture2D currentDepth : register(t1);
+Texture2D motionBuffer : register(t2);
+Texture2D previousColor : register(t3);
+SamplerState linearSampler : register(s0);
+struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
+float4 PS(Input input):SV_TARGET{
+    float2 uv=input.uv;
+    float3 center=currentColor.SampleLevel(linearSampler,uv,0).rgb;
+    float depth=currentDepth.Load(int3(input.position.xy,0)).r;
+    float4 motion=motionBuffer.Load(int3(input.position.xy,0));
+    if(temporal.y>0.5){
+        if(motion.w<0.5)return float4(0,0,0,1);
+        float2 pixels=motion.xy/pixelSize.xy;
+        return float4(saturate(float3(0.5+pixels.x*0.03,
+            0.5+pixels.y*0.03,0.5+length(pixels)*0.04)),1);
+    }
+    if(temporal.x<0.5||motion.w<0.5||depth>=0.9999)
+        return float4(center,depth);
+    float2 previousUv=uv-motion.xy;
+    float4 prior=previousColor.SampleLevel(linearSampler,previousUv,0);
+    if(abs(prior.a-motion.z)>max(0.002,0.008*(1-motion.z)))
+        return float4(center,depth);
+    float3 minimum=center,maximum=center;
+    [unroll] for(int y=-1;y<=1;++y)
+        [unroll] for(int x=-1;x<=1;++x){
+            float3 tap=currentColor.SampleLevel(linearSampler,
+                saturate(uv+float2(x,y)*pixelSize.xy),0).rgb;
+            minimum=min(minimum,tap);maximum=max(maximum,tap);
+        }
+    float3 bounded=clamp(prior.rgb,minimum,maximum);
+    float speed=length(motion.xy/pixelSize.xy);
+    float disagreement=length(center-bounded);
+    float weight=0.86*exp(-speed*0.05)*saturate(1-disagreement*3.0);
+    return float4(lerp(center,bounded,weight),depth);
+}
+)HLSL";
+const char* temporalCopyShader=R"HLSL(
+Texture2D image : register(t0);
+SamplerState linearSampler : register(s0);
+struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
+float4 PS(Input input):SV_TARGET{
+    return float4(image.SampleLevel(linearSampler,input.uv,0).rgb,1);
 }
 )HLSL";
 const char* bloomShader=R"HLSL(
@@ -826,19 +1483,33 @@ float4 PS(Input input):SV_TARGET{
 }
 )HLSL";
 bool createShaders(){
-    ID3DBlob *vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr;
-    if(!compile(sceneShader,"VS","vs_5_0",&vs)||!compile(sceneShader,"PS","ps_5_0",&ps)||
-       !compile(sceneShader,"VSInstanced","vs_5_0",&instanced)||
-       !compile(sceneShader,"PSShadowAlpha","ps_5_0",&shadowAlpha)||
-       !compile(sceneShader,"HS","hs_5_0",&hull)||!compile(sceneShader,"DS","ds_5_0",&domain)||
-       !compile(hudShader,"VS","vs_5_0",&hudVertex)||!compile(hudShader,"PS","ps_5_0",&hudPixel)||
-       !compile(postShader,"PS","ps_5_0",&postPixel)||
-       !compile(bloomShader,"PS","ps_5_0",&bloomPixel)||
-       !compile(reflectionShader,"PS","ps_5_0",&reflectionPixel)){
+    int compiled=0;
+    auto compileStartup=[&](const char* source,const char* entry,const char* profile,ID3DBlob** output){
+        if(!startup::report(5+25*compiled/15,"Compiling graphics shaders"))return false;
+        bool ok=compile(source,entry,profile,output);if(ok)++compiled;return ok;
+    };
+    const std::string sceneSource=std::string(probeShader)+sceneShader;
+    const std::string reflectionSource=std::string(probeShader)+reflectionShader;
+    ID3DBlob* skinned=nullptr;
+    if(!compileStartup(sceneSource.c_str(),"VSSkinned","vs_5_0",&skinned)){release(skinned);return false;}
+    ID3DBlob *vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr,*motionPixel=nullptr,*temporalPixel=nullptr,*temporalCopyPixel=nullptr;
+    if(!compileStartup(sceneSource.c_str(),"VS","vs_5_0",&vs)||!compileStartup(sceneSource.c_str(),"PS","ps_5_0",&ps)||
+       !compileStartup(sceneSource.c_str(),"VSInstanced","vs_5_0",&instanced)||
+       !compileStartup(sceneSource.c_str(),"PSShadowAlpha","ps_5_0",&shadowAlpha)||
+       !compileStartup(sceneSource.c_str(),"HS","hs_5_0",&hull)||!compileStartup(sceneSource.c_str(),"DS","ds_5_0",&domain)||
+       !compileStartup(hudShader,"VS","vs_5_0",&hudVertex)||!compileStartup(hudShader,"PS","ps_5_0",&hudPixel)||
+       !compileStartup(postShader,"PS","ps_5_0",&postPixel)||
+       !compileStartup(bloomShader,"PS","ps_5_0",&bloomPixel)||
+       !compileStartup(reflectionSource.c_str(),"PS","ps_5_0",&reflectionPixel)||
+       !compileStartup(motionShader,"PS","ps_5_0",&motionPixel)||
+       !compileStartup(temporalShader,"PS","ps_5_0",&temporalPixel)||
+       !compileStartup(temporalCopyShader,"PS","ps_5_0",&temporalCopyPixel)){
         release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
         release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
-        release(reflectionPixel);return false;}
+        release(reflectionPixel);release(motionPixel);release(temporalPixel);
+        release(temporalCopyPixel);release(skinned);return false;}
     HRESULT result=device->CreateVertexShader(vs->GetBufferPointer(),vs->GetBufferSize(),nullptr,&sceneVS);
+    if(SUCCEEDED(result))result=device->CreateVertexShader(skinned->GetBufferPointer(),skinned->GetBufferSize(),nullptr,&skinVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(instanced->GetBufferPointer(),instanced->GetBufferSize(),nullptr,&instanceVS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(ps->GetBufferPointer(),ps->GetBufferSize(),nullptr,&scenePS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(shadowAlpha->GetBufferPointer(),shadowAlpha->GetBufferSize(),nullptr,&alphaShadowPS);
@@ -849,6 +1520,9 @@ bool createShaders(){
     if(SUCCEEDED(result))result=device->CreatePixelShader(postPixel->GetBufferPointer(),postPixel->GetBufferSize(),nullptr,&postPS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(bloomPixel->GetBufferPointer(),bloomPixel->GetBufferSize(),nullptr,&bloomPS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(reflectionPixel->GetBufferPointer(),reflectionPixel->GetBufferSize(),nullptr,&reflectionPS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(motionPixel->GetBufferPointer(),motionPixel->GetBufferSize(),nullptr,&motionPS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(temporalPixel->GetBufferPointer(),temporalPixel->GetBufferSize(),nullptr,&temporalPS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(temporalCopyPixel->GetBufferPointer(),temporalCopyPixel->GetBufferSize(),nullptr,&temporalCopyPS);
     D3D11_INPUT_ELEMENT_DESC layout[]={
         {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
         {"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
@@ -856,6 +1530,11 @@ bool createShaders(){
         {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,32,D3D11_INPUT_PER_VERTEX_DATA,0}};
     if(SUCCEEDED(result))result=device->CreateInputLayout(layout,4,vs->GetBufferPointer(),
         vs->GetBufferSize(),&inputLayout);
+    D3D11_INPUT_ELEMENT_DESC skinElements[5]{};
+    std::copy(std::begin(layout),std::end(layout),skinElements);
+    skinElements[4]={"POSITION",1,DXGI_FORMAT_R32G32B32A32_FLOAT,1,0,D3D11_INPUT_PER_VERTEX_DATA,0};
+    if(SUCCEEDED(result))result=device->CreateInputLayout(skinElements,5,
+        skinned->GetBufferPointer(),skinned->GetBufferSize(),&skinLayout);
     D3D11_INPUT_ELEMENT_DESC instanceElements[]={
         {"INSTANCE",0,DXGI_FORMAT_R32G32B32A32_FLOAT,1,0,D3D11_INPUT_PER_INSTANCE_DATA,1},
         {"INSTANCE",1,DXGI_FORMAT_R32G32B32A32_FLOAT,1,16,D3D11_INPUT_PER_INSTANCE_DATA,1},
@@ -867,7 +1546,10 @@ bool createShaders(){
     if(SUCCEEDED(result))result=device->CreateInputLayout(fullLayout,8,instanced->GetBufferPointer(),
         instanced->GetBufferSize(),&instanceLayout);
     release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
-    release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);release(reflectionPixel);
+    release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
+    release(reflectionPixel);release(motionPixel);release(temporalPixel);
+    release(temporalCopyPixel);
+    release(skinned);
     return SUCCEEDED(result);
 }
 std::wstring textureKey(const std::wstring& file,dx11::texture::Kind kind){
@@ -939,6 +1621,12 @@ bool createTargets(int width,int height){
     if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&indirectTexture);
     if(SUCCEEDED(result))result=device->CreateRenderTargetView(indirectTexture,nullptr,&indirectTarget);
     if(SUCCEEDED(result))result=device->CreateShaderResourceView(indirectTexture,nullptr,&indirectView);
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&reflectionResponseTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(reflectionResponseTexture,nullptr,&reflectionResponseTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(reflectionResponseTexture,nullptr,&reflectionResponseView);
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&objectMotionTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(objectMotionTexture,nullptr,&objectMotionTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(objectMotionTexture,nullptr,&objectMotionView);
     if(FAILED(result))return false;
     for(int level=0;level<3;++level){
         sceneDescription.Width=UINT(std::max(1,width>>(level+1)));
@@ -958,6 +1646,24 @@ bool createTargets(int width,int height){
     if(SUCCEEDED(result))result=device->CreateShaderResourceView(
         reflectionTexture,nullptr,&reflectionView);
     if(FAILED(result))return false;
+    sceneDescription.Width=UINT(width);
+    sceneDescription.Height=UINT(height);
+    result=device->CreateTexture2D(&sceneDescription,nullptr,&postTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(postTexture,nullptr,&postTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(postTexture,nullptr,&postView);
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&motionTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(motionTexture,nullptr,&motionTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(motionTexture,nullptr,&motionView);
+    for(int index=0;index<2&&SUCCEEDED(result);++index){
+        result=device->CreateTexture2D(&sceneDescription,nullptr,&historyTexture[index]);
+        if(SUCCEEDED(result))result=device->CreateRenderTargetView(
+            historyTexture[index],nullptr,&historyTarget[index]);
+        if(SUCCEEDED(result))result=device->CreateShaderResourceView(
+            historyTexture[index],nullptr,&historyView[index]);
+    }
+    if(FAILED(result))return false;
+    historyValid=false;
+    historyIndex=0;
     D3D11_TEXTURE2D_DESC depthDescription{};
     depthDescription.Width=width;depthDescription.Height=height;depthDescription.MipLevels=1;
     depthDescription.ArraySize=1;depthDescription.Format=DXGI_FORMAT_R24G8_TYPELESS;
@@ -1055,20 +1761,30 @@ float shadowCascadeExtent(int cascade){
 bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
     instanceData.clear();instanceBatches.clear();
     for(auto& batches:shadowInstanceBatches)batches.clear();
+    headlightShadowInstanceBatches.clear();
+    streetShadowInstanceBatches.clear();
     const bool disableCulling=std::strstr(GetCommandLineA(),"--no-frustum-cull")!=nullptr;
     XMVECTOR eye=XMVectorSet(pose.eye.x,pose.eye.y,pose.eye.z,1);
     XMVECTOR forward=XMVector3Normalize(XMVectorSet(
         pose.target.x-pose.eye.x,pose.target.y-pose.eye.y,
         pose.target.z-pose.eye.z,0));
-    XMVECTOR right=XMVector3Normalize(XMVector3Cross(forward,XMVectorSet(0,1,0,0)));
+    XMVECTOR cameraUp=XMVectorSet(0,1,0,0);
+    if(probeBakeActive&&probeBakeFrame%6==2)cameraUp=XMVectorSet(0,0,-1,0);
+    if(probeBakeActive&&probeBakeFrame%6==3)cameraUp=XMVectorSet(0,0,1,0);
+    XMVECTOR right=XMVector3Normalize(XMVector3Cross(forward,cameraUp));
     XMVECTOR up=XMVector3Cross(right,forward);
-    const float tangent=std::tan(XMConvertToRadians(camera::fieldOfView())*0.5f);
+    const float tangent=probeBakeActive?1.0f:
+        std::tan(XMConvertToRadians(camera::fieldOfView())*0.5f);
     const float aspect=float(bufferW)/bufferH;
     const float farPlane=1250.0f*ui::drawDistanceScale();
     XMMATRIX shadowMatrices[3]{
         XMLoadFloat4x4(&constants.shadowViewProjection[0]),
         XMLoadFloat4x4(&constants.shadowViewProjection[1]),
         XMLoadFloat4x4(&constants.shadowViewProjection[2])};
+    XMMATRIX headlightMatrix=XMLoadFloat4x4(
+        &constants.headlightViewProjection);
+    XMMATRIX streetMatrix=XMLoadFloat4x4(
+        &constants.streetViewProjection);
     auto visibleInCamera=[&](const dx11::BoundingSphere& sphere){
         XMVECTOR delta=XMVectorSubtract(XMVectorSet(sphere.x,sphere.y,sphere.z,1),eye);
         float depth=XMVectorGetX(XMVector3Dot(delta,forward));
@@ -1091,6 +1807,16 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
                std::abs(XMVectorGetY(projected))<=1+xyRadius&&
                XMVectorGetZ(projected)>=-zRadius&&
                XMVectorGetZ(projected)<=1+zRadius;
+    };
+    auto visibleInLocal=[&](const dx11::BoundingSphere& sphere,
+                            XMMATRIX matrix,float farPlane){
+        XMVECTOR clip=XMVector4Transform(
+            XMVectorSet(sphere.x,sphere.y,sphere.z,1),matrix);
+        float w=XMVectorGetW(clip),radius=sphere.radius*2.0f;
+        return w>=-radius&&w<=farPlane+radius&&
+            std::abs(XMVectorGetX(clip))<=w+radius&&
+            std::abs(XMVectorGetY(clip))<=w+radius&&
+            XMVectorGetZ(clip)>=-radius&&XMVectorGetZ(clip)<=w+radius;
     };
     auto append=[&](const dx11::ModelInstance& model,
                     std::vector<InstanceBatch>& batches,bool separate){
@@ -1118,6 +1844,30 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
                 if(model.source->shadowProxy&&!cacheModel(model.source->shadowProxy))return false;
                 append(model,shadowInstanceBatches[cascade],false);
             }
+        }
+    }
+    if(constants.headlightShadowInfo.z>0.5f){
+        for(const auto& model:models){
+            if(!model.source->castsShadow||
+               (!disableCulling&&
+                !visibleInLocal(dx11::instanceBounds(model),
+                    headlightMatrix,145.0f)))continue;
+            if(!cacheModel(model.source))return false;
+            if(model.source->shadowProxy&&
+               !cacheModel(model.source->shadowProxy))return false;
+            append(model,headlightShadowInstanceBatches,false);
+        }
+    }
+    if(constants.streetShadowInfo.y>0.5f){
+        for(const auto& model:models){
+            if(!model.source->castsShadow||
+               (!disableCulling&&
+                !visibleInLocal(dx11::instanceBounds(model),
+                    streetMatrix,130.0f)))continue;
+            if(!cacheModel(model.source))return false;
+            if(model.source->shadowProxy&&
+               !cacheModel(model.source->shadowProxy))return false;
+            append(model,streetShadowInstanceBatches,false);
         }
     }
     if(instanceData.empty())return true;
@@ -1171,11 +1921,34 @@ XMFLOAT4 pbrForGroup(int group){
     default:return {0.8f,0,0,0};
     }
 }
+void drawSkins(bool shadow,const SceneConstants& frame){
+    if(!skinVertexCount)return;
+    SceneConstants constants=frame;constants.params.x=5;
+    constants.temporalInfo.x=0;constants.temporalInfo.y=shadow?0.0f:1.0f;
+    constants.materialPbr=pbrForGroup(5);
+    constants.materialOptions={0,0,0,0};
+    context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
+    context->IASetInputLayout(skinLayout);
+    UINT strides[2]={sizeof(dx11::Vertex),16},offsets[2]{};
+    ID3D11Buffer* buffers[2]={skinOutput,skinPreviousOutput};
+    context->IASetVertexBuffers(0,2,buffers,strides,offsets);
+    context->VSSetShader(skinVS,nullptr,0);
+    context->PSSetShader(shadow?nullptr:scenePS,nullptr,0);
+    setTessellation(5);
+    if(!shadow){
+        ID3D11ShaderResourceView* resources[4]={nullptr,detailTextures[5],normalTextures[5],detailTextures[9]};
+        context->PSSetShaderResources(0,4,resources);
+    }
+    context->Draw(UINT(skinVertexCount),0);++drawCalls;
+    triangleCount+=skinVertexCount/3;
+}
 void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
-                   int cascade=0){
+                   int cascade=0,int localShadow=0){
     context->IASetInputLayout(instanceLayout);
     context->VSSetShader(instanceVS,nullptr,0);
-    const auto& batches=shadow?shadowInstanceBatches[cascade]:instanceBatches;
+    const auto& batches=localShadow==1?headlightShadowInstanceBatches:
+        localShadow==2?streetShadowInstanceBatches:
+        shadow?shadowInstanceBatches[cascade]:instanceBatches;
     for(const auto& batch:batches){
         if(batch.mesh->transparent!=transparent)continue;
         if(shadow&&!batch.mesh->castsShadow)continue;
@@ -1199,6 +1972,8 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
                 texture==modelTextures.end()?nullptr:texture->second;
             bool hasModelTexture=base!=nullptr;
             constants.params.x=float(batch.material)+(hasModelTexture?0.25f:0.0f);
+            constants.temporalInfo.x=batch.mesh->temporalStable?1.0f:0.0f;
+            constants.temporalInfo.y=0;
             constants.materialPbr=pbrForGroup(batch.material);
             constants.materialOptions.x=range?range->alphaCutoff:
                 batch.material==4?0.42f:0.35f;
@@ -1348,29 +2123,112 @@ bool createShadowTargets(int size,int layers){
     }
     shadowSize=size;shadowCascadeCount=layers;return true;
 }
+bool createHeadlightShadowTarget(){
+    constexpr UINT size=1024;
+    D3D11_TEXTURE2D_DESC texture{};
+    texture.Width=texture.Height=size;texture.MipLevels=texture.ArraySize=1;
+    texture.Format=DXGI_FORMAT_R32_TYPELESS;texture.SampleDesc.Count=1;
+    texture.Usage=D3D11_USAGE_DEFAULT;
+    texture.BindFlags=D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
+    HRESULT result=device->CreateTexture2D(&texture,nullptr,&headlightShadowTexture);
+    if(SUCCEEDED(result)){
+        D3D11_DEPTH_STENCIL_VIEW_DESC depth{};
+        depth.Format=DXGI_FORMAT_D32_FLOAT;
+        depth.ViewDimension=D3D11_DSV_DIMENSION_TEXTURE2D;
+        result=device->CreateDepthStencilView(headlightShadowTexture,&depth,
+            &headlightShadowDepth);
+    }
+    if(SUCCEEDED(result)){
+        D3D11_SHADER_RESOURCE_VIEW_DESC view{};
+        view.Format=DXGI_FORMAT_R32_FLOAT;
+        view.ViewDimension=D3D11_SRV_DIMENSION_TEXTURE2D;
+        view.Texture2D.MipLevels=1;
+        result=device->CreateShaderResourceView(headlightShadowTexture,&view,
+            &headlightShadowView);
+    }
+    if(FAILED(result)){
+        release(headlightShadowView);release(headlightShadowDepth);
+        release(headlightShadowTexture);
+    }
+    return SUCCEEDED(result);
+}
+bool createStreetShadowTarget(){
+    constexpr UINT size=512;
+    D3D11_TEXTURE2D_DESC texture{};
+    texture.Width=texture.Height=size;texture.MipLevels=texture.ArraySize=1;
+    texture.Format=DXGI_FORMAT_R32_TYPELESS;texture.SampleDesc.Count=1;
+    texture.Usage=D3D11_USAGE_DEFAULT;
+    texture.BindFlags=D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
+    HRESULT result=device->CreateTexture2D(&texture,nullptr,&streetShadowTexture);
+    if(SUCCEEDED(result)){
+        D3D11_DEPTH_STENCIL_VIEW_DESC depth{};
+        depth.Format=DXGI_FORMAT_D32_FLOAT;
+        depth.ViewDimension=D3D11_DSV_DIMENSION_TEXTURE2D;
+        result=device->CreateDepthStencilView(streetShadowTexture,&depth,
+            &streetShadowDepth);
+    }
+    if(SUCCEEDED(result)){
+        D3D11_SHADER_RESOURCE_VIEW_DESC view{};
+        view.Format=DXGI_FORMAT_R32_FLOAT;
+        view.ViewDimension=D3D11_SRV_DIMENSION_TEXTURE2D;
+        view.Texture2D.MipLevels=1;
+        result=device->CreateShaderResourceView(streetShadowTexture,&view,
+            &streetShadowView);
+    }
+    if(FAILED(result)){
+        release(streetShadowView);release(streetShadowDepth);
+        release(streetShadowTexture);
+    }
+    return SUCCEEDED(result);
+}
 void releaseTargets(){
     context->OMSetRenderTargets(0,nullptr,nullptr);
-    ID3D11ShaderResourceView* nullViews[8]{};context->PSSetShaderResources(0,8,nullViews);
+    ID3D11ShaderResourceView* nullViews[13]{};context->PSSetShaderResources(0,13,nullViews);
+    for(int index=0;index<2;++index){
+        release(historyView[index]);release(historyTarget[index]);release(historyTexture[index]);
+    }
+    release(motionView);release(motionTarget);release(motionTexture);
+    release(objectMotionView);release(objectMotionTarget);release(objectMotionTexture);
+    release(postView);release(postTarget);release(postTexture);
     release(reflectionView);release(reflectionTarget);release(reflectionTexture);
     for(int level=0;level<3;++level){
         release(bloomView[level]);release(bloomTarget[level]);release(bloomTexture[level]);
     }
     release(hudView);release(hudTexture);release(depthViewSRV);release(depthView);
     release(depthTexture);release(indirectView);release(indirectTarget);release(indirectTexture);
+    release(reflectionResponseView);release(reflectionResponseTarget);release(reflectionResponseTexture);
     release(surfaceView);release(surfaceTarget);release(surfaceTexture);
     release(sceneView);release(sceneTarget);release(sceneTexture);release(target);
+    historyValid=false;
 }
-SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float daylight){
+SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float daylight,
+                                 bool temporalAA){
     SceneConstants constants{};
     const auto& conditions=weather::current();
     float light=daylight*(1.0f-conditions.clouds*0.42f);
     XMVECTOR eye=XMVectorSet(pose.eye.x,pose.eye.y,pose.eye.z,1);
     XMVECTOR targetPoint=XMVectorSet(pose.target.x,pose.target.y,pose.target.z,1);
     // Movement, steering, and mouse yaw use the same right-handed view as the OpenGL build.
-    XMMATRIX view=XMMatrixLookAtRH(eye,targetPoint,XMVectorSet(0,1,0,0));
+    XMVECTOR up=XMVectorSet(0,1,0,0);
+    if(probeBakeActive&&probeBakeFrame%6==2)up=XMVectorSet(0,0,-1,0);
+    if(probeBakeActive&&probeBakeFrame%6==3)up=XMVectorSet(0,0,1,0);
+    XMMATRIX view=probeBakeActive?XMMatrixLookAtLH(eye,targetPoint,up):
+        XMMatrixLookAtRH(eye,targetPoint,up);
     float drawScale=ui::drawDistanceScale();
-    XMMATRIX projection=XMMatrixPerspectiveFovRH(XMConvertToRadians(camera::fieldOfView()),
+    XMMATRIX projection=probeBakeActive?XMMatrixPerspectiveFovLH(XM_PIDIV2,1,2,1250*drawScale):
+        XMMatrixPerspectiveFovRH(XMConvertToRadians(camera::fieldOfView()),
         float(bufferW)/bufferH,2.0f,1250.0f*drawScale);
+    if(temporalAA){
+        // Eight subpixel sample positions. Projection jitter is included in
+        // both the current and previous matrices used for reprojection.
+        constexpr float jitter[8][2]={{0.0f,-0.166667f},{-0.25f,0.166667f},
+            {0.25f,-0.388889f},{-0.375f,-0.055556f},
+            {0.125f,0.277778f},{-0.125f,-0.277778f},
+            {0.375f,0.055556f},{-0.4375f,0.388889f}};
+        const auto& sample=jitter[temporalFrame%8];
+        projection=XMMatrixMultiply(projection,XMMatrixTranslation(
+            2.0f*sample[0]/bufferW,-2.0f*sample[1]/bufferH,0));
+    }
     XMStoreFloat4x4(&constants.viewProjection,XMMatrixMultiply(view,projection));
     constants.sun={std::cos((gameHour-6)*PI/12),std::max(0.18f,std::abs(solar)),0.3f,
         0.28f+0.68f*light};
@@ -1425,23 +2283,28 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             biome==regions::Biome::Snow?0.75f:0.0f,
         night,worldTime};
     constants.ambient.w=float(ui::reflectionQuality);
-    struct LocalLight {XMFLOAT4 position,color;float distance;};
+    struct LocalLight {XMFLOAT4 position,color;float distance;
+        bool playerHeadlight,streetLight;};
     std::vector<LocalLight> lights;
     auto addLight=[&](float x,float y,float z,float radius,
-                      float r,float g,float b,float brightness){
+                      float r,float g,float b,float brightness,
+                      bool playerHeadlight=false,bool streetLight=false){
         float distance=std::hypot(x-pose.eye.x,z-pose.eye.z);
         if(distance>radius+330)return;
-        lights.push_back({{x,y,z,radius},{r,g,b,brightness},distance});
+        lights.push_back({{x,y,z,radius},{r,g,b,brightness},distance,
+            playerHeadlight,streetLight});
     };
     if(night>0.1f){
         for(int column=0;column<5;++column)for(int row=0;row<7;++row)
             addLight(368.0f+column*450,43,115.0f+row*215,115,
-                1.0f,0.74f,0.41f,1.7f*night);
+                1.0f,0.74f,0.41f,1.7f*night,false,true);
         for(int z=8860;z<10010;z+=116)
-            addLight(8066.0f,36,float(z),95,1.0f,0.78f,0.50f,1.4f*night);
+            addLight(8066.0f,36,float(z),95,1.0f,0.78f,0.50f,
+                1.4f*night,false,true);
         for(const auto& shop:commerce::shops)
             addLight(shop.p.x,20,shop.p.z,65,0.35f,0.90f,1.0f,0.95f*night);
     }
+    if(!probeBakeActive){
     for(const auto& vehicle:vehicles){
         if(!vehicleLightsOn(vehicle)||
            std::hypot(vehicle.p.x-player.x,vehicle.p.z-player.z)>390)continue;
@@ -1454,7 +2317,9 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             addLight(vehicle.p.x+facing.x*front+side.x*width*sign,
                 vehicle.rideHeight+(width==0?17.0f:9.5f),
                 vehicle.p.z+facing.z*front+side.z*width*sign,
-                125,1.0f,0.94f,0.72f,1.7f);
+                125,1.0f,0.94f,0.72f,1.7f,
+                occupied>=0&&occupied<int(vehicles.size())&&
+                    &vehicle==&vehicles[occupied]);
             if(width>0)
                 addLight(vehicle.p.x-facing.x*front+side.x*width*sign,
                     vehicle.rideHeight+9.7f,
@@ -1470,11 +2335,53 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     for(const auto& vehicle:vehicles)if(!vehicle.exploded&&vehicle.burnTime>0)
         addLight(vehicle.p.x,vehicle.rideHeight+20,vehicle.p.z,105,
             1.0f,0.30f,0.08f,1.5f);
+    }
     std::sort(lights.begin(),lights.end(),[](const LocalLight& a,const LocalLight& b){
         return a.distance<b.distance;});
+    constants.headlightShadowInfo={-1,-1,0,1.0f/1024.0f};
+    XMStoreFloat4x4(&constants.headlightViewProjection,XMMatrixIdentity());
+    constants.streetShadowInfo={-1,0,1.0f/512.0f,0};
+    XMStoreFloat4x4(&constants.streetViewProjection,XMMatrixIdentity());
     for(size_t i=0;i<std::min<size_t>(lights.size(),12);++i){
         constants.localLightPosition[i]=lights[i].position;
         constants.localLightColor[i]=lights[i].color;
+        if(lights[i].playerHeadlight){
+            if(constants.headlightShadowInfo.x<0)
+                constants.headlightShadowInfo.x=float(i);
+            else constants.headlightShadowInfo.y=float(i);
+        }
+        if(lights[i].streetLight&&constants.streetShadowInfo.x<0)
+            constants.streetShadowInfo.x=float(i);
+    }
+    if(headlightShadowDepth&&ui::shadowQuality>1&&
+       constants.headlightShadowInfo.x>=0&&occupied>=0&&
+       occupied<int(vehicles.size())){
+        const Vehicle& vehicle=vehicles[occupied];
+        Vec2 facing=forward(vehicle.angle);
+        float front=vehicle.kind==Kind::Bike?17.0f:28.0f;
+        XMVECTOR lamp=XMVectorSet(vehicle.p.x+facing.x*front,
+            vehicle.rideHeight+(vehicle.kind==Kind::Bike?17.0f:10.0f),
+            vehicle.p.z+facing.z*front,1);
+        XMVECTOR target=XMVectorAdd(lamp,XMVectorSet(
+            facing.x*100,-14,facing.z*100,0));
+        XMMATRIX view=XMMatrixLookAtRH(lamp,target,XMVectorSet(0,1,0,0));
+        XMMATRIX projection=XMMatrixPerspectiveFovRH(
+            XMConvertToRadians(105.0f),1.0f,2.0f,145.0f);
+        XMStoreFloat4x4(&constants.headlightViewProjection,
+            XMMatrixMultiply(view,projection));
+        constants.headlightShadowInfo.z=1;
+    }
+    if(streetShadowDepth&&ui::shadowQuality>1&&
+       constants.streetShadowInfo.x>=0){
+        const auto& lamp=lights[size_t(constants.streetShadowInfo.x)].position;
+        XMVECTOR position=XMVectorSet(lamp.x,lamp.y,lamp.z,1);
+        XMVECTOR target=XMVectorSet(lamp.x,0,lamp.z,1);
+        XMMATRIX view=XMMatrixLookAtRH(position,target,XMVectorSet(0,0,1,0));
+        XMMATRIX projection=XMMatrixPerspectiveFovRH(
+            XMConvertToRadians(135.0f),1.0f,2.0f,130.0f);
+        XMStoreFloat4x4(&constants.streetViewProjection,
+            XMMatrixMultiply(view,projection));
+        constants.streetShadowInfo.y=1;
     }
     constants.eye={pose.eye.x,pose.eye.y,pose.eye.z,float(ui::graphicsQuality)};
     float fogEnd=1250.0f*drawScale*0.94f*conditions.visibility;
@@ -1577,6 +2484,7 @@ void captureIfRequested(){
 }
 }
 bool initRenderer(){
+    if(!startup::report(2,"Starting Direct3D 11"))return false;
     DXGI_SWAP_CHAIN_DESC description{};description.BufferCount=2;
     description.BufferDesc.Width=UINT(std::max(1,screenW));
     description.BufferDesc.Height=UINT(std::max(1,screenH));
@@ -1595,9 +2503,19 @@ bool initRenderer(){
     logAdapter();
     Gdiplus::GdiplusStartupInput startup;
     if(Gdiplus::GdiplusStartup(&gdiplusToken,&startup,nullptr)!=Gdiplus::Ok)return false;
-    if(!createShaders()||!createStates()||!createTargets(std::max(1,screenW),std::max(1,screenH)))return false;
+    if(!startup::report(5,"Compiling graphics shaders"))return false;
+    if(!createShaders())return false;
+    if(!startup::report(30,"Creating graphics buffers and shadows"))return false;
+    if(!createStates()||!createTargets(std::max(1,screenW),std::max(1,screenH)))return false;
+    if(!std::strstr(GetCommandLineA(),"--cpu-skinning")&&!createSkinResources())
+        logging::write("GPU skin resources unavailable; using CPU deformation");
+    if(!createHeadlightShadowTarget())
+        logging::write("Headlight shadow target unavailable; continuing without local shadows");
+    if(!createStreetShadowTarget())
+        logging::write("Streetlight shadow target unavailable; continuing without its shadow");
     if(!createGpuQueries())logging::write("GPU timestamp queries unavailable");
     std::wstring base=executableFolder();
+    if(!startup::report(35,"Loading surface textures"))return false;
     if(!loadTexture(base+L"\\assets\\texture_atlas.png",&textures[1]))return false;
     const wchar_t* materials[]={nullptr,nullptr,L"Bricks001",L"Concrete001",
         L"Bark001",L"Fabric001",L"Metal001",L"Asphalt001",L"Ground054",L"Grass001",nullptr};
@@ -1613,20 +2531,39 @@ bool initRenderer(){
     normalTextures[11]=normalTextures[3];normalTextures[11]->AddRef();
     detailTextures[12]=detailTextures[3];detailTextures[12]->AddRef();
     normalTextures[12]=normalTextures[3];normalTextures[12]->AddRef();
+    if(!startup::report(45,"Loading city models and animations"))return false;
     dx11::loadMeshes(base+L"\\assets\\models\\baked");
+    for(const auto& issue:dx11::assetIssues())logging::write(issue.c_str());
+    if(!startup::report(55,"Preparing city geometry"))return false;
     if(!createStaticGeometry())return false;
     // A region jump must not synchronously upload dozens of nature and city
-    // meshes on its first visible frame. Load them while the startup window
-    // is still hidden; the immutable buffers are shared by later instances.
-    for(const dx11::Mesh* mesh:dx11::regionalMeshes())
+    // meshes on its first visible frame. Upload them behind the loading window;
+    // the immutable buffers are shared by later instances.
+    const auto regionalMeshes=dx11::regionalMeshes();
+    size_t uploaded=0;
+    for(const dx11::Mesh* mesh:regionalMeshes){
+        if(!startup::report(58+int(20*uploaded/std::max(size_t(1),regionalMeshes.size())),
+            "Uploading regional graphics"))return false;
         if(!cacheModel(mesh)){
             logging::write("Regional resource prewarm incomplete; using on-demand loading");
             break;
         }
-    return true;
+        ++uploaded;
+    }
+    if(!startup::report(80,"Loading HDR lighting"))return false;
+    return createProbes();
 }
 void render(){
     if(deviceLost||!device||!context)return;
+    if(std::strstr(GetCommandLineA(),"--smoke")&&
+       std::strstr(GetCommandLineA(),"--high-shadows"))
+        ui::shadowQuality=2;
+    if(std::strstr(GetCommandLineA(),"--smoke")&&
+       std::strstr(GetCommandLineA(),"--high-taa"))
+        ui::antiAliasingQuality=2;
+    if(std::strstr(GetCommandLineA(),"--smoke")&&
+       std::strstr(GetCommandLineA(),"--low-aa"))
+        ui::antiAliasingQuality=0;
     auto renderBegin=std::chrono::steady_clock::now();
     drawCalls=0;triangleCount=0;
     pollGpuQueries();
@@ -1639,7 +2576,19 @@ void render(){
         previousPlayer*(1.0f-renderAlpha)+player*renderAlpha;
     camera::Pose pose=camera::compute(focus,playerY,
         rightMouse&&occupied<0&&!ui::paused(),occupied);
-    dx11::buildScene(groups,models,pose.eye.x,pose.eye.y,pose.eye.z);
+    if(probeBakeActive){
+        unsigned probe=probeBakeFrame/18,state=(probeBakeFrame/6)%3,face=probeBakeFrame%6;
+        constexpr Vec3 directions[6]={{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+        const auto& origin=probePositions[probe];
+        player=previousPlayer={origin.x,origin.z};gameHour=probeHours[state];
+        pose.eye={origin.x,origin.y,origin.z};
+        pose.target={origin.x+directions[face].x,origin.y+directions[face].y,
+            origin.z+directions[face].z};
+    }
+    dx11::buildScene(groups,models,pose.eye.x,pose.eye.y,pose.eye.z,
+        skinCS?&gpuSkins:nullptr,probeBakeActive);
+    if(skinCS)prepareSkins();
+    else {gpuSkins.clear();skinVertexCount=0;}
     auto sceneBuilt=std::chrono::steady_clock::now();
     vertices.clear();size_t starts[dx11::MATERIAL_GROUPS]{},counts[dx11::MATERIAL_GROUPS]{};
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){starts[group]=vertices.size();counts[group]=groups[group].size();
@@ -1657,7 +2606,28 @@ void render(){
        !createShadowTargets(requestedShadowSize,requestedCascades))
         createShadowTargets(0,0);
     dx11::sortInstancesForRendering(models,pose.eye.x,pose.eye.y,pose.eye.z);
-    SceneConstants constants=constantsForFrame(pose,solar,daylight);
+    const char* commandLine=GetCommandLineA();
+    const bool temporalAA=ui::graphicsQuality>0&&ui::antiAliasingQuality==2&&
+        !std::strstr(commandLine,"--no-taa")&&!probeBakeActive;
+    const bool motionDebug=std::strstr(commandLine,"--motion-view")!=nullptr;
+    SceneConstants constants=constantsForFrame(pose,solar,daylight,temporalAA);
+    updateProbes();
+    constants.previousViewProjection=previousViewProjection;
+    constants.temporalInfo={0,0,1.0f/width,1.0f/height};
+    XMFLOAT3 forward{pose.target.x-pose.eye.x,pose.target.y-pose.eye.y,
+        pose.target.z-pose.eye.z};
+    float forwardLength=std::sqrt(forward.x*forward.x+forward.y*forward.y+
+        forward.z*forward.z);
+    if(forwardLength>0.0001f){forward.x/=forwardLength;
+        forward.y/=forwardLength;forward.z/=forwardLength;}
+    const float eyeDistance=std::sqrt(
+        (pose.eye.x-previousCameraEye.x)*(pose.eye.x-previousCameraEye.x)+
+        (pose.eye.y-previousCameraEye.y)*(pose.eye.y-previousCameraEye.y)+
+        (pose.eye.z-previousCameraEye.z)*(pose.eye.z-previousCameraEye.z));
+    const float forwardDot=forward.x*previousCameraForward.x+
+        forward.y*previousCameraForward.y+forward.z*previousCameraForward.z;
+    if((!temporalAA&&!motionDebug)||eyeDistance>65.0f||forwardDot<0.93f)
+        historyValid=false;
     if(!prepareInstances(pose,constants))return;
     auto instancesReady=std::chrono::steady_clock::now();
     UINT stride=sizeof(dx11::Vertex),offset=0;
@@ -1685,6 +2655,10 @@ void render(){
             context->OMSetRenderTargets(0,nullptr,shadowDepth[cascade]);
             context->ClearDepthStencilView(shadowDepth[cascade],D3D11_CLEAR_DEPTH,1,0);
             shadowConstants.viewProjection=constants.shadowViewProjection[cascade];
+            context->IASetInputLayout(inputLayout);
+            context->IASetVertexBuffers(0,1,&vertexBuffer,&stride,&offset);
+            context->VSSetShader(sceneVS,nullptr,0);
+            context->PSSetShader(nullptr,nullptr,0);
             for(int group=0;group<dx11::MATERIAL_GROUPS;++group)if(counts[group]){
                 setTessellation(group);
                 shadowConstants.params.x=float(group);
@@ -1692,18 +2666,75 @@ void render(){
                 context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
                 triangleCount+=counts[group]/3;
             }
+            drawSkins(true,shadowConstants);
             drawInstances(true,shadowConstants,false,cascade);
         }
     }
+    if(constants.headlightShadowInfo.z>0.5f){
+        ID3D11ShaderResourceView* empty=nullptr;
+        context->PSSetShaderResources(9,1,&empty);
+        D3D11_VIEWPORT viewport{};
+        viewport.Width=viewport.Height=1024.0f;viewport.MaxDepth=1;
+        context->RSSetViewports(1,&viewport);
+        context->RSSetState(shadowRaster);
+        context->OMSetRenderTargets(0,nullptr,headlightShadowDepth);
+        context->ClearDepthStencilView(headlightShadowDepth,D3D11_CLEAR_DEPTH,1,0);
+        context->PSSetShader(nullptr,nullptr,0);
+        context->PSSetSamplers(0,1,&sampler);
+        context->PSSetSamplers(2,1,&modelSampler);
+        context->IASetInputLayout(inputLayout);
+        context->IASetVertexBuffers(0,1,&vertexBuffer,&stride,&offset);
+        context->VSSetShader(sceneVS,nullptr,0);
+        SceneConstants shadowConstants=constants;
+        shadowConstants.viewProjection=constants.headlightViewProjection;
+        for(int group=0;group<dx11::MATERIAL_GROUPS;++group)if(counts[group]){
+            setTessellation(group);
+            shadowConstants.params.x=float(group);
+            context->UpdateSubresource(sceneBuffer,0,nullptr,&shadowConstants,0,0);
+            context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
+            triangleCount+=counts[group]/3;
+        }
+        drawSkins(true,shadowConstants);
+        drawInstances(true,shadowConstants,false,0,1);
+    }
+    if(constants.streetShadowInfo.y>0.5f){
+        ID3D11ShaderResourceView* empty=nullptr;
+        context->PSSetShaderResources(10,1,&empty);
+        D3D11_VIEWPORT viewport{};
+        viewport.Width=viewport.Height=512.0f;viewport.MaxDepth=1;
+        context->RSSetViewports(1,&viewport);
+        context->RSSetState(shadowRaster);
+        context->OMSetRenderTargets(0,nullptr,streetShadowDepth);
+        context->ClearDepthStencilView(streetShadowDepth,D3D11_CLEAR_DEPTH,1,0);
+        context->PSSetShader(nullptr,nullptr,0);
+        context->PSSetSamplers(0,1,&sampler);
+        context->PSSetSamplers(2,1,&modelSampler);
+        context->IASetInputLayout(inputLayout);
+        context->IASetVertexBuffers(0,1,&vertexBuffer,&stride,&offset);
+        context->VSSetShader(sceneVS,nullptr,0);
+        SceneConstants shadowConstants=constants;
+        shadowConstants.viewProjection=constants.streetViewProjection;
+        for(int group=0;group<dx11::MATERIAL_GROUPS;++group)if(counts[group]){
+            setTessellation(group);
+            shadowConstants.params.x=float(group);
+            context->UpdateSubresource(sceneBuffer,0,nullptr,&shadowConstants,0,0);
+            context->Draw(UINT(counts[group]),UINT(starts[group]));++drawCalls;
+            triangleCount+=counts[group]/3;
+        }
+        drawSkins(true,shadowConstants);
+        drawInstances(true,shadowConstants,false,0,2);
+    }
     if(currentGpu)context->End(currentGpu->shadowEnd);
     float clearColor[]={constants.fogColor.x,constants.fogColor.y,constants.fogColor.z,1};
-    ID3D11RenderTargetView* opaqueTargets[3]={sceneTarget,surfaceTarget,indirectTarget};
-    context->OMSetRenderTargets(3,opaqueTargets,depthView);
+    ID3D11RenderTargetView* opaqueTargets[5]={sceneTarget,surfaceTarget,indirectTarget,objectMotionTarget,reflectionResponseTarget};
+    context->OMSetRenderTargets(5,opaqueTargets,depthView);
     context->ClearRenderTargetView(sceneTarget,clearColor);
     float clearSurface[]={0.5f,1.0f,0.5f,1.0f};
     context->ClearRenderTargetView(surfaceTarget,clearSurface);
     float clearIndirect[]={0,0,0,0};
     context->ClearRenderTargetView(indirectTarget,clearIndirect);
+    context->ClearRenderTargetView(objectMotionTarget,clearIndirect);
+    context->ClearRenderTargetView(reflectionResponseTarget,clearIndirect);
     context->ClearDepthStencilView(depthView,D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1,0);
     D3D11_VIEWPORT mainViewport{};mainViewport.Width=float(bufferW);mainViewport.Height=float(bufferH);
     mainViewport.MaxDepth=1;context->RSSetViewports(1,&mainViewport);
@@ -1715,12 +2746,15 @@ void render(){
     context->PSSetSamplers(1,1,&shadowSampler);
     context->PSSetSamplers(2,1,&modelSampler);
     context->PSSetShaderResources(4,1,&shadowView);
+    context->PSSetShaderResources(9,1,&headlightShadowView);
+    context->PSSetShaderResources(10,1,&streetShadowView);
     context->IASetVertexBuffers(0,1,&vertexBuffer,&stride,&offset);
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(sceneVS,nullptr,0);
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){
         if(!counts[group]&&!staticCounts[group])continue;
         constants.params.x=float(group);
+        constants.temporalInfo.x=group==3||group==5||group==14?0.0f:1.0f;
         constants.materialPbr=pbrForGroup(group);
         context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
         setTessellation(group);
@@ -1738,6 +2772,7 @@ void render(){
             triangleCount+=counts[group]/3;
         }
     }
+    drawSkins(false,constants);
     drawInstances(false,constants);
     float effectBlend[4]{0,0,0,0};
     context->OMSetRenderTargets(1,&sceneTarget,depthView);
@@ -1748,6 +2783,11 @@ void render(){
     context->OMSetDepthStencilState(nullptr,0);
     setTessellation(-1);
     if(currentGpu)context->End(currentGpu->sceneEnd);
+    if(probeBakeActive){
+        probeBakeFailed=!captureProbe(constants);
+        if(probeBakeFailed)logging::write("HDR probe capture failed");
+        endGpuQueries();return;
+    }
     if(ui::graphicsQuality>0){
         context->OMSetDepthStencilState(noDepth,0);
         context->IASetInputLayout(nullptr);
@@ -1811,16 +2851,24 @@ void render(){
     post.skyHorizon.y=post.skyHorizon.y*(1-cloudFade)+overcast.y*cloudFade;
     post.skyHorizon.z=post.skyHorizon.z*(1-cloudFade)+overcast.z*cloudFade;
     post.effects={float(ui::aoQuality),
-        ui::graphicsQuality>0?0.12f:0.0f,float(ui::antiAliasingQuality),
+        ui::graphicsQuality>0?0.12f:0.0f,
+        temporalAA?0.0f:ui::antiAliasingQuality==0?0.75f:
+            float(ui::antiAliasingQuality),
         ui::graphicsQuality>0?float(ui::reflectionQuality):0.0f};
-    const char* commandLine=GetCommandLineA();
+    const bool probeDebug=std::strstr(commandLine,"--probe-view")||
+        std::strstr(commandLine,"--probe-weight-view");
+    if(probeDebug)post.effects={0,0,0,0};
     post.debug.x=std::strstr(commandLine,"--normal-view")?1.0f:
         std::strstr(commandLine,"--roughness-view")?2.0f:
         std::strstr(commandLine,"--indirect-view")?5.0f:
         std::strstr(commandLine,"--bloom-view")?4.0f:
         std::strstr(commandLine,"--shadow-cascade-view")||
         std::strstr(commandLine,"--material-view")||
-        std::strstr(commandLine,"--mip-view")?3.0f:0.0f;
+        std::strstr(commandLine,"--mip-view")||
+        std::strstr(commandLine,"--probe-weight-view")?3.0f:0.0f;
+    post.previousViewProjection=historyValid?previousViewProjection:
+        constants.viewProjection;
+    post.temporal={historyValid?1.0f:0.0f,motionDebug?1.0f:0.0f,0,0};
     context->UpdateSubresource(postBuffer,0,nullptr,&post,0,0);
     if(post.effects.w>0.5f){
         D3D11_VIEWPORT reflectionViewport{};
@@ -1836,16 +2884,18 @@ void render(){
         context->PSSetShader(reflectionPS,nullptr,0);
         context->PSSetSamplers(0,1,&clampSampler);
         context->PSSetConstantBuffers(0,1,&postBuffer);
-        ID3D11ShaderResourceView* inputs[3]={sceneView,depthViewSRV,surfaceView};
-        context->PSSetShaderResources(0,3,inputs);
+        ID3D11ShaderResourceView* inputs[4]={sceneView,depthViewSRV,surfaceView,reflectionResponseView};
+        context->PSSetShaderResources(0,4,inputs);
         context->Draw(4,0);++drawCalls;
-        ID3D11ShaderResourceView* empty[3]{};
-        context->PSSetShaderResources(0,3,empty);
+        ID3D11ShaderResourceView* empty[4]{};
+        context->PSSetShaderResources(0,4,empty);
     }
     D3D11_VIEWPORT postViewport{};
     postViewport.Width=float(bufferW);postViewport.Height=float(bufferH);
     postViewport.MaxDepth=1;context->RSSetViewports(1,&postViewport);
-    context->OMSetRenderTargets(1,&target,nullptr);
+    ID3D11RenderTargetView* finalSceneTarget=temporalAA||motionDebug?
+        postTarget:target;
+    context->OMSetRenderTargets(1,&finalSceneTarget,nullptr);
     context->OMSetDepthStencilState(noDepth,0);
     context->IASetInputLayout(nullptr);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -1858,6 +2908,32 @@ void render(){
     context->Draw(4,0);++drawCalls;
     ID3D11ShaderResourceView* emptyInputs[8]{};
     context->PSSetShaderResources(0,8,emptyInputs);
+    if(temporalAA||motionDebug){
+        context->OMSetRenderTargets(1,&motionTarget,nullptr);
+        context->PSSetShader(motionPS,nullptr,0);
+        ID3D11ShaderResourceView* motionInputs[3]={depthViewSRV,indirectView,objectMotionView};
+        context->PSSetShaderResources(0,3,motionInputs);
+        context->Draw(4,0);++drawCalls;
+        ID3D11ShaderResourceView* emptyMotion[3]{};
+        context->PSSetShaderResources(0,3,emptyMotion);
+        ID3D11ShaderResourceView* empty=nullptr;
+        int writeIndex=1-historyIndex;
+        context->OMSetRenderTargets(1,&historyTarget[writeIndex],nullptr);
+        context->PSSetShader(temporalPS,nullptr,0);
+        ID3D11ShaderResourceView* temporalInputs[4]={postView,depthViewSRV,
+            motionView,historyView[historyIndex]};
+        context->PSSetShaderResources(0,4,temporalInputs);
+        context->Draw(4,0);++drawCalls;
+        ID3D11ShaderResourceView* emptyTemporal[4]{};
+        context->PSSetShaderResources(0,4,emptyTemporal);
+        context->OMSetRenderTargets(1,&target,nullptr);
+        context->PSSetShader(temporalCopyPS,nullptr,0);
+        context->PSSetShaderResources(0,1,&historyView[writeIndex]);
+        context->Draw(4,0);++drawCalls;
+        context->PSSetShaderResources(0,1,&empty);
+        historyIndex=writeIndex;
+        historyValid=temporalAA||motionDebug;
+    }
     dx11::buildHud(hudPixels.data(),bufferW,bufferH);
     if(SUCCEEDED(context->Map(hudTexture,0,D3D11_MAP_WRITE_DISCARD,0,&mapped))){
         for(int row=0;row<bufferH;++row)
@@ -1887,6 +2963,12 @@ void render(){
         logging::write(failure);
         deviceLost=true;
     }
+    if(SUCCEEDED(presentResult)){
+        previousViewProjection=constants.viewProjection;
+        previousCameraEye={pose.eye.x,pose.eye.y,pose.eye.z};
+        previousCameraForward=forward;
+        ++temporalFrame;
+    }
     auto afterPresent=std::chrono::steady_clock::now();
     if(std::strstr(GetCommandLineA(),"--benchmark-travel")&&
        std::chrono::duration<float,std::milli>(afterPresent-renderBegin).count()>30){
@@ -1901,6 +2983,30 @@ void render(){
         logging::write(timing);
     }
 }
+bool bakeReflectionProbes(){
+    probeBakeActive=true;probeBakeFailed=false;
+    screenW=screenH=128;ui::shadowQuality=1;ui::antiAliasingQuality=0;
+    ui::graphicsQuality=2;ui::textureQuality=2;ui::filteringQuality=2;
+    ui::reflectionQuality=0;ui::effectsQuality=0;ui::drawDistance=21;ui::lodDistance=50;
+    ui::vegetationDensity=2;ui::grassDistance=50;
+    weather::set("clear");worldTime=0;
+    for(probeBakeFrame=0;probeBakeFrame<36&&!probeBakeFailed;++probeBakeFrame){
+        // Any early return in render is a failed capture, not a successful bake.
+        probeBakeFailed=true;render();
+    }
+    probeBakeActive=false;
+    if(!probeBakeFailed&&probeBakeFrame==36){
+        std::ofstream manifest(std::filesystem::path(executableFolder())/"probe-captures"/"capture.json");
+        manifest<<R"JSON({"schema":1,"faces":36,"size":128,"field_of_view":90,
+"hours":[12,18.5,22],"graphics":2,"shadows":1,"textures":2,"filtering":2,
+"vegetation":2,"grass_distance":50,"draw_distance":21,"lod_distance":50,
+"weather":"clear","world_time":0,"dynamic_geometry":false,"dynamic_lights":false,
+"probe_feedback":false,"tone_mapping":false,"coordinates":"D3D cube face orientation; world Y up"}
+)JSON";
+        probeBakeFailed=!manifest;
+    }
+    return !probeBakeFailed&&probeBakeFrame==36;
+}
 void shutdownRenderer(){
     dx11::shutdownHud();
     if(context)context->ClearState();
@@ -1909,6 +3015,10 @@ void shutdownRenderer(){
     release(shadowView);
     for(auto& depth:shadowDepth)release(depth);
     release(shadowTexture);
+    release(headlightShadowView);release(headlightShadowDepth);
+    release(headlightShadowTexture);
+    release(streetShadowView);release(streetShadowDepth);
+    release(streetShadowTexture);
     shadowSize=shadowCascadeCount=0;
     for(auto& texture:textures)release(texture);
     for(auto& texture:detailTextures)release(texture);
@@ -1917,7 +3027,15 @@ void shutdownRenderer(){
     activeFiltering=-1;
     release(rasterState);release(shadowRaster);
     release(bloomBuffer);release(postBuffer);release(sceneBuffer);release(vertexBuffer);release(staticBuffer);release(inputLayout);
+    release(probeBuffer);release(probeView);release(brdfView);probeSet={};
+    probeBakeActive=probeBakeFailed=false;probeBakeFrame=0;
     release(instanceBuffer);release(instanceLayout);
+    release(skinOutputUav);release(skinOutput);release(skinConstants);release(skinCS);
+    release(skinPreviousUav);release(skinPreviousOutput);release(skinLayout);release(skinVS);
+    previousSkins.clear();skinFrame=0;
+    for(auto& item:skinSources)release(item.second);
+    skinSources.clear();gpuSkins.clear();skinCapacity=skinVertexCount=0;
+    skinValidationDone=false;
     for(auto& item:meshBuffers)release(item.second);
     meshBuffers.clear();
     for(auto& item:meshIndexBuffers)release(item.second);
@@ -1929,6 +3047,7 @@ void shutdownRenderer(){
     pbrTextures.clear();
     release(sceneVS);release(instanceVS);release(scenePS);release(alphaShadowPS);release(sceneHS);release(sceneDS);
     release(hudVS);release(hudPS);release(postPS);release(bloomPS);release(reflectionPS);
+    release(motionPS);release(temporalPS);release(temporalCopyPS);
     release(swapChain);release(context);release(device);
     deviceLost=false;
     if(gdiplusToken){Gdiplus::GdiplusShutdown(gdiplusToken);gdiplusToken=0;}

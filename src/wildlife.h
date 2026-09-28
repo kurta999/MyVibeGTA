@@ -10,7 +10,7 @@ struct Species {
 };
 struct Animal {
     std::string id; int species=0; game::Vec2 p{},home{},target{},threat{};
-    float angle=0,phase=0,timer=0,alert=0,cooldown=0,hit=0,attackTime=0;
+    float angle=0,phase=0,timer=0,alert=0,cooldown=0,hit=0,attackTime=0,impactCooldown=0;
     int health=0,peer=-1; State state=State::Idle;
     bool looted=false,carried=false,playerThreat=false;
 };
@@ -19,6 +19,7 @@ const std::vector<Species>& species();
 void reset();
 void update(float dt);
 float radius(const Animal& animal);
+bool bodyWalkable(const Animal& animal,game::Vec2 point,float angle,bool allowRoad=false);
 bool walkable(game::Vec2 point,float clearance,bool allowRoad=false);
 bool riding();
 int mountedIndex();

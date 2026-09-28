@@ -65,8 +65,13 @@ if ($OpenGL) {
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
     & $cmake --build $buildDirectory --config Release `
-        --target MiniCity3D simulation_smoke asset_smoke texture_mips_smoke --parallel 6
+        --target MiniCity3D simulation_smoke asset_smoke texture_mips_smoke probe_smoke startup_smoke --parallel 6
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)." }
+    # Cooked assets can change without relinking. Refresh the executable's
+    # working set before tests even when Ninja reports no work to do.
+    $runtimeDirectory = Split-Path -Parent $builtExecutable
+    Copy-Item -LiteralPath (Join-Path $root 'assets') -Destination $runtimeDirectory -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $root 'data') -Destination $runtimeDirectory -Recurse -Force
     if ($RunTests) {
         $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
         if (-not (Test-Path -LiteralPath $ctest)) { throw 'ctest.exe was not found beside cmake.exe.' }

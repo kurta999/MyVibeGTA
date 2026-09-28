@@ -1,0 +1,146 @@
+[
+  {
+    "asset": "marina/marina-wave",
+    "authoring": "Original parameterized geometry; seams kept per quad",
+    "levels": [
+      {
+        "file": "marina-wave.m3d",
+        "triangles": 7212,
+        "ratio": 1.0,
+        "target_ratio": 1.0
+      },
+      {
+        "file": "marina-wave-lod1.m3d",
+        "triangles": 3558,
+        "vertices": 7116,
+        "sha256": "04fea79572d8afb16e0ad27188421cad5815662b7f48860d4b3fa095e97409be",
+        "ratio": 0.4933444259567388,
+        "target_ratio": 0.5
+      },
+      {
+        "file": "marina-wave-lod2.m3d",
+        "triangles": 1482,
+        "vertices": 2964,
+        "sha256": "61e92602da6df898a1d6e0d6be8556ee50c05919751bd697e404e1d8210784fc",
+        "ratio": 0.20549084858569053,
+        "target_ratio": 0.2
+      },
+      {
+        "file": "marina-wave-lod3.m3d",
+        "triangles": 622,
+        "vertices": 1244,
+        "sha256": "e736113c1b9817a50fe35bd35301b5b9eb258f9966b281b0502767a7e2463b1f",
+        "ratio": 0.08624514697726013,
+        "target_ratio": 0.08
+      }
+    ]
+  },
+  {
+    "asset": "marina/marina-terrace",
+    "authoring": "Original parameterized geometry; seams kept per quad",
+    "levels": [
+      {
+        "file": "marina-terrace.m3d",
+        "triangles": 5652,
+        "ratio": 1.0,
+        "target_ratio": 1.0
+      },
+      {
+        "file": "marina-terrace-lod1.m3d",
+        "triangles": 2772,
+        "vertices": 5544,
+        "sha256": "fb051793e1049ee47aa35900ef57054ee586deb0c6496420b3c3b493f93b1a3a",
+        "ratio": 0.49044585987261147,
+        "target_ratio": 0.5
+      },
+      {
+        "file": "marina-terrace-lod2.m3d",
+        "triangles": 1170,
+        "vertices": 2340,
+        "sha256": "e7d83db672333e7ce6a0ec16d0152a9ca3f91e264adfd8057e7dc84b0c1a62fe",
+        "ratio": 0.2070063694267516,
+        "target_ratio": 0.2
+      },
+      {
+        "file": "marina-terrace-lod3.m3d",
+        "triangles": 542,
+        "vertices": 1084,
+        "sha256": "1c2e1f26b60e5f77af74e0f27c18d7e9bf2cb42bc014ee03bb8d17ef389e98aa",
+        "ratio": 0.09589525831564048,
+        "target_ratio": 0.08
+      }
+    ]
+  },
+  {
+    "asset": "marina/marina-courtyard",
+    "authoring": "Original parameterized geometry; seams kept per quad",
+    "levels": [
+      {
+        "file": "marina-courtyard.m3d",
+        "triangles": 4500,
+        "ratio": 1.0,
+        "target_ratio": 1.0
+      },
+      {
+        "file": "marina-courtyard-lod1.m3d",
+        "triangles": 2260,
+        "vertices": 4520,
+        "sha256": "6136d7188fc7a893ea2e425a51a5fe861aace67404e47ceacae4a3379ff2a766",
+        "ratio": 0.5022222222222222,
+        "target_ratio": 0.5
+      },
+      {
+        "file": "marina-courtyard-lod2.m3d",
+        "triangles": 846,
+        "vertices": 1692,
+        "sha256": "c88d2767e169ee6ebcff01c8d65a932208aefacd5816488dda621de8799bb522",
+        "ratio": 0.188,
+        "target_ratio": 0.2
+      },
+      {
+        "file": "marina-courtyard-lod3.m3d",
+        "triangles": 542,
+        "vertices": 1084,
+        "sha256": "089a57322735b7a6bd15a2ebb2a46028ec3743fa83e1898b383e499dfdf57972",
+        "ratio": 0.12044444444444445,
+        "target_ratio": 0.08
+      }
+    ]
+  },
+  {
+    "asset": "marina/marina-bayfront",
+    "authoring": "Original parameterized geometry; seams kept per quad",
+    "levels": [
+      {
+        "file": "marina-bayfront.m3d",
+        "triangles": 5820,
+        "ratio": 1.0,
+        "target_ratio": 1.0
+      },
+      {
+        "file": "marina-bayfront-lod1.m3d",
+        "triangles": 2940,
+        "vertices": 5880,
+        "sha256": "ca161723ce84e1bd272502fc5c3083b806783bcdf98fffc3e4ca0ff1c0603136",
+        "ratio": 0.5051546391752577,
+        "target_ratio": 0.5
+      },
+      {
+        "file": "marina-bayfront-lod2.m3d",
+        "triangles": 1170,
+        "vertices": 2340,
+        "sha256": "16b71776b20e939e7ab46c6c69054310fe0d2eed405e5bbc2e9224788510a899",
+        "ratio": 0.20103092783505155,
+        "target_ratio": 0.2
+      },
+      {
+        "file": "marina-bayfront-lod3.m3d",
+        "triangles": 542,
+        "vertices": 1084,
+        "sha256": "79f5f9bed9bdb166df807463a7c2cc1d07816438c375e300f5e0dea40a6bd576",
+        "ratio": 0.09312714776632303,
+        "target_ratio": 0.08
+      }
+    ]
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "cull_substitution": "DX11 currently draws all model materials double sided",
+  "discarded_animations": [],
+  "discarded_attributes": [],
+  "discarded_skins": 0,
+  "double_sided_materials": [
+    0,
+    1
+  ],
+  "excluded_nodes": [
+    "Bullet",
+    "BulletBox",
+    "BulletFired"
+  ],
+  "flattened_node_hierarchy": true,
+  "retained_attributes": [
+    "NORMAL",
+    "POSITION",
+    "TEXCOORD_0"
+  ],
+  "sampler_substitution": "DX11 model sampler uses clamp and graphics-setting anisotropy",
+  "schema": 1,
+  "source_attributes": [
+    "NORMAL",
+    "POSITION",
+    "TEXCOORD_0"
+  ],
+  "source_samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "source_sha256": "b16018a7011dbf3ff4e4566ae5a47ee94509fa0f87fda98e2e6481c200c4e17c"
+}

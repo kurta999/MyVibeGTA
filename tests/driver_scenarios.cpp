@@ -40,6 +40,10 @@ void driverScenarios(){
                 top=std::max(top,vertex.y-vehicle.rideHeight);
             }
             assert(kind==Kind::Bike?top>34&&top<45:top>15&&top<27);
+            std::vector<dx11::SkinInstance> skins;
+            dx11::buildScene(groups,instances,vehicle.p.x,60,vehicle.p.z-60,&skins);
+            assert(skins.empty());
+            assert(groups[5].size()==dx11::skinMesh("characters/hoodie-man")->vertices.size());
         }
         vehicle.speed=0;vehicle.velocity={};jolt_world::stopVehicle(index);
         enterExit();assert(occupied<0);

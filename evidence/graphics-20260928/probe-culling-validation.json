@@ -1,0 +1,224 @@
+{
+  "faces": 36,
+  "method": "Matched static HDR captures with camera/shadow model culling enabled and disabled",
+  "maximum_error": 0.0,
+  "total_changed_pixels": 0,
+  "results": [
+    {
+      "face": "probe-0-time-0-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-0-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-0-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-0-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-0-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-0-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-1-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-0-time-2-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-0-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-1-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-0.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-1.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-2.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-3.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-4.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    },
+    {
+      "face": "probe-1-time-2-face-5.hdrface",
+      "max_error": 0.0,
+      "mean_error": 0.0,
+      "changed_pixels": 0
+    }
+  ]
+}

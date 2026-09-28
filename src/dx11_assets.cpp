@@ -12,6 +12,8 @@ namespace dx11 {
 namespace {
 std::unordered_map<std::string,Mesh> meshes;
 std::unordered_map<std::string,SkinMesh> skins;
+std::unordered_map<std::string,LodChain> lodChains;
+std::vector<std::string> issues;
 Mesh distantNature(const Mesh& original,bool tree){
     Mesh lod;
     lod.minX=original.minX;lod.maxX=original.maxX;
@@ -330,6 +332,31 @@ void loadMeshes(const std::wstring& folder){
         "weapons/pistol","weapons/ak","weapons/lightning"
     };
     std::vector<std::string> names(std::begin(fixedNames),std::end(fixedNames));
+    struct Catalog {std::string base;std::array<std::string,4> names;std::array<float,4> minPixels;};
+    std::vector<Catalog> catalogs;
+    lodChains.clear();
+    issues.clear();
+    for(const char* name:fixedNames){
+        std::ifstream file(std::filesystem::path(folder)/(std::string(name)+".lod"));
+        if(!file)continue;
+        std::string magic;file>>magic;Catalog catalog{};catalog.base=name;
+        bool valid=magic=="MCLOD1";
+        for(int level=0;level<4;++level){
+            auto& key=catalog.names[level];auto& threshold=catalog.minPixels[level];
+            if(!(file>>key>>threshold)||key.empty()||key.find("..")!=std::string::npos||
+               key.front()=='/'||key.find(':')!=std::string::npos||
+               key.find('\\')!=std::string::npos||!std::isfinite(threshold)||threshold<0)
+                valid=false;
+            if(level&&threshold>=catalog.minPixels[level-1])valid=false;
+        }
+        std::string trailing;
+        if(file>>trailing)valid=false;
+        if(catalog.names[0]!=name||catalog.minPixels[3]!=0)valid=false;
+        if(valid){
+            catalogs.push_back(catalog);
+            names.insert(names.end(),catalog.names.begin()+1,catalog.names.end());
+        }else issues.push_back("Rejected invalid LOD catalog: "+std::string(name));
+    }
     const auto animalFolder=std::filesystem::path(folder)/L"animals";
     if(std::filesystem::exists(animalFolder))
         for(const auto& entry:std::filesystem::directory_iterator(animalFolder))
@@ -458,6 +485,10 @@ void loadMeshes(const std::wstring& folder){
         }
         result.alphaTest=(path.rfind("nature/tree_",0)==0||
                           path.rfind("nature/bush_",0)==0)&&result.textured;
+        result.temporalStable=path.rfind("characters/",0)!=0&&
+            path.rfind("vehicles/",0)!=0&&path.rfind("animals/",0)!=0&&
+            path.rfind("birds/",0)!=0&&path.rfind("weapons/",0)!=0&&
+            path.rfind("effect/",0)!=0;
         if(path.rfind("vehicles/",0)==0){
             std::ifstream windows(folder+L"\\"+wide+L".glass");
             const std::size_t triangleCount=indexed?result.indices.size()/3:
@@ -600,6 +631,29 @@ void loadMeshes(const std::wstring& folder){
         auto source=meshes.find(key);
         if(source!=meshes.end())meshes.emplace(key+"-lod",distantPerson(source->second,i));
     }
+    for(const auto& catalog:catalogs){
+        LodChain chain{};chain.minPixels=catalog.minPixels;
+        bool valid=true;size_t previousCount=std::numeric_limits<size_t>::max();
+        for(int level=0;level<4;++level){
+            const Mesh* source=mesh(catalog.names[level]);
+            if(!source){valid=false;break;}
+            size_t count=source->indices.empty()?source->vertices.size():source->indices.size();
+            if(count>=previousCount)valid=false;
+            previousCount=count;chain.meshes[level]=source;
+            if(level){
+                const auto& base=*chain.meshes[0];
+                for(float delta:{source->minX-base.minX,source->minY-base.minY,
+                    source->minZ-base.minZ,source->maxX-base.maxX,
+                    source->maxY-base.maxY,source->maxZ-base.maxZ})
+                    if(std::abs(delta)>0.001f){
+                        valid=false;issues.push_back("LOD bounds mismatch: "+catalog.base+
+                            " level "+std::to_string(level)+" delta "+std::to_string(delta));
+                    }
+            }
+        }
+        if(valid)lodChains.emplace(catalog.base,chain);
+        else issues.push_back("Rejected LOD chain with missing meshes, incompatible bounds or nondecreasing geometry: "+catalog.base);
+    }
 }
 const Mesh* mesh(const std::string& name){auto it=meshes.find(name);return it==meshes.end()?nullptr:&it->second;}
 std::vector<const Mesh*> regionalMeshes(){
@@ -613,4 +667,39 @@ std::vector<const Mesh*> regionalMeshes(){
     return result;
 }
 const SkinMesh* skinMesh(const std::string& name){auto it=skins.find(name);return it==skins.end()?nullptr:&it->second;}
+const LodChain* lodChain(const std::string& name){auto it=lodChains.find(name);return it==lodChains.end()?nullptr:&it->second;}
+const std::vector<std::string>& assetIssues(){return issues;}
+unsigned chooseLodLevel(float pixels,const std::array<float,4>& minPixels,
+                        bool hasPrevious,unsigned previousLevel){
+    unsigned level=hasPrevious?std::min(3u,previousLevel):0;
+    if(!hasPrevious){while(level<3&&pixels<minPixels[level])++level;return level;}
+    while(level<3&&pixels<minPixels[level]*0.88f)++level;
+    while(level>0&&pixels>minPixels[level-1]*1.12f)--level;
+    return level;
+}
+void deformSkinCpu(const SkinInstance& instance,std::vector<Vertex>& output){
+    const auto& skin=*instance.source;
+    output.reserve(output.size()+skin.vertices.size());
+    const auto& s=instance.scale;const auto& o=instance.origin;
+    const auto& t=instance.transform;const auto& yaw=instance.yaw;
+    for(const auto& input:skin.vertices){
+        float p[3]{},n[3]{};
+        const auto& v=input.base;
+        for(int influence=0;influence<4;++influence){
+            float weight=input.weights[influence];unsigned joint=input.joints[influence];
+            if(weight<=0||joint>=instance.palette.size())continue;
+            const auto& m=instance.palette[joint];
+            for(int axis=0;axis<3;++axis){
+                p[axis]+=weight*(m[axis]*v.x+m[axis+4]*v.y+m[axis+8]*v.z+m[axis+12]);
+                n[axis]+=weight*(m[axis]*v.nx+m[axis+4]*v.ny+m[axis+8]*v.nz);
+            }
+        }
+        float x=(p[0]-o[0])*s[0],z=(p[2]-o[2])*s[2];
+        float nx=n[0]/s[0],ny=n[1]/s[1],nz=n[2]/s[2];
+        float length=std::max(0.0001f,std::sqrt(nx*nx+ny*ny+nz*nz));
+        output.push_back({t[0]+yaw[0]*x+yaw[1]*z,t[1]+(p[1]-o[1])*s[1],
+            t[2]-yaw[1]*x+yaw[0]*z,(yaw[0]*nx+yaw[1]*nz)/length,ny/length,
+            (-yaw[1]*nx+yaw[0]*nz)/length,v.u,v.v,v.r,v.g,v.b,v.a});
+    }
+}
 }

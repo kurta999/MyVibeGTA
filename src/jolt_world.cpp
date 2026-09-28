@@ -6,6 +6,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -16,6 +17,7 @@
 #include "regions.h"
 #include "physics.h"
 #include "ai.h"
+#include "wildlife.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -56,6 +58,16 @@ std::unique_ptr<JPH::TempAllocatorImpl> allocator;
 std::unique_ptr<JPH::JobSystemSingleThreaded> jobs;
 std::vector<JPH::BodyID> propBodies;
 std::vector<JPH::BodyID> vehicleBodies;
+std::vector<JPH::BodyID> treeBodies,animalBodies;
+std::vector<int> animalBodySpecies;
+constexpr JPH::uint64 treeTag=JPH::uint64(1)<<32,animalTag=JPH::uint64(2)<<32;
+struct SceneryImpact {float speed=0;int vehicle=-1;game::Vec2 direction{};};
+std::vector<SceneryImpact> treeImpacts,animalImpacts;
+struct FragmentBody {JPH::BodyID id;TreeFragment visual;float life=12;};
+std::vector<FragmentBody> fragmentBodies;
+std::vector<TreeFragment> fragmentVisuals;
+void destroyBody(JPH::BodyID& id);
+void syncSceneryColliders(game::Vec2 focus,float dt=0);
 // The physics jobs are single threaded. Queue contacts and apply gameplay
 // damage after Update, when the physics world is no longer locked.
 struct VehicleImpact {float speed=0;bool playerCaused=false;};
@@ -82,6 +94,16 @@ class TrafficContacts final:public JPH::ContactListener {
                std::abs(game::vehicles[other].speed)>=10)impact.playerCaused=true;
         };
         collect(first,second);collect(second,first);
+        auto scenery=[&](const JPH::Body& target,int vehicle){
+            if(vehicle<0)return;
+            auto tag=target.GetUserData()&0xffffffff00000000ULL;
+            auto index=std::size_t(target.GetUserData()&0xffffffffULL);
+            auto* impacts=tag==treeTag?&treeImpacts:tag==animalTag?&animalImpacts:nullptr;
+            if(!impacts||index>=impacts->size()||speed<=(*impacts)[index].speed)return;
+            auto v=(vehicleBodies[vehicle]==a.GetID()?a:b).GetLinearVelocity();
+            (*impacts)[index]={speed,vehicle,game::norm(game::Vec2{v.GetX(),v.GetZ()})};
+        };
+        scenery(a,second);scenery(b,first);
     }
 public:
     void OnContactAdded(const JPH::Body& a,const JPH::Body& b,
@@ -215,9 +237,16 @@ void shutdown(){
             bodies.RemoveBody(id);bodies.DestroyBody(id);
         }
     }
+    if(world){
+        for(auto& id:treeBodies)destroyBody(id);
+        for(auto& id:animalBodies)destroyBody(id);
+        for(auto& fragment:fragmentBodies)destroyBody(fragment.id);
+    }
     ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
     propBodies.clear();vehicleBodies.clear();vehicleConstraints.clear();vehicleSynced.clear();
     staticBodies.clear();buildingBodies.clear();streamedCellX=streamedCellZ=-1;
+    treeBodies.clear();animalBodies.clear();animalBodySpecies.clear();
+    treeImpacts.clear();animalImpacts.clear();fragmentBodies.clear();fragmentVisuals.clear();
     world.reset();jobs.reset();allocator.reset();
     standingShape=nullptr;crouchingShape=nullptr;playerCrouched=false;
 }
@@ -260,6 +289,7 @@ void reset(){
     addStatic({regions::WIDTH*0.5f,95,regions::DEPTH+border},
         {regions::WIDTH*0.5f+border,95,border});
     syncBuildingColliders(game::player);
+    syncSceneryColliders(game::player);
     auto& bodies=world->GetBodyInterface();
     for(const auto& prop:game::props){
         float half=prop.barrel?9.5f:11.5f;
@@ -395,6 +425,7 @@ void addPed(){
 }
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     if(!playerCharacter||!world)return;
+    syncSceneryColliders(game::player);
     game::Vec2 before=game::player;
     if(game::crouched!=playerCrouched){
         float oldOffset=playerCrouched?13.0f:18.0f;
@@ -486,6 +517,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
 void teleportCharacter(game::Vec2 position,float height){
     if(!playerCharacter)return;
     syncBuildingColliders(position);
+    syncSceneryColliders(position);
     playerCharacter->SetPosition(JPH::RVec3(position.x,height,position.z));
     playerCharacter->SetLinearVelocity(JPH::Vec3::sZero());
 }
@@ -538,6 +570,94 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     if(game::len(candidate-game::Vec2{float(position.GetX()),float(position.GetZ())})>0.001f)
         character->SetPosition(JPH::RVec3(candidate.x,position.GetY(),candidate.z));
     ped.p=candidate;
+}
+namespace {
+void destroyBody(JPH::BodyID& id){
+    if(id.IsInvalid())return;
+    auto& bodies=world->GetBodyInterface();
+    bodies.RemoveBody(id);bodies.DestroyBody(id);id=JPH::BodyID();
+}
+void syncSceneryColliders(game::Vec2 focus,float dt){
+    if(!world)return;
+    auto& bodies=world->GetBodyInterface();
+    if(treeBodies.size()!=game::trees.size()){
+        for(auto& id:treeBodies)destroyBody(id);
+        treeBodies.assign(game::trees.size(),JPH::BodyID());
+    }
+    // Streaming bounds both the broad phase and physics body count in groves.
+    for(std::size_t i=0;i<treeBodies.size();++i){
+        const auto& tree=game::trees[i];auto& id=treeBodies[i];
+        bool nearby=!tree.destroyed&&game::len(tree.p-focus)<1100;
+        if(!nearby){destroyBody(id);continue;}
+        float radius=treeRadius(tree),halfHeight=std::max(8.0f,tree.height*tree.scale*0.3f);
+        if(id.IsInvalid()){
+            JPH::BodyCreationSettings settings(new JPH::CylinderShape(halfHeight,radius),
+                JPH::RVec3(tree.p.x,halfHeight,tree.p.z),JPH::Quat::sIdentity(),
+                JPH::EMotionType::Static,Layer::staticBody);
+            settings.mFriction=0.8f;settings.mUserData=treeTag|i;
+            id=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+        }
+    }
+    if(animalBodies.size()!=wildlife::animals.size()){
+        for(auto& id:animalBodies)destroyBody(id);
+        animalBodies.assign(wildlife::animals.size(),JPH::BodyID());
+        animalBodySpecies.assign(wildlife::animals.size(),-1);
+    }
+    for(std::size_t i=0;i<animalBodies.size();++i){
+        const auto& a=wildlife::animals[i];auto& id=animalBodies[i];
+        if(a.health<=0||a.carried||game::len(a.p-focus)>1000){destroyBody(id);continue;}
+        const auto& species=wildlife::species()[a.species];
+        JPH::RVec3 target(a.p.x,species.height*0.5f,a.p.z);
+        JPH::Quat rotation=JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-a.angle);
+        if(!id.IsInvalid()&&animalBodySpecies[i]!=a.species)destroyBody(id);
+        if(id.IsInvalid()){
+            JPH::BodyCreationSettings settings(new JPH::BoxShape(
+                JPH::Vec3(species.width*0.5f,species.height*0.5f,species.length*0.45f),0.2f),
+                target,rotation,JPH::EMotionType::Kinematic,Layer::moving);
+            settings.mFriction=0.5f;settings.mUserData=animalTag|i;
+            id=bodies.CreateAndAddBody(settings,JPH::EActivation::Activate);
+            animalBodySpecies[i]=a.species;
+        }else if(dt>0)bodies.MoveKinematic(id,target,rotation,dt);
+        else bodies.SetPositionAndRotation(id,target,rotation,JPH::EActivation::DontActivate);
+    }
+}
+void breakTree(std::size_t index,const SceneryImpact& impact){
+    auto& tree=game::trees[index];
+    tree.health=0;tree.destroyed=true;tree.burning=false;
+    destroyBody(treeBodies[index]);
+    auto& bodies=world->GetBodyInterface();
+    constexpr std::size_t limit=96;
+    while(fragmentBodies.size()+11>limit){
+        destroyBody(fragmentBodies.front().id);fragmentBodies.erase(fragmentBodies.begin());
+    }
+    float radius=treeRadius(tree),height=std::min(240.0f,tree.height*tree.scale);
+    for(int piece=0;piece<11;++piece){
+        bool foliage=piece>=8;
+        float fraction=float(piece%4)/4;
+        float angle=float(piece)*2.4f;
+        game::Vec3 size=foliage?game::Vec3{radius*3, radius*2,radius*3}:
+            piece<4?game::Vec3{radius*1.8f,height*0.23f,radius*1.8f}:
+                    game::Vec3{radius*0.6f,height*0.16f,radius*0.6f};
+        game::Vec3 position{tree.p.x+(piece<4?0:std::cos(angle)*radius*2),
+            piece<4?2+height*(fraction+0.125f):height*(0.65f+fraction*0.3f),
+            tree.p.z+(piece<4?0:std::sin(angle)*radius*2)};
+        JPH::Quat rotation=piece<4?JPH::Quat::sIdentity():
+            JPH::Quat::sRotation(JPH::Vec3(std::cos(angle),0,std::sin(angle)),0.9f);
+        JPH::BodyCreationSettings settings(new JPH::BoxShape(
+            JPH::Vec3(size.x*0.5f,size.y*0.5f,size.z*0.5f),0.2f),
+            JPH::RVec3(position.x,position.y,position.z),rotation,
+            JPH::EMotionType::Dynamic,Layer::moving);
+        settings.mFriction=0.8f;settings.mRestitution=0.08f;
+        settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
+        settings.mMassPropertiesOverride.mMass=foliage?2.0f:piece<4?45.0f:8.0f;
+        settings.mLinearVelocity=JPH::Vec3(impact.direction.x*impact.speed*0.25f+std::cos(angle)*25,
+            35+float(piece%3)*15,impact.direction.z*impact.speed*0.25f+std::sin(angle)*25);
+        settings.mAngularVelocity=JPH::Vec3(impact.direction.z*2.5f,0.4f,-impact.direction.x*2.5f);
+        auto id=bodies.CreateAndAddBody(settings,JPH::EActivation::Activate);
+        if(!id.IsInvalid())fragmentBodies.push_back({id,{position,size,rotation.GetX(),
+            rotation.GetY(),rotation.GetZ(),rotation.GetW(),foliage},12});
+    }
+}
 }
 void driveVehicle(std::size_t index,float throttle,float steering,float,bool brake){
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
@@ -636,6 +756,14 @@ int wheelContactCount(std::size_t index){
 std::size_t activeBuildingColliderCount(){
     return std::count_if(buildingBodies.begin(),buildingBodies.end(),
         [](JPH::BodyID id){return !id.IsInvalid();});
+}
+float treeRadius(const game::Tree& tree){return 6.0f*std::clamp(tree.scale,0.25f,4.0f);}
+const std::vector<TreeFragment>& treeFragments(){return fragmentVisuals;}
+std::size_t activeTreeColliderCount(){
+    return std::count_if(treeBodies.begin(),treeBodies.end(),[](JPH::BodyID id){return !id.IsInvalid();});
+}
+std::size_t activeAnimalColliderCount(){
+    return std::count_if(animalBodies.begin(),animalBodies.end(),[](JPH::BodyID id){return !id.IsInvalid();});
 }
 std::size_t activePedCharacterCount(){
     return std::count_if(pedCharacters.begin(),pedCharacters.end(),
@@ -744,10 +872,11 @@ void clearRagdolls(){
     ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
 }
 void step(float dt){
-    if(!world)return;
+    if(!world||dt<=0)return;
     syncBuildingColliders(game::occupied>=0&&
         std::size_t(game::occupied)<game::vehicles.size()?
         game::vehicles[game::occupied].p:game::player);
+    syncSceneryColliders(game::player,dt);
     for(std::size_t index=0;index<pedCharacters.size()&&index<game::peds.size();++index)
         if(!game::peds[index].alive||game::peds[index].drivingVehicle>=0)pedCharacters[index]=nullptr;
     auto& bodies=world->GetBodyInterface();
@@ -762,7 +891,28 @@ void step(float dt){
         }
     }
     vehicleImpacts.assign(vehicleBodies.size(),{});
+    treeImpacts.assign(treeBodies.size(),{});animalImpacts.assign(animalBodies.size(),{});
     world->Update(dt,1,allocator.get(),jobs.get());
+    // Contact callbacks only collect closing speed. Body removal and gameplay
+    // damage happen here after Jolt releases its locks.
+    for(std::size_t i=0;i<treeImpacts.size();++i){
+        const auto& impact=treeImpacts[i];
+        if(impact.vehicle<0||game::trees[i].destroyed)continue;
+        float mass=physics::tuning(game::vehicles[impact.vehicle].kind).mass;
+        float severity=impact.speed*std::sqrt(mass/1100.0f);
+        float threshold=150*std::sqrt(treeRadius(game::trees[i])/6)*
+            (0.65f+0.35f*game::trees[i].health/100.0f);
+        if(severity>=threshold)breakTree(i,impact);
+    }
+    for(std::size_t i=0;i<animalImpacts.size();++i){
+        const auto& impact=animalImpacts[i];auto& animal=wildlife::animals[i];
+        if(impact.vehicle<0||impact.speed<=35||animal.health<=0||animal.impactCooldown>0)continue;
+        int damage=std::max(1,int((impact.speed-25)*
+            std::sqrt(physics::tuning(game::vehicles[impact.vehicle].kind).mass/1100.0f)));
+        animal.impactCooldown=0.6f;
+        wildlife::hurt(int(i),damage,game::vehicles[impact.vehicle].p,impact.vehicle==game::occupied);
+        if(animal.health<=0)destroyBody(animalBodies[i]);
+    }
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid())continue;
         auto position=bodies.GetCenterOfMassPosition(vehicleBodies[i]);
@@ -838,5 +988,14 @@ void step(float dt){
     for(const auto& snapshot:game::corpseSnapshots)
         game::ragdollParts.insert(game::ragdollParts.end(),
             snapshot.parts.begin(),snapshot.parts.end());
+    fragmentVisuals.clear();
+    for(auto it=fragmentBodies.begin();it!=fragmentBodies.end();){
+        it->life-=dt;
+        if(it->life<=0){destroyBody(it->id);it=fragmentBodies.erase(it);continue;}
+        auto p=bodies.GetCenterOfMassPosition(it->id);auto q=bodies.GetRotation(it->id);
+        it->visual.p={p.GetX(),p.GetY(),p.GetZ()};
+        it->visual.qx=q.GetX();it->visual.qy=q.GetY();it->visual.qz=q.GetZ();it->visual.qw=q.GetW();
+        fragmentVisuals.push_back(it->visual);++it;
+    }
 }
 }

@@ -59,7 +59,7 @@ void steer(Animal& a,Vec2 destination,float speed,float dt){
     float step=std::min(distance,speed*dt),base=std::atan2(direction.z,direction.x);
     for(float turn:{0.0f,0.65f,-0.65f,1.3f,-1.3f}){
         Vec2 trial=a.p+forward(base+turn)*step;
-        if(!walkable(trial,radius(a))||len(trial-a.home)>420)continue;
+        if(!bodyWalkable(a,trial,base+turn)||len(trial-a.home)>420)continue;
         a.p=trial;a.angle=base+turn;a.phase+=step*0.17f;return;
     }
     a.timer=0;
@@ -75,10 +75,37 @@ bool walkable(Vec2 p,float r,bool allowRoad){
     for(int index:regions::nearbyTreeIndices(p,r+30)){
         if(index<0||index>=int(trees.size()))continue;
         const auto& tree=trees[index];
-        if(!tree.destroyed&&len(p-tree.p)<r+6*std::min(tree.scale,4.0f))return false;
+        if(!tree.destroyed&&len(p-tree.p)<r+jolt_world::treeRadius(tree))return false;
     }
     for(const auto& prop:props)if(prop.alive&&len(p-prop.p)<r+14)return false;
-    for(const auto& car:vehicles)if(len(p-car.p)<r+26)return false;
+    for(const auto& car:vehicles){
+        Vec2 f=forward(car.angle),side{-f.z,f.x},d=p-car.p;
+        float x=d.x*f.x+d.z*f.z,z=d.x*side.x+d.z*side.z;
+        float halfLength=car.kind==Kind::Bike?13.0f:24.0f;
+        float halfWidth=car.kind==Kind::Bike?5.0f:13.0f;
+        Vec2 outside{std::max(0.0f,std::abs(x)-halfLength),std::max(0.0f,std::abs(z)-halfWidth)};
+        if(len(outside)<r)return false;
+    }
+    return true;
+}
+bool bodyWalkable(const Animal& a,Vec2 p,float angle,bool allowRoad){
+    float r=radius(a),halfSegment=std::max(0.0f,catalog[a.species].length*0.5f-r);
+    Vec2 facing=forward(angle);
+    int samples=std::max(1,int(std::ceil(2*halfSegment/r)));
+    for(int i=0;i<=samples;++i){
+        Vec2 point=p+facing*(-halfSegment+2*halfSegment*float(i)/samples);
+        if(!walkable(point,r,allowRoad))return false;
+        for(const auto& other:animals){
+            if(&other==&a||other.carried||other.health<=0)continue;
+            float otherR=radius(other);
+            float segment=std::max(0.0f,catalog[other.species].length*0.5f-otherR);
+            Vec2 axis=forward(other.angle),offset=point-other.p;
+            float along=std::clamp(offset.x*axis.x+offset.z*axis.z,-segment,segment);
+            if(len(offset-axis*along)<r+otherR)return false;
+        }
+        if(!riding()&&health>0&&occupied<0&&playerY<catalog[a.species].height&&
+           len(point-player)<r+10)return false;
+    }
     return true;
 }
 bool riding(){return mounted>=0&&mounted<int(animals.size());}
@@ -111,6 +138,18 @@ int nearbyMount(){
 bool mount(int i){
     if(!canMount(i))return false;
     mounted=i;auto& a=animals[i];
+    // Old saves placed wildlife using width-only clearance. Recover a mount
+    // whose head/tail overlaps a trunk before enabling its movement controls.
+    if(!bodyWalkable(a,a.p,a.angle,true)){
+        Vec2 origin=a.p;bool placed=false;
+        for(float distance=4;distance<=80&&!placed;distance+=4)
+            for(int direction=0;direction<16;++direction){
+                Vec2 candidate=origin+forward(float(direction)*2*PI/16)*distance;
+                if(!bodyWalkable(a,candidate,a.angle,true))continue;
+                a.p=candidate;placed=true;break;
+            }
+        if(!placed){mounted=-1;announce("No clear space to ride this animal.",2);return false;}
+    }
     a.state=State::Idle;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
     telescopeActive=false;cameraYaw=a.angle;riderPose();previousPlayer=player;
     announce(std::string("Riding ")+catalog[a.species].name+". WASD move, Shift run, E dismount.",4);
@@ -140,16 +179,27 @@ void updateRider(float dt){
         side*(float(keys[ui::bindings[int(ui::Action::Right)]])-float(keys[ui::bindings[int(ui::Action::Left)]]));
     Vec2 delta=norm(input)*(s.speed*(keys[ui::bindings[int(ui::Action::Sprint)]]?1.65f:1.0f)*dt);
     Vec2 before=a.p;
-    // Substeps and a full-body clearance prevent fast rides clipping obstacles.
-    float clearance=std::max(radius(a),s.length*0.45f);
+    // Sweep the actual long, narrow footprint; a length-sized circle traps
+    // mounts in gaps that comfortably fit their bodies.
     int steps=std::max(1,int(std::ceil(len(delta)/4)));
     for(int step=0;step<steps;++step){
-        Vec2 next=a.p+delta*(1.0f/steps);
-        if(!walkable(next,clearance,true))break;
-        a.p=next;
+        if(len(input)<0.001f)break;
+        float desired=std::atan2(delta.z,delta.x);
+        float turn=std::atan2(std::sin(desired-a.angle),std::cos(desired-a.angle));
+        // Rotation also needs clearance, particularly for elephants.
+        int turns=std::max(1,int(std::ceil(std::abs(turn)/0.08f)));
+        for(int i=0;i<turns;++i){
+            float nextAngle=a.angle+turn/turns;
+            if(!bodyWalkable(a,a.p,nextAngle,true))break;
+            a.angle=nextAngle;
+        }
+        Vec2 stepDelta=delta*(1.0f/steps),next=a.p+stepDelta;
+        if(bodyWalkable(a,next,a.angle,true))a.p=next;
+        else for(Vec2 slide:{Vec2{stepDelta.x,0},{0,stepDelta.z}})
+            if(bodyWalkable(a,a.p+slide,a.angle,true))a.p=a.p+slide;
     }
     float moved=len(a.p-before);
-    if(moved>0.001f){a.angle=std::atan2(delta.z,delta.x);a.phase+=moved*0.17f;}
+    if(moved>0.001f)a.phase+=moved*0.17f;
     a.state=moved>0.001f?State::Wander:State::Idle;
     a.home=a.target=a.p;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
     riderPose();
@@ -166,14 +216,15 @@ void reset(){
         for(int attempt=0;attempt<180;++attempt){
             float angle=unit(rng)*2*PI,distance=40+unit(rng)*200;
             a.p=center+forward(angle)*distance;
-            if(regions::biomeAt(a.p)!=regions::Biome::Countryside||!walkable(a.p,radius(a)))continue;
+            a.angle=unit(rng)*2*PI;
+            if(regions::biomeAt(a.p)!=regions::Biome::Countryside||!bodyWalkable(a,a.p,a.angle))continue;
             bool overlaps=false;for(const auto& other:animals)
                 if(len(other.p-a.p)<radius(a)+radius(other)+5)overlaps=true;
             if(!overlaps){placed=true;break;}
         }
         if(!placed)continue;
         a.home=a.p;a.target=a.p;a.health=catalog[a.species].health;
-        a.angle=unit(rng)*2*PI;a.phase=unit(rng)*6;a.timer=unit(rng)*3;
+        a.phase=unit(rng)*6;a.timer=unit(rng)*3;
         animals.push_back(a);
     }
 }
@@ -221,6 +272,7 @@ void update(float dt){
     for(int i=0;i<int(animals.size());++i){auto& a=animals[i];
         a.hit=std::max(0.0f,a.hit-dt);a.attackTime=std::max(0.0f,a.attackTime-dt);
         a.cooldown=std::max(0.0f,a.cooldown-dt);
+        a.impactCooldown=std::max(0.0f,a.impactCooldown-dt);
         if(a.health<=0||len(a.p-player)>850)continue;
         ++active;const auto& s=catalog[a.species];
         if(i==mounted)continue;
@@ -237,7 +289,8 @@ void update(float dt){
             if(!validTarget||distance>240||len(target-a.home)>400||a.alert<=0){
                 a.state=State::Idle;a.timer=2;a.peer=-1;a.playerThreat=false;continue;}
             if(clearLine(a.p,target))a.threat=target;
-            float reach=radius(a)+(a.playerThreat?11:radius(animals[a.peer]))+6;
+            float reach=std::max(radius(a),s.length*0.5f)+
+                (a.playerThreat?11:radius(animals[a.peer]))+6;
             if(distance>reach)steer(a,a.threat,s.speed,dt);
             else if(a.cooldown<=0&&clearLine(a.p,target)){
                 a.angle=std::atan2(target.z-a.p.z,target.x-a.p.x);

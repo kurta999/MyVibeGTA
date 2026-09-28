@@ -21,6 +21,21 @@ int main(){
     assert(dx11::chooseDetailedLod(115,90,100,200,true,false));
     assert(!dx11::chooseDetailedLod(200,221,100,200,true,true));
     assert(!dx11::chooseDetailedLod(200,181,100,200,true,false));
+    const std::array<float,4> thresholds{500,240,80,0};
+    assert(dx11::chooseLodLevel(500,thresholds,false,0)==0);
+    assert(dx11::chooseLodLevel(300,thresholds,false,0)==1);
+    assert(dx11::chooseLodLevel(130,thresholds,false,0)==2);
+    assert(dx11::chooseLodLevel(50,thresholds,false,0)==3);
+    assert(dx11::chooseLodLevel(475,thresholds,true,0)==0);
+    assert(dx11::chooseLodLevel(430,thresholds,true,0)==1);
+    assert(dx11::chooseLodLevel(520,thresholds,true,1)==1);
+    assert(dx11::chooseLodLevel(565,thresholds,true,1)==0);
+    assert(dx11::chooseLodLevel(205,thresholds,true,1)==2);
+    assert(dx11::chooseLodLevel(250,thresholds,true,2)==2);
+    assert(dx11::chooseLodLevel(280,thresholds,true,2)==1);
+    assert(dx11::chooseLodLevel(70,thresholds,true,2)==3);
+    assert(dx11::chooseLodLevel(85,thresholds,true,3)==3);
+    assert(dx11::chooseLodLevel(90,thresholds,true,3)==2);
     {
         const auto fixture=std::filesystem::temp_directory_path()/
             ("minicity-m3d2-"+std::to_string(
@@ -47,6 +62,12 @@ int main(){
         assert(masked&&masked->indices.size()==3&&masked->materialRanges.size()==1);
         assert(masked->materialRanges[0].alphaTest&&
             std::abs(masked->materialRanges[0].alphaCutoff-0.37f)<0.0001f);
+        const auto catalogPath=fixture/"weapons/pistol.lod";
+        {std::ofstream catalog(catalogPath);catalog<<"MCLOD1\nweapons/pistol 500\n../outside 240\nweapons/missing 80\nweapons/missing2 0\n";}
+        dx11::loadMeshes(fixture.wstring());
+        assert(dx11::mesh("weapons/pistol")&&!dx11::lodChain("weapons/pistol"));
+        assert(dx11::assetIssues().size()==1);
+        std::filesystem::remove(catalogPath);
         {std::ofstream file(materialPath);file<<"0 3 0.7 0 0 - - - - - BLEND 0.5\n";}
         dx11::loadMeshes(fixture.wstring());
         assert(!dx11::mesh("weapons/pistol"));
@@ -85,10 +106,13 @@ int main(){
         assert(bounds.radius>6&&bounds.radius<7);
     }
     dx11::loadMeshes(L"assets/models/baked");
+    for(const auto& issue:dx11::assetIssues())std::fprintf(stderr,"%s\n",issue.c_str());
+    assert(dx11::assetIssues().empty());
     for(const char* name:{"traffic-1","traffic-2","traffic-3","traffic-4","traffic-5","sports-car","sedan"}){
         std::string key=std::string("vehicles/")+name;
         const auto* body=dx11::mesh(key);const auto* glass=dx11::mesh(key+"-glass");
         assert(body&&glass&&glass->transparent&&!glass->castsShadow&&!glass->textured);
+        assert(!body->temporalStable&&!glass->temporalStable);
         assert(glass->vertices.size()>=30&&body->vertices.size()>glass->vertices.size());
         assert(body->minY==glass->minY&&body->maxY==glass->maxY&&body->minZ==glass->minZ);
         for(const auto& v:glass->vertices)assert(v.a>0&&v.a<0.3f);
@@ -99,6 +123,7 @@ int main(){
             const auto* bird=dx11::mesh(std::string("birds/")+name+
                 (pose==8?"-dead":"-flap-"+std::to_string(pose)));
             assert(bird&&bird->vertices.size()>300&&bird->textured);
+            assert(!bird->temporalStable);
             assert(std::filesystem::exists(bird->textureFile));
             if(pose<8)for(const auto& v:bird->vertices){
                 assert(std::abs(v.x)<=0.52f&&std::abs(v.y)*0.7f<=0.40f&&std::abs(v.z)<=0.60f);
@@ -111,6 +136,7 @@ int main(){
         const std::string key=std::string("animals/")+species;
         const auto* base=dx11::mesh(key);
         assert(base&&base->vertices.size()>300&&base->textured);
+        assert(!base->temporalStable);
         assert(std::filesystem::exists(base->textureFile));
         for(const std::string& suffix:{"-dead","-walk-0","-walk-1","-walk-2",
             "-walk-3","-walk-4","-walk-5","-walk-6","-walk-7"}){
@@ -211,6 +237,8 @@ int main(){
     for(auto index:indexedPistol->indices)
         assert(index<indexedPistol->vertices.size());
     assert(indexedPistol->materialRanges[0].count==indexedPistol->indices.size());
+    assert(!indexedPistol->materialRanges[0].ormFile.empty());
+    assert(std::filesystem::exists(indexedPistol->materialRanges[0].ormFile));
     assert(dx11::mesh("vehicles/sedan")->indices.empty());
     assert(dx11::mesh("nature/tree_oak-lod"));
     std::ifstream manifest("assets/models/NATURE_MANIFEST.csv");
@@ -287,6 +315,18 @@ int main(){
         assert(building&&lod&&building->vertices.size()>10000&&
             lod->vertices.size()>1000&&building->textured);
         assert(std::filesystem::exists(building->textureFile));
+        const auto* chain=dx11::lodChain(name);
+        assert(chain&&chain->meshes[0]==building&&chain->minPixels==thresholds);
+        for(int level=1;level<4;++level){
+            const auto* reduced=chain->meshes[level];
+            assert(reduced&&!reduced->indices.empty()&&reduced->textureFile==building->textureFile);
+            float ratio=float(reduced->indices.size())/building->vertices.size();
+            assert(level==1?ratio>0.45f&&ratio<0.55f:
+                   level==2?ratio>0.17f&&ratio<0.23f:ratio>0.07f&&ratio<0.13f);
+            assert(reduced->minX==building->minX&&reduced->maxX==building->maxX&&
+                reduced->minY==building->minY&&reduced->maxY==building->maxY&&
+                reduced->minZ==building->minZ&&reduced->maxZ==building->maxZ);
+        }
     }
     assert(std::ifstream("assets/models/baked/marina/MarinaFacade_NormalDX.png").good());
     std::puts("asset smoke passed");

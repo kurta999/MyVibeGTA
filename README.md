@@ -1,146 +1,234 @@
 # Mini City 3D
 
-A playable C++ third-person city sandbox with a downtown grid, beach, harbor, pedestrians, vehicles, weapons, six main missions, and four optional regional missions. The DX11 world now spans 16,800 × 16,800 units across two cities, countryside, snowfields, desert, and savanna, connected by roads and a river bridge. `MiniCity3D.exe` uses **Direct3D 11**. The earlier OpenGL renderer remains available as a fallback build.
+A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district.
 
-The DX11 renderer has shaders, depth buffering, day/night lighting, directional shadows, fog, tone mapping, imported building, character, tree, car, and boat meshes, and tileable color and normal maps for building walls, foliage, roads, ground, vehicles, and clothing. Imported models use GPU instance buffers in the color and shadow passes. Streets, ground, and docks use a static GPU buffer; repeated boxes and spheres for props, lamps, and markers use GPU instances; distant vegetation, buildings, and pedestrians use coarse proxy meshes. Nearby characters use runtime joint skinning from the original GLB animations, including hit, death, fire, and reload transitions and a right-hand weapon attachment. Jolt Physics v5.6.0 handles movable props, the player capsule, dynamic vehicle chassis, boat buoyancy, and joint-constrained pedestrian ragdolls, with the visible character mesh following the ragdoll bodies. Selected CC0 source glTF/GLB files and baked runtime meshes are under [`assets/models/`](assets/models/); the PBR materials and licenses are under [`assets/materials/`](assets/materials/). The window defaults to 1600 × 900, with 1280 × 720 and 1920 × 1080 options. The minimap uses a directional player arrow, and the upper-right HUD shows the current weapon, ammo, health, cash, and time. The older top-down experiment remains in [`src/prototype2d.cpp`](src/prototype2d.cpp).
+The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
+
+## Contents
+
+- [Features](#features)
+- [Build and run](#build-and-run)
+- [Controls](#controls)
+- [Animals and destructible trees](#animals-and-destructible-trees)
+- [Tests and visual previews](#tests-and-visual-previews)
+- [Packaging](#packaging)
+- [Project layout](#project-layout)
+- [Assets and attribution](#assets-and-attribution)
+- [Current limitations](#current-limitations)
+
+## Features
+
+- **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
+- **Rendering:** imported textured meshes, PBR material ranges, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections, and selectable FXAA/TAA.
+- **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls.
+- **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
+- **Vehicles:** cars, sports cars, motorcycles, boats, visible occupants, headlights, contact-based crash damage, repairs, drifting, and empty-vehicle coasting.
+- **Wildlife:** 15 animal species, rideable elephants and tigers, and five bird species. Animals wander, play, flee, retaliate, and hunt according to species.
+- **Gameplay:** 17 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
+- **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
+- **Persistence:** saved progression, inventory, ownership, wildlife damage and loot, tree destruction, and graphics/control/audio settings.
 
 ## Build and run
 
-The C++ sources and headers are in `src/`. Initialize the pinned Jolt v5.6.0 submodule after cloning:
+### Requirements
+
+- Windows with a Direct3D 11-capable graphics device.
+- Visual Studio 2022 or 2026 with **Desktop development with C++** and a Windows SDK, or a compatible LLVM/Clang toolchain with Ninja.
+- CMake 3.20 or newer. The build script can use the CMake installation bundled with Visual Studio.
+- Git and the pinned **Jolt Physics v5.6.0** submodule.
+
+### Quick start
+
+From a checkout of this repository:
 
 ```powershell
-git submodule update --init
-```
-
-With CMake and Visual Studio C++ (or LLVM `clang++` plus Ninja) on Windows:
-
-```powershell
-./build.ps1
+git submodule update --init --recursive
+./build.ps1 -RunTests
 ./MiniCity3D.exe
 ```
 
-To build the OpenGL fallback, run `./build.ps1 -OpenGL` and launch `MiniCity3DGL.exe`.
+`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places `MiniCity3D.exe` in the repository root. Close a running root executable before rebuilding it.
 
-Or with a Windows C++ toolchain and CMake:
+To build without running tests:
 
 ```powershell
-cmake -S . -B build
-cmake --build build --config Release
+./build.ps1
 ```
 
-The game loads the `assets/` and `data/` folders beside the executable. CMake copies both folders after building. `build.ps1` can be run from any working directory. It initializes the Visual Studio C++ environment, uses Ninja when available, builds the DX11 game and smoke targets, then copies the executable to the project root. It reports an error if the running game prevents that copy. Use `./build.ps1 -RunTests` to build and run all ten CTest suites. Jolt is pinned to v5.6.0 under `third_party/JoltPhysics/`; its MIT license is included in packages. The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted from Git; their baked runtime meshes are included. Before rebuilding those nature meshes from source, restore the files with `./tools/fetch_city_sources.ps1 -AssetIds island_tree_03,jacaranda_tree`. To regenerate baked meshes and skinning clips after editing a source GLB, run `python tools/convert_assets.py` with Python 3. The converter uses only the Python standard library. Converted static GLBs now export per-material `.pbr` ranges with base color, normal, metallic/roughness, occlusion, and emissive maps when those maps exist in the source. The 30 generated urban building atlases and most vegetation assets still contain mainly base color, so their map coverage remains future asset work.
+To choose a different output executable:
 
-Run `./package.ps1` to build the DX11 game, copy its executable with cooked runtime assets, `data/`, provenance manifests, and license records, smoke-test day, night, causeway, and each distant biome from the copied folder, and create a zip under `dist/`. Raw model sources are excluded from the package. Use `./package.ps1 -SkipBuild` to package the latest existing build. `-IncludeOpenGL` includes the existing fallback executable without rebuilding it.
+```powershell
+./build.ps1 -OutputPath 'build-output/MiniCity3D.exe'
+```
 
-GitHub Actions builds and runs the CMake simulation, wildlife, bird, traffic, navigation, and asset tests on Windows for pull requests and `main` pushes. After a successful `main` build, it publishes the tested zip as a prerelease tagged `build-<run number>`. The workflow packages without graphical smoke runs on the hosted runner; local `./package.ps1` still runs those checks. `workflow_dispatch` builds a downloadable Actions artifact without publishing a release.
+Create the destination directory first and keep `assets/` and `data/` beside a relocated executable. The build directory already contains both folders.
+
+### CMake directly
+
+For a Visual Studio 2022 installation:
+
+```powershell
+cmake -S . -B build -G 'Visual Studio 17 2022' -A x64 -DBUILD_TESTING=ON
+cmake --build build --config Release --parallel 4
+ctest --test-dir build -C Release --output-on-failure
+./build/Release/MiniCity3D.exe
+```
+
+CMake copies `assets/` and `data/` beside the game. Baked runtime assets are included; Python and Blender are needed only when rebuilding or converting art.
+
+### Startup feedback
+
+The Direct3D executable immediately opens a loading window with a progress bar, current stage, and elapsed time. It remains responsive while graphics initialize; closing it cancels at the next startup checkpoint. The game appears after its first frame is prepared. `--smoke` runs keep the loading window hidden.
+
+Startup prepares regional meshes and textures in advance to avoid uploads interrupting travel. A local normal launch measured 21.77 seconds, including 15.35 seconds preparing regional graphics, 1.39 seconds compiling shaders, and 1.50 seconds restoring the save. These timings depend on the machine and current load. Each stage and total startup time are logged in `MiniCity3D.log` beside the executable.
+
+The game embeds an original city icon at 16, 24, 32, 48, 64, 128, and 256 pixels for Explorer, the taskbar, and window captions. The resource is in `assets/app/`; regenerate it with `./tools/build_game_icon.ps1`.
+
+`MiniCity3D` is the actively developed Direct3D target. The existing OpenGL fallback remains available through `./build.ps1 -OpenGL` as `MiniCity3DGL.exe`.
 
 ## Controls
 
-### Forest wildlife (DX11)
-
-Fifteen animal types inhabit the twenty countryside forests: tiger, elephant, cat, dog, pig, cow, capybara, bear, goat, donkey, roe deer, deer, weasel, beaver, and mouse. Forest centers lie at X = 3000/4000/5000/6000/7000 and Z = 1300/3900/6400/9000. Each grove has up to eight animals with stable save IDs. They wander around their home, play with their own species, flee threats, retaliate, and hunt smaller animals according to species. Distant wildlife sleeps until approached.
-
-Press **E** near a living elephant or tiger to mount it, use **WASD** to ride relative to the camera and **Shift** to run, then **E** to dismount into clear space. Ridden animals can cross roads but stop at water and obstacles. The rider is visible in third person; mounted combat is disabled. Loading a save returns you to the ground. Use `--smoke --day --animals --animal-ride --screenshot` to preview the elephant rider; add `--tiger` for the tiger.
-
-Vehicles can be exited into water with **E**, immediately switching to swimming. Empty moving vehicles release throttle and steering and gradually coast to a stop.
-
-Use your regular guns, bow, melee attacks, or explosives. **F loots** a dead animal once (supplies converted to cash); **G carries/drops** its corpse. Carrying slows movement and prevents firing/reloading; entering a vehicle drops the corpse. Damage, death, corpse position, and looted status survive save/load. Carried bodies load on the ground. All species can be carried in this arcade implementation, including large animals.
-
-Models include their original base-color textures and [per-model attribution](assets/models/ANIMALS.md). The roe-deer slot uses an adapted generic fawn model. Walking uses eight procedural mesh poses, play adds a hop, attacks lunge, and death uses a side-lying pose; these are not rigged animal animations or Jolt ragdolls. Wildlife uses bounded obstacle steering; complex navigation and interactive behavior tuning remain future work.
-
-Rebuild the animal meshes with `python tools/import_animals.py` (Python 3 + Pillow). Restore originals with `python tools/fetch_animal_sources.py --fetch`. The dedicated CTest `wildlife_scenarios` checks behavior, combat, interactions, persistence, and placement. `MiniCity3D.exe --smoke --day --animals --screenshot` renders an inspection clearing; add `--animal-corpse` or `--animal-carry` to inspect those poses. All flags affect only smoke mode.
-
-### Keyboard and mouse
-
-Five textured bird types (seagull, crow, sparrow, parrot, and dove) fly around city, coastal, forest, and regional areas. They flap/glide and steer around buildings, tree canopies, vehicles, and props using swept clearance for their wingspan. Bullets, arrows, and explosions can shoot them down; corpses fall onto ground, roofs, or canopy surfaces. Kills persist in saves. Their animation is procedural; [source credits and modifications](assets/models/BIRDS.md) are included. Rebuild the bird assets offline with `python tools/import_birds.py` (Python + Pillow).
-
-Press **E** near a slow-moving traffic car to steal it. Cars moving at up to **90 world units/second** are eligible (previously below 35); reverse and sideways velocity count. The driver gets out and retaliates, the chassis stops without resetting its suspension pose, and you board. Faster cars, wrecks, blocked driver exits, and attempts through walls or from a rooftop are rejected. An **E STEAL SLOW VEHICLE** hint appears when eligible, alongside any F interaction.
-
-Hold **RMB** to aim upward at birds. Reticle picking and bullets share an animated-wing hit envelope, including movement between simulation ticks. DX11 shows the player seated in cars and on motorcycles while driving; car windows use transparent glass so occupants remain visible. `python tools/prepare_vehicle_glass.py` rebuilds the window-triangle metadata from the original baked meshes and textures. The `driver_scenarios` test covers entry, acceleration, seated geometry, turning, and exit. Use `--smoke --day --driver-preview --screenshot` (add `--bike` for the motorcycle) for a rendering preview.
-
-While seated in a vehicle, the HUD always shows **CAR / BIKE / BOAT DAMAGE** as a percentage and bar. Zero means undamaged; amber starts at 45% and red at 80%. Collision damage uses closing speed at chassis contacts, so braking, steering, and position resynchronization alone do not count as crashes. Add `--damaged` to the driver preview to inspect the HUD.
+These are the default bindings. Movement, sprint, vehicle interaction, sensitivity, and inverted mouse look can be changed under **Esc > Controls**.
 
 | Input | Action |
 | --- | --- |
-| W / A / S / D | Move or drive |
-| Shift | Run on foot |
-| Hold Alt | Walk slowly on foot |
-| Left Ctrl | Toggle crouch movement |
-| Space | Jump |
-| S / Space while driving | Brake / handbrake for controlled drifts |
-| Move mouse | Rotate the camera in every gameplay view without aiming |
-| Hold right mouse button | Aim; sniper sight has 2×, 4×, and 8× wheel zoom |
-| Left mouse button with a ranged weapon | Fire with or without aiming; driving supports pistol and SMG drive-by shots |
-| Left mouse button with a melee weapon | Swing at a nearby person |
+| W / A / S / D | Move, drive, or ride an animal relative to the camera |
+| Shift | Run on foot or while riding |
+| Hold Alt | Walk slowly |
+| Left Ctrl | Toggle crouch |
+| Space | Jump; handbrake while driving |
+| S while driving | Brake or reverse |
+| Mouse | Rotate the camera |
+| Hold right mouse button | Aim |
+| Left mouse button | Fire or use the selected melee weapon |
 | Space + left mouse button without aiming | Unarmed punch or jump strike |
-| F near a ladder or marked palm | Start climbing; W/S move, F lets go, Space jumps from a tree |
-| C | Cycle close/wide first-person, near/far third-person, and overview cameras |
-| B / mouse wheel | Open telescope / change telescope zoom (B closes it) |
+| R | Reload; restart after death |
 | 1-9 / Q | Select or cycle unlocked weapons and tools |
-| R | Reload the current weapon; restart after death |
-| E | Enter or exit nearby vehicle |
-| H while driving | Toggle headlights; they turn on when entering a car or motorcycle |
-| F / Tab | Use the selected nearby action / cycle nearby actions, including looting, shops, and houses |
-| Arrow keys / Enter / Esc in shop or house menu | Select, buy or use, close |
-| G | Carry or drop a body |
-| M | Open or close the map |
+| E | Enter/exit a vehicle; mount/dismount a nearby tiger or elephant |
+| F / Tab | Use the selected nearby action / cycle nearby actions |
+| G | Carry or drop a corpse |
+| F near a ladder or climbable tree | Start climbing; W/S climb, F releases, Space jumps from a tree |
+| H while driving | Toggle car or motorcycle headlights |
+| C | Cycle first-person, third-person, and overview cameras |
+| B / mouse wheel | Telescope / telescope or sniper zoom |
+| M | Toggle the map |
 | T | Advance time by one hour |
-| Esc | Pause and open settings |
-| F1 | Show or hide the full controls overlay |
-| F3 | Toggle frame rate and simulation timing |
-| F4 | Debug menu: god mode, fly, full health, time, weather, and all weapons; Left/Right changes time by one hour or cycles weather |
-| F11 | Save a PNG screenshot in the `screenshots/` folder beside the game |
-| Space / Ctrl while flying | Rise / descend; Shift increases flight speed |
+| Esc | Pause, settings, Save, and Load |
+| F1 | Toggle the full controls overlay |
+| F3 | Toggle performance information |
+| F4 | Open the debug menu |
+| F11 | Save a PNG screenshot |
 
-The player has 400 maximum health. Health kits restore 200 health, and mission rewards restore 80. Ballistic headshots instantly defeat pedestrians; torso, arm, and leg hits have different damage. Driven cars cause speed-dependent hit reactions, knockdowns, or ragdolls without pedestrian capsules pushing the vehicle. The DX11 player mesh has procedural swim, climb, and jump poses built on the imported rig.
+Shops and house menus use arrow keys, Enter, and Esc. In debug fly mode, Space/Ctrl move vertically and Shift increases speed.
 
-On foot, the player and nearby pedestrians stop at character contact instead of walking through each other. Both play a brief contact reaction; a fast collision knocks the pedestrian down without inflicting weapon damage. Press **F** near a calm civilian to talk, using **Tab** to choose it when another interaction is available. Nearby civilians can meet and talk or fight each other; fights use punch and hit poses, deal damage, and can end in a ragdoll. Camera aiming now directs a shot into the selected pedestrian's round hitbox, so visible on-target shots can kill. `--smoke --day --ped-social-preview --screenshot` previews talking, and adding `--ped-fight-preview` previews a nearby fight.
+### Getting started
 
-Weapons and tools are picked up at cyan markers. Their stats are in `data/weapons.ini`; vehicle tuning, surfaces, police response, shops, houses, the world layout, pickups, and missions are in the other versioned files under `data/`. Green map markers show shops, purple markers show houses for sale, and blue markers show owned houses. Shops sell all 17 current weapons and tools, supplies, wanted-level reduction, and existing world vehicles while stock lasts. The six melee items attack at their own reach, damage, and speed; the bow fires visible arrows and can tether a killed person to a nearby wall for up to 15 seconds, including after a nearby save/load. When a pin or ordinary ragdoll expires, its final mesh pose stays visible until the pedestrian respawns and survives save/load. Eligible pistols and SMGs unlock dual wield after 100 armed-opponent kills with that weapon, firing two shots per trigger and using two rounds. Owned houses have finite garage slots and offer fast travel to other owned houses when out of combat and missions. Purchases, parked cars, and house ownership are saved. Invalid required gameplay data stops startup with a logged error. A red car starts near the player; the sports car, motorcycle, and boats have different handling. Vehicles take damage from bullets, rockets, fire, and collisions; a nearby smoking vehicle can be repaired once with the starter repair kit by pressing F. Space applies the handbrake while driving, and a qualifying controlled drift pays once per segment. Players can swim into the harbor or leave a boat into the water. The flamethrower ignites surfaces, the extinguisher and water cannon suppress fire, and water cannon hits knock pedestrians down. Grass fire spreads, metal fire spreads very little, and trees can burn down. Pointing a gun at a nearby person can make them flee; witnessed crimes raise a wanted level of up to four stars and bring increasingly armed police. A silenced kill with no surviving witness does not raise it. The DX11 night sky shows a moon and nearby stars. Crates and barrels can be pushed and shot. Missions unlock in sequence; the gold map line points to the next start marker. The final mission combines a car checkpoint, a beach shooting target, and a boat trip. Graphics quality, draw distance, LOD distance, window size, vegetation, effects, DX11 shadows, mouse sensitivity, key bindings, and volume can be changed in the Escape menu and are saved in `settings.ini` next to the executable. Save and Load in that menu use `savegame.ini`; version 1 and 2 saves preserve their health percentage and migrate to version 3 on the next save. Mission rewards and weapon pickups also trigger a save. XAudio2 mixes overlapping sounds and places pedestrian shots, impacts, and traffic in stereo according to their distance and direction.
+A car starts near the player. Follow the gold map line to the next mission marker and press **F**. Cyan markers provide weapons, green markers identify shops, purple markers identify houses for sale, and blue markers identify owned houses. Orange markers identify regional missions.
 
-Run `./test.ps1` to compile and execute the simulation and asset smoke tests. They check all six main missions in sequence plus four regional missions, aiming geometry, pedestrian reactions and hostile bullets, thin-wall projectile collision and RPG impact placement, tree trunk hits and blast ignition, weapon data loading, reloads, prop damage, car and motorcycle travel, jump ascent and landing, nearby pedestrian capsule movement, skeletal asset data, save/load, and settings persistence. Bullets, RPGs, and arrows use continuous segment hits against static walls and dynamic targets, including indexed tree trunks, and show a brief 3D impact flash. `F3` shows frame and simulation timing, draw calls, active AI, Jolt building and pedestrian counts, ragdolls, fire, shots, and props. The application writes startup and error events to `MiniCity3D.log` beside the executable. For a repeatable local performance sample, run `MiniCity3D.exe --smoke --benchmark --1080p --day` or replace `--day` with `--night --ragdoll`; average, p95, p99, maximum frame time, draw count, physics time, process working set, and nearby nature counts over 120 frames are written to the log. Use `--smoke --benchmark-travel --1080p --day` to sample first visits across six regions.
+Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `savegame.ini`. These files, `MiniCity3D.log`, and the `screenshots/` directory are located beside the executable. Mission rewards and weapon pickups also trigger saves.
 
-The expanded world spans 53.45 times the original 2,400 × 2,200 map rectangle. A conservative connected-ground measurement from the player spawn is 267.79 million square units, or 50.72 times the original map area. Its 30 textured tree variants, derived from 20 distinct CC0 tree meshes, and six cactus/rock props are assigned by biome in `data/trees.ini` and `data/biome_props.ini`; 36 textured bush variants form non-colliding undergrowth in 20 countryside groves. Forest trees vary from saplings to occasional 5× and 10× landmarks. Thirty textured urban building variants replace the old city kit blocks. Per-model provenance and license records are in `assets/models/NATURE_MANIFEST.csv` and `assets/models/CITY_MANIFEST.csv`. A harbor causeway and 16 data-defined roads link both cities to snow, desert, and savanna. Four biome hubs have pedestrians, parked vehicles, shops, small solid shop and house structures, and optional driving, shooting, and collection missions. Fourteen houses are for sale across the map, with a ten-house ownership limit and fast travel between owned houses. Jolt tire grip responds to asphalt, grass, sand, snow, and precipitation using values in `data/vehicles.ini`. The terrain mesh follows the player locally, nearby trees are queried from a cell index, and distant wandering pedestrians sleep until approached. Regional trees and props are generated deterministically at startup, while the second city has pedestrians and vehicles. Long regional roads now have a data-capped moving car population that activates near the player; `TrafficPerRoad` in `data/regions.ini` controls its density. The full map and local minimap show the enlarged world, with orange markers for optional regional missions. The DX11 renderer preloads regional nature and urban GPU meshes before opening the game window to avoid first-visit upload stalls; if prewarming cannot finish, on-demand loading remains available.
+## Animals and destructible trees
 
-Grass terrain in the city, countryside, and savanna now has deterministic, low-poly tufts within 140 world units of the player. The patch recenters every 20 units, avoids roads, water, buildings, and non-grass biomes, and follows the Vegetation setting. DX11 fire, muzzle, impact, smoke, and explosion visuals use one effect handler with authored procedural textures and a blended depth-tested pass; explosions include a flash, expanding ring, flame burst, and smoke. Ballistic projectiles use a small 3D bullet mesh and travel roughly four times faster; rockets, arrows, and spray tools retain their own speeds. Run `--smoke --day --forest-fire` or `--smoke --day --effects-preview` to inspect the new effects. The source texture generator is `tools/make_effect_textures.ps1`.
+Twenty countryside groves contain tigers, elephants, cats, dogs, pigs, cows, capybaras, bears, goats, donkeys, roe deer, deer, weasels, beavers, and mice. Grove centers use X = 3000/4000/5000/6000/7000 and Z = 1300/3900/6400/9000. Each grove has up to eight animals with stable save IDs; distant wildlife sleeps until approached.
 
-Peds set alight by flames or burning ground keep burning as they move, flee, and eventually die unless extinguished. Vehicles ignite from flames or severe damage and take delayed fire damage until they explode; foam, water, and repair kits can stop an active vehicle fire. Car and motorcycle headlights switch on when entered and can be toggled with H. Use `--smoke --night --burn-preview --screenshot` for a DX11 fire and headlight preview.
+- Living animals have Jolt collision bodies. Characters meet their bodies, and vehicle impacts can damage or kill them. Very small animals can be stepped over.
+- Press **E** near a living tiger or elephant, then use **WASD** and **Shift**. Movement checks the animal's long, narrow footprint so forest gaps remain usable. Mounting recovers positions from older saves that overlap a trunk.
+- Ridden animals can cross roads and stop at water, buildings, trunks, props, vehicles, and other animals. **E** dismounts into clear space. Mounted combat is disabled; loading returns the rider to the ground.
+- Tree trunks block characters and vehicles. Low-speed car impacts stop at the trunk; sufficiently hard impacts break the tree into trunk, branch, and foliage pieces that fall, collide, and settle. Breakage depends on closing speed, vehicle mass, tree scale, and tree health.
+- Tree fragments are temporary, capped physics objects. The destroyed tree remains a stump, and its destruction is saved.
+- Use weapons or explosives to hunt, **F** to loot once, and **G** to carry/drop a corpse. Wildlife damage, death, position, and loot state persist across saves. Carrying prevents firing and reloading.
 
-In DX11, pedestrian deaths leave a blood decal beside the ragdoll instead of scattering colored boxes. Ballistic gunshots eject small brass casings that bounce and settle on the ground; at most 70 remain active. Use `--smoke --day --casing-preview --screenshot` for a repeatable casing view.
+Animal gait, play, attack, and corpse poses are procedural. The roe-deer model is an adapted fawn; see [animal attribution](assets/models/ANIMALS.md).
 
-## DX11 visual quality
+## Tests and visual previews
 
-The DX11 scene now renders to a floating-point color target and runs a final pass with selectable FXAA, SSAO, screen-space reflections, restrained bloom, exposure, tone mapping, and color grading by biome and time of day. Reflections, FXAA, and SSAO each have independent Off/Medium/High settings in Graphics. Water and rain-wet roads use screen-space reflections with a sky fallback; vehicle paint gets a sky reflection contribution. The sky gradient, cloud layers, and distant silhouette shift through sunrise, daylight, sunset, and night. A visual terrain skirt softens the playable world edge. City blocks have varied storefront fronts, awnings, and rooftop equipment. Sun shadows use four comparison samples, and active fires tint nearby geometry. Converted static GLBs retain separate glTF material ranges and their base-color, normal, metallic/roughness, occlusion, and emissive textures when available; `tools/convert_assets.py` writes adjacent `.pbr` metadata. Procedural road, ground, foliage, and vehicle surfaces use material roughness and metalness defaults. The HUD is composited after post-processing to keep text sharp. F1 reveals the full control legend; the normal HUD keeps it compact.
+Run the complete build and CTest suite:
 
-High shadow quality renders three stabilized sunlight cascades with blended transitions; Medium renders one. For DX11 inspection captures, combine `--smoke --day --screenshot` with `--shadow-cascade-view`, `--normal-view`, `--roughness-view`, `--material-view`, or `--mip-view`. The mip view shows base-texture level from blue (fine) to red (coarse), with untextured geometry dark. `--medium-shadows` selects the single-map mode in smoke benchmarks. `--smoke --benchmark-route --1080p` measures a deterministic six-segment, 60-second simulated route after warm-up and writes frame and GPU pass timings to `MiniCity3D.log`.
+```powershell
+./build.ps1 -RunTests
+# Equivalent wrapper:
+./test.ps1
+```
 
-Bloom filters scene highlights through three progressively smaller HDR targets before tone mapping. `--smoke --night --bloom-view --screenshot` captures the combined highlight buffer; the normal HUD remains outside post-processing.
+The 12 CTest entries cover the main simulation, wildlife, birds, drivers, vehicle collisions, pedestrians, traffic, navigation, assets, texture mip generation, reflection probe data, and loading-window responsiveness, cancellation, lifecycle, and embedded icon sizes. Collision scenarios exercise animal bodies, riding through narrow gaps, old-position recovery, low/high-impact tree crashes, physical fragments, and collider cleanup.
 
-Screen-space reflections trace at half resolution and are reconstructed with depth-aware filtering. Water and wet roads use a sky fallback when a ray misses; off-screen geometry and reflection probes are not represented yet.
+To rerun focused scenarios after building with Ninja:
 
-The opaque pass stores ambient lighting separately, so SSAO darkens indirect light without dimming the sun, local lights, or emissive details. `--smoke --day --indirect-view --screenshot` shows that buffer.
+```powershell
+ctest --test-dir build-msvc-ninja -C Release -R 'wildlife_scenarios|vehicle_collision_scenarios' --output-on-failure
+```
 
-Existing tree, bush, apartment, and marina detail/proxy meshes switch according to their projected screen size. Hysteresis keeps small camera movements from repeatedly changing the selected mesh; the LOD distance slider still controls the detail budget.
+Visual smoke flags stage repeatable scenes and exit after rendering:
 
-Graphics settings now have mouse and arrow-key sliders for draw distance and LOD distance. The maximum draw distance is 9,375 world units, five times the previous Far limit of 1,875. Existing Near, Standard, and Far settings migrate to the new sliders. Regional terrain becomes coarser beyond the near field, while distant foliage is thinned and nearby leaves fade out of the camera's view to keep the expanded range usable. Use `--smoke --graphics-menu --screenshot --1080p` to capture the settings screen.
+```powershell
+./MiniCity3D.exe --smoke --day --animals --animal-ride --animal-ride-move --screenshot
+./MiniCity3D.exe --smoke --day --animals --animal-ride --animal-ride-move --tiger --screenshot
+./MiniCity3D.exe --smoke --day --tree-impact-preview --1080p --screenshot
+./MiniCity3D.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
+./MiniCity3D.exe --smoke --night --driver-preview --damaged --screenshot
+./MiniCity3D.exe --smoke --day --marina --1080p --screenshot
+```
 
-Rain darkens roads, lowers their roughness, and creates bounded irregular puddles on downtown and regional roads. Puddles use a short screen-space reflection trace with a sky fallback; snow covers upward-facing nearby surfaces. At night, selected building windows, street lamps, shop signs, and vehicle head and tail lights glow, while the nearest light sources affect surrounding geometry. These are screen-space and local approximations: reflections cannot include off-screen objects, ambient occlusion is depth based, and generated urban and nature atlases do not yet include complete PBR map sets. For repeatable captures use `--smoke --sunrise`, `--smoke --night`, `--smoke --day --rain`, or `--smoke --day --snowfield --snow`, optionally with `--1080p` and `--benchmark`.
+Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MiniCity3D.log`; local measurements do not establish performance on other hardware.
 
-## Marina Part district
+## Packaging
 
-The expanded world now includes a Marina Part-inspired Danube neighborhood with 15 apartment blocks, curved balcony and terraced building variants, a paved promenade, planted strips, benches, lights, local streets, Foka Bay, three piers, and marina boats. The full map and minimap show the district and bay. `data/regions.ini` and `data/roads.ini` define the district and its streets. `python tools/build_marina_assets.py` regenerates four original facade meshes, their LODs, and 2048 × 2048 color and normal atlases; see [asset provenance](assets/models/MARINA_PART.md).
+```powershell
+./package.ps1
+```
 
-On the DX11 High and Medium graphics settings, hull and domain shaders tessellate nearby building facades, Marina pavement, and untextured tree meshes in the color and shadow passes; detailed imported foliage skips tessellation. Tessellation decreases with distance and is disabled on Low. The small geometric displacement is visual; Jolt collision continues to use the base geometry. Use `MiniCity3D.exe --smoke --marina --day --1080p` to render a repeatable close view and add `--benchmark` for a 120-frame performance sample.
+This builds, copies cooked assets, data, attribution records, and the Jolt license, runs packaged graphical smoke checks, and creates a ZIP under `dist/`. Raw model sources are excluded.
 
-## Current limits
+Use `./package.ps1 -SkipBuild` to package an existing build. `-SkipSmoke` skips graphical checks; `-IncludeOpenGL` includes an existing fallback executable.
 
-The expanded map streams nearby Jolt building colliders and pedestrian capsules. World definitions and mutable region state still load globally; wilderness traffic and missions are limited.
+The [Windows workflow](.github/workflows/windows-release.yml) builds and tests pull requests and pushes to `main`. It uploads a downloadable package; successful `main` pushes also publish a prerelease tagged `build-<run number>`. Hosted CI skips graphical package smoke runs. A manual workflow run uploads an artifact without publishing a release.
 
-This is a prototype, not a finished GTA-style game. Timed weather changes clouds, rain or snow particles, fog visibility, tree sway, and fire spread; rain wets and suppresses active fire. Four authored downtown ladders and additional tall-building ladders lead to Jolt-supported roofs, and four marked palms and suitable regional trees have climb anchors; small species remain decorative. Cars and motorcycles use Jolt wheel suspension and drivetrain controls; the motorcycle uses a narrow four-wheel physics surrogate, and boats keep buoyancy controls. Fall and vehicle-entry action clips are adapted from the available source animations. Repeated effects and scenery primitives are GPU instanced; deforming characters and ragdolls still use dynamic CPU vertices. Nearby pedestrians use Jolt capsules, while distant pedestrians use simpler game movement. Character and nature art remain stylized and need further polish. A human mission playthrough on a clean Windows machine remains unverified. In current 120-frame hidden-window DX11 samples at 1920 × 1080 on the development machine, east city measured 8.69 ms average / 8.53 ms p95 with 90 draw calls, bridge 6.67 / 8.38 ms with 117 draw calls, and a 68-flame forest fire 8.31 / 8.40 ms with 132 draw calls. The simulation averaged about 0.29–0.31 ms and physics about 0.27–0.28 ms in those scenes. A six-region travel sample measured 16.81 ms p99 and 25.02 ms maximum after GPU prewarming. Process working set varied from roughly 400 to 635 MiB across local runs. Broader hardware and interactive gameplay still need checking.
+## Project layout
 
+| Path | Purpose |
+| --- | --- |
+| [`src/`](src/) | C++ simulation, rendering, input, audio, and physics |
+| [`tests/`](tests/) | Deterministic scenarios and asset/pipeline checks |
+| [`data/`](data/README.md) | Versioned gameplay and world configuration |
+| [`assets/models/`](assets/models/) | Original sources, baked meshes, textures, and provenance |
+| [`assets/materials/`](assets/materials/) | Material textures and licenses |
+| [`assets/lighting/`](assets/lighting/README.md) | Cooked reflection probes and lighting data |
+| [`tools/`](tools/) | Asset import, conversion, generation, and cooking scripts |
+| [`third_party/JoltPhysics/`](third_party/JoltPhysics/) | Pinned physics submodule |
+| [`idea.md`](idea.md) | Implementation roadmap and verified milestones |
+| [`graphics-upgrade-plan.md`](graphics-upgrade-plan.md) | Rendering roadmap and open work |
+| [`traffic-ai.md`](traffic-ai.md) | Traffic and retaliation behavior |
 
-## Traffic and retaliation (DX11)
+The older top-down experiment is preserved in `src/prototype2d.cpp`.
 
-Traffic now drives along connected city and regional roads, follows lanes, yields at intersections, and brakes for the player, pedestrians, and other vehicles. Damaging a driven car can make its driver pursue you. Surviving assault victims, people who notice pickpocketing, and carjacked drivers remember the player, seek an available car, and pursue; nearby on-foot targets are attacked with their existing melee or weapon behavior. Break sight for twelve seconds to escape a chase. Empty, owned, burning, or contested vehicles have explicit acquisition rules. See [the traffic AI plan](traffic-ai.md) for behavior details, verification, and later milestones.
+## Assets and attribution
 
-On-foot pedestrians use cached A* routes around buildings, vehicles, and props, with local separation and passing behavior for crowds. They replan blocked routes and moving targets, respect water boundaries, and stop short of the player to attack. This navigation also handles police, cover movement, and approaches to vehicle doors; it uses bounded local searches rather than a full-world navigation mesh.
+Third-party assets have individual licenses; attribution is recorded alongside their sources and baked files.
+
+- [Model licenses](assets/models/LICENSES.md), [nature manifest](assets/models/NATURE_MANIFEST.csv), and [city manifest](assets/models/CITY_MANIFEST.csv).
+- [Animals](assets/models/ANIMALS.md) and [birds](assets/models/BIRDS.md): Poly by Google assets via Poly Pizza, under CC BY 3.0, with modification notes.
+- [Traffic and weapon licenses](assets/models/TRAFFIC_WEAPONS_LICENSES.md).
+- [Marina Part provenance](assets/models/MARINA_PART.md) and [showcase sources](assets/models/SHOWCASE_SOURCES.md).
+- [Material licenses](assets/materials/LICENSES.md) and [effect licenses](assets/effects/LICENSES.md).
+- Jolt Physics: MIT license in `third_party/JoltPhysics/LICENSE`, copied into packages.
+
+Most environment and original character/vehicle sources are CC0; consult each record when redistributing assets.
+
+For art changes, see the [asset conversion workflow](tools/ASSET_PIPELINE.md) and [probe lighting workflow](tools/PROBE_LIGHTING.md). `python tools/convert_assets.py` rebuilds the supported runtime assets. Animal imports use `python tools/import_animals.py` with Pillow.
+
+The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted from Git; their baked meshes are included. Restore those source files before recooking them:
+
+```powershell
+./tools/fetch_city_sources.ps1 -AssetIds island_tree_03,jacaranda_tree
+```
+
+## Current limitations
+
+- Animal poses and rider seating remain procedural; animal skeletal animation and ragdolls are not implemented.
+- The motorcycle uses a narrow four-wheel physics surrogate. Vehicle and impact behavior remain arcade-oriented.
+- Nearby physics colliders stream around the player, while world definitions and mutable regional state still load globally.
+- Instancing and LOD are integrated for supported scenery, including selected authored Marina chains; the broader asset and rendering roadmap remains incomplete.
+- Ordinary humanoid clips use GPU skinning, while procedural poses and ragdolls retain CPU paths. Animated-object temporal coverage remains incomplete.
+- Reflections combine screen-space techniques with bounded local probes; full off-screen scene reflections are not available. Material map coverage varies by asset.
+- Wildlife navigation uses bounded steering. Dense forests, animation quality, interactive gameplay tuning, and performance across more Windows hardware need further validation.
+- Automated scenarios and graphical previews do not replace a complete human mission playthrough.
