@@ -1,0 +1,53 @@
+{
+  "Scenes": [
+    {
+      "Name": "dx11-day",
+      "ScreenshotSha256": "824E4F280158B9323A9CBB1BB9CF9D5DA8241A270023AC07B9C6114664D7EA92",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --validate-loading"
+    },
+    {
+      "Name": "dx11-street",
+      "ScreenshotSha256": "388B501D2C37A9D83D232728EC8AC0A0B2228A129A4655ACD01C0FE8588049A1",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --modern-street-preview --validate-loading"
+    },
+    {
+      "Name": "dx11-night",
+      "ScreenshotSha256": "49D8D080FA7208D3E89F609246A61E63745A9D4604F10BF21383F23DED12D5AB",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --night --modern-street-preview --high-shadows --validate-loading"
+    },
+    {
+      "Name": "dx11-car",
+      "ScreenshotSha256": "6CE54A97B03205D09175CDDDE2DF738DB5578C6B79AC00EE2366904086206CDC",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --driver-preview --modern-car-preview --validate-loading"
+    },
+    {
+      "Name": "dx11-coupe",
+      "ScreenshotSha256": "0381F9AC0299D768AB635EC78BAB30B34A6E50EBA7E15BD6F412361847C9A05A",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --driver-preview --modern-coupe-preview --validate-loading"
+    },
+    {
+      "Name": "dx11-marina",
+      "ScreenshotSha256": "CA0209F4DE6A115DA669F1C9B7759511C53EDD7A8841707B6BE0841778CFB615",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --night --marina --validate-loading"
+    },
+    {
+      "Name": "dx11-pistol",
+      "ScreenshotSha256": "23B5B40E6D4D45A80F098C5B3F5CBD594F63C7D31E3414208EC125B6FD465374",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --weapon-preview --validate-loading"
+    },
+    {
+      "Name": "dx11-carbine",
+      "ScreenshotSha256": "8D923874993E4CC6B9F096C33B64CFB85A61846CB4875407D170283F4ACB75AB",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --weapon-preview --rifle-preview --validate-loading"
+    }
+  ],
+  "ExecutableSha256": "88C9B8BBE43291F0268FD7EF58E08B83CA62521BBCA8A84FBF7949C70F70EDCB"
+}

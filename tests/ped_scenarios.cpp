@@ -52,6 +52,30 @@ void pedScenarios(){
     interact();assert(peds[0].state==PedState::Talk&&playerTalkTime>0);
     ai::update(dt);assert(peds[0].health==100&&!peds[0].hostile);
     dx11::loadMeshes(L"assets/models/baked");
+    // A saved corpse without a ragdoll snapshot must keep its settled pose.
+    // Previously the death clip replayed continuously after loading a save.
+    auto savedPeds=peds;float savedHealth=health,savedWorldTime=worldTime;
+    Ped corpse{};corpse.id="saved-corpse";corpse.p={4530,4500};
+    corpse.style=3;corpse.alive=false;corpse.corpseVisualDelay=0;
+    corpse.pinAnchor={4540,4500};
+    health=0;
+    std::vector<dx11::Vertex> corpseFirst[dx11::MATERIAL_GROUPS];
+    std::vector<dx11::Vertex> corpseLater[dx11::MATERIAL_GROUPS];
+    std::vector<dx11::ModelInstance> corpseInstances;
+    for(int state=0;state<3;++state){
+        corpse.pinned=state==1;corpse.carried=state==2;
+        peds={corpse};worldTime=0;
+        dx11::buildScene(corpseFirst,corpseInstances);
+        worldTime=0.2f;
+        dx11::buildScene(corpseLater,corpseInstances);
+        assert(!corpseFirst[5].empty()&&corpseFirst[5].size()==corpseLater[5].size());
+        for(std::size_t i=0;i<corpseFirst[5].size();++i){
+            const auto& a=corpseFirst[5][i];const auto& b=corpseLater[5][i];
+            assert(std::abs(a.x-b.x)<0.01f&&std::abs(a.y-b.y)<0.01f&&
+                   std::abs(a.z-b.z)<0.01f);
+        }
+    }
+    peds=std::move(savedPeds);health=savedHealth;worldTime=savedWorldTime;
     std::vector<dx11::Vertex> posed[dx11::MATERIAL_GROUPS];
     std::vector<dx11::Vertex> idle[dx11::MATERIAL_GROUPS];
     std::vector<dx11::ModelInstance> instances;

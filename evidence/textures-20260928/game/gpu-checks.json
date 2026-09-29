@@ -1,0 +1,38 @@
+{
+  "scenes": [
+    {
+      "scene": "dx11-day",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-street",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-night",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-car",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-coupe",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-marina",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-pistol",
+      "dds_gpu_mip_checks": 54
+    },
+    {
+      "scene": "dx11-carbine",
+      "dds_gpu_mip_checks": 54
+    }
+  ],
+  "per_texture_mips": 12,
+  "total_resource_checks": 432
+}

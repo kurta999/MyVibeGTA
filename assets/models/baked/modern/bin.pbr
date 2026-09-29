@@ -1,0 +1,4 @@
+# Original procedural project asset: indexed PBR material sections
+0 456 0.31 1 0 metal-base.dds metal-normal.dds metal-orm.dds metal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+456 1920 0.23 1 0 silver-base.dds silver-normal.dds silver-orm.dds silver-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+2376 36 0.94 0 0 rubber-base.dds rubber-normal.dds rubber-orm.dds rubber-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0

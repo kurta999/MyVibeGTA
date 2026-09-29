@@ -1,0 +1,42 @@
+2026-9-28 10:38:4  Application started
+2026-9-28 10:38:4  Startup: Starting Mini City 3D took 0.006 s
+2026-9-28 10:38:4  Startup: Starting Direct3D 11
+2026-9-28 10:38:4  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-9-28 10:38:4  Startup: Starting Direct3D 11 took 0.052 s
+2026-9-28 10:38:4  Startup: Compiling graphics shaders
+2026-9-28 10:38:5  Shader loading: workers 4, peak active 4, completed 15/15, wall 1.241 s, CPU 1.510 s
+2026-9-28 10:38:5  Startup: Compiling graphics shaders took 1.247 s
+2026-9-28 10:38:5  Startup: Creating graphics buffers and shadows
+2026-9-28 10:38:6  Startup: Creating graphics buffers and shadows took 1.019 s
+2026-9-28 10:38:6  Startup: Loading surface textures
+2026-9-28 10:38:7  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.507 s, decode CPU 0.294 s, mip CPU 0.794 s, upload 0.086 s
+2026-9-28 10:38:7  Startup: Loading surface textures took 0.508 s
+2026-9-28 10:38:7  Startup: Loading city models and animations
+2026-9-28 10:38:7  Startup: Loading city models and animations took 0.317 s
+2026-9-28 10:38:7  Startup: Preparing city geometry
+2026-9-28 10:38:7  Startup: Preparing city geometry took 0.002 s
+2026-9-28 10:38:7  Startup: Preparing regional textures
+2026-9-28 10:38:12  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 183/183, pending <= 4, wall 4.493 s, decode CPU 1.919 s, mip CPU 11.335 s, upload 0.188 s
+2026-9-28 10:38:12  Startup: Preparing regional textures took 4.493 s
+2026-9-28 10:38:12  Startup: Uploading regional graphics
+2026-9-28 10:38:12  Startup: Uploading regional graphics took 0.090 s
+2026-9-28 10:38:12  Startup: Loading HDR lighting
+2026-9-28 10:38:12  CPU scene workers: 4
+2026-9-28 10:38:12  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-9-28 10:38:12  Renderer initialized
+2026-9-28 10:38:12  Startup: Loading HDR lighting took 0.012 s
+2026-9-28 10:38:12  Startup: Starting audio and loading settings
+2026-9-28 10:38:12  Startup: Starting audio and loading settings took 0.400 s
+2026-9-28 10:38:12  Startup: Loading gameplay data
+2026-9-28 10:38:12  Startup: Loading gameplay data took 0.002 s
+2026-9-28 10:38:12  Startup: Building the city and physics world
+2026-9-28 10:38:12  Startup: Building the city and physics world took 0.014 s
+2026-9-28 10:38:12  Startup: Loading saved progress
+2026-9-28 10:38:12  Startup: Loading saved progress took 0.000 s
+2026-9-28 10:38:12  Startup: Preparing the first frame
+2026-9-28 10:38:13  Screenshot saved: screenshots/MiniCity3D-20260928-103812-938-28584-0.png
+2026-9-28 10:38:13  Startup: Preparing the first frame took 0.261 s
+2026-9-28 10:38:13  Startup: Ready
+2026-9-28 10:38:13  Startup ready in 8.423 s
+2026-9-28 10:38:13  Smoke render completed
+2026-9-28 10:38:13  Application stopped

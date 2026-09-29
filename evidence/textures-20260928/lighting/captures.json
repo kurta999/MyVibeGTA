@@ -1,0 +1,71 @@
+{
+  "ExecutableSha256": "88C9B8BBE43291F0268FD7EF58E08B83CA62521BBCA8A84FBF7949C70F70EDCB",
+  "Scenes": [
+    {
+      "Name": "sun",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --sun-preview",
+      "ScreenshotSha256": "182225CF73AC72943268749E297EC1836CC99E888853614E6CCDD847B26EABE2"
+    },
+    {
+      "Name": "flare-visible",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --sun-preview --flare-view",
+      "ScreenshotSha256": "50051B2C9B9FBE14002B98688EA8418B1F459D80C5F2DCA3667FA4CA4516B0A4"
+    },
+    {
+      "Name": "flare-disabled",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --sun-preview --flare-view --no-lens-flare",
+      "ScreenshotSha256": "A52E46D0EC5973A6B72B48B9678E453721403C5E28111580ED34740CFE1DB8D8"
+    },
+    {
+      "Name": "flare-occluded",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --sun-preview --sun-occluded --flare-view",
+      "ScreenshotSha256": "DDB7DE5D39F15151E1AF70F9FF10D4FB135E34DD697C358B31B4D26A418D283E"
+    },
+    {
+      "Name": "flare-night",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --sun-preview --night --flare-view",
+      "ScreenshotSha256": "1937708BEBB6C0460BDCE71621BCD7AEA5B08F8AE03DFF57DD80114D895B54A2"
+    },
+    {
+      "Name": "facade",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --reflection-preview --high-shadows",
+      "ScreenshotSha256": "32348E73A95822C2FBB43FF927245F7F9C310DF1C1F4D1BA5F21943A110ADF8C"
+    },
+    {
+      "Name": "facade-no-sun",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --reflection-preview --high-shadows --no-direct-sun",
+      "ScreenshotSha256": "C20DDC919434619CCEAE28034576B971FB306FD2ED3F6B8EC14108F5B1F2B570"
+    },
+    {
+      "Name": "car-coat",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --golden-hour --driver-preview --modern-car-preview",
+      "ScreenshotSha256": "E8891B8D5DB5A10373997E5E1A5F2AB5E40F34CDD5351007DA38FDFA5BBDCEB9"
+    },
+    {
+      "Name": "car-no-coat",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --golden-hour --driver-preview --modern-car-preview --no-clearcoat",
+      "ScreenshotSha256": "3ADE7B739CB3A21B73C3C64FB14224EF7C2390296090FE2B8F77AEB990E1FE12"
+    },
+    {
+      "Name": "night",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --night --modern-street-preview --high-shadows",
+      "ScreenshotSha256": "BE05CB8735D6BD52E384134CB0D4D352556B8077292410E3C0ADF3A9E11DCA7C"
+    },
+    {
+      "Name": "rain",
+      "ExitCode": 0,
+      "Arguments": "--smoke --1080p --screenshot --day --rain --modern-street-preview --high-taa",
+      "ScreenshotSha256": "A44E5B81C0369B79B5A2B76DE6C466D6617BFEE5447EB3B3EA646068BF6B7F5A"
+    }
+  ]
+}

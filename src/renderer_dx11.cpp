@@ -16,6 +16,7 @@
 #include "dx11_shader_loading.h"
 #include "cpu_jobs.h"
 #include "dx11_probes.h"
+#include "dx11_tonemapping.h"
 #include "ui.h"
 #include "weather.h"
 #include "regions.h"
@@ -88,6 +89,21 @@ ID3D11PixelShader* reflectionPS=nullptr;
 ID3D11PixelShader* motionPS=nullptr;
 ID3D11PixelShader* temporalPS=nullptr;
 ID3D11PixelShader* temporalCopyPS=nullptr;
+ID3D11PixelShader *meterPS=nullptr,*meterReducePS=nullptr,*exposurePS=nullptr,*tonePS=nullptr;
+ID3D11Buffer* toneBuffer=nullptr;
+ID3D11Texture2D* composedTexture=nullptr;
+ID3D11RenderTargetView* composedTarget=nullptr;
+ID3D11ShaderResourceView* composedView=nullptr;
+ID3D11Texture2D* meterTexture[dx11::tone::meterLevels]{};
+ID3D11RenderTargetView* meterTarget[dx11::tone::meterLevels]{};
+ID3D11ShaderResourceView* meterView[dx11::tone::meterLevels]{};
+ID3D11Texture2D* exposureTexture[2]{};
+ID3D11RenderTargetView* exposureTarget[2]{};
+ID3D11ShaderResourceView* exposureView[2]{};
+int exposureIndex=0;
+bool exposureValid=false;
+unsigned exposureFrame=0;
+std::chrono::steady_clock::time_point exposureClock{};
 ID3D11Buffer* postBuffer=nullptr;
 ID3D11Buffer* bloomBuffer=nullptr;
 ID3D11Texture2D* bloomTexture[3]{};
@@ -146,6 +162,8 @@ std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshIndexBuffers;
 std::unordered_map<const dx11::Mesh*,ID3D11ShaderResourceView*> modelTextures;
 std::unordered_map<std::wstring,ID3D11ShaderResourceView*> sharedModelTextures;
 std::unordered_map<std::wstring,ID3D11ShaderResourceView*> pbrTextures;
+std::uint64_t loadedTextureBytes=0,loadedDdsBytes=0;
+unsigned loadedTextureCount=0,loadedDdsCount=0;
 ID3D11Buffer* sceneBuffer=nullptr;
 ID3D11RasterizerState* rasterState=nullptr;
 ID3D11RasterizerState* shadowRaster=nullptr;
@@ -210,6 +228,7 @@ struct SceneConstants {
     XMFLOAT4 params;
     XMFLOAT4 weatherAndTime;
     XMFLOAT4 materialPbr;
+    XMFLOAT4 materialSurface;
     XMFLOAT4 materialOptions;
     XMFLOAT4 shadowInfo;
     XMFLOAT4 localLightPosition[12];
@@ -224,7 +243,7 @@ struct SceneConstants {
 struct PostConstants {XMFLOAT4X4 viewProjection,inverseViewProjection;
     XMFLOAT4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
     XMFLOAT4X4 previousViewProjection;
-    XMFLOAT4 temporal;};
+    XMFLOAT4 temporal,sunDirection,sunScreen;};
 template<class T> void release(T*& object){if(object){object->Release();object=nullptr;}}
 void releaseGpuQueries(){
     for(auto& frame:gpuQueries){
@@ -727,6 +746,7 @@ cbuffer Scene : register(b0){
     float4 params;
     float4 weatherAndTime;
     float4 materialPbr;
+    float4 materialSurface;
     float4 materialOptions;
     float4 shadowInfo;
     float4 localLightPosition[12];
@@ -906,6 +926,42 @@ float sampleStreetShadow(float3 world,float diffuse){
                 projected.z-bias);
     return filtered*0.25;
 }
+float3 fresnelSchlick(float3 f0,float cosine){
+    return f0+(1-f0)*pow(1-saturate(cosine),5);
+}
+float microfacet(float ndv,float ndl,float ndh,float roughness){
+    float alpha=max(0.0025,roughness*roughness),a2=alpha*alpha;
+    float d=ndh*ndh*(a2-1)+1;
+    // A denominator offset suppresses precisely the smooth-surface peaks.
+    float distribution=a2/max(3.14159265*d*d,1e-10);
+    float gv=ndl*sqrt(ndv*ndv*(1-a2)+a2);
+    float gl=ndv*sqrt(ndl*ndl*(1-a2)+a2);
+    return distribution*0.5/max(gv+gl,1e-6);
+}
+float3 directBrdf(float3 n,float3 v,float3 l,float roughness,
+                  float3 f0,float3 base,float metallic){
+    if(dot(n,l)<=0||dot(n,v)<=0)return 0;
+    float3 h=normalize(v+l);
+    float ndv=max(0.001,dot(n,v)),ndl=saturate(dot(n,l));
+    float3 f=fresnelSchlick(f0,dot(v,h));
+    return ((1-f)*(1-metallic)*base/3.14159265+
+        microfacet(ndv,ndl,saturate(dot(n,h)),roughness)*f)*ndl;
+}
+float3 coatedDirect(float3 n,float3 coatNormal,float3 v,float3 l,
+                     float roughness,float3 f0,float3 base,float metallic){
+    if(dot(v+l,v+l)<1e-6)return 0;
+    float3 value=directBrdf(n,v,l,roughness,f0,base,metallic);
+    float coat=materialSurface.x;
+    if(coat>0){
+        float3 h=normalize(v+l);
+        float ndv=max(.001,dot(coatNormal,v)),ndl=saturate(dot(coatNormal,l));
+        float fc=fresnelSchlick(.04,saturate(dot(v,h))).x;
+        float top=microfacet(ndv,ndl,saturate(dot(coatNormal,h)),
+            max(.05,materialSurface.y))*fc*ndl;
+        value=value*(1-coat*fc)+coat*top;
+    }
+    return value;
+}
 SceneOutput PS(Output input){
     SceneOutput output;
     output.indirect=float4(0,0,0,0);output.reflectionResponse=0;
@@ -952,7 +1008,7 @@ SceneOutput PS(Output input){
         output.surface=float4(normalize(input.normal)*0.5+0.5,1);
         return output;
     }
-    if(material==13){
+    if(material==13&&!modelTexture){
         float distanceToEye=distance(input.world,eye.xyz);
         float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
         output.color=float4(lerp(base.rgb,fogColor.rgb,fog),base.a*(1-fog));
@@ -969,6 +1025,7 @@ SceneOutput PS(Output input){
         return output;
     }
     float3 normal=normalize(input.normal);
+    float3 coatNormal=normal;
     float normalCoherence=1.0;
     if(material==10){
         float4 normalSample=normalTexture.Sample(modelSampler,input.uv);
@@ -979,7 +1036,7 @@ SceneOutput PS(Output input){
         float3 bitangent=normalize(cross(normal,tangent));
         normal=normalize(lerp(normal,normalize(tangent*bump.x+
             bitangent*bump.y+normal*bump.z),0.48));
-    }else if(material>=2&&material!=3){
+    }else if(material>=2&&material!=3&&(mapFlags&1)==0){
         float scale=material==2||material==3||material==11||material==12?0.055:
             material==4?0.085:material==5?0.25:material==6?0.11:
             material==7?0.028:material==8?0.022:0.03;
@@ -1022,8 +1079,13 @@ SceneOutput PS(Output input){
     }
     if((mapFlags&1)!=0){
         float4 normalSample=modelNormalTexture.Sample(modelSampler,input.uv);
-        normalCoherence=min(normalCoherence,normalSample.a);
         float3 mapped=normalSample.xyz*2-1;
+        if((mapFlags&32)!=0){
+            mapped.z=sqrt(saturate(1-dot(mapped.xy,mapped.xy)));
+            // BC5 keeps X/Y; the associated cooked ORM alpha stores coherence.
+            if((mapFlags&2)!=0)normalCoherence=min(normalCoherence,
+                modelOrmTexture.Sample(modelSampler,input.uv).a);
+        }else normalCoherence=min(normalCoherence,normalSample.a);
         float3 dpdx=ddx(input.world),dpdy=ddy(input.world);
         float2 duvdx=ddx(input.uv),duvdy=ddy(input.uv);
         float determinant=duvdx.x*duvdy.y-duvdx.y*duvdy.x;
@@ -1055,7 +1117,12 @@ SceneOutput PS(Output input){
         (1.0-saturate(normalCoherence))*0.5));
     float3 viewDirection=normalize(eye.xyz-input.world);
     float ndv=max(0.001,dot(normal,viewDirection));
-    float3 f0=lerp(float3(0.04,0.04,0.04),base.rgb,metallic);
+    bool glass=materialSurface.z>1;
+    float dielectricF0=glass?pow((materialSurface.z-1)/(materialSurface.z+1),2):.04;
+    float3 f0=lerp(dielectricF0.xxx,base.rgb,metallic);
+    // A thin pane reflects the environment and sun while the blended queue
+    // transmits the already-rendered background. It is not refractive glass.
+    if(glass)base.rgb*=.08;
     float occlusion=(mapFlags&4)!=0?
         modelOcclusionTexture.Sample(modelSampler,input.uv).r:1.0;
     float3 lit=(base.rgb*ambient.rgb*(1-metallic)*0.75+
@@ -1069,10 +1136,21 @@ SceneOutput PS(Output input){
             specularProbe(input.world,reflect(-viewDirection,normal),roughness)*response)*occlusion;
         output.reflectionResponse=float4(response*occlusion,1);
     }
+    if(materialSurface.x>0){
+        float coatView=max(.001,dot(coatNormal,viewDirection));
+        float fc=fresnelSchlick(.04,coatView).x*materialSurface.x;
+        lit*=1-fc;output.reflectionResponse.rgb*=1-fc;
+        if(probeInfo.z>0.5){
+            float2 dfg=probeBrdf.SampleLevel(probeSampler,
+                float2(coatView,max(.05,materialSurface.y)),0).rg;
+            lit+=specularProbe(input.world,reflect(-viewDirection,coatNormal),
+                max(.05,materialSurface.y))*(.04*dfg.x+dfg.y)*materialSurface.x*occlusion;
+        }
+    }
     float3 indirect=lit;
     float diffuse=saturate(dot(normal,normalize(sun.xyz)));
     float visibility=1;
-    if(params.w>0.5&&sun.w>0.4){
+    if(params.w>0.5&&sun.w>0.0001){
         float range=distance(input.world,eye.xyz);
         int cascade=shadowInfo.w<1.5||range<shadowInfo.y?0:
             shadowInfo.w<2.5||range<shadowInfo.z?1:2;
@@ -1092,22 +1170,10 @@ SceneOutput PS(Output input){
         }
     }
     float3 lightDirection=normalize(sun.xyz);
-    float3 halfVector=normalize(viewDirection+lightDirection);
-    float ndl=max(0,dot(normal,lightDirection));
-    float ndh=max(0,dot(normal,halfVector));
-    float vdh=max(0,dot(viewDirection,halfVector));
-    float alpha=roughness*roughness;
-    float alpha2=alpha*alpha;
-    float denominator=ndh*ndh*(alpha2-1)+1;
-    float distribution=alpha2/(3.14159*denominator*denominator+0.001);
-    float k=(roughness+1)*(roughness+1)/8;
-    float geometry=(ndv/(ndv*(1-k)+k))*(ndl/(ndl*(1-k)+k));
-    float3 fresnel=f0+(1-f0)*pow(1-vdh,5);
-    float3 brdf=(1-fresnel)*(1-metallic)*base.rgb/3.14159+
-        distribution*geometry*fresnel/(4*ndv*max(0.001,ndl));
     float3 sunTint=lerp(float3(1.0,0.61,0.35),float3(1.0,0.98,0.93),
         saturate(abs(sun.y-0.18)*2.5));
-    lit+=brdf*sunTint*sun.w*ndl*visibility*2.5;
+    if(sun.w>0)lit+=coatedDirect(normal,coatNormal,viewDirection,
+        lightDirection,roughness,f0,base.rgb,metallic)*sunTint*sun.w*visibility*2.5;
     [unroll] for(int i=0;i<12;++i){
         float3 delta=localLightPosition[i].xyz-input.world;
         float radius=localLightPosition[i].w;
@@ -1116,9 +1182,6 @@ SceneOutput PS(Output input){
         float3 direction=delta/max(distanceToLight,0.001);
         float attenuation=pow(saturate(1-distanceToLight/radius),2);
         float diffuseLocal=max(0,dot(normal,direction));
-        float3 halfLocal=normalize(viewDirection+direction);
-        float localSpecular=pow(max(0,dot(normal,halfLocal)),
-            lerp(80.0,5.0,roughness));
         float localVisibility=1.0;
         if(headlightShadowInfo.z>0.5&&
            (abs(i-headlightShadowInfo.x)<0.5||
@@ -1126,9 +1189,9 @@ SceneOutput PS(Output input){
             localVisibility=sampleHeadlightShadow(input.world,diffuseLocal);
         if(streetShadowInfo.y>0.5&&abs(i-streetShadowInfo.x)<0.5)
             localVisibility*=sampleStreetShadow(input.world,diffuseLocal);
-        lit+=(base.rgb*(1-metallic)*diffuseLocal*0.9+
-            f0*localSpecular*2.0)*localLightColor[i].rgb*
-            localLightColor[i].w*attenuation*localVisibility;
+        lit+=coatedDirect(normal,coatNormal,viewDirection,direction,
+            roughness,f0,base.rgb,metallic)*localLightColor[i].rgb*
+            localLightColor[i].w*attenuation*localVisibility*2.8;
     }
     if(road&&precipitation>0.05){
         float fresnelWet=pow(1-ndv,3);
@@ -1151,6 +1214,8 @@ SceneOutput PS(Output input){
     if(probeInfo.w>1.5)fog=0;
     float reflectionMask=material==3?0.10:
         road&&precipitation>0.05?1.0-0.78*precipitation:base.a;
+    if(glass&&material==13)reflectionMask=lerp(base.a,1,
+        fresnelSchlick(dielectricF0.xxx,ndv).x);
     output.color=float4(lerp(lit,fogColor.rgb,fog),reflectionMask);
     output.surface=float4(normal*0.5+0.5,roughness);
     output.indirect=float4(indirect*(1-fog),temporalInfo.x);
@@ -1186,6 +1251,8 @@ cbuffer Post : register(b0){
     row_major float4x4 inverseViewProjection;
     float4 cameraEye;float4 pixelSize;float4 grade;float4 effects;
     float4 skyTop;float4 skyHorizon;float4 debug;
+    row_major float4x4 previousViewProjection;
+    float4 temporal;float4 sunDirection;float4 sunScreen;
 };
 Texture2D sceneColor : register(t0);
 Texture2D sceneDepth : register(t1);
@@ -1198,6 +1265,40 @@ Texture2D sceneIndirect : register(t7);
 SamplerState linearSampler : register(s0);
 struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
 float luminance(float3 c){return dot(c,float3(0.2126,0.7152,0.0722));}
+float solarVisibility(){
+    if(sunScreen.w<.5||sunDirection.w<=0)return 0;
+    float visibility=0;
+    float aspect=pixelSize.y/pixelSize.x;
+    [unroll] for(int y=-1;y<=1;++y)[unroll] for(int x=-1;x<=1;++x){
+        float2 at=sunScreen.xy+float2(x/aspect,y)*sunScreen.z*.65;
+        if(all(at>0)&&all(at<1))
+            visibility+=step(.99999,sceneDepth.SampleLevel(linearSampler,at,0).r);
+    }
+    float edge=min(min(sunScreen.x,1-sunScreen.x),min(sunScreen.y,1-sunScreen.y));
+    return visibility/9.0*smoothstep(0,.035,edge)*sunDirection.w;
+}
+float3 lensFlare(float2 uv){
+    float visibility=solarVisibility();
+    if(visibility<=0)return 0;
+    float aspect=pixelSize.y/pixelSize.x;
+    float2 axis=.5-sunScreen.xy;
+    float2 delta=(uv-sunScreen.xy)*float2(aspect,1);
+    float radius=length(delta);
+    float3 value=float3(1,.69,.35)*exp(-radius*radius/0.0012)*.14;
+    value+=float3(1,.78,.48)*exp(-abs(delta.x)*24-abs(delta.y)*850)*.065;
+    float offsets[4]={.65,1.25,1.7,2.25};
+    float sizes[4]={.018,.028,.045,.07};
+    float3 colors[4]={float3(.3,.55,1),float3(.8,.35,.16),
+        float3(.18,.6,.4),float3(.48,.22,.7)};
+    [unroll] for(int i=0;i<4;++i){
+        float2 p=(uv-(sunScreen.xy+axis*offsets[i]))*float2(aspect,1);
+        float hex=max(abs(p.y),abs(p.x)*.8660254+abs(p.y)*.5);
+        float core=1-smoothstep(sizes[i]*.72,sizes[i],hex);
+        float rim=exp(-pow((hex-sizes[i]*.82)/(sizes[i]*.09),2));
+        value+=colors[i]*(core*.023+rim*.035);
+    }
+    return value*visibility;
+}
 float linearDepth(float d){return pixelSize.z*pixelSize.w/
     max(0.001,pixelSize.w-d*(pixelSize.w-pixelSize.z));}
 float3 sampleColor(float2 uv){return sceneColor.SampleLevel(linearSampler,saturate(uv),0).rgb;}
@@ -1229,6 +1330,13 @@ float4 PS(Input input):SV_TARGET{
     }
     float4 surface=sceneColor.SampleLevel(linearSampler,uv,0);
     float d=sceneDepth.SampleLevel(linearSampler,uv,0).r;
+    // Derivatives must run across every lane, including geometry at the
+    // horizon. Computing this inside the sky branch produces invalid widths.
+    float4 farSky=mul(float4(uv.x*2-1,1-uv.y*2,1,1),inverseViewProjection);
+    float3 skyRay=normalize(farSky.xyz/farSky.w-cameraEye.xyz);
+    float sunSeparation=acos(clamp(dot(skyRay,sunDirection.xyz),-1,1));
+    float sunFootprint=clamp(fwidth(sunSeparation),.00008,.003);
+    if(debug.w>.5)return float4(lensFlare(uv)*8,1);
     float4 geometry=sceneSurface.SampleLevel(linearSampler,uv,0);
     if(debug.x>0.5){
         if(debug.x>4.5)return float4(saturate(
@@ -1265,8 +1373,7 @@ float4 PS(Input input):SV_TARGET{
         if(total>0.001)center+=delta/total;
     }
     if(d>=0.9999){
-        float4 farPoint=mul(float4(uv.x*2-1,1-uv.y*2,1,1),inverseViewProjection);
-        float3 ray=normalize(farPoint.xyz/farPoint.w-cameraEye.xyz);
+        float3 ray=skyRay;
         float gradient=saturate(0.34+ray.y*1.8);
         center=lerp(skyHorizon.rgb,skyTop.rgb,gradient);
         float drift=skyHorizon.w*0.018;
@@ -1283,6 +1390,11 @@ float4 PS(Input input):SV_TARGET{
             0.008*sin(ray.x*41-ray.z*23);
         center=lerp(center,skyHorizon.rgb*0.66,
             1-smoothstep(ridge,ridge+0.014,ray.y));
+        if(sunDirection.w>0){
+            float disk=1-smoothstep(.00465-sunFootprint,.00465+sunFootprint,sunSeparation);
+            float haze=exp(-sunSeparation*sunSeparation/.002)*.18;
+            center+=float3(1,.80,.52)*(disk*30+haze)*sunDirection.w;
+        }
     }
     if(effects.x>0.5&&d<0.9999){
         float z=linearDepth(d),occlusion=0;
@@ -1310,10 +1422,8 @@ float4 PS(Input input):SV_TARGET{
             bloomEighth.SampleLevel(linearSampler,uv,0).rgb*0.2;
         center+=glow*effects.y;
     }
-    float3 color=max(0,center*grade.w);
-    color=color/(1+color);
-    color=pow(saturate(color*grade.rgb),1.0/2.2);
-    return float4(color,1);
+    center+=lensFlare(uv);
+    return float4(max(0,center),1);
 }
 )HLSL";
 const char* reflectionShader=R"HLSL(
@@ -1455,14 +1565,6 @@ float4 PS(Input input):SV_TARGET{
     return float4(lerp(center,bounded,weight),depth);
 }
 )HLSL";
-const char* temporalCopyShader=R"HLSL(
-Texture2D image : register(t0);
-SamplerState linearSampler : register(s0);
-struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
-float4 PS(Input input):SV_TARGET{
-    return float4(image.SampleLevel(linearSampler,input.uv,0).rgb,1);
-}
-)HLSL";
 const char* bloomShader=R"HLSL(
 cbuffer Bloom : register(b0){float4 sourceInfo;};
 Texture2D sourceImage : register(t0);
@@ -1499,7 +1601,9 @@ bool createShaders(){
         {sceneSource,"DS","ds_5_0"},{hudShader,"VS","vs_5_0"},{hudShader,"PS","ps_5_0"},
         {postShader,"PS","ps_5_0"},{bloomShader,"PS","ps_5_0"},
         {reflectionSource,"PS","ps_5_0"},{motionShader,"PS","ps_5_0"},
-        {temporalShader,"PS","ps_5_0"},{temporalCopyShader,"PS","ps_5_0"}};
+        {temporalShader,"PS","ps_5_0"},{dx11::tone::shader,"CopyPS","ps_5_0"},
+        {dx11::tone::shader,"MeterPS","ps_5_0"},{dx11::tone::shader,"ReducePS","ps_5_0"},
+        {dx11::tone::shader,"ExposurePS","ps_5_0"},{dx11::tone::shader,"TonePS","ps_5_0"}};
     std::vector<dx11::shader::Compiled> compiled;dx11::shader::Stats stats;
     bool ok=dx11::shader::compileBatch(requests,loadingWorkers(),[](size_t done,size_t total){
         return startup::report(5+int(25*done/std::max(size_t(1),total)),"Compiling graphics shaders");
@@ -1526,8 +1630,10 @@ bool createShaders(){
         std::snprintf(timing,sizeof(timing),"Shader checksum: %016llx",static_cast<unsigned long long>(checksum));logging::write(timing);
     }
     ID3DBlob *skinned=nullptr,*vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr,*motionPixel=nullptr,*temporalPixel=nullptr,*temporalCopyPixel=nullptr;
+    ID3DBlob *meterPixel=nullptr,*reducePixel=nullptr,*exposurePixel=nullptr,*tonePixel=nullptr;
     ID3DBlob** destinations[]={&skinned,&vs,&ps,&instanced,&shadowAlpha,&hull,&domain,&hudVertex,&hudPixel,
-        &postPixel,&bloomPixel,&reflectionPixel,&motionPixel,&temporalPixel,&temporalCopyPixel};
+        &postPixel,&bloomPixel,&reflectionPixel,&motionPixel,&temporalPixel,&temporalCopyPixel,
+        &meterPixel,&reducePixel,&exposurePixel,&tonePixel};
     for(size_t i=0;i<compiled.size();++i){*destinations[i]=compiled[i].blob.get();(*destinations[i])->AddRef();}
     HRESULT result=device->CreateVertexShader(vs->GetBufferPointer(),vs->GetBufferSize(),nullptr,&sceneVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(skinned->GetBufferPointer(),skinned->GetBufferSize(),nullptr,&skinVS);
@@ -1544,6 +1650,10 @@ bool createShaders(){
     if(SUCCEEDED(result))result=device->CreatePixelShader(motionPixel->GetBufferPointer(),motionPixel->GetBufferSize(),nullptr,&motionPS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(temporalPixel->GetBufferPointer(),temporalPixel->GetBufferSize(),nullptr,&temporalPS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(temporalCopyPixel->GetBufferPointer(),temporalCopyPixel->GetBufferSize(),nullptr,&temporalCopyPS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(meterPixel->GetBufferPointer(),meterPixel->GetBufferSize(),nullptr,&meterPS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(reducePixel->GetBufferPointer(),reducePixel->GetBufferSize(),nullptr,&meterReducePS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(exposurePixel->GetBufferPointer(),exposurePixel->GetBufferSize(),nullptr,&exposurePS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(tonePixel->GetBufferPointer(),tonePixel->GetBufferSize(),nullptr,&tonePS);
     D3D11_INPUT_ELEMENT_DESC layout[]={
         {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
         {"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
@@ -1569,7 +1679,7 @@ bool createShaders(){
     release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
     release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
     release(reflectionPixel);release(motionPixel);release(temporalPixel);
-    release(temporalCopyPixel);
+    release(temporalCopyPixel);release(meterPixel);release(reducePixel);release(exposurePixel);release(tonePixel);
     release(skinned);
     return SUCCEEDED(result);
 }
@@ -1585,18 +1695,56 @@ bool uploadTexture(const dx11::texture::Prepared& prepared,dx11::texture::Kind k
     std::vector<D3D11_SUBRESOURCE_DATA> initial(levels.size());
     for(size_t i=0;i<levels.size();++i){
         initial[i].pSysMem=levels[i].pixels.data();
-        initial[i].SysMemPitch=levels[i].width*4;
+        initial[i].SysMemPitch=dx11::texture::rowPitch(levels[i].width,prepared.format);
+        if(levels[i].pixels.size()!=size_t(initial[i].SysMemPitch)*
+            dx11::texture::rowCount(levels[i].height,prepared.format))return false;
     }
     D3D11_TEXTURE2D_DESC description{};description.Width=levels[0].width;description.Height=levels[0].height;
     description.MipLevels=UINT(levels.size());description.ArraySize=1;
-    description.Format=(kind==dx11::texture::Kind::Color||
-        kind==dx11::texture::Kind::MaskedColor)?
-        DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:DXGI_FORMAT_B8G8R8A8_UNORM;
+    const bool color=kind==dx11::texture::Kind::Color||kind==dx11::texture::Kind::MaskedColor;
+    switch(prepared.format){
+    case dx11::texture::Format::Bgra8:description.Format=color?DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:DXGI_FORMAT_B8G8R8A8_UNORM;break;
+    case dx11::texture::Format::Rgba8:description.Format=color?DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:DXGI_FORMAT_R8G8B8A8_UNORM;break;
+    case dx11::texture::Format::Bc7:description.Format=color?DXGI_FORMAT_BC7_UNORM_SRGB:DXGI_FORMAT_BC7_UNORM;break;
+    case dx11::texture::Format::Bc5:description.Format=DXGI_FORMAT_BC5_UNORM;break;
+    case dx11::texture::Format::Bc4:description.Format=DXGI_FORMAT_BC4_UNORM;break;
+    }
     description.SampleDesc.Count=1;description.Usage=D3D11_USAGE_IMMUTABLE;
     description.BindFlags=D3D11_BIND_SHADER_RESOURCE;
     ID3D11Texture2D* texture=nullptr;
     HRESULT status=device->CreateTexture2D(&description,initial.data(),&texture);
     if(SUCCEEDED(status))status=device->CreateShaderResourceView(texture,nullptr,view);
+    if(SUCCEEDED(status)&&prepared.format>=dx11::texture::Format::Bc7&&
+       std::strstr(GetCommandLineA(),"--validate-loading")){
+        // Verify every block of every immutable GPU mip against the cook.
+        auto readbackDescription=description;readbackDescription.Usage=D3D11_USAGE_STAGING;
+        readbackDescription.BindFlags=0;readbackDescription.CPUAccessFlags=D3D11_CPU_ACCESS_READ;
+        ID3D11Texture2D* readback=nullptr;
+        status=device->CreateTexture2D(&readbackDescription,nullptr,&readback);
+        if(SUCCEEDED(status)){
+            context->CopyResource(readback,texture);
+            for(UINT i=0;i<description.MipLevels&&SUCCEEDED(status);++i){
+                D3D11_MAPPED_SUBRESOURCE mapped{};status=context->Map(readback,i,D3D11_MAP_READ,0,&mapped);
+                if(FAILED(status))break;
+                const auto pitch=initial[i].SysMemPitch;
+                for(unsigned row=0;row<dx11::texture::rowCount(levels[i].height,prepared.format);++row)
+                    if(std::memcmp(static_cast<const unsigned char*>(mapped.pData)+size_t(row)*mapped.RowPitch,
+                        levels[i].pixels.data()+size_t(row)*pitch,pitch)!=0){status=E_FAIL;break;}
+                context->Unmap(readback,i);
+            }
+        }
+        release(readback);
+        char line[180]{};std::snprintf(line,sizeof(line),
+            "DDS GPU mip verification: %ux%u, format %u, %u mips: %s",description.Width,
+            description.Height,unsigned(description.Format),description.MipLevels,SUCCEEDED(status)?"passed":"FAILED");
+        logging::write(line);
+        if(FAILED(status))release(*view);
+    }
+    if(SUCCEEDED(status)){
+        std::uint64_t bytes=0;for(const auto& level:levels)bytes+=level.pixels.size();
+        loadedTextureBytes+=bytes;++loadedTextureCount;
+        if(prepared.format>=dx11::texture::Format::Bc7){loadedDdsBytes+=bytes;++loadedDdsCount;}
+    }
     release(texture);return SUCCEEDED(status);
 }
 bool loadTexture(const std::wstring& file,ID3D11ShaderResourceView** view,
@@ -1656,6 +1804,11 @@ ID3D11ShaderResourceView* pbrTexture(const std::wstring& file,
     dx11::texture::Kind kind=dx11::texture::Kind::Color){
     auto found=pbrTextures.find(textureKey(file,kind));
     return found==pbrTextures.end()?nullptr:found->second;
+}
+bool bc5Normal(const std::wstring& file){
+    auto* view=pbrTexture(file,dx11::texture::Kind::Normal);if(!view)return false;
+    D3D11_SHADER_RESOURCE_VIEW_DESC description{};view->GetDesc(&description);
+    return description.Format==DXGI_FORMAT_BC5_UNORM;
 }
 bool createTargets(int width,int height){
     if(width<1||height<1)return false;
@@ -1718,7 +1871,25 @@ bool createTargets(int width,int height){
         if(SUCCEEDED(result))result=device->CreateShaderResourceView(
             historyTexture[index],nullptr,&historyView[index]);
     }
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&composedTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(composedTexture,nullptr,&composedTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(composedTexture,nullptr,&composedView);
+    sceneDescription.Format=DXGI_FORMAT_R32G32_FLOAT;
+    for(unsigned level=0;level<dx11::tone::meterLevels&&SUCCEEDED(result);++level){
+        sceneDescription.Width=sceneDescription.Height=dx11::tone::meterSize>>level;
+        result=device->CreateTexture2D(&sceneDescription,nullptr,&meterTexture[level]);
+        if(SUCCEEDED(result))result=device->CreateRenderTargetView(meterTexture[level],nullptr,&meterTarget[level]);
+        if(SUCCEEDED(result))result=device->CreateShaderResourceView(meterTexture[level],nullptr,&meterView[level]);
+    }
+    sceneDescription.Width=sceneDescription.Height=1;
+    for(int index=0;index<2&&SUCCEEDED(result);++index){
+        result=device->CreateTexture2D(&sceneDescription,nullptr,&exposureTexture[index]);
+        if(SUCCEEDED(result))result=device->CreateRenderTargetView(exposureTexture[index],nullptr,&exposureTarget[index]);
+        if(SUCCEEDED(result))result=device->CreateShaderResourceView(exposureTexture[index],nullptr,&exposureView[index]);
+        if(SUCCEEDED(result)){const float zero[4]{};context->ClearRenderTargetView(exposureTarget[index],zero);}
+    }
     if(FAILED(result))return false;
+    exposureValid=false;exposureIndex=0;exposureFrame=0;exposureClock={};
     historyValid=false;
     historyIndex=0;
     D3D11_TEXTURE2D_DESC depthDescription{};
@@ -1984,6 +2155,7 @@ void drawSkins(bool shadow,const SceneConstants& frame){
     SceneConstants constants=frame;constants.params.x=5;
     constants.temporalInfo.x=0;constants.temporalInfo.y=shadow?0.0f:1.0f;
     constants.materialPbr=pbrForGroup(5);
+    constants.materialSurface={0,0.1f,0,0};
     constants.materialOptions={0,0,0,0};
     context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
     context->IASetInputLayout(skinLayout);
@@ -2012,9 +2184,11 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
         if(shadow&&!batch.mesh->castsShadow)continue;
         const dx11::Mesh* drawn=shadow&&batch.mesh->shadowProxy?
             batch.mesh->shadowProxy:batch.mesh;
+        ID3D11SamplerState* meshSampler=drawn->wrapTextures?sampler:modelSampler;
+        context->PSSetSamplers(2,1,&meshSampler);
         // Imported foliage already has dense leaf geometry. Hull/domain
         // tessellation multiplies its cost without improving the silhouette.
-        setTessellation(drawn->textured&&batch.material==4?0:batch.material);
+        setTessellation(!drawn->allowTessellation||(drawn->textured&&batch.material==4)?0:batch.material);
         ID3D11Buffer* buffers[]={meshBuffers.at(drawn),instanceBuffer};
         UINT strides[]={sizeof(dx11::Vertex),sizeof(InstanceData)},offsets[]={0,0};
         context->IASetVertexBuffers(0,2,buffers,strides,offsets);
@@ -2033,6 +2207,9 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
             constants.temporalInfo.x=batch.mesh->temporalStable?1.0f:0.0f;
             constants.temporalInfo.y=0;
             constants.materialPbr=pbrForGroup(batch.material);
+            constants.materialSurface={range?range->clearcoat:0,
+                range?range->clearcoatRoughness:0.1f,range?range->glassIor:0,0};
+            if(std::strstr(GetCommandLineA(),"--no-clearcoat"))constants.materialSurface.x=0;
             constants.materialOptions.x=range?range->alphaCutoff:
                 batch.material==4?0.42f:0.35f;
             if(range){
@@ -2043,7 +2220,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
                     (!range->ormFile.empty()?2:0)|
                     (!range->occlusionFile.empty()?4:0)|
                     (!range->emissiveFile.empty()?8:0)|
-                    (masked?16:0));
+                    (masked?16:0)|(bc5Normal(range->normalFile)?32:0));
             }else if(batch.material!=14&&drawn->textured){
                 constants.materialPbr.x=drawn->roughness;
                 constants.materialPbr.y=drawn->metallic;
@@ -2077,6 +2254,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
             triangleCount+=std::uint64_t(elementCount/3)*batch.count;
         }
     }
+    context->PSSetSamplers(2,1,&modelSampler);
 }
 bool createStates(){
     D3D11_BUFFER_DESC constant{};constant.ByteWidth=sizeof(SceneConstants);
@@ -2084,6 +2262,8 @@ bool createStates(){
     if(FAILED(device->CreateBuffer(&constant,nullptr,&sceneBuffer)))return false;
     constant.ByteWidth=sizeof(PostConstants);
     if(FAILED(device->CreateBuffer(&constant,nullptr,&postBuffer)))return false;
+    constant.ByteWidth=sizeof(dx11::tone::Constants);
+    if(FAILED(device->CreateBuffer(&constant,nullptr,&toneBuffer)))return false;
     constant.ByteWidth=sizeof(XMFLOAT4);
     if(FAILED(device->CreateBuffer(&constant,nullptr,&bloomBuffer)))return false;
     D3D11_RASTERIZER_DESC raster{};raster.FillMode=D3D11_FILL_SOLID;
@@ -2248,6 +2428,14 @@ void releaseTargets(){
     release(motionView);release(motionTarget);release(motionTexture);
     release(objectMotionView);release(objectMotionTarget);release(objectMotionTexture);
     release(postView);release(postTarget);release(postTexture);
+    release(composedView);release(composedTarget);release(composedTexture);
+    for(unsigned level=0;level<dx11::tone::meterLevels;++level){
+        release(meterView[level]);release(meterTarget[level]);release(meterTexture[level]);
+    }
+    for(int index=0;index<2;++index){
+        release(exposureView[index]);release(exposureTarget[index]);release(exposureTexture[index]);
+    }
+    exposureValid=false;
     release(reflectionView);release(reflectionTarget);release(reflectionTexture);
     for(int level=0;level<3;++level){
         release(bloomView[level]);release(bloomTarget[level]);release(bloomTexture[level]);
@@ -2288,8 +2476,9 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             2.0f*sample[0]/bufferW,-2.0f*sample[1]/bufferH,0));
     }
     XMStoreFloat4x4(&constants.viewProjection,XMMatrixMultiply(view,projection));
-    constants.sun={std::cos((gameHour-6)*PI/12),std::max(0.18f,std::abs(solar)),0.3f,
-        0.28f+0.68f*light};
+    constants.sun={std::cos((gameHour-6)*PI/12),solar,0.3f,
+        std::clamp(solar*6.0f,0.0f,1.0f)*light};
+    if(std::strstr(GetCommandLineA(),"--no-direct-sun"))constants.sun.w=0;
     XMVECTOR focus=XMVectorSet(player.x,0,player.z,1);
     XMVECTOR sunDirection=XMVector3Normalize(XMVectorSet(constants.sun.x,constants.sun.y,constants.sun.z,0));
     XMVECTOR cameraForward=XMVector3Normalize(XMVectorSubtract(targetPoint,eye));
@@ -2353,8 +2542,10 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
             playerHeadlight,streetLight});
     };
     if(night>0.1f){
+        const bool modernLamps=dx11::mesh("modern/street-lamp")!=nullptr;
         for(int column=0;column<5;++column)for(int row=0;row<7;++row)
-            addLight(368.0f+column*450,43,115.0f+row*215,115,
+            addLight(368.0f+column*450-(modernLamps?13.1f:0),
+                modernLamps?44.65f:43,115.0f+row*215,115,
                 1.0f,0.74f,0.41f,1.7f*night,false,true);
         for(int z=8860;z<10010;z+=116)
             addLight(8066.0f,36,float(z),95,1.0f,0.78f,0.50f,
@@ -2646,6 +2837,10 @@ bool initRenderer(){
         ++uploaded;
     }
     if(!startup::report(80,"Loading HDR lighting"))return false;
+    char textureSummary[240]{};std::snprintf(textureSummary,sizeof(textureSummary),
+        "Loaded image textures: %u, %.2f MiB payload; block-compressed DDS: %u, %.2f MiB (excludes HDR probes and render targets)",
+        loadedTextureCount,double(loadedTextureBytes)/(1024*1024),loadedDdsCount,double(loadedDdsBytes)/(1024*1024));
+    logging::write(textureSummary);
     scenePool=std::make_unique<cpu::Pool>(sceneWorkers());
     logging::write(("CPU scene workers: "+std::to_string(scenePool->concurrency())).c_str());
     return createProbes();
@@ -2853,6 +3048,7 @@ void render(){
         constants.params.x=float(group);
         constants.temporalInfo.x=group==3||group==5||group==14?0.0f:1.0f;
         constants.materialPbr=pbrForGroup(group);
+        constants.materialSurface={0,0.1f,0,0};
         context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
         setTessellation(group);
         ID3D11ShaderResourceView* baseTexture=group==1?textures[1]:nullptr;
@@ -2966,6 +3162,20 @@ void render(){
     post.previousViewProjection=historyValid?previousViewProjection:
         constants.viewProjection;
     post.temporal={historyValid?1.0f:0.0f,motionDebug?1.0f:0.0f,0,0};
+    XMVECTOR solarDirection=XMVector3Normalize(XMVectorSet(
+        constants.sun.x,constants.sun.y,constants.sun.z,0));
+    XMStoreFloat4(&post.sunDirection,solarDirection);
+    post.sunDirection.w=constants.sun.w*(1-weather::current().clouds)*
+        (1-weather::current().clouds);
+    XMFLOAT4 solarClip;
+    XMStoreFloat4(&solarClip,XMVector4Transform(solarDirection,
+        XMLoadFloat4x4(&constants.viewProjection)));
+    post.sunScreen={solarClip.w>0?solarClip.x/solarClip.w*.5f+.5f:-2,
+        solarClip.w>0?.5f-solarClip.y/solarClip.w*.5f:-2,
+        .00465f/(2*std::tan(camera::fieldOfView()*PI/360.0f)),
+        ui::effectsQuality>0&&solarClip.w>0&&!probeDebug&&!post.debug.x&&
+            !std::strstr(commandLine,"--no-lens-flare")?1.0f:0.0f};
+    post.debug.w=std::strstr(commandLine,"--flare-view")?1.0f:0.0f;
     context->UpdateSubresource(postBuffer,0,nullptr,&post,0,0);
     if(post.effects.w>0.5f){
         D3D11_VIEWPORT reflectionViewport{};
@@ -2990,9 +3200,7 @@ void render(){
     D3D11_VIEWPORT postViewport{};
     postViewport.Width=float(bufferW);postViewport.Height=float(bufferH);
     postViewport.MaxDepth=1;context->RSSetViewports(1,&postViewport);
-    ID3D11RenderTargetView* finalSceneTarget=temporalAA||motionDebug?
-        postTarget:target;
-    context->OMSetRenderTargets(1,&finalSceneTarget,nullptr);
+    context->OMSetRenderTargets(1,&composedTarget,nullptr);
     context->OMSetDepthStencilState(noDepth,0);
     context->IASetInputLayout(nullptr);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -3005,6 +3213,49 @@ void render(){
     context->Draw(4,0);++drawCalls;
     ID3D11ShaderResourceView* emptyInputs[8]{};
     context->PSSetShaderResources(0,8,emptyInputs);
+    dx11::tone::Constants tone;
+    tone.grade[0]=post.grade.x;tone.grade[1]=post.grade.y;
+    tone.grade[2]=post.grade.z;tone.grade[3]=post.grade.w;
+    const auto now=std::chrono::steady_clock::now();
+    tone.adaptation[0]=std::strstr(commandLine,"--smoke")?1.0f/60:
+        exposureValid?std::chrono::duration<float>(now-exposureClock).count():0;
+    exposureClock=now;
+    tone.adaptation[1]=exposureValid?0:1;
+    tone.adaptation[2]=std::strstr(commandLine,"--fixed-exposure")?0:1;
+    tone.adaptation[3]=post.debug.x||post.debug.w||motionDebug?1:0;
+    tone.options[0]=std::strstr(commandLine,"--legacy-tonemap")?1:0;
+    context->UpdateSubresource(toneBuffer,0,nullptr,&tone,0,0);
+    context->PSSetConstantBuffers(1,1,&toneBuffer);
+    ID3D11ShaderResourceView* toneEmpty[2]{};
+    if(!tone.adaptation[3]){
+        context->PSSetShader(meterPS,nullptr,0);
+        for(unsigned level=0;level<dx11::tone::meterLevels;++level){
+            D3D11_VIEWPORT viewport{};viewport.Width=viewport.Height=float(dx11::tone::meterSize>>level);viewport.MaxDepth=1;
+            context->RSSetViewports(1,&viewport);
+            context->OMSetRenderTargets(1,&meterTarget[level],nullptr);
+            ID3D11ShaderResourceView* inputs[2]={level?meterView[level-1]:composedView,level?nullptr:depthViewSRV};
+            context->PSSetShaderResources(0,2,inputs);
+            context->PSSetShader(level?meterReducePS:meterPS,nullptr,0);
+            context->Draw(4,0);++drawCalls;
+            context->PSSetShaderResources(0,2,toneEmpty);
+        }
+        const int writeIndex=1-exposureIndex;
+        context->OMSetRenderTargets(1,&exposureTarget[writeIndex],nullptr);
+        context->PSSetShader(exposurePS,nullptr,0);
+        ID3D11ShaderResourceView* inputs[2]={meterView[dx11::tone::meterLevels-1],exposureView[exposureIndex]};
+        context->PSSetShaderResources(0,2,inputs);
+        context->Draw(4,0);++drawCalls;
+        context->PSSetShaderResources(0,2,toneEmpty);
+        exposureIndex=writeIndex;exposureValid=true;
+    }
+    context->RSSetViewports(1,&postViewport);
+    context->OMSetRenderTargets(1,&postTarget,nullptr);
+    context->PSSetShader(tonePS,nullptr,0);
+    ID3D11ShaderResourceView* toneInputs[2]={composedView,exposureView[exposureIndex]};
+    context->PSSetShaderResources(0,2,toneInputs);
+    context->Draw(4,0);++drawCalls;
+    context->PSSetShaderResources(0,2,toneEmpty);
+    ID3D11ShaderResourceView* displayImage=postView;
     if(temporalAA||motionDebug){
         context->OMSetRenderTargets(1,&motionTarget,nullptr);
         context->PSSetShader(motionPS,nullptr,0);
@@ -3023,14 +3274,32 @@ void render(){
         context->Draw(4,0);++drawCalls;
         ID3D11ShaderResourceView* emptyTemporal[4]{};
         context->PSSetShaderResources(0,4,emptyTemporal);
-        context->OMSetRenderTargets(1,&target,nullptr);
-        context->PSSetShader(temporalCopyPS,nullptr,0);
-        context->PSSetShaderResources(0,1,&historyView[writeIndex]);
-        context->Draw(4,0);++drawCalls;
-        context->PSSetShaderResources(0,1,&empty);
+        displayImage=historyView[writeIndex];
         historyIndex=writeIndex;
         historyValid=temporalAA||motionDebug;
     }
+    context->OMSetRenderTargets(1,&target,nullptr);
+    context->PSSetShader(temporalCopyPS,nullptr,0);
+    context->PSSetShaderResources(0,1,&displayImage);
+    context->Draw(4,0);++drawCalls;
+    ID3D11ShaderResourceView* displayEmpty=nullptr;
+    context->PSSetShaderResources(0,1,&displayEmpty);
+    if(std::strstr(commandLine,"--exposure-log")&&exposureFrame%30==0){
+        D3D11_TEXTURE2D_DESC description{};exposureTexture[exposureIndex]->GetDesc(&description);
+        description.Usage=D3D11_USAGE_STAGING;description.BindFlags=0;description.CPUAccessFlags=D3D11_CPU_ACCESS_READ;
+        ID3D11Texture2D* staging=nullptr;
+        if(SUCCEEDED(device->CreateTexture2D(&description,nullptr,&staging))){
+            context->CopyResource(staging,exposureTexture[exposureIndex]);
+            D3D11_MAPPED_SUBRESOURCE read{};
+            if(SUCCEEDED(context->Map(staging,0,D3D11_MAP_READ,0,&read))){
+                const float* values=static_cast<const float*>(read.pData);char info[180]{};
+                std::snprintf(info,sizeof(info),"Exposure frame %u: hour %.2f, scale %.6f, target %.6f, EV %.6f",exposureFrame,gameHour,std::exp2(values[0]),std::exp2(values[1]),values[0]);
+                logging::write(info);context->Unmap(staging,0);
+            }
+            release(staging);
+        }
+    }
+    ++exposureFrame;
     dx11::buildHud(hudPixels.data(),bufferW,bufferH);
     if(SUCCEEDED(context->Map(hudTexture,0,D3D11_MAP_WRITE_DISCARD,0,&mapped))){
         for(int row=0;row<bufferH;++row)
@@ -3128,7 +3397,7 @@ void shutdownRenderer(){
     release(sampler);release(modelSampler);release(clampSampler);release(shadowSampler);release(hudBlend);release(alphaBlend);release(readDepth);release(noDepth);
     activeFiltering=-1;
     release(rasterState);release(shadowRaster);
-    release(bloomBuffer);release(postBuffer);release(sceneBuffer);release(vertexBuffer);release(staticBuffer);release(inputLayout);
+    release(toneBuffer);release(bloomBuffer);release(postBuffer);release(sceneBuffer);release(vertexBuffer);release(staticBuffer);release(inputLayout);
     release(probeBuffer);release(probeView);release(brdfView);probeSet={};
     probeBakeActive=probeBakeFailed=false;probeBakeFrame=0;
     release(instanceBuffer);release(instanceLayout);
@@ -3148,9 +3417,11 @@ void shutdownRenderer(){
     sharedModelTextures.clear();
     for(auto& item:pbrTextures)release(item.second);
     pbrTextures.clear();
+    loadedTextureBytes=loadedDdsBytes=0;loadedTextureCount=loadedDdsCount=0;
     release(sceneVS);release(instanceVS);release(scenePS);release(alphaShadowPS);release(sceneHS);release(sceneDS);
     release(hudVS);release(hudPS);release(postPS);release(bloomPS);release(reflectionPS);
     release(motionPS);release(temporalPS);release(temporalCopyPS);
+    release(meterPS);release(meterReducePS);release(exposurePS);release(tonePS);
     release(swapChain);release(context);release(device);
     deviceLost=false;
     if(gdiplusToken){Gdiplus::GdiplusShutdown(gdiplusToken);gdiplusToken=0;}

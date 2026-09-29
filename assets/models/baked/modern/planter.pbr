@@ -1,0 +1,4 @@
+# Original procedural project asset: indexed PBR material sections
+0 36 0.72 0 0 stone-base.dds stone-normal.dds stone-orm.dds stone-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+36 36 0.94 0 0 rubber-base.dds rubber-normal.dds rubber-orm.dds rubber-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+72 936 0.88 0 0 foliage-base.dds foliage-normal.dds foliage-orm.dds foliage-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0

@@ -1,0 +1,384 @@
+{
+  "schema": 1,
+  "math_checks": "passed",
+  "materials": [
+    {
+      "name": "amber",
+      "maps": {
+        "base": {
+          "sha256": "f9e66a4874115659e952f4ce07ce9299890498b75316957edf88ea0a4df3c1b0",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.28867512941360474
+        },
+        "normal": {
+          "sha256": "5f48c07dcee5d6c24a4ebef2ec837ed0334b7c0daacabe7c301e37701e9117c9",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "92c741fb8dc2944b6baaf5570e0bd65293be891377238a80a6fae338130ab20a",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.11864598095417023,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "blue_paint",
+      "maps": {
+        "base": {
+          "sha256": "c12bc6955ac2f23649d56c83732930d48ec9329c0077bee0a52afee88b8bdafd",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.3041851222515106
+        },
+        "normal": {
+          "sha256": "f68569d67886768532ec7ffaad6d14d6eec67e153089c97aa010c1ecc8facba1",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "6051ce2ffbbdd15b8374ce7fbb5e5c4c9f561593756ef61ecc55962143e31615",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.13967803120613098,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "bronze",
+      "maps": {
+        "base": {
+          "sha256": "3bc7471b6020846fcd6a261b0ab7d6335a38de128d51f972e15e847989024fdc",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.64549720287323
+        },
+        "normal": {
+          "sha256": "92c02f53fb0f568a1c302d5846827b9ab40acee0f6952339d8bfd0d90a948db3",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "6fa0ba999438669a7cd262bf22eed08bd73a2b00b4f4349e3333fff4a9e131ee",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "car_glass",
+      "maps": {
+        "base": {
+          "sha256": "24efe953770dad47374483881fcbf0be1cd89a77632095f058f456aaddcb4440",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.0
+        },
+        "normal": {
+          "sha256": "e4d37215ac49d8890433addf5f89a22609a881221e3edff2a424cd39e7d9272f",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "332aa10cd1116663943824dfe6bcf93baea5267a1d219edfa2aa6de1fd7c2af8",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.0,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "concrete",
+      "maps": {
+        "base": {
+          "sha256": "8296d887e99a532e050a66542393df6ab0a965efade8d5f2ceaaec32e3ba46dd",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 1.1180340051651
+        },
+        "normal": {
+          "sha256": "a1d78a842a7c44ad064befbc89f40e61faa87da74cdd642d823924329c0c8e26",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 1.2719552516937256
+        },
+        "orm": {
+          "sha256": "e1904ca2220637d8af1cd7f9148781cdd4094131b2bfd87cdb4d3a6d479685f5",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5818433165550232,
+          "worst_coherence_error_8bit": 3.0
+        }
+      }
+    },
+    {
+      "name": "foliage",
+      "maps": {
+        "base": {
+          "sha256": "6b0d719ccdd6670be132fb15e1cc92889b1246f7842b2d7fc66a5c2b9db6b16f",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.9128709435462952
+        },
+        "normal": {
+          "sha256": "5d4efaccbc5afb9cf1c85ea99399df39f3f1bbd96fd6afe60fb7aa68bfdfc88b",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "23757207a9bd1793bfdf57ef7c231130152db334ca7afd8bfb511a43ff7e5a08",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.2394736260175705,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "glass",
+      "maps": {
+        "base": {
+          "sha256": "8911f420b6a157ef4bd901c91299ce3614acb3f9a926f02b96066f2ad8856404",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5773502588272095
+        },
+        "normal": {
+          "sha256": "e4d37215ac49d8890433addf5f89a22609a881221e3edff2a424cd39e7d9272f",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "523e68bd1928607df009215fb93757bf8726a263939ff8f20d57c19cd5f1d7a5",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.0,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "gunmetal",
+      "maps": {
+        "base": {
+          "sha256": "d7403f14cedd255a838bae48a5e15f5ea5b9e7987c644f950994438d10585c5e",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5773502588272095
+        },
+        "normal": {
+          "sha256": "dd7875f51826ec47ba888876a58fb6da445e6d95524e15f4ef05569cc30f4567",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "7d5f44846c7c41a0c1d781262625a5c23a6cc1fbd495dc54246dd9fd7226fd95",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "hydrant",
+      "maps": {
+        "base": {
+          "sha256": "a465400ddf82c207e3dd3a1fd4730fd1b01013a1cdb001d814e6216319f57467",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.06626968085765839
+        },
+        "normal": {
+          "sha256": "9d3962f923d20451412b7246e0f7597a9eefe600d0931ed82fba4783b76a6f16",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "d3b60934569e85faf75a5b0c6be963f39dc7081c9ba5641d48cdb0da27130b8a",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.1396142840385437,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "metal",
+      "maps": {
+        "base": {
+          "sha256": "85e1c3e5ad23177c4e564df388f931e55f5ebc182d61375e2441094599fe10ce",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5773502588272095
+        },
+        "normal": {
+          "sha256": "7ba1dae5bcf0f33c33b6e3c94ac3f0ea9f0d8be275bd4b0f1f33cbae3329a927",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "83bebe5f87151f1cd19c472fae60ffec64bdd5cd3f4ce329b99806dd23bd143e",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.40824830532073975,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "pearl_paint",
+      "maps": {
+        "base": {
+          "sha256": "1e230749c40c82c8c73ec5f1af70a8fa2db42ac0be336d69488193aa9d71f91d",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.21650634706020355
+        },
+        "normal": {
+          "sha256": "69106b171a1aa6f3c12dde544b3e17e11ec5fc0d40064a91afb7bad0cd913429",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "8611ed41d580f47f67c0cf20454afd6910f3677741650d4eb43db1c67bea166d",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.13986679911613464,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "polymer",
+      "maps": {
+        "base": {
+          "sha256": "3c3ed042daa951bd6570d2744d0096b687653dcc52a248e3758f36faca36e4cd",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.30924052000045776
+        },
+        "normal": {
+          "sha256": "b91a78fff464eb391822eba2da43e1e4fff7e62d0c377842fa9319242655a934",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "e3f467ae221e17868a52911939f770519a3f5ba63028c719c8c5d4a5d90b6d2d",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.16948026418685913,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "red_lens",
+      "maps": {
+        "base": {
+          "sha256": "1a7f16f6e7072bf7489ae8530914c3c0038727061b2e5d1d29119a40bbd07337",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.28867512941360474
+        },
+        "normal": {
+          "sha256": "5f48c07dcee5d6c24a4ebef2ec837ed0334b7c0daacabe7c301e37701e9117c9",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "bfd95e88d9bbf0bf1f9640e0437d674f688a886f692e0af3e1fe1c2af5ec966f",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.11843681335449219,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "rubber",
+      "maps": {
+        "base": {
+          "sha256": "4ac00bb11ceee81c64a7866faf7ce7e835da1edaf119e9c78aada5e3f80d4464",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.125
+        },
+        "normal": {
+          "sha256": "cb130fda6d3f3bb58c83af1b798476cc79abb9fb44c2d3a645222252cd340967",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.6355060935020447
+        },
+        "orm": {
+          "sha256": "db6600a3756565045ae258cb08fbb1b3deb921e0f3f50c6fbb655965ff0e0324",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.16903066635131836,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "silver",
+      "maps": {
+        "base": {
+          "sha256": "d759f875b09f0032c4f9703644545a2a9c08b1b14a2f6946c43da8b136fbccfe",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 1.154700517654419
+        },
+        "normal": {
+          "sha256": "25e02588c8b0e0c98d6c342e4fb0e4787de9844a8316e18a87d401d658954f27",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.0
+        },
+        "orm": {
+          "sha256": "7bf68c8b34481e29a9d66ad2630ef6652af051390750084943993398a8ea6557",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.7071067690849304,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "stone",
+      "maps": {
+        "base": {
+          "sha256": "a06eb4b71b47255ee64a1c84690589379a910e41f3ca6bf75907f9d8b8f6603e",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 1.2247449159622192
+        },
+        "normal": {
+          "sha256": "f3b7aad6191c570e6e76e8310fe246ea071d282ba0cfcfcc7028c3adf28ff7e3",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.6355060935020447
+        },
+        "orm": {
+          "sha256": "43856c018232947e54fb8be7180cc1945ab2f78bfa7fa9e97303725d9a8cf7bc",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.3125406801700592,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    },
+    {
+      "name": "white_lens",
+      "maps": {
+        "base": {
+          "sha256": "d94b73aee12bad625eb3d0474913f2d2c46e3cb8e08b88450ba1f5119fde515b",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5773502588272095
+        },
+        "normal": {
+          "sha256": "5f48c07dcee5d6c24a4ebef2ec837ed0334b7c0daacabe7c301e37701e9117c9",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "179db613f527340aab5a3790c25ea8b2b2fac6f1c7a4e7ba861c550bc33543de",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.11862722039222717,
+          "worst_coherence_error_8bit": 0.0
+        }
+      }
+    },
+    {
+      "name": "wood",
+      "maps": {
+        "base": {
+          "sha256": "6e2809af1d63d0575cde1fdcaa68070b65a16c6cbfc6abed36cd04e6b4c8a9b6",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.9574271440505981
+        },
+        "normal": {
+          "sha256": "f3f9a0d3eec6e778171f5f3d352ec84abe24cb13a33dd403e3d938a80c88b044",
+          "mips": 12,
+          "worst_mip_p99_normal_degrees": 0.44936954975128174
+        },
+        "orm": {
+          "sha256": "4fee725e9364bb7b236a583f1d99dcdf8aa3859abd5d5ec054fc5013c1805283",
+          "mips": 12,
+          "worst_mip_rgb_rmse_8bit": 0.5784767866134644,
+          "worst_coherence_error_8bit": 1.0
+        }
+      }
+    }
+  ]
+}

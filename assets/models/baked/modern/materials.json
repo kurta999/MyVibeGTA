@@ -1,0 +1,372 @@
+{
+  "schema": 1,
+  "generator": "build_modern_materials.py",
+  "size": 2048,
+  "metres_per_repeat": 1.6666666666666667,
+  "dependencies": {
+    "numpy": "2.3.5",
+    "pillow": "12.3.0"
+  },
+  "materials": [
+    {
+      "name": "concrete",
+      "pattern": "stone",
+      "roughness_factor": 0.83,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "concrete-base.png",
+          "sha256": "edad9d0fe789604df4d25bd9db4f34022ada4853c7ef1984ac3d00c4b4307c21"
+        },
+        "normal": {
+          "file": "concrete-normal.png",
+          "sha256": "191d068f55358da254f3349ceff68bb6a2d9a6a734c8c46f191131e0873c47fd"
+        },
+        "orm": {
+          "file": "concrete-orm.png",
+          "sha256": "5ba103bb9a83890e55d316db85d6dd70dda1b0a4bb337008f926087f90f6599b"
+        }
+      }
+    },
+    {
+      "name": "stone",
+      "pattern": "stone",
+      "roughness_factor": 0.72,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "stone-base.png",
+          "sha256": "08246a04d46923f4414f37718cdb2de4fbf89933a01207a7e1b6919a9846ae39"
+        },
+        "normal": {
+          "file": "stone-normal.png",
+          "sha256": "4e662223c164b2e09c0e40ceeb8a59eb0969473e135b68c92e912a7b1ae05690"
+        },
+        "orm": {
+          "file": "stone-orm.png",
+          "sha256": "17aa54f40d55a686f9ea709fc3ffc1c0f782dc3ed0529f0b92bd617b1fe678f0"
+        }
+      }
+    },
+    {
+      "name": "glass",
+      "pattern": "smooth",
+      "roughness_factor": 0.12,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "glass-base.png",
+          "sha256": "4307ada806dcb1c5a1ce74da6ad8040dc593b7a7a7bd5fe015f49fb0ae5c8726"
+        },
+        "normal": {
+          "file": "glass-normal.png",
+          "sha256": "899206f71ed23de6d3639de73e309c263dfc235b20a0b2b1f5de7a8a2ee60fa1"
+        },
+        "orm": {
+          "file": "glass-orm.png",
+          "sha256": "a53b6408032ff5364d3f47386d8dc4b9e3cc8c2fcb86beab6ffd1bea29475b16"
+        }
+      }
+    },
+    {
+      "name": "car_glass",
+      "pattern": "smooth",
+      "roughness_factor": 0.1,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "car_glass-base.png",
+          "sha256": "2a19ff469195c964202d2a339c44c3ddcf4f67d05603e3a6470510f7258428ca"
+        },
+        "normal": {
+          "file": "car_glass-normal.png",
+          "sha256": "899206f71ed23de6d3639de73e309c263dfc235b20a0b2b1f5de7a8a2ee60fa1"
+        },
+        "orm": {
+          "file": "car_glass-orm.png",
+          "sha256": "7ec7536f6b5fe4d3ea8ac3b082c32f3ee1db052787ff6d784f09431cdf94dee4"
+        }
+      }
+    },
+    {
+      "name": "metal",
+      "pattern": "brushed",
+      "roughness_factor": 0.31,
+      "metallic_factor": 1,
+      "maps": {
+        "base": {
+          "file": "metal-base.png",
+          "sha256": "bf793ba37f07a9f22f2f54dd788b8068434d7b9eb0ebf855478457cedf09c7b0"
+        },
+        "normal": {
+          "file": "metal-normal.png",
+          "sha256": "953720300328e0c45c441704be942f635d7f2f6939d5cebede971855e283e248"
+        },
+        "orm": {
+          "file": "metal-orm.png",
+          "sha256": "02d801770fee831fd78bd13e9334e353cdb15e7feb298d5cb8da67aa2ae341a8"
+        }
+      }
+    },
+    {
+      "name": "silver",
+      "pattern": "brushed",
+      "roughness_factor": 0.23,
+      "metallic_factor": 1,
+      "maps": {
+        "base": {
+          "file": "silver-base.png",
+          "sha256": "2a54ed8854ee1e301bf2ab090b7fce45a14f535fe5d8dbc4d2560eb20295bfba"
+        },
+        "normal": {
+          "file": "silver-normal.png",
+          "sha256": "3e08fdf4bd0df4e0c6be7fab57a056d86f821c7f9aa94b07112d75942bc63340"
+        },
+        "orm": {
+          "file": "silver-orm.png",
+          "sha256": "053a6d769ab69023dbfe9144cb9c87eb4df05149b24aa16415aae1a1b21d5b59"
+        }
+      }
+    },
+    {
+      "name": "bronze",
+      "pattern": "brushed",
+      "roughness_factor": 0.32,
+      "metallic_factor": 1,
+      "maps": {
+        "base": {
+          "file": "bronze-base.png",
+          "sha256": "e50f80acfba5ce4b0c80c2206721f1376b217013a456abfcc5d234d3a05ea968"
+        },
+        "normal": {
+          "file": "bronze-normal.png",
+          "sha256": "a58b9aeb809cbb8f64b94f002958521f6783d15805286f749b67ceb923d595a9"
+        },
+        "orm": {
+          "file": "bronze-orm.png",
+          "sha256": "6bf9a0e4c233ec951362814b9a89b9237aac3bbf032da531a940524973c351fd"
+        }
+      }
+    },
+    {
+      "name": "blue_paint",
+      "pattern": "smooth",
+      "roughness_factor": 0.23,
+      "metallic_factor": 0.45,
+      "maps": {
+        "base": {
+          "file": "blue_paint-base.png",
+          "sha256": "3dedcc472df3c024d7911ec3239a4557496935441784faf1a706f85e7b7f4add"
+        },
+        "normal": {
+          "file": "blue_paint-normal.png",
+          "sha256": "0745b4ebbff769ee859d7574d660ad4b1d31f2e63d9e83ff06f1fd8350c2ae38"
+        },
+        "orm": {
+          "file": "blue_paint-orm.png",
+          "sha256": "70174368bdf773717428742901ace528e5d77225dd3c1427c5ac262eb3644de6"
+        }
+      }
+    },
+    {
+      "name": "pearl_paint",
+      "pattern": "smooth",
+      "roughness_factor": 0.26,
+      "metallic_factor": 0.3,
+      "maps": {
+        "base": {
+          "file": "pearl_paint-base.png",
+          "sha256": "d398aa1c1df1dbddcfd7db360d8e5d73bfe40827ed906c8d839b80052e5fe238"
+        },
+        "normal": {
+          "file": "pearl_paint-normal.png",
+          "sha256": "add93346e5c746bedb6310f3bd481ce3704f35e818f4aede84a6c0a3e38582c4"
+        },
+        "orm": {
+          "file": "pearl_paint-orm.png",
+          "sha256": "7df05107039d425367bd1aa5f561864f6082d63adef3f29641e47981e55648e0"
+        }
+      }
+    },
+    {
+      "name": "rubber",
+      "pattern": "rubber",
+      "roughness_factor": 0.94,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "rubber-base.png",
+          "sha256": "f79aa8ffca6ab1b494cbfb323d6c016f3bb9de9580eeb82a30f573ad5abc5c3e"
+        },
+        "normal": {
+          "file": "rubber-normal.png",
+          "sha256": "52c4cf8bee0684379e3c3ab0b8c3cbb5923ef10651388b76cb1a82a568128277"
+        },
+        "orm": {
+          "file": "rubber-orm.png",
+          "sha256": "4dadef308f02c33545864d696ffccbff54b14270d83a2c47b8487f0d8a18736a"
+        }
+      }
+    },
+    {
+      "name": "polymer",
+      "pattern": "rubber",
+      "roughness_factor": 0.76,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "polymer-base.png",
+          "sha256": "3e09a25f24e837594fa05120cd41c8dfc380856878fbd15454459bf70e4a8e0b"
+        },
+        "normal": {
+          "file": "polymer-normal.png",
+          "sha256": "fc976dbe37479effa8da850d75c3ea49b55a358c80ee01efe25016bd35aa279a"
+        },
+        "orm": {
+          "file": "polymer-orm.png",
+          "sha256": "6960bfbf7df99848a91c226ec9b873c6503a4da16129b3663c2f5e7928901a6c"
+        }
+      }
+    },
+    {
+      "name": "gunmetal",
+      "pattern": "brushed",
+      "roughness_factor": 0.33,
+      "metallic_factor": 0.92,
+      "maps": {
+        "base": {
+          "file": "gunmetal-base.png",
+          "sha256": "afbc7f108584ece6870a5fb0705d1b7150360d49420b2ca5a0446b454645b522"
+        },
+        "normal": {
+          "file": "gunmetal-normal.png",
+          "sha256": "27d117eee2c517fb6bd6fa71f63d11f122bea2a8fb9e0069c00d8627f01380c8"
+        },
+        "orm": {
+          "file": "gunmetal-orm.png",
+          "sha256": "418b4bed21e41ec004cfe564b566d8160e37bdbf108bddf0699b822bc5c8a14c"
+        }
+      }
+    },
+    {
+      "name": "wood",
+      "pattern": "wood",
+      "roughness_factor": 0.7,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "wood-base.png",
+          "sha256": "41ab648b8b865cfb040048b93a61b6f7f09812f10bfb3709ad748ccebbb10bf4"
+        },
+        "normal": {
+          "file": "wood-normal.png",
+          "sha256": "3a7bc43f046a8bb28d7ddbb4ea1f92aeb6e40627c961b19a06c8c1019bdc12fe"
+        },
+        "orm": {
+          "file": "wood-orm.png",
+          "sha256": "3d441490b2bdc23527c5c18a3351f5a37aa6dfd9d15da0b8d3584a60ed97d802"
+        }
+      }
+    },
+    {
+      "name": "white_lens",
+      "pattern": "lens",
+      "roughness_factor": 0.19,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "white_lens-base.png",
+          "sha256": "f890bc21e6b369b1ebd34e3e2ec9ced1873f7d4b7d62af4da58afceeedad1bb1"
+        },
+        "normal": {
+          "file": "white_lens-normal.png",
+          "sha256": "b596efcb3237cf9ae08980c80f1004544da08516de587cb0cec34b95c37f17e1"
+        },
+        "orm": {
+          "file": "white_lens-orm.png",
+          "sha256": "b8fc3c5f3458cb07d7f08e1c80e243d96b1546d5b0719d54f40e39cef58e6d8a"
+        }
+      }
+    },
+    {
+      "name": "red_lens",
+      "pattern": "lens",
+      "roughness_factor": 0.2,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "red_lens-base.png",
+          "sha256": "a336adfb901e3c795fb2d2bb82dee2e3ba78d4ec0d9f447f5252f6c707b6f9e8"
+        },
+        "normal": {
+          "file": "red_lens-normal.png",
+          "sha256": "b596efcb3237cf9ae08980c80f1004544da08516de587cb0cec34b95c37f17e1"
+        },
+        "orm": {
+          "file": "red_lens-orm.png",
+          "sha256": "a808bcd8b36c40e399c4e27ef84dc0235253b2244b737421bad21f51da054d06"
+        }
+      }
+    },
+    {
+      "name": "amber",
+      "pattern": "lens",
+      "roughness_factor": 0.35,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "amber-base.png",
+          "sha256": "67c39bd8864fdc3f1a88eb4d6a05aa49c54169babeeaeff260df3ae7281133b1"
+        },
+        "normal": {
+          "file": "amber-normal.png",
+          "sha256": "b596efcb3237cf9ae08980c80f1004544da08516de587cb0cec34b95c37f17e1"
+        },
+        "orm": {
+          "file": "amber-orm.png",
+          "sha256": "35310f408608c1ccb46b7c082a38fa576ed378c3fe39bdd2636716c833c6b03e"
+        }
+      }
+    },
+    {
+      "name": "hydrant",
+      "pattern": "smooth",
+      "roughness_factor": 0.38,
+      "metallic_factor": 0.35,
+      "maps": {
+        "base": {
+          "file": "hydrant-base.png",
+          "sha256": "48500f233fec3680678637ba6f832644d5422916dbabb5b7115add8dba4958d2"
+        },
+        "normal": {
+          "file": "hydrant-normal.png",
+          "sha256": "96045000fd95cbe8b9e4da46ff2c01a9ed46403cfba4980475155572336ce42c"
+        },
+        "orm": {
+          "file": "hydrant-orm.png",
+          "sha256": "d933499538882b68adee641a6156ed4e9df94edd2232957a6acc270d65092e82"
+        }
+      }
+    },
+    {
+      "name": "foliage",
+      "pattern": "stone",
+      "roughness_factor": 0.88,
+      "metallic_factor": 0,
+      "maps": {
+        "base": {
+          "file": "foliage-base.png",
+          "sha256": "9c22c3e35c176fc55ba3344776ed197bf2f702954b9372d1543c981f298df9c2"
+        },
+        "normal": {
+          "file": "foliage-normal.png",
+          "sha256": "f062a6f3442b94a9bc7209d3b3da10a31b36f86034a3c8752d91fbb594c9a236"
+        },
+        "orm": {
+          "file": "foliage-orm.png",
+          "sha256": "b440c8e6d9dfb2192928496ca501ccc8bae198cb137b525e0bc1aeb423abb7ba"
+        }
+      }
+    }
+  ]
+}

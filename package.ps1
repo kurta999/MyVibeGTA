@@ -56,8 +56,16 @@ $modelSource = Join-Path $assetSource 'models'
 $modelDestination = Join-Path $assetDestination 'models'
 New-Item -ItemType Directory -Path $modelDestination | Out-Null
 Copy-Item -LiteralPath (Join-Path $modelSource 'baked') -Destination $modelDestination -Recurse
+# The authored PNGs remain in the separate editable asset archive. Modern
+# runtime sidecars use the cooked DDS files, so omit duplicate source maps.
+$modernPackage = [IO.Path]::GetFullPath((Join-Path $modelDestination 'baked/modern'))
+$resolvedPackage = [IO.Path]::GetFullPath($packageDirectory) + [IO.Path]::DirectorySeparatorChar
+if (-not $modernPackage.StartsWith($resolvedPackage,[StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid modern package path' }
+foreach ($sourceMap in Get-ChildItem -LiteralPath $modernPackage -Filter '*.png' -File) {
+    Remove-Item -LiteralPath $sourceMap.FullName
+}
 foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md', 'SHOWCASE_SOURCES.md',
-        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md')) {
+        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md', 'MODERN_ASSETS.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'data') -Destination $packageDirectory -Recurse

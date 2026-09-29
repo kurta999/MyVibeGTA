@@ -182,7 +182,7 @@ void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint=
     else if(name.rfind("marina/",0)==0)group=10;
     else if(name.rfind("nature/",0)==0)group=4;
     else if(name.rfind("characters/",0)==0)group=5;
-    else if(name.rfind("vehicles/",0)==0)group=6;
+    else if(name.rfind("vehicles/",0)==0||name.rfind("modern/aurora-",0)==0)group=6;
     if(source->transparent)group=13;
     modelInstances->push_back({source,group,sx,sy,sz,co,si,position.x,position.y,position.z,
         centerX,source->minY,centerZ,tint.r,tint.g,tint.b});
@@ -416,6 +416,17 @@ bool heldWeapon(const char* name,Vec3 hand,Vec3 muzzle,float width,float height)
         1,1,1,delta.y/length,horizontal/length});
     return true;
 }
+// Keep asymmetric authored props anchored to their pole or floor origin.
+void authoredProp(const std::string& name,Vec3 anchor,float yaw=0,float scale=10){
+    const Mesh* source=mesh(name);if(!source)return;
+    float cx=(source->minX+source->maxX)*0.5f*scale;
+    float cz=(source->minZ+source->maxZ)*0.5f*scale;
+    float co=std::cos(yaw),si=std::sin(yaw);
+    model(name,{anchor.x+co*cx+si*cz,anchor.y+source->minY*scale,
+        anchor.z-si*cx+co*cz},
+        {(source->maxX-source->minX)*scale,(source->maxY-source->minY)*scale,
+         (source->maxZ-source->minZ)*scale},yaw);
+}
 bool close(Vec2 p,float distance){
     return game::len(p-game::player)<distance*drawScale();
 }
@@ -424,6 +435,20 @@ void streetlights(){
     for(int column=0;column<5;++column)for(int row=0;row<7;++row){
         float x=300+column*450+68.0f,z=115+row*215.0f;
         if(!close({x,z},600))continue;
+        if(mesh("modern/street-lamp")){
+            authoredProp("modern/street-lamp",{x,0,z});
+            if(close({x,z},260)){
+                authoredProp("modern/bin",{x-6,0,z+10});
+                if(row%3==0)authoredProp("modern/bench",{x-6,0,z-25},game::PI/2);
+                else if(row%3==1)authoredProp("modern/bike-rack",{x-6,0,z-22},game::PI/2);
+                else authoredProp("modern/planter",{x-6,0,z-23},game::PI/2);
+                authoredProp("modern/bollard",{x-10,0,z-9});
+                if(row%3==0)authoredProp("modern/hydrant",{x-7,0,z+27});
+            }
+            if(daylight<0.1f)
+                glowBox({x-13.1f,44.63f,z},{4.8f,.20f,3.6f},0,game::rgb(255,220,135));
+            continue;
+        }
         box(x,0,z,2.5f,47,2.5f,game::rgb(75,77,78));
         box(x-7,46,z,14,2,2,game::rgb(72,74,78));
         box(x-14,43,z,7,4,7,daylight<0.1f?game::rgb(255,222,125):game::rgb(178,175,154));
@@ -636,6 +661,13 @@ void marinaScenery(){
     }
     float night=std::sin((game::gameHour-6)*game::PI/12.0f)<0.1f?1.0f:0.0f;
     for(int z=8860;z<10010;z+=116){
+        if(mesh("modern/twin-lamp")){
+            authoredProp("modern/twin-lamp",{8060.0f,0,float(z)},0,8.0f);
+            if(night)for(float side:{-1.0f,1.0f})
+                glowBox({8060.0f+side*10.48f,35.70f,float(z)},
+                    {3.84f,.16f,2.88f},0,game::rgb(255,221,147));
+            continue;
+        }
         model("primitive/cylinder",{8060.0f,0,float(z)},
             {3,38,3},0,game::rgb(82,88,90));
         model("primitive/box",{8060.0f,37,float(z)},
@@ -644,6 +676,10 @@ void marinaScenery(){
             {7,3,6},0,night?game::rgb(255,221,147):game::rgb(191,198,185));
     }
     for(int z=8920;z<9980;z+=150){
+        if(mesh("modern/bench")){
+            authoredProp("modern/bench",{8110.0f,0,float(z)});
+            continue;
+        }
         model("primitive/box",{8110.0f,2,float(z)},
             {18,2,5},0,game::rgb(119,88,61));
         for(float offset:{-7.0f,7.0f})
@@ -714,6 +750,8 @@ void buildings(){
             float height=b.h*(0.88f+0.13f*float((row+col+int(index))%3));
             std::string variant="buildings/urban-"+
                 std::string(selection<10?"0":"")+std::to_string(selection);
+            if((index<2||selection%5==0)&&mesh("modern/coastal-office"))
+                variant=(row+col+index)%2?"modern/terrace-apartments":"modern/coastal-office";
             float yaw=(row+col)%2?game::PI/2:0;
             model(variant,{x,0.3f,z},{width,height,depth},yaw);
             if(std::sin((game::gameHour-6)*game::PI/12.0f)<0.12f&&
@@ -731,7 +769,7 @@ void buildings(){
             }
         }
         // Give each block a recognizable street-level frontage and roofline.
-        if(game::len(Vec2{b.x+b.w*0.5f,b.z}-game::player)<470){
+        if(index>=2&&game::len(Vec2{b.x+b.w*0.5f,b.z}-game::player)<470){
             const Color paint[]={game::rgb(56,111,116),game::rgb(151,89,61),
                 game::rgb(105,92,139),game::rgb(126,111,68)};
             Color accent=paint[index%4];
@@ -992,6 +1030,8 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
         const char* asset=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?
             "weapons/pistol":weaponId=="shotgun"||weaponId=="sniper"?
             "weapons/lightning":weaponId=="rifle"?"weapons/ak":nullptr;
+        if(weaponId=="pistol"&&mesh("modern/compact-pistol"))asset="modern/compact-pistol";
+        if(weaponId=="rifle"&&mesh("modern/carbine"))asset="modern/carbine";
         float width=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?2.5f:
             weaponId=="rifle"?6.0f:2.4f;
         float gunHeight=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?5.5f:
@@ -1055,13 +1095,14 @@ void people(){
         if(!ped.alive){
             if(ped.pinned){
                 if(ped.corpseVisualDelay<=0)
-                    character(ped.p,ped.angle,ped.style,false,false,false,0,5,1);
+                    character(ped.p,ped.angle,ped.style,false,false,false,
+                        0,5,1.0f,false,1.0f);
                 beam({ped.p.x,21,ped.p.z},
                     {ped.pinAnchor.x,21,ped.pinAnchor.z},1.3f,1.3f,
                     game::rgb(129,85,48));
             }else if(ped.corpseVisualDelay<=0||ped.carried)
                 character(ped.p,ped.angle,ped.style,false,false,false,
-                    ped.carried?10.0f:0.0f,5,1.0f);
+                    ped.carried?10.0f:0.0f,5,1.0f,false,1.0f);
             continue;
         }
         if(ped.knockedDown>0){
@@ -1155,10 +1196,11 @@ float carLampDepth(const Mesh& body,Vec3 size,float x,float y,bool front){
     float cz=(body.minZ+body.maxZ)*0.5f;
     float depth=front?-std::numeric_limits<float>::max():
         std::numeric_limits<float>::max();
-    for(std::size_t i=0;i+2<body.vertices.size();i+=3){
-        const auto& a=body.vertices[i];
-        const auto& b=body.vertices[i+1];
-        const auto& c=body.vertices[i+2];
+    const size_t count=body.indices.empty()?body.vertices.size():body.indices.size();
+    for(std::size_t i=0;i+2<count;i+=3){
+        const auto& a=body.vertices[body.indices.empty()?i:body.indices[i]];
+        const auto& b=body.vertices[body.indices.empty()?i+1:body.indices[i+1]];
+        const auto& c=body.vertices[body.indices.empty()?i+2:body.indices[i+2]];
         float ax=(a.x-cx)*sx,ay=(a.y-body.minY)*sy;
         float bx=(b.x-cx)*sx,by=(b.y-body.minY)*sy;
         float px=(c.x-cx)*sx,py=(c.y-body.minY)*sy;
@@ -1198,6 +1240,10 @@ void vehicles(){
             std::string carName=v.kind==game::Kind::SportCar?
                 "vehicles/sports-car":"vehicles/traffic-"+std::to_string(variant);
             if(!mesh(carName))carName="vehicles/sedan";
+            bool modern=v.kind==game::Kind::SportCar||v.id=="starter-car"||variant==1;
+            if(modern&&mesh("modern/aurora-sedan"))
+                carName=v.kind==game::Kind::SportCar?"modern/aurora-coupe":"modern/aurora-sedan";
+            else modern=false;
             const float carHeights[]={20,23,23,21,26,22};
             Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
             model(carName,{v.p.x,v.rideHeight,v.p.z},
@@ -1213,27 +1259,30 @@ void vehicles(){
                 const float frontHeights[]={10.0f,7.8f,10.1f,8.2f,10.2f,9.6f};
                 int geometry=v.kind==game::Kind::SportCar?0:variant;
                 const Mesh* body=mesh(carName);
+                float lampSide=modern?6.44f:sideOffsets[geometry];
+                float lampHeight=modern?carHeights[geometry]*(geometry==0?0.50f:0.45f):frontHeights[geometry];
+                float rearHeight=modern?carHeights[geometry]*(geometry==0?0.52f:0.47f):9.7f;
                 auto found=lampDepths.find(body);
                 if(found==lampDepths.end()){
                     std::array<float,4> depths{};
                     Vec3 dimensions{26,carHeights[geometry],48};
                     for(int sideIndex=0;sideIndex<2;++sideIndex){
-                        float x=(sideIndex==0?-1.0f:1.0f)*sideOffsets[geometry];
+                        float x=(sideIndex==0?-1.0f:1.0f)*lampSide;
                         depths[sideIndex]=carLampDepth(*body,dimensions,x,
-                            frontHeights[geometry],true);
-                        depths[sideIndex+2]=carLampDepth(*body,dimensions,x,9.7f,false);
+                            lampHeight,true);
+                        depths[sideIndex+2]=carLampDepth(*body,dimensions,x,rearHeight,false);
                     }
                     found=lampDepths.emplace(body,depths).first;
                 }
                 for(int sideIndex=0;sideIndex<2;++sideIndex){
                     float sign=sideIndex==0?-1.0f:1.0f;
                     Vec2 front=v.p+facing*found->second[sideIndex]+
-                        side*(sign*sideOffsets[geometry]);
+                        side*(sign*lampSide);
                     Vec2 rear=v.p+facing*found->second[sideIndex+2]+
-                        side*(sign*sideOffsets[geometry]);
-                    carLamp(front,v.rideHeight+frontHeights[geometry],facing,side,
+                        side*(sign*lampSide);
+                    carLamp(front,v.rideHeight+lampHeight,facing,side,
                         3.0f,1.7f,true,{1.0f,0.94f,0.76f});
-                    carLamp(rear,v.rideHeight+9.7f,facing,side,
+                    carLamp(rear,v.rideHeight+rearHeight,facing,side,
                         3.1f,1.7f,false,{1.0f,0.12f,0.08f});
                 }
             }
@@ -1663,10 +1712,7 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buildings();vegetation();streetlights();
     if(staticOnly)return;
     vehicles();people();animals();markers();effects();
-    float solar=std::sin((game::gameHour-6)*game::PI/12),angle=(game::gameHour-6)*game::PI/12;
-    if(solar>=0)
-        sphere({game::player.x+std::cos(angle)*820,solar*600+130,
-            game::player.z-160},47.0f,game::rgb(255,230,151));
+    // The sky pass draws the solar disk using the actual directional light.
 }
 const SceneWorkStats& sceneWorkStats(){return workStats;}
 }

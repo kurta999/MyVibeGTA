@@ -1,0 +1,6 @@
+# Original procedural project asset: indexed PBR material sections
+0 708 0.33 0.92 0 gunmetal-base.dds gunmetal-normal.dds gunmetal-orm.dds gunmetal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+708 924 0.31 1 0 metal-base.dds metal-normal.dds metal-orm.dds metal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+1632 768 0.76 0 0 polymer-base.dds polymer-normal.dds polymer-orm.dds polymer-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+2400 36 0.94 0 0 rubber-base.dds rubber-normal.dds rubber-orm.dds rubber-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+2436 180 0.12 0 0 glass-base.dds glass-normal.dds glass-orm.dds glass-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 1.5

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "executable_sha256": "88c9b8bbe43291f0268fd7ef58e08b83ca62521bbca8a84fbf7949c70f70edcb",
+  "archives": [
+    {
+      "file": "MiniCity3D-modern-2k-20260928-final.zip",
+      "bytes": 360311482,
+      "entries": 819,
+      "sha256": "f9e2974d90d41fe10dcf643070e419119257c1d66d5d0d6790d9bfd0641b2ef9",
+      "crc": "passed",
+      "modern_dds": 54,
+      "modern_meshes": 28,
+      "editable_sources": 0
+    },
+    {
+      "file": "MiniCity3D-original-modern-assets-20260928.zip",
+      "bytes": 384313748,
+      "entries": 196,
+      "sha256": "0b99a716f444763f67ea9fa28330d5ef4ff6f3a3f132ee7ab0cd697da19858f8",
+      "crc": "passed",
+      "modern_dds": 54,
+      "modern_meshes": 28,
+      "editable_sources": 14
+    }
+  ]
+}

@@ -108,6 +108,45 @@ int main(){
     dx11::loadMeshes(L"assets/models/baked");
     for(const auto& issue:dx11::assetIssues())std::fprintf(stderr,"%s\n",issue.c_str());
     assert(dx11::assetIssues().empty());
+    // Original modern meshes must arrive with contiguous indexed material
+    // sections, complete maps, valid LOD bounds and safe glass/history routing.
+    for(const char* name:{"coastal-office","terrace-apartments","aurora-sedan",
+            "aurora-coupe","compact-pistol","carbine","street-lamp","twin-lamp",
+            "bench","bin","bollard","bike-rack","planter","hydrant"}){
+        const auto* asset=dx11::mesh(std::string("modern/")+name);
+        assert(asset&&asset->textured&&asset->wrapTextures&&!asset->indices.empty());
+        assert(!asset->allowTessellation);
+        assert(!asset->materialRanges.empty());unsigned covered=0;
+        for(const auto& range:asset->materialRanges){
+            assert(range.start==covered&&range.count%3==0);
+            covered+=range.count;
+            assert(std::filesystem::exists(range.baseFile));
+            assert(std::filesystem::exists(range.normalFile));
+            assert(std::filesystem::exists(range.ormFile));
+        }
+        assert(covered==asset->indices.size());
+        if(std::string(name)=="aurora-sedan"||std::string(name)=="aurora-coupe"){
+            bool hasCoat=false;
+            for(const auto& range:asset->materialRanges)
+                hasCoat|=range.clearcoat==1&&range.clearcoatRoughness>0&&range.clearcoatRoughness<.2f;
+            assert(hasCoat);
+        }
+    }
+    for(const char* name:{"coastal-office","terrace-apartments","aurora-sedan","aurora-coupe"}){
+        const auto* chain=dx11::lodChain(std::string("modern/")+name);
+        assert(chain&&chain->meshes[0]&&chain->meshes[3]);
+    }
+    for(const char* name:{"aurora-sedan","aurora-coupe"}){
+        const auto* body=dx11::mesh(std::string("modern/")+name);
+        const auto* glass=dx11::mesh(std::string("modern/")+name+"-glass");
+        assert(body&&glass&&glass->transparent&&!glass->castsShadow);
+        assert(glass->textured&&!glass->materialRanges.empty());
+        assert(glass->materialRanges.front().glassIor==1.5f);
+        assert(!glass->temporalStable&&!body->temporalStable);
+        assert(body->minX==glass->minX&&body->maxY==glass->maxY&&body->maxZ==glass->maxZ);
+    }
+    assert(!dx11::mesh("modern/compact-pistol")->temporalStable);
+    assert(!dx11::mesh("modern/carbine")->temporalStable);
     for(const char* name:{"traffic-1","traffic-2","traffic-3","traffic-4","traffic-5","sports-car","sedan"}){
         std::string key=std::string("vehicles/")+name;
         const auto* body=dx11::mesh(key);const auto* glass=dx11::mesh(key+"-glass");

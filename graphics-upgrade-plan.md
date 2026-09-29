@@ -11,7 +11,7 @@ Upgrade the models and supporting engine features to deliver polished, realistic
 - At implementation start, save this plan as `graphics-upgrade-plan.md` and maintain milestone status and verification results there.
 - Execute all milestones continuously without routine approval stops. Continue independent work if asset access is blocked; report unavoidable account, permission, or licensing dependencies explicitly.
 
-**Current status (2026-09-28):** implementation is in progress in the Direct3D 11 target. Verified slices cover texture mips/filtering, GPU timing, transparent instance order, normal/roughness and indirect-light buffers, indexed cooked meshes, per-range cutouts, model-instance frustum culling, projected-size LOD selection, sunlight cascades, downsampled bloom, half-resolution SSR, indexed weapon material import, bounded player-headlight and nearby streetlight shadows, High TAA, ordinary-humanoid GPU deformation with prior-pose vectors, pinned Blender source conversion, and authored four-level Marina building LODs. The showcase and the remaining engine features below are incomplete.
+**Current status (2026-09-28):** implementation is in progress in the Direct3D 11 target. Verified slices cover texture mips/filtering, GPU timing, transparent instance order, normal/roughness and indirect-light buffers, indexed cooked meshes, per-range cutouts, model-instance frustum culling, projected-size LOD selection, sunlight cascades, downsampled bloom, half-resolution SSR, indexed weapon material import, bounded player-headlight and nearby streetlight shadows, High TAA, ordinary-humanoid GPU deformation with prior-pose vectors, pinned Blender source conversion, authored four-level Marina building LODs, local HDR probes with SSR fallback, corrected GGX sunlight/local shading, factor-driven clearcoat/Fresnel glass, depth-occluded solar lens flare, and original 2K BC7/BC5 materials with validated DDS mip loading. The showcase and the remaining engine features below are incomplete.
 
 ## 1. Asset acquisition and import pipeline
 
@@ -32,7 +32,8 @@ High-resolution source geometry must be reduced and baked before gameplay use. I
 
 ## 2. Mipmaps, filtering, and texture management
 
-The current loader creates only one texture level. Replace this with a complete texture pipeline.
+Retain generated PNG/JPEG mip chains and extend the texture pipeline with cooked
+DDS formats, higher-resolution materials and texture streaming.
 
 - Generate full mip chains down to 1×1 for imported model textures and tileable world materials.
 - Filter color maps in linear light and retain correct sRGB sampling. Treat normal, roughness, metallic, and occlusion maps as linear data.
@@ -111,6 +112,100 @@ Each milestone must leave a runnable build.
 
 Update `idea.md` only for integrated and verified results. Complete the showcase and engine work before considering map-wide asset replacement.
 ## Implementation log
+
+### Original 2K materials and compressed DDS slice (2026-09-28)
+
+- All 18 original materials now have 2048×2048 colour, normal and ORM maps,
+  authored from correlated periodic surface fields: concrete pores, stone
+  grain, brushed metal, wood fibres, rubber grain, lens ribs and restrained
+  paint microtexture. Height derivatives supply normals. Source GLBs embed the
+  new PNGs and use ORM red as occlusion. Geometry remains the preceding 14
+  moderate-detail asset types, with 28 cooked mesh/LOD variants.
+- `tools/cook_modern_textures.py` creates linear-light colour mips and
+  renormalized normal mips, retaining normal coherence in ORM alpha. Pinned,
+  hash-verified Microsoft DirectXTex May 2026 cooks 54 BC7 sRGB colour, BC5
+  normal and BC7 linear ORM DDS files, each with 12 levels through 1×1.
+  `materials.json`/`textures.json` record dependency versions, hashes, source
+  identities, dimensions, formats, mip counts and byte sizes.
+- The DX11 loader validates ordinary single-surface DX10 DDS dimensions,
+  formats, colour/data use, complete mip chains and exact payload sizes before
+  creating resources. It retains PNG/JPEG fallbacks. The shader reconstructs
+  BC5 positive Z and reads corresponding ORM-alpha coherence for distant
+  roughness adjustment. Occlusion reuses the cached ORM resource. The package
+  omits duplicate modern PNGs while the editable asset archive retains them.
+- The 54 map chains use 288.00 MiB of GPU payload versus 1152.00 MiB for
+  equivalent RGBA8 chains. This is the modern material set, not total renderer
+  memory: startup currently reports 1224.72 MiB of loaded image texture payload,
+  excluding HDR probes, geometry, render targets and driver overhead.
+- All 18 CTest suites pass. Geometry/source checks validate the 54 source PNG
+  hashes against embedded GLB images and the 54 DDS chains. Decoding every mip
+  of every DDS gives worst per-mip colour/data RGB RMSE 1.225/255, worst per-mip
+  p99 normal error 1.272 degrees and maximum coherence error 3/255. Eight
+  actual DX11 asset captures verify all 54 compressed resources by GPU
+  readback, every block in every mip, followed by 54 final-resource readbacks
+  after a smooth-glass highlight correction. Sub-8-bit glass height changes
+  had quantized to alternating normal values; glass normal fields are now flat,
+  and a captured regression checks the removed highlight grain.
+  Actual-source studio renders and evidence
+  are in `evidence/textures-20260928/`.
+- Full mip chains are still resident together. Distance-based mip residency,
+  bounded incremental uploads, selective 4K surfaces, richer showcase art,
+  exposure adaptation and the remaining animation/pipeline work are open.
+- Final delivery is `dist/MiniCity3D-modern-2k-20260928-final.zip` (360,311,482
+  bytes, 819 entries), with the separate editable asset ZIP (384,313,748 bytes,
+  196 entries). CRCs, all 54 DDS payloads, executable/probe hashes and source
+  exclusion pass. The copied game passes 11 packaged smoke runs and 11 final
+  lighting captures. Image checks retain the facade sun/car coat contributions,
+  three zero-flare negative cases and the horizon guard.
+- The isolated final-package High-shadow/High-TAA 1080p route on Radeon 680M,
+  VSync off, measures 19.04 ms average, 43.94 ms p95, 49.01 ms p99 and 58.59 ms
+  maximum across 3,600 frames after 120 warm-up ticks. GPU shadow/scene/post-HUD
+  averages are 5.58/7.50/3.77 ms; process RAM is 666 MiB. No other game instance
+  was present before or after the run. Slow route stretches remain; this is a
+  local result, without an RTX 3060-class performance claim.
+
+### Sun reflections, clearcoat and solar flare slice (2026-09-28)
+
+- The DX11 shader uses GGX distribution with a bounded denominator and
+  height-correlated Smith visibility for both sunlight and local lights. The
+  earlier additive denominator offset suppressed smooth-surface highlights;
+  local lights used a separate unnormalized specular power. Both are replaced.
+  Night no longer receives a direct sun above the horizon.
+- `SURFACE1` optional material sidecar fields preserve legacy records and carry
+  clearcoat weight/roughness and glazing IOR. Original car paints and hydrant
+  paint use a separate clearcoat lobe with geometric normals, base-layer energy
+  attenuation and a prefiltered probe contribution. Editable GLBs preserve
+  `KHR_materials_clearcoat`/`KHR_materials_ior` factors. The implementation uses
+  the [Khronos clearcoat layering specification](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat)
+  as its material reference. Car glazing has view-dependent Fresnel blending;
+  refractive transmission and texture-driven coat parameters remain open.
+- A 0.266-degree-radius HDR sun disk uses the directional light's actual
+  direction, replacing the unrelated scene sphere. A restrained analytic solar
+  halo, streak and four lens ghosts use nine depth taps over the projected disk.
+  Geometry occlusion, night, cloud cover, screen edges, debug views and the
+  Effects setting gate the flare. This is a solar effect without local-light
+  flares, diffraction simulation, dirt textures or temporal occlusion filtering.
+- Matched facade and car captures isolate direct-sun and clearcoat contributions;
+  flare-only visible/occluded/disabled/night captures exercise the negative
+  cases. `tools/verify_lighting.ps1` captures the actual DX11 build;
+  `tests/lighting_evidence.py` verifies binary/image hashes and image
+  contributions outside the HUD. Final results, probe refresh and delivery are
+  recorded in `evidence/lighting-20260928/README.md`.
+- The final copied package passes 11 graphical smoke runs and all 11 effect
+  captures; hashed image checks verify the facade sun/car coat contribution,
+  three zero-flare negative cases and the corrected sky derivative at the
+  horizon. The High-shadow/High-TAA 1080p deterministic route on Radeon 680M
+  measures 19.36 ms average, 46.83 ms p95 and 48.23 ms p99 over 3,600 frames after
+  120 warm-up ticks. The tested 268,444,616-byte game ZIP and separate editable
+  asset ZIP are in `dist/`. High-resolution art, broader pipeline/material/
+  animation features and target desktop-GPU validation remain open.
+
+### Original procedural modern assets (2026-09-28)
+
+- `tools/build_modern_assets.py` authors two coastal facade styles, two curved-body cars, a bevelled pistol/carbine, single/twin LED lamps, a bench, bin, bollard, bicycle rack, planter and hydrant. It uses original geometry and analytic textures. The collection contains 14 self-contained editable GLBs, 28 indexed M3D2 meshes, 54 PBR maps and per-section material sidecars; geometry totals 68,116 triangles across all variants and LODs.
+- Both buildings and both car bodies have four authored LOD levels with matching bounds. Runtime instance selection, separate car glazing, wrapped model sampling, moving-mesh history exclusion and indexed lamp-surface lookup are integrated. Starting parcels and a subset of other buildings/traffic, the starter car, sports cars, pistol/rifle IDs, city furniture and Marina lamps/benches use the collection.
+- Static district lighting was recaptured into 36 HDR faces and recooked for day/dusk/night after geometry and lamp changes. The original probe limitations still apply. All 18 CTest suites, mesh/GLB validation and five probe math tests pass. Eight 1080p graphical smoke scenes and the 14 actual-source studio renders were inspected. Flags, hashes, logs and a labelled overview are in `evidence/modern-assets-20260928/`.
+- The separate `dist/MiniCity3D-original-modern-assets-20260928.zip` includes editable sources, cooked files/maps, the generator, geometry check and documentation. Broader showcase art, advanced materials/lighting, animated wheels/doors, new furniture collision and moving-scene/target-hardware validation remain open. This slice retains existing gameplay and physics.
 
 - 2026-09-27: Plan saved at implementation start. Existing gameplay/save compatibility and the OpenGL fallback remain in scope and unchanged.
 
@@ -230,6 +325,13 @@ Update `idea.md` only for integrated and verified results. Complete the showcase
 - `MiniCity3D-graphics-skin-lod-20260928.zip` passed all copied-folder graphical smoke checks. The 263,703,492-byte archive has 698 entries, twelve new LOD meshes, four catalogs, the source audit and three weapon import reports, no raw model-source entries, and an executable matching the tested DX11 build by SHA-256. It predates probe lighting.
 
 ### Reproduction
+
+The original modern asset collection disables generic facade tessellation and
+procedural surface overlays on its authored geometry/material maps. Matching
+120-frame day street samples on the Radeon 680M measured 37.75 ms before and
+28.71 ms after these fixes (final p95 39.42 ms). Full logs are in
+`evidence/modern-assets-20260928/`; this does not establish target desktop-GPU
+performance.
 
 On a Windows machine with MSVC and CMake, run `./build.ps1 -RunTests` from the repository root. The new texture test is included in that build. Run `./package.ps1` to rebuild and produce a smoke-tested package. For a short local performance sample, run `MiniCity3D.exe --smoke --benchmark --1080p` from a build or package directory and inspect `MiniCity3D.log`. Run `MiniCity3D.exe --smoke --benchmark-route --1080p` for the 60-second simulated route after warm-up. For shadow previews, run `MiniCity3D.exe --smoke --night --driver-preview --headlight-preview --high-shadows --screenshot --1080p` or `MiniCity3D.exe --smoke --night --streetlight-preview --high-shadows --screenshot --1080p`; replace `--high-shadows` with `--medium-shadows` for unshadowed references. For temporal inspection, run `MiniCity3D.exe --smoke --high-taa --temporal-preview --motion-view --screenshot --1080p`, then omit `--motion-view` for the resolved frame and add `--no-taa` for an FXAA reference. The three indexed weapon M3D2 assets and material maps can be reproduced with `python tools/import_traffic_weapons.py --weapons-only` after obtaining their attributed source files; run `python tests/import_traffic_weapons.py` for the focused importer checks.
 

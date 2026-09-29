@@ -1,0 +1,4 @@
+# Original procedural project asset: indexed PBR material sections
+0 636 0.38 0.35 0 hydrant-base.dds hydrant-normal.dds hydrant-orm.dds hydrant-orm.dds - OPAQUE 0.5 SURFACE1 0.6 0.18 0
+636 348 0.23 1 0 silver-base.dds silver-normal.dds silver-orm.dds silver-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+984 36 0.31 1 0 metal-base.dds metal-normal.dds metal-orm.dds metal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0

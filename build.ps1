@@ -85,7 +85,14 @@ if ($OpenGL) {
             [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $OutputPath))
         }
     } else { Join-Path $root 'MiniCity3D.exe' }
-    if (-not [string]::Equals($builtExecutable,$target,[System.StringComparison]::OrdinalIgnoreCase)) {
+    $sameExecutable = [string]::Equals($builtExecutable,$target,[System.StringComparison]::OrdinalIgnoreCase)
+    # A texture-only refresh need not replace an identical executable that may
+    # already be open. Changed binaries still require closing the old process.
+    if (-not $sameExecutable -and (Test-Path -LiteralPath $target)) {
+        $sameExecutable = (Get-FileHash -LiteralPath $builtExecutable -Algorithm SHA256).Hash -eq
+            (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+    }
+    if (-not $sameExecutable) {
         try {
             Copy-Item -LiteralPath $builtExecutable -Destination $target -Force -ErrorAction Stop
         } catch [System.IO.IOException] {

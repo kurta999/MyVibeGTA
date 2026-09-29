@@ -1,0 +1,8 @@
+{
+  "captures": 11,
+  "flare_negative_cases": 3,
+  "facade_sun_gain_8bit": 102.542,
+  "car_coat_difference_8bit": 3.553,
+  "horizon_max_mean_8bit": 167.204,
+  "scope": "Fixed-camera rendered effect and occlusion checks; no moving-scene stability claim"
+}

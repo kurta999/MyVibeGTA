@@ -1,0 +1,310 @@
+Start testing: Sep 28 11:16 Mitteleuropäische Sommerzeit
+----------------------------------------------------------
+1/18 Testing: save_jobs_smoke
+1/18 Test: save_jobs_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/save_jobs_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"save_jobs_smoke" start time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+save worker bounded queue, snapshot ordering, shutdown, failure and recovery passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"save_jobs_smoke" end time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+"save_jobs_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/18 Testing: audio_smoke
+2/18 Test: audio_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/audio_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"audio_smoke" start time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Live XAudio2 cached effects, overlap/voice stealing, variants and reopening passed
+<end of output>
+Test time =   0.76 sec
+----------------------------------------------------------
+Test Passed.
+"audio_smoke" end time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+"audio_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/18 Testing: startup_smoke
+3/18 Test: startup_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/startup_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"startup_smoke" start time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Startup window responsiveness, cancellation, lifecycle and seven icon sizes passed
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"startup_smoke" end time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+"startup_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/18 Testing: simulation_smoke
+4/18 Test: simulation_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"simulation_smoke" start time: Sep 28 11:16 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Connected playable area (conservative 100-unit grid): 267.79 million square units
+simulation smoke passed
+<end of output>
+Test time =  29.95 sec
+----------------------------------------------------------
+Test Passed.
+"simulation_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"simulation_smoke" time elapsed: 00:00:29
+----------------------------------------------------------
+
+5/18 Testing: wildlife_scenarios
+5/18 Test: wildlife_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--wildlife-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"wildlife_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Wildlife scenarios passed: 15 species, placement, flee, retaliation, predation, play, swept projectile, melee, loot, carry, obstacles, persistence, sleep.
+<end of output>
+Test time =   4.71 sec
+----------------------------------------------------------
+Test Passed.
+"wildlife_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"wildlife_scenarios" time elapsed: 00:00:04
+----------------------------------------------------------
+
+6/18 Testing: bird_scenarios
+6/18 Test: bird_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--birds-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"bird_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Bird scenarios passed: five types, flight clearance, camera-fired moving/wing/overhead hits, shot cover, falling, persistence.
+<end of output>
+Test time =   1.80 sec
+----------------------------------------------------------
+Test Passed.
+"bird_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"bird_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+7/18 Testing: driver_scenarios
+7/18 Test: driver_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--drivers-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"driver_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Driver scenarios passed: real entry, road acceleration, seated geometry, vehicle rotation, exit cleanup.
+<end of output>
+Test time =   0.56 sec
+----------------------------------------------------------
+Test Passed.
+"driver_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"driver_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/18 Testing: vehicle_collision_scenarios
+8/18 Test: vehicle_collision_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--vehicle-collisions-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"vehicle_collision_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Empty-road vehicle 0: peak speed 500.0, damage 0.000
+Empty-road vehicle 1: peak speed 500.0, damage 0.000
+Empty-road vehicle 2: peak speed 500.0, damage 0.000
+Tree strike distance 80: peak 89.6, destroyed 0, fragments 0
+Tree strike distance 450: peak 250.6, destroyed 1, fragments 11
+Coasting vehicle 0: 325.4 -> 0.00, travel 456.8
+Coasting vehicle 1: 447.0 -> 0.00, travel 613.8
+Coasting vehicle 2: 500.0 -> 0.00, travel 622.8
+Vehicle collision scenarios passed: empty-road braking/turning/drifting and real wall damage.
+<end of output>
+Test time =   0.59 sec
+----------------------------------------------------------
+Test Passed.
+"vehicle_collision_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"vehicle_collision_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/18 Testing: ped_scenarios
+9/18 Test: ped_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--peds-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"ped_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Ped scenarios passed: camera-fired kill, contact, talking, and fighting.
+<end of output>
+Test time =   0.42 sec
+----------------------------------------------------------
+Test Passed.
+"ped_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"ped_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/18 Testing: scene_jobs_scenarios
+10/18 Test: scene_jobs_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--scene-jobs-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"scene_jobs_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+<end of output>
+Test time =   0.63 sec
+----------------------------------------------------------
+Test Passed.
+"scene_jobs_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"scene_jobs_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/18 Testing: autosave_scenarios
+11/18 Test: autosave_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--autosave-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"autosave_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Autosave snapshot isolation, latest request, load/flush, replacement failure, recovery and weapon pickup passed
+<end of output>
+Test time =   8.31 sec
+----------------------------------------------------------
+Test Passed.
+"autosave_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"autosave_scenarios" time elapsed: 00:00:08
+----------------------------------------------------------
+
+12/18 Testing: traffic_scenarios
+12/18 Test: traffic_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--traffic-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"traffic_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+stop: speed -0.00 gap 51.85
+junctions: 7, position 326.8 1003.4
+cross 0: 1222.8 367.9 speed 46.0 wanted 47.8 state 1 road 13 14
+cross 1: 301.8 245.8 speed 48.7 wanted 49.1 state 1 road 1 2
+expired: hostile 0 anger 0.00 memory 0.00 state 0 alive 1 knock 0.00
+city traffic-7 moved 418.3 at 725.6 587.6 angle 1.6 wanted 0.0 state 2
+city traffic-9 moved 1123.9 at 272.2 300.2 angle 1.9 wanted 0.0 state 2
+city traffic-11 moved 344.3 at 597.6 1443.0 angle -0.0 wanted 0.0 state 2
+populated city: 3 circulating cars
+traffic scenarios passed
+<end of output>
+Test time =   2.48 sec
+----------------------------------------------------------
+Test Passed.
+"traffic_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"traffic_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+13/18 Testing: navigation_scenarios
+13/18 Test: navigation_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--navigation-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"navigation_scenarios" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+wall pursuit: 22.9 remaining
+crowd minimum separation 20.5; remaining 20.6 20.1 19.9 21.5
+navigation scenarios passed
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"navigation_scenarios" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"navigation_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/18 Testing: asset_smoke
+14/18 Test: asset_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/asset_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"asset_smoke" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+asset smoke passed
+<end of output>
+Test time =   0.45 sec
+----------------------------------------------------------
+Test Passed.
+"asset_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"asset_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/18 Testing: texture_mips_smoke
+15/18 Test: texture_mips_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/texture_mips_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"texture_mips_smoke" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+texture mip checks passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"texture_mips_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"texture_mips_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/18 Testing: texture_loading_smoke
+16/18 Test: texture_loading_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/texture_loading_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"texture_loading_smoke" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Texture loading checks passed: BC7/BC5/BC4/RGBA DDS, rejected corrupt DDS, exact mip bytes, bounded concurrency, cancellation, failures, reopening; serial 0.144 s
+<end of output>
+Test time =   0.33 sec
+----------------------------------------------------------
+Test Passed.
+"texture_loading_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"texture_loading_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/18 Testing: shader_loading_smoke
+17/18 Test: shader_loading_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/shader_loading_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"shader_loading_smoke" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Shader loading checks passed: exact bytecode, concurrency, caller progress, errors, cancellation, reopening
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"shader_loading_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"shader_loading_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/18 Testing: probe_smoke
+18/18 Test: probe_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/probe_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"probe_smoke" start time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"probe_smoke" end time: Sep 28 11:17 Mitteleuropäische Sommerzeit
+"probe_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 28 11:17 Mitteleuropäische Sommerzeit

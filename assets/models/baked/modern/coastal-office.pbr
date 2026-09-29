@@ -1,0 +1,8 @@
+# Original procedural project asset: indexed PBR material sections
+0 36 0.72 0 0 stone-base.dds stone-normal.dds stone-orm.dds stone-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+36 72 0.83 0 0 concrete-base.dds concrete-normal.dds concrete-orm.dds concrete-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+108 6192 0.31 1 0 metal-base.dds metal-normal.dds metal-orm.dds metal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+6300 540 0.76 0 0 polymer-base.dds polymer-normal.dds polymer-orm.dds polymer-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+6840 4608 0.12 0 0 glass-base.dds glass-normal.dds glass-orm.dds glass-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 1.5
+11448 6156 0.32 1 0 bronze-base.dds bronze-normal.dds bronze-orm.dds bronze-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
+17604 3840 0.23 1 0 silver-base.dds silver-normal.dds silver-orm.dds silver-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0

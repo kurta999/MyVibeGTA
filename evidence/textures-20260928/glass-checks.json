@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "crop": [
+    905,
+    520,
+    1000,
+    570
+  ],
+  "high_frequency_residual_before": 3.7434,
+  "high_frequency_residual_after": 0.0,
+  "images": [
+    {
+      "file": "lighting-before-glass-fix\\facade.png",
+      "sha256": "786a4b8a28feec2e1c59dfcc87d7ef928aa4bd990718774ffd21c9db8ebb8310"
+    },
+    {
+      "file": "glass-fix-after.png",
+      "sha256": "6a3df5f2360ed0ccf365583cad8ef92ddd4b4119ac282da8f62f0e8c445f3d7d"
+    }
+  ],
+  "scope": "Fixed direct-sun glass highlight; semantic flat-normal map checks also run in modern_texture_quality.py"
+}

@@ -1,0 +1,7 @@
+{
+  "OtherGameInstancesBefore": 0,
+  "OtherGameInstancesAfter": 0,
+  "ExecutableSha256": "88C9B8BBE43291F0268FD7EF58E08B83CA62521BBCA8A84FBF7949C70F70EDCB",
+  "Arguments": "--smoke --benchmark-route --1080p --day --high-shadows --high-taa",
+  "ExitCode": 0
+}

@@ -16,6 +16,7 @@ struct MaterialRange {
     float roughness=0.82f,metallic=0,emissive=0;
     bool alphaTest=false;
     float alphaCutoff=0.5f;
+    float clearcoat=0,clearcoatRoughness=0.1f,glassIor=0;
     std::wstring baseFile,normalFile,ormFile,occlusionFile,emissiveFile;
 };
 struct Mesh {
@@ -28,6 +29,8 @@ struct Mesh {
     bool castsShadow=true;
     bool transparent=false;
     bool temporalStable=true;
+    bool wrapTextures=false;
+    bool allowTessellation=true;
     const Mesh* shadowProxy=nullptr;
     std::wstring textureFile;
     float roughness=0.82f;

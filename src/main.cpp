@@ -198,6 +198,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(smoke&&commandLine&&std::strstr(commandLine,"--lamp-dim"))worldTime=0.4f;
     if(smoke&&commandLine&&std::strstr(commandLine,"--sunrise"))gameHour=6.5f;
     if(smoke&&commandLine&&std::strstr(commandLine,"--sunset"))gameHour=18.5f;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--golden-hour"))gameHour=17;
     if(smoke&&commandLine&&std::strstr(commandLine,"--scope")){
         weapon=weapons::indexOf("sniper");unlocked[weapon]=true;
         magazine[weapon]=weapons::stats(weapon).magazine;
@@ -270,6 +271,20 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             weapon=weapons::indexOf("shotgun");unlocked[weapon]=true;
             magazine[weapon]=weapons::stats(weapon).magazine;
         }
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--modern-street-preview")){
+        player=previousPlayer={342,294};cameraYaw=0.34f;cameraPitch=-0.05f;
+        cameraMode=CameraMode::ThirdNear;
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--sun-preview")){
+        player=previousPlayer={100,100};gameHour=17;
+        cameraYaw=2.72f;cameraPitch=.10f;cameraMode=CameraMode::FirstWide;
+        if(std::strstr(commandLine,"--sun-occluded"))player=previousPlayer={780,360};
+        if(std::strstr(commandLine,"--night"))gameHour=22;
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--reflection-preview")){
+        player=previousPlayer={250,348};gameHour=17;
+        cameraYaw=.29f;cameraPitch=.24f;cameraMode=CameraMode::FirstClose;
     }
 #ifdef MINI_CITY_JOLT
     if(smoke&&commandLine&&std::strstr(commandLine,"--ped-social-preview")){
@@ -476,7 +491,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(smoke&&commandLine&&std::strstr(commandLine,"--driver-preview")){
         bool bike=std::strstr(commandLine,"--bike")!=nullptr;
         bool city=std::strstr(commandLine,"--city-headlight-preview")!=nullptr;
-        for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==(bike?Kind::Bike:Kind::Car)){
+        bool modern=std::strstr(commandLine,"--modern-car-preview")!=nullptr;
+        bool coupe=std::strstr(commandLine,"--modern-coupe-preview")!=nullptr;
+        for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==(bike?Kind::Bike:coupe?Kind::SportCar:Kind::Car)){
+            if(modern&&vehicles[i].id!="starter-car")continue;
             jolt_world::teleportVehicle(i,city?Vec2{305,115}:Vec2{4500,4500},0);
             occupied=i;vehicles[i].driver=-1;player=previousPlayer=vehicles[i].p;
             if(city){vehicles[i].lightsManual=true;vehicles[i].lightsOn=true;}
@@ -542,6 +560,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
        &&!std::strstr(commandLine,"--temporal-preview")
        &&!std::strstr(commandLine,"--skin-motion-preview")
+       &&!std::strstr(commandLine,"--exposure-preview")
 #endif
        )
         input::windowProc(win,WM_KEYDOWN,VK_F11,0);
@@ -667,6 +686,18 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 audio::shutdown();shutdownRenderer();DestroyWindow(win);
                 logging::write(ok?"HDR probe bake completed":"HDR probe bake failed");
                 logging::shutdown();return ok?0:1;
+            }else if(commandLine&&std::strstr(commandLine,"--exposure-preview")){
+                for(int frame=0;frame<360;++frame){
+                    update(1.0f/60.0f);
+                    gameHour=frame<60||frame>=180?12.0f:22.0f;
+                    cameraYaw+=.00075f;
+                    if(std::strstr(commandLine,"--screenshot")&&(frame==0||frame==59||
+                       frame==60||frame==119||frame==179||frame==180||frame==239||frame==359)){
+                        logging::write(("Exposure preview capture frame "+std::to_string(frame)).c_str());
+                        input::windowProc(win,WM_KEYDOWN,VK_F11,0);
+                    }
+                    render();
+                }
             }else if(commandLine&&(std::strstr(commandLine,"--temporal-preview")||
                              std::strstr(commandLine,"--skin-motion-preview"))){
                 for(int frame=0;frame<60;++frame){

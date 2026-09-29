@@ -329,7 +329,13 @@ void loadMeshes(const std::wstring& folder){
         "vehicles/sedan","vehicles/sports-car","vehicles/motorboat",
         "vehicles/traffic-1","vehicles/traffic-2","vehicles/traffic-3",
         "vehicles/traffic-4","vehicles/traffic-5",
-        "weapons/pistol","weapons/ak","weapons/lightning"
+        "weapons/pistol","weapons/ak","weapons/lightning",
+        "modern/coastal-office","modern/terrace-apartments",
+        "modern/aurora-sedan","modern/aurora-coupe",
+        "modern/aurora-sedan-glass","modern/aurora-coupe-glass",
+        "modern/compact-pistol","modern/carbine","modern/street-lamp",
+        "modern/twin-lamp","modern/bench","modern/bin","modern/bollard",
+        "modern/bike-rack","modern/planter","modern/hydrant"
     };
     std::vector<std::string> names(std::begin(fixedNames),std::end(fixedNames));
     struct Catalog {std::string base;std::array<std::string,4> names;std::array<float,4> minPixels;};
@@ -471,6 +477,18 @@ void loadMeshes(const std::wstring& folder){
                    range.alphaCutoff>1){
                     invalidMaterial=true;break;
                 }
+                std::string extension;
+                if(fields>>extension){
+                    if(extension!="SURFACE1"||
+                       !(fields>>range.clearcoat>>range.clearcoatRoughness>>range.glassIor)||
+                       !std::isfinite(range.clearcoat)||!std::isfinite(range.clearcoatRoughness)||
+                       !std::isfinite(range.glassIor)||range.clearcoat<0||range.clearcoat>1||
+                       range.clearcoatRoughness<0||range.clearcoatRoughness>1||
+                       (range.glassIor!=0&&(range.glassIor<1||range.glassIor>2.5f))||
+                       (fields>>extension)){
+                        invalidMaterial=true;break;
+                    }
+                }
             }
             result.materialRanges.push_back(std::move(range));
         }
@@ -483,6 +501,8 @@ void loadMeshes(const std::wstring& folder){
                 result.textured=true;
             }
         }
+        result.wrapTextures=path.rfind("modern/",0)==0;
+        result.allowTessellation=!result.wrapTextures;
         result.alphaTest=(path.rfind("nature/tree_",0)==0||
                           path.rfind("nature/bush_",0)==0)&&result.textured;
         result.temporalStable=path.rfind("characters/",0)!=0&&
@@ -515,6 +535,25 @@ void loadMeshes(const std::wstring& folder){
             }
         }
         meshes.emplace(path,std::move(result));
+    }
+    // Authored car glazing shares the body's transform and bounds. Retain its
+    // PBR sections; the legacy .glass triangle splitter cannot preserve them.
+    for(const char* car:{"aurora-sedan","aurora-coupe"}){
+        auto body=meshes.find(std::string("modern/")+car);
+        auto glass=meshes.find(std::string("modern/")+car+"-glass");
+        if(body==meshes.end()||glass==meshes.end())continue;
+        auto& b=body->second;auto& g=glass->second;
+        g.minX=b.minX;g.maxX=b.maxX;g.minY=b.minY;g.maxY=b.maxY;
+        g.minZ=b.minZ;g.maxZ=b.maxZ;g.transparent=true;g.castsShadow=false;
+        g.temporalStable=false;b.temporalStable=false;
+        for(int level=1;level<4;++level){
+            auto lod=meshes.find(std::string("modern/")+car+"-lod"+std::to_string(level));
+            if(lod!=meshes.end())lod->second.temporalStable=false;
+        }
+    }
+    for(const char* gun:{"compact-pistol","carbine"}){
+        auto found=meshes.find(std::string("modern/")+gun);
+        if(found!=meshes.end())found->second.temporalStable=false;
     }
     // Baked LODs use the detailed mesh's own atlas.
     for(const std::string& key:names){
@@ -661,7 +700,8 @@ std::vector<const Mesh*> regionalMeshes(){
     for(const auto& entry:meshes){
         const std::string& name=entry.first;
         if(name.rfind("nature/",0)==0||name.rfind("buildings/urban-",0)==0||
-           name.rfind("marina/",0)==0||name.rfind("animals/",0)==0||name.rfind("birds/",0)==0)
+           name.rfind("marina/",0)==0||name.rfind("modern/",0)==0||
+           name.rfind("animals/",0)==0||name.rfind("birds/",0)==0)
             result.push_back(&entry.second);
     }
     return result;

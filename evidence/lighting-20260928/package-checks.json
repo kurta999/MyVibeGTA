@@ -1,0 +1,11 @@
+{
+  "package": "MiniCity3D-modern-lighting-20260928-final.zip",
+  "bytes": 268444616,
+  "entries": 817,
+  "sha256": "c2688d9fd32762f1f2f0758840f48a0dc866daf9f8fe82d932a0b5a521cb20c7",
+  "executable_sha256": "4aeeb07a3ff6251a83732f86bd728d20235547d2b3a5711341fc58107d650d2e",
+  "crc_check": "passed",
+  "raw_model_sources": "excluded",
+  "probe_hash": "matched",
+  "package_smoke_runs": 11
+}

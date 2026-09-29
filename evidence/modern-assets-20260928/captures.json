@@ -1,0 +1,53 @@
+{
+  "ExecutableSha256": "D003FA0C6DBF8C8B97217625D5A093E776DF11CC5773915012348B966A592142",
+  "Scenes": [
+    {
+      "Arguments": "--smoke --1080p --screenshot --day",
+      "Name": "dx11-day",
+      "ExitCode": 0,
+      "ScreenshotSha256": "7CFC865255B4E674B031E9F5CA4905FE6CA89B3C54004E7281EB33E7C7AE0C2F"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --day --modern-street-preview",
+      "Name": "dx11-street",
+      "ExitCode": 0,
+      "ScreenshotSha256": "7061135B0BDC1EAD4A6608F7124C117E81E2289A3FC6CFF68329EB1344E9727E"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --night --modern-street-preview --high-shadows",
+      "Name": "dx11-night",
+      "ExitCode": 0,
+      "ScreenshotSha256": "3FBBFD6F28553BEC20337B4E3C0C56972B1500BD1DC803E72207A1AD895B3149"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --day --driver-preview --modern-car-preview",
+      "Name": "dx11-car",
+      "ExitCode": 0,
+      "ScreenshotSha256": "9FE2C415DA17229476249DFFB2E75938D5E9F90876BEEEA009C51C4EC8D5F259"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --day --driver-preview --modern-coupe-preview",
+      "Name": "dx11-coupe",
+      "ExitCode": 0,
+      "ScreenshotSha256": "B2EA0FD1B3FB90DC2FAD1A88580B58863949C02155E0A6CBDB23D86E670E88DB"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --night --marina",
+      "Name": "dx11-marina",
+      "ExitCode": 0,
+      "ScreenshotSha256": "91BD08EFD356DAFDB2B1AFD95A722FCC2C497DEF9F637CADEE541EF8DB048812"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --day --weapon-preview",
+      "Name": "dx11-pistol",
+      "ExitCode": 0,
+      "ScreenshotSha256": "848BDD54772D58C5471C2F8E2E5E004D8E3A2F939B8693076998DD78184F5404"
+    },
+    {
+      "Arguments": "--smoke --1080p --screenshot --day --weapon-preview --rifle-preview",
+      "Name": "dx11-carbine",
+      "ExitCode": 0,
+      "ScreenshotSha256": "4989679CCFBA6E030C78C76D6A9F03E79C7E9D2937A25EA65C76A92EEB488AB9"
+    }
+  ]
+}

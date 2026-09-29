@@ -1,0 +1,719 @@
+{
+  "schema": 1,
+  "authoring": "Original project procedural geometry and textures; no external source assets",
+  "generator": "tools/build_modern_assets.py",
+  "units": "metres; Y up; +Z front",
+  "runtime": "indexed M3D2 with per-section PBR; static geometry",
+  "limitations": [
+    "Car wheels and doors are static in this slice",
+    "Glass uses blended raster approximation",
+    "No interior-parallax or refractive transmission shader is claimed",
+    "No new gameplay collision shapes for decorative street props"
+  ],
+  "assets": [
+    {
+      "name": "modern/coastal-office",
+      "triangles": 7148,
+      "vertices": 13816,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "polymer",
+        "glass",
+        "bronze",
+        "silver"
+      ],
+      "bounds": [
+        [
+          -11.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          11.0,
+          33.20000076293945,
+          9.0
+        ]
+      ],
+      "sha256": "426da333b0959c98131761231d366c928e0613d1b7ffb3984854df42db54d752"
+    },
+    {
+      "name": "modern/coastal-office-lod1",
+      "triangles": 4916,
+      "vertices": 9352,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "polymer",
+        "glass",
+        "bronze",
+        "silver"
+      ],
+      "bounds": [
+        [
+          -11.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          11.0,
+          33.20000076293945,
+          9.0
+        ]
+      ],
+      "sha256": "1fc6e5c19cc7505a9b5f53c2913a561a75b338a5f57bc629be3cd3cd74e49c6f"
+    },
+    {
+      "name": "modern/coastal-office-lod2",
+      "triangles": 744,
+      "vertices": 1488,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "glass",
+        "bronze"
+      ],
+      "bounds": [
+        [
+          -11.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          11.0,
+          33.20000076293945,
+          9.0
+        ]
+      ],
+      "sha256": "83aa0dae0a9765f71226e501e75649bd207309cbd6b621b92e6a465927e1c9bd"
+    },
+    {
+      "name": "modern/coastal-office-lod3",
+      "triangles": 264,
+      "vertices": 528,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "glass",
+        "bronze"
+      ],
+      "bounds": [
+        [
+          -11.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          11.0,
+          33.20000076293945,
+          9.0
+        ]
+      ],
+      "sha256": "42146f7daaad20d3380bfb0f2b06ba674b8207b8e9701217ba057172d174de2a"
+    },
+    {
+      "name": "modern/terrace-apartments",
+      "triangles": 6636,
+      "vertices": 11800,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "polymer",
+        "glass",
+        "silver",
+        "bronze"
+      ],
+      "bounds": [
+        [
+          -12.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          12.0,
+          25.200000762939453,
+          9.0
+        ]
+      ],
+      "sha256": "77a8cb210277781ccf0469cfb1d7c23784fa42e442dabfef9ea0cb79145c7f10"
+    },
+    {
+      "name": "modern/terrace-apartments-lod1",
+      "triangles": 5220,
+      "vertices": 9448,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "polymer",
+        "glass",
+        "silver",
+        "bronze"
+      ],
+      "bounds": [
+        [
+          -12.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          12.0,
+          25.200000762939453,
+          9.0
+        ]
+      ],
+      "sha256": "717070e0676244935d801123a333d33eb099f9c40c4d023bfe9ae0882c2f5d90"
+    },
+    {
+      "name": "modern/terrace-apartments-lod2",
+      "triangles": 2152,
+      "vertices": 3664,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "glass"
+      ],
+      "bounds": [
+        [
+          -12.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          12.0,
+          25.200000762939453,
+          9.0
+        ]
+      ],
+      "sha256": "e4d9a3c96f2e51bd409da6327fc58e9ac4c368757e492684f1a36b4aa0e8964b"
+    },
+    {
+      "name": "modern/terrace-apartments-lod3",
+      "triangles": 216,
+      "vertices": 432,
+      "materials": [
+        "stone",
+        "concrete",
+        "metal",
+        "glass"
+      ],
+      "bounds": [
+        [
+          -12.0,
+          0.0,
+          -9.15999984741211
+        ],
+        [
+          12.0,
+          25.200000762939453,
+          9.0
+        ]
+      ],
+      "sha256": "cc24b8856250beb552427ea009008c5897656275b412d10a000f77cf290ba914"
+    },
+    {
+      "name": "modern/aurora-sedan-glass",
+      "triangles": 12,
+      "vertices": 24,
+      "materials": [
+        "car_glass"
+      ],
+      "bounds": [
+        [
+          -0.7409999966621399,
+          0.9800000190734863,
+          -1.440000057220459
+        ],
+        [
+          0.7409999966621399,
+          1.4800000190734863,
+          0.9700000286102295
+        ]
+      ],
+      "sha256": "9d849150bff2fa096b0b94f907851b27d7e870d794ac7cf00927ab3486810c12"
+    },
+    {
+      "name": "modern/aurora-sedan",
+      "triangles": 8920,
+      "vertices": 9830,
+      "materials": [
+        "blue_paint",
+        "metal",
+        "silver",
+        "polymer",
+        "rubber",
+        "gunmetal",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.5199999809265137,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "decd055b4e2dbb6c828eb6801cc42ab642e38372fe285b5420f1f0a2c7f63bdd"
+    },
+    {
+      "name": "modern/aurora-sedan-lod1",
+      "triangles": 4960,
+      "vertices": 5662,
+      "materials": [
+        "blue_paint",
+        "metal",
+        "silver",
+        "rubber",
+        "gunmetal",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.5199999809265137,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "9dbdf9ae55d938ced6811bbdba416eeb4c5a658a3a50b68fa04fc5a92ae6f6ce"
+    },
+    {
+      "name": "modern/aurora-sedan-lod2",
+      "triangles": 2096,
+      "vertices": 2914,
+      "materials": [
+        "blue_paint",
+        "metal",
+        "rubber",
+        "gunmetal",
+        "silver",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.5199999809265137,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "f6ac02612d6cfccac84a5779d298c882e08a44b637230b9e71fa46bea7ff7bb5"
+    },
+    {
+      "name": "modern/aurora-sedan-lod3",
+      "triangles": 1456,
+      "vertices": 2226,
+      "materials": [
+        "blue_paint",
+        "metal",
+        "rubber",
+        "gunmetal",
+        "silver",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.5199999809265137,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "9f9a7a63c5c9b632083b7f6970ee9ffa4b8bc22e2c663cd3cbf966b7769dd64a"
+    },
+    {
+      "name": "modern/aurora-coupe-glass",
+      "triangles": 12,
+      "vertices": 24,
+      "materials": [
+        "car_glass"
+      ],
+      "bounds": [
+        [
+          -0.7409999966621399,
+          0.9800000190734863,
+          -1.440000057220459
+        ],
+        [
+          0.7409999966621399,
+          1.3300000429153442,
+          0.9700000286102295
+        ]
+      ],
+      "sha256": "15942de3a6bf9e5d5d29992abe995f59b506de5068916190c39398f43288e9ee"
+    },
+    {
+      "name": "modern/aurora-coupe",
+      "triangles": 8920,
+      "vertices": 9830,
+      "materials": [
+        "pearl_paint",
+        "metal",
+        "silver",
+        "polymer",
+        "rubber",
+        "gunmetal",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.3700000047683716,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "f7476e52265c919420336806dc7d39615c4cdd066b153f83bd690a0695880b6b"
+    },
+    {
+      "name": "modern/aurora-coupe-lod1",
+      "triangles": 4960,
+      "vertices": 5662,
+      "materials": [
+        "pearl_paint",
+        "metal",
+        "silver",
+        "rubber",
+        "gunmetal",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.3700000047683716,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "d7c93de5567d6e7b5e1391f0666bf9b71a7a8bc558b4241d35dd0c72bd559719"
+    },
+    {
+      "name": "modern/aurora-coupe-lod2",
+      "triangles": 2096,
+      "vertices": 2914,
+      "materials": [
+        "pearl_paint",
+        "metal",
+        "rubber",
+        "gunmetal",
+        "silver",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.3700000047683716,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "1b4dd6aff28e0beeccafecff82945045040d97ce44cad7994fbec50d9dc89b13"
+    },
+    {
+      "name": "modern/aurora-coupe-lod3",
+      "triangles": 1456,
+      "vertices": 2226,
+      "materials": [
+        "pearl_paint",
+        "metal",
+        "rubber",
+        "gunmetal",
+        "silver",
+        "polymer",
+        "white_lens",
+        "red_lens"
+      ],
+      "bounds": [
+        [
+          -1.1100000143051147,
+          0.0010000000474974513,
+          -2.441999912261963
+        ],
+        [
+          1.1100000143051147,
+          1.3700000047683716,
+          2.4130001068115234
+        ]
+      ],
+      "sha256": "18b5799b185d65d4f08cac32f5421954cbc819d4319a168001838c4e2bb23313"
+    },
+    {
+      "name": "modern/compact-pistol",
+      "triangles": 800,
+      "vertices": 1340,
+      "materials": [
+        "gunmetal",
+        "polymer",
+        "metal",
+        "rubber"
+      ],
+      "bounds": [
+        [
+          -0.03099999949336052,
+          -0.054999999701976776,
+          -0.10000000149011612
+        ],
+        [
+          0.03099999949336052,
+          0.12999999523162842,
+          0.1459999978542328
+        ]
+      ],
+      "sha256": "bc210c5b8d16a8815d91e95611ab6a1397d193dfdb80a1dd54ea73ede40c0e35"
+    },
+    {
+      "name": "modern/carbine",
+      "triangles": 872,
+      "vertices": 1524,
+      "materials": [
+        "gunmetal",
+        "metal",
+        "polymer",
+        "rubber",
+        "glass"
+      ],
+      "bounds": [
+        [
+          -0.04500000178813934,
+          -0.014999999664723873,
+          -0.5
+        ],
+        [
+          0.04500000178813934,
+          0.31700000166893005,
+          0.6899999976158142
+        ]
+      ],
+      "sha256": "57d511cd6ac0c1b5f4a8919c2800c43e76f631911ef9f0533b5d36cefd11d545"
+    },
+    {
+      "name": "modern/street-lamp",
+      "triangles": 432,
+      "vertices": 664,
+      "materials": [
+        "metal",
+        "white_lens",
+        "polymer",
+        "silver"
+      ],
+      "bounds": [
+        [
+          -1.6100000143051147,
+          0.0,
+          -0.23000000417232513
+        ],
+        [
+          0.18000000715255737,
+          4.71999979019165,
+          0.23000000417232513
+        ]
+      ],
+      "sha256": "92d6dd4350e21b09329cff16f834d74704d87547f6ae7cb7e42de491c32043f1"
+    },
+    {
+      "name": "modern/twin-lamp",
+      "triangles": 652,
+      "vertices": 1040,
+      "materials": [
+        "metal",
+        "white_lens",
+        "polymer",
+        "silver"
+      ],
+      "bounds": [
+        [
+          -1.6100000143051147,
+          0.0,
+          -0.23000000417232513
+        ],
+        [
+          1.6100000143051147,
+          4.71999979019165,
+          0.23000000417232513
+        ]
+      ],
+      "sha256": "cbaf5191342015b578f49d7cf74f72f1538dba2ff08247b8aa7047a0714d433f"
+    },
+    {
+      "name": "modern/bench",
+      "triangles": 376,
+      "vertices": 592,
+      "materials": [
+        "metal",
+        "wood"
+      ],
+      "bounds": [
+        [
+          -0.8999999761581421,
+          0.0,
+          -0.30300000309944153
+        ],
+        [
+          0.8999999761581421,
+          0.8286828994750977,
+          0.3918372094631195
+        ]
+      ],
+      "sha256": "bc273476f4436cb2286a8116acae30454fc3bbf12b9cba76ea50e38ad7f8ca06"
+    },
+    {
+      "name": "modern/bin",
+      "triangles": 804,
+      "vertices": 1099,
+      "materials": [
+        "metal",
+        "silver",
+        "rubber"
+      ],
+      "bounds": [
+        [
+          -0.29499998688697815,
+          0.05000000074505806,
+          -0.29499998688697815
+        ],
+        [
+          0.29499998688697815,
+          0.949999988079071,
+          0.29499998688697815
+        ]
+      ],
+      "sha256": "c216e4cfb674eaba9693396eae28121c8831de12507faac7eacc62971e09e283"
+    },
+    {
+      "name": "modern/bollard",
+      "triangles": 240,
+      "vertices": 280,
+      "materials": [
+        "metal",
+        "amber",
+        "silver"
+      ],
+      "bounds": [
+        [
+          -0.11999999731779099,
+          0.0,
+          -0.11999999731779099
+        ],
+        [
+          0.11999999731779099,
+          0.8149999976158142,
+          0.11999999731779099
+        ]
+      ],
+      "sha256": "0b73142d71f185f77b97b65186bce6462ae81356c14eedd09fb8baf6a290354d"
+    },
+    {
+      "name": "modern/bike-rack",
+      "triangles": 1080,
+      "vertices": 1419,
+      "materials": [
+        "silver"
+      ],
+      "bounds": [
+        [
+          -0.8266295790672302,
+          0.0,
+          -0.02800000086426735
+        ],
+        [
+          0.8266295790672302,
+          0.8961179256439209,
+          0.02800000086426735
+        ]
+      ],
+      "sha256": "ea7248693e945f55bc283e9ba4c7c7cfea89dcbb0f269303d49036e26374836f"
+    },
+    {
+      "name": "modern/planter",
+      "triangles": 336,
+      "vertices": 568,
+      "materials": [
+        "stone",
+        "rubber",
+        "foliage"
+      ],
+      "bounds": [
+        [
+          -0.6299999952316284,
+          0.0,
+          -0.2800000011920929
+        ],
+        [
+          0.621999979019165,
+          0.890411913394928,
+          0.2800000011920929
+        ]
+      ],
+      "sha256": "6350ff38f266b4a62f04ca0fde265aca20a9d133d2394b0e8ce0d3487dc2dc79"
+    },
+    {
+      "name": "modern/hydrant",
+      "triangles": 340,
+      "vertices": 424,
+      "materials": [
+        "hydrant",
+        "silver",
+        "metal"
+      ],
+      "bounds": [
+        [
+          -0.2669999897480011,
+          0.0,
+          -0.18000000715255737
+        ],
+        [
+          0.2669999897480011,
+          0.7400000095367432,
+          0.17000000178813934
+        ]
+      ],
+      "sha256": "95afa262a6ded3226d25493e0643b28e85068350fbfe8f8f759924fab7b87b58"
+    }
+  ]
+}

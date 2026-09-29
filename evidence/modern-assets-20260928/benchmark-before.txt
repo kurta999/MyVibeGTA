@@ -1,0 +1,12 @@
+2026-9-28 10:32:9  Startup: Loading saved progress took 0.000 s
+2026-9-28 10:32:9  Startup: Preparing the first frame
+2026-9-28 10:32:9  GPU skinning: 9 ordinary poses, 136320 vertices; shared color/shadow buffer
+2026-9-28 10:32:14  Benchmark 1920x1080: avg 37.75 ms (sim 2.17, physics 1.04, render 35.58), p95 43.53 ms, p99 50.60 ms, max 71.47 ms, draws 679, active AI 50 over 120 frames, 0 flames, RAM 703 MiB, nearby trees 6/8483, decorations 0/6574
+2026-9-28 10:32:14  GPU timing: shadow 14.38 ms, scene 13.54 ms, post/HUD 4.69 ms (118 nonblocking samples); submitted triangles 4619513/frame
+2026-9-28 10:32:14  CPU scene work: deformation 12.053 ms (272640 vertices/frame), grass rebuild 0.001 ms, 18.01 parallel batches/frame
+2026-9-28 10:32:14  CPU rendering: scene 16.236 ms, upload/cull 8.291 ms, draw/HUD 10.657 ms, present 0.394 ms (seed 1)
+2026-9-28 10:32:14  Startup: Preparing the first frame took 4.591 s
+2026-9-28 10:32:14  Startup: Ready
+2026-9-28 10:32:14  Startup ready in 14.117 s
+2026-9-28 10:32:14  Smoke render completed
+2026-9-28 10:32:14  Application stopped
