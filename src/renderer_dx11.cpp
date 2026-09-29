@@ -735,7 +735,8 @@ float3 specularProbe(float3 world,float3 ray,float roughness){
     return result*probeInfo.y;
 }
 )HLSL";
-const char* sceneShader=R"HLSL(
+// Keep each source literal below the Visual Studio 2022 compiler's size limit.
+const char* sceneShaderPrelude=R"HLSL(
 cbuffer Scene : register(b0){
     row_major float4x4 viewProjection;
     row_major float4x4 shadowViewProjection[3];
@@ -962,7 +963,8 @@ float3 coatedDirect(float3 n,float3 coatNormal,float3 v,float3 l,
     }
     return value;
 }
-SceneOutput PS(Output input){
+)HLSL";
+const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
     SceneOutput output;
     output.indirect=float4(0,0,0,0);output.reflectionResponse=0;
     output.motion=0;
@@ -1592,7 +1594,8 @@ float4 PS(Input input):SV_TARGET{
 )HLSL";
 unsigned loadingWorkers();
 bool createShaders(){
-    const std::string sceneSource=std::string(probeShader)+sceneShader;
+    const std::string sceneSource=std::string(probeShader)+
+        sceneShaderPrelude+sceneShaderPixel;
     const std::string reflectionSource=std::string(probeShader)+reflectionShader;
     std::vector<dx11::shader::Request> requests={
         {sceneSource,"VSSkinned","vs_5_0"},{sceneSource,"VS","vs_5_0"},
