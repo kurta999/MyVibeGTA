@@ -7,6 +7,7 @@
 #include "fire.h"
 #include "commerce.h"
 #include "weapons.h"
+#include "grapple.h"
 #include "traversal.h"
 #include "weather.h"
 #include "regions.h"
@@ -1014,6 +1015,18 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
         }
         if(meleeHeld){
             const std::string& id=weapons::stats(game::weapon).id;
+            if(id=="shovel"){
+                float swing=game::meleeVisualTime>0?
+                    std::sin((1-game::meleeVisualTime/0.4f)*game::PI):0;
+                Vec3 axis{f.x*std::cos(0.8f-swing*1.6f),std::sin(0.8f-swing*1.6f),
+                    f.z*std::cos(0.8f-swing*1.6f)};
+                Vec3 blade=hand+axis*36;
+                beam(hand,blade,2.1f,2.1f,game::rgb(153,111,63));
+                beam(blade,blade+axis*10,9,2.5f,game::rgb(168,185,194));
+                beam(hand-axis*4+Vec3{-r.x*4,0,-r.z*4},
+                     hand-axis*4+Vec3{r.x*4,0,r.z*4},1.8f,1.8f,game::rgb(65,72,76));
+                return;
+            }
             float reach=id=="katana"?32:id=="knife"?14:id=="machete"?25:
                 id=="bat"?30:id=="rolling-pin"?20:18;
             float thickness=id=="katana"||id=="knife"?1.5f:id=="machete"?2.8f:4.0f;
@@ -1027,6 +1040,23 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
             camera::weaponMuzzle(p,height,angle,target):
             Vec3{p.x+f.x*12,height+18,p.z+f.z*12};
         const std::string& weaponId=weapons::stats(playerControlled?game::weapon:0).id;
+        if(weaponId=="minigun"){
+            Vec3 axis=game::norm(muzzle-hand),side{-f.z,0,f.x};
+            Vec3 up=game::norm(Vec3{-axis.y*f.x,std::sqrt(axis.x*axis.x+axis.z*axis.z),-axis.y*f.z});
+            beam(hand,hand+axis*10,4.5f,4.5f,game::rgb(65,70,75));
+            for(int barrel=0;barrel<6;++barrel){
+                float phase=barrel*game::PI/3+(game::leftMouse?game::worldTime*40:0);
+                Vec3 offset=side*(std::cos(phase)*2)+up*(std::sin(phase)*2);
+                beam(hand+axis*10+offset,muzzle+offset,1.0f,1.0f,game::rgb(146,154,162));
+            }
+            beam(hand+axis*5+side*5,hand+axis*12+side*5,6,5,game::rgb(61,67,72));
+            return;
+        }
+        if(weaponId=="grapple-hook"){
+            beam(hand,muzzle,5.5f,4.5f,game::rgb(55,71,78));
+            beam(muzzle,muzzle+Vec3{f.x*5,0,f.z*5},2,2,game::rgb(220,183,65));
+            return;
+        }
         const char* asset=weaponId=="pistol"||weaponId=="silenced-pistol"||weaponId=="smg"?
             "weapons/pistol":weaponId=="shotgun"||weaponId=="sniper"?
             "weapons/lightning":weaponId=="rifle"?"weapons/ak":nullptr;
@@ -1315,6 +1345,20 @@ void vehicles(){
             if(game::vehicleLightsOn(v))
                 glowBox({front.x,front.y+8,front.z},{4,4,2},yaw,
                     game::rgb(255,239,189));
+        }else if(v.kind==game::Kind::Helicopter){
+            model("vehicles/helicopter",{v.p.x,v.rideHeight,v.p.z},{26.5f,30.5f,81.5f},yaw);
+            Vec2 mast=v.p+facing*18;
+            model("vehicles/helicopter-rotor",{mast.x,v.rideHeight+28.7f,mast.z},
+                {113.5f,0.5f,33.7f},yaw+v.rotorAngle);
+            Vec2 tail=v.p-facing*36;
+            Vec2 side{-facing.z,facing.x};
+            Vec3 hub{tail.x+side.x*9,v.rideHeight+26,tail.z+side.z*9};
+            for(int blade=0;blade<4;++blade){
+                float angle=v.rotorAngle*1.8f+blade*game::PI/2;
+                beam(hub,hub+Vec3{facing.x*std::cos(angle)*9,std::sin(angle)*9,
+                    facing.z*std::cos(angle)*9},1.2f,1.2f,game::rgb(51,55,59));
+            }
+            driver(v.p+facing*22,3,{10,18,10},false);
         }else{
             model("vehicles/motorboat",{v.p.x,v.rideHeight-2,v.p.z},{24,22,48},yaw);
             driver(v.p-facing*6,1,{13,30,13},false);
@@ -1546,6 +1590,11 @@ struct EffectHandler {
     }
 };
 void effects(){
+    if(grapple::active()){
+        Vec3 hand{game::player.x,game::playerY+25,game::player.z};
+        beam(hand,grapple::hook(),0.65f,0.65f,game::rgb(226,212,151));
+        sphere(grapple::hook(),2.5f,game::rgb(241,182,63));
+    }
     EffectHandler handler;
     const auto& conditions=weather::current();
     if(conditions.precipitation>0){

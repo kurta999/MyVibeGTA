@@ -26,6 +26,7 @@ struct Stats {
     bool melee=false;
     bool arrow=false;
     bool dualWieldAllowed=false;
+    bool grapple=false;
 };
 bool load(const char* path=nullptr);
 const Stats& stats(int index);

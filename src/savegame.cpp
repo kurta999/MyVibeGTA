@@ -71,51 +71,7 @@ std::string readText(const std::string& section,const char* key,const std::strin
     GetPrivateProfileStringA(section.c_str(),key,"",value,sizeof(value),file.c_str());
     return value;
 }
-template<class Target> bool saveCorpsePose(const std::string& section,const game::CorpseSnapshot& pose,
-    Target& file){
-    char value[256]{};
-    const auto& first=pose.parts[0];
-    std::snprintf(value,sizeof(value),"%.3f,%.3f,%.3f,%.6f,%d",
-        first.origin.x,first.origin.y,first.origin.z,first.yaw,first.style);
-    bool ok=writeText(section,"PoseMeta",value,file);
-    for(int i=0;i<6;++i){
-        const auto& part=pose.parts[i];
-        std::snprintf(value,sizeof(value),"%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.6f,%.6f,%.6f,%.6f",
-            part.p.x,part.p.y,part.p.z,part.rest.x,part.rest.y,part.rest.z,
-            part.qx,part.qy,part.qz,part.qw);
-        std::string key="Pose"+std::to_string(i);
-        ok&=writeText(section,key.c_str(),value,file);
-    }
-    return ok;
-}
-bool loadCorpsePose(const std::string& section,const std::string& file,
-    game::CorpseSnapshot& pose){
-    const std::string meta=readText(section,"PoseMeta",file);
-    game::Vec3 origin{};float yaw=0;int style=0;
-    if(std::sscanf(meta.c_str(),"%f,%f,%f,%f,%d",
-        &origin.x,&origin.y,&origin.z,&yaw,&style)!=5||
-        !std::isfinite(origin.x)||!std::isfinite(origin.y)||
-        !std::isfinite(origin.z)||!std::isfinite(yaw)||
-        style<0||style>3)return false;
-    for(int i=0;i<6;++i){
-        std::string key="Pose"+std::to_string(i);
-        const std::string value=readText(section,key.c_str(),file);
-        auto& part=pose.parts[i];
-        if(std::sscanf(value.c_str(),"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
-            &part.p.x,&part.p.y,&part.p.z,&part.rest.x,&part.rest.y,
-            &part.rest.z,&part.qx,&part.qy,&part.qz,&part.qw)!=10)return false;
-        const float values[]={part.p.x,part.p.y,part.p.z,part.rest.x,
-            part.rest.y,part.rest.z,part.qx,part.qy,part.qz,part.qw};
-        for(float number:values)if(!std::isfinite(number))return false;
-        if(part.p.x<0||part.p.x>regions::WIDTH||part.p.z<0||
-            part.p.z>regions::DEPTH||part.p.y< -100||part.p.y>1000)return false;
-        float norm=part.qx*part.qx+part.qy*part.qy+
-            part.qz*part.qz+part.qw*part.qw;
-        if(norm<0.5f||norm>1.5f)return false;
-        part.origin=origin;part.yaw=yaw;part.style=style;part.part=i;
-    }
-    return true;
-}
+
 }
 #ifdef MINI_CITY_JOLT
 Document capture(){
@@ -148,28 +104,13 @@ bool save(){
     }
     for(int i=0;i<int(game::missions.size());++i)
         ok&=write("Mission."+game::missions[i].id,"Complete",game::missionDone[i]?1:0,temporary);
+    // Corpses are session effects, not persistent world state.
     for(const auto& ped:game::peds){
-        if(ped.alive&&ped.cash>0&&!ped.looted)continue;
+        if(!ped.alive||(ped.cash>0&&!ped.looted))continue;
         std::string section="Ped."+ped.id;
-        ok&=write(section,"Dead",ped.alive?0:1,temporary);
+        ok&=write(section,"Dead",0,temporary);
         ok&=write(section,"Cash",ped.cash,temporary);
         ok&=write(section,"Looted",ped.looted?1:0,temporary);
-        if(!ped.alive){
-            ok&=write(section,"Pinned",ped.pinned?1:0,temporary);
-            if(ped.pinned){
-                ok&=write(section,"PinX",int(ped.pinAnchor.x),temporary);
-                ok&=write(section,"PinZ",int(ped.pinAnchor.z),temporary);
-            }
-            ok&=write(section,"X",int(ped.p.x),temporary);
-            ok&=write(section,"Z",int(ped.p.z),temporary);
-            ok&=write(section,"Respawn",int(ped.respawn),temporary);
-            auto pose=std::find_if(game::corpseSnapshots.begin(),
-                game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& snapshot){
-                    return snapshot.pedId==ped.id;
-                });
-            if(pose!=game::corpseSnapshots.end())
-                ok&=saveCorpsePose(section,*pose,temporary);
-        }
     }
     for(const auto& house:commerce::houses)
         ok&=write("House."+house.id,"Owned",house.owned?1:0,temporary);
@@ -192,7 +133,7 @@ bool save(){
         ok&=write(section,"Destroyed",tree.destroyed?1:0,temporary);
     }
 #ifdef MINI_CITY_JOLT
-    for(const auto& animal:wildlife::animals){
+    for(const auto& animal:wildlife::animals)if(animal.health>0){
         std::string section="Animal."+animal.id;
         ok&=write(section,"Health",animal.health,temporary);
         ok&=write(section,"Looted",animal.looted?1:0,temporary);
@@ -200,7 +141,7 @@ bool save(){
         ok&=write(section,"Z",int(animal.p.z*100),temporary);
         ok&=write(section,"Angle",int(animal.angle*1000),temporary);
     }
-    for(const auto& bird:birds::flock)if(bird.health<birds::species()[bird.species].health){
+    for(const auto& bird:birds::flock)if(bird.health>0&&bird.health<birds::species()[bird.species].health){
         std::string section="Bird."+bird.id;
         ok&=write(section,"Health",bird.health,temporary);
         ok&=write(section,"X",int(bird.p.x*100),temporary);
@@ -290,7 +231,7 @@ bool load(){
             game::ammo[i]=i==0?-1:std::clamp(read(section,"Reserve",0,file),0,9999);
             game::magazine[i]=std::clamp(read(section,"Magazine",i==0?12:0,file),
                 0,weapons::stats(i).magazine);
-            if(weapons::stats(i).melee&&game::unlocked[i]){
+            if((weapons::stats(i).melee||weapons::stats(i).grapple)&&game::unlocked[i]){
                 game::ammo[i]=-1;game::magazine[i]=1;
             }
             game::armedKills[i]=std::clamp(read(section,"ArmedKills",0,file),0,100000);
@@ -310,37 +251,10 @@ bool load(){
     }
     if(version>=2)for(auto& ped:game::peds){
         std::string section="Ped."+ped.id;
-        int dead=read(section,"Dead",-1,file);
-        if(dead<0)continue;
+        // Ignore dead records from old saves too; reset supplied a living actor.
+        if(read(section,"Dead",-1,file)!=0)continue;
         ped.cash=std::clamp(read(section,"Cash",ped.cash,file),0,10000);
         ped.looted=read(section,"Looted",0,file)!=0;
-        ped.alive=dead==0;
-        ped.carried=false;ped.corpseVisualDelay=0;
-        ped.pinned=false;ped.pinAnchor={};
-        if(!ped.alive){
-            ped.p.x=float(read(section,"X",int(ped.p.x),file));
-            ped.p.z=float(read(section,"Z",int(ped.p.z),file));
-            ped.respawn=float(std::clamp(read(section,"Respawn",45,file),1,45));
-            ped.pinned=read(section,"Pinned",0,file)!=0;
-            if(ped.pinned){
-                ped.pinAnchor={float(read(section,"PinX",int(ped.p.x),file)),
-                    float(read(section,"PinZ",int(ped.p.z),file))};
-                ped.corpseVisualDelay=0;
-#ifdef MINI_CITY_JOLT
-                if(game::len(ped.p-game::player)<500){
-                    jolt_world::spawnRagdoll(ped,{0,0,0},&ped.pinAnchor);
-                    ped.corpseVisualDelay=std::min(15.0f,ped.respawn);
-                }
-#endif
-            }
-            else{
-                game::CorpseSnapshot pose{};pose.pedId=ped.id;
-                if(loadCorpsePose(section,file,pose)){
-                    game::corpseSnapshots.push_back(std::move(pose));
-                    ped.corpseVisualDelay=ped.respawn;
-                }
-            }
-        }
     }
     if(version>=2)for(auto& house:commerce::houses)
         house.owned=read("House."+house.id,"Owned",0,file)!=0;
@@ -385,6 +299,7 @@ bool load(){
     traffic::afterLoad();
     for(auto& bird:birds::flock){
         std::string section="Bird."+bird.id;
+        if(read(section,"Health",bird.health,file)<=0)continue;
         bird.health=std::clamp(read(section,"Health",bird.health,file),0,birds::species()[bird.species].health);
         game::Vec3 p{read(section,"X",int(bird.p.x*100),file)/100.0f,
             read(section,"Y",int(bird.p.y*100),file)/100.0f,
@@ -395,6 +310,7 @@ bool load(){
     }
     for(auto& animal:wildlife::animals){
         std::string section="Animal."+animal.id;
+        if(read(section,"Health",animal.health,file)<=0)continue;
         animal.health=std::clamp(read(section,"Health",animal.health,file),0,
             wildlife::species()[animal.species].health);
         animal.looted=animal.health==0&&read(section,"Looted",0,file)!=0;

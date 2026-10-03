@@ -27,6 +27,7 @@
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "grapple.h"
 #include "startup.h"
 #include "resource.h"
 #include "dx11_assets.h"
@@ -556,6 +557,37 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         ui::page=ui::Page::Graphics;
     if(smoke&&commandLine&&std::strstr(commandLine,"--crouch-preview"))
         crouched=true;
+#ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--helicopter-preview")){
+        for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==Kind::Helicopter){
+            jolt_world::teleportVehicle(i,{4500,4500},0);occupied=i;
+            player=previousPlayer=vehicles[i].p;cameraYaw=0;
+            keys[VK_SPACE]=true;
+            for(int tick=0;tick<180;++tick)update(1.0f/60);
+            keys[VK_SPACE]=false;
+            for(int tick=0;tick<90;++tick)update(1.0f/60);
+            cameraYaw=2.2f;cameraPitch=0;vehicleLookTime=30;
+            cameraMode=CameraMode::ThirdNear;previousPlayer=player;break;
+        }
+    }
+    if(smoke&&commandLine&&(std::strstr(commandLine,"--minigun-preview")||
+        std::strstr(commandLine,"--shovel-preview"))){
+        player=previousPlayer={300,250};playerY=0;cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;rightMouse=true;
+        weapon=weapons::indexOf(std::strstr(commandLine,"--shovel-preview")?"shovel":"minigun");
+        unlocked[weapon]=true;magazine[weapon]=weapons::stats(weapon).magazine;
+        if(weapons::stats(weapon).melee){shoot();meleeVisualTime=.2f;}
+        else {leftMouse=true;shoot();}
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--grapple-preview")){
+        player=previousPlayer={300,250};playerY=0;cameraYaw=.5f;cameraPitch=.45f;
+        jolt_world::teleportCharacter(player,0);rightMouse=leftMouse=true;
+        weapon=weapons::indexOf("grapple-hook");unlocked[weapon]=true;
+        shoot();for(int tick=0;tick<24;++tick)update(1.0f/60);
+        previousPlayer=player;
+        logging::write(grapple::active()?"Grapple smoke: attached":"Grapple smoke: missed");
+    }
+#endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot")
 #ifdef MINI_CITY_JOLT
        &&!std::strstr(commandLine,"--temporal-preview")

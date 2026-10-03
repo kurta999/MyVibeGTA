@@ -327,6 +327,7 @@ void loadMeshes(const std::wstring& folder){
         "nature/tree_palmDetailedTall","nature/tree_palmDetailedShort","nature/tree_oak",
         "nature/tree_detailed","nature/plant_bushDetailed","nature/grass_large",
         "vehicles/sedan","vehicles/sports-car","vehicles/motorboat",
+        "vehicles/helicopter","vehicles/helicopter-rotor",
         "vehicles/traffic-1","vehicles/traffic-2","vehicles/traffic-3",
         "vehicles/traffic-4","vehicles/traffic-5",
         "weapons/pistol","weapons/ak","weapons/lightning",

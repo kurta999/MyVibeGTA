@@ -26,11 +26,11 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - **Rendering:** imported textured meshes, PBR material ranges, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections, and selectable FXAA/TAA.
 - **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
-- **Vehicles:** cars, sports cars, motorcycles, boats, visible occupants, headlights, contact-based crash damage, repairs, drifting, and empty-vehicle coasting.
+- **Vehicles:** cars, sports cars, motorcycles, boats, three flyable helicopters with spinning rotors, visible occupants, headlights, contact-based crash damage, repairs, drifting, and empty-vehicle coasting.
 - **Wildlife:** 15 animal species, rideable elephants and tigers, and five bird species. Animals wander, play, flee, retaliate, and hunt according to species.
-- **Gameplay:** 17 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
+- **Gameplay:** 20 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
 - **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
-- **Persistence:** saved progression, inventory, ownership, wildlife damage and loot, tree destruction, and graphics/control/audio settings.
+- **Persistence:** saved progression, inventory, ownership, living wildlife damage and position, tree destruction, and graphics/control/audio settings.
 
 ## Screenshots
 
@@ -172,6 +172,10 @@ These are the default bindings. Movement, sprint, vehicle interaction, sensitivi
 | F4 | Open the debug menu |
 | F11 | Save a PNG screenshot |
 
+Three helicopters are parked at **(170, 250)** downtown, **(1550, 1690)** near the beach, and **(2070, 1700)** near the harbor. Enter with **E**, use **W/S** for forward/reverse flight, **A/D** for yaw, **Space** to ascend, and hold **Ctrl** to descend. Releasing lift holds altitude after rotor spin-up. Landing uses the same solid-world collision and damage rules as other vehicles; exiting in the air starts a fall.
+
+The **minigun** fires 25 rounds per second with a 300-round magazine and a 3.2-second reload. The **shovel** uses the melee swing animation and does not consume ammo. The **grapple hook** aims at solid buildings or trees within 700 units: hold **LMB** to launch and reel in, use **WASD** to steer, and release **LMB** to detach with momentum. It has a half-second cooldown and eight-second attachment limit, rejects sky/ground and dynamic blockers, and releases at obstructions. It is a traversal grapple, with no object-to-object tether mode. All three are sold in shops and have pickups near the starting intersection; **Q** cycles unlocked tools, and **F4** can equip any catalog weapon. The radar and map use original pictograms for weapons, tools, shops, houses, vehicles, and missions.
+
 Shops and house menus use arrow keys, Enter, and Esc. In debug fly mode, Space/Ctrl move vertically and Shift increases speed.
 
 ### Getting started
@@ -191,9 +195,11 @@ Twenty countryside groves contain tigers, elephants, cats, dogs, pigs, cows, cap
 - Ridden animals can cross roads and stop at water, buildings, trunks, props, vehicles, and other animals. **E** dismounts into clear space. Mounted combat is disabled; loading returns the rider to the ground.
 - Tree trunks block characters and vehicles. Low-speed car impacts stop at the trunk; sufficiently hard impacts break the tree into trunk, branch, and foliage pieces that fall, collide, and settle. Breakage depends on closing speed, vehicle mass, tree scale, and tree health.
 - Tree fragments are temporary, capped physics objects. The destroyed tree remains a stump, and its destruction is saved.
-- Use weapons or explosives to hunt, **F** to loot once, and **G** to carry/drop a corpse. Wildlife damage, death, position, and loot state persist across saves. Carrying prevents firing and reloading.
+- Use weapons or explosives to hunt, **F** to loot once, and **G** to carry/drop a corpse. Living wildlife damage and position persist across saves. Dead pedestrians, animals, birds, carried bodies, ragdoll poses, and arrow pins are session-only; old save corpse records are ignored. Money and weapon progression still persist. Carrying prevents firing and reloading.
 
 Animal gait, play, attack, and corpse poses are procedural. The roe-deer model is an adapted fawn; see [animal attribution](assets/models/ANIMALS.md).
+
+To repeat the equipment visuals, run `./tools/verify_equipment.ps1` after building. It writes Direct3D captures to `evidence/equipment-20261003/`. The `equipment_scenarios` CTest checks flight at 30/60 Hz, hover/landing/airborne exits, wall collisions, minigun cadence/reload, shovel damage and poses, grapple cover/reeling/release, and corpse-free legacy save loading.
 
 ## Tests and visual previews
 

@@ -94,11 +94,11 @@ void birdScenarios(){
     b.health=0;b.p={4580,120,4500};b.velocity={};b.settled=false;birds::flock={b};
     for(int tick=0;tick<30;++tick)birds::update(0.1f);
     assert(birds::flock[0].settled&&birds::flock[0].p.y==52);
-    // Stable IDs retain kills after a real save/reset/load, including mid-fall.
+    // Corpses are transient across save/reset/load, including mid-fall.
     game::reset();auto id=birds::flock[0].id;birds::hurt(0,1000);
     assert(savegame::save()&&savegame::load());
-    assert(birds::flock[0].id==id&&birds::flock[0].health==0);
+    assert(birds::flock[0].id==id&&birds::flock[0].health>0);
     for(int tick=0;tick<300;++tick)birds::update(1.0f/60);
-    assert(birds::flock[0].settled);
+    assert(!birds::flock[0].settled);
     std::puts("Bird scenarios passed: five types, flight clearance, camera-fired moving/wing/overhead hits, shot cover, falling, persistence.");
 }

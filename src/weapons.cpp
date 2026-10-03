@@ -45,7 +45,7 @@ bool load(const char* file){
             error=data.lastError().empty()?"Invalid ["+section+"] Id":data.lastError();return false;
         }
         if(!ids.insert(item.id).second){error="Duplicate weapon Id: "+item.id;return false;}
-        if(!data.integer(section,"Magazine",item.magazine,1,200)||
+        if(!data.integer(section,"Magazine",item.magazine,1,500)||
            !data.integer(section,"ReservePickup",item.reservePickup,0,9999)||
            !data.real(section,"ReloadSeconds",item.reloadSeconds,0.1f,10.0f)||
            !data.real(section,"FireInterval",item.secondsBetweenShots,0.03f,5.0f)||
@@ -66,12 +66,13 @@ bool load(const char* file){
         if(data.has(section,"DualWieldAllowed")&&
             !data.integer(section,"DualWieldAllowed",dual,0,1))break;
         if(projectileType!="bullet"&&projectileType!="rocket"&&
-            projectileType!="melee"&&projectileType!="arrow"){
+            projectileType!="melee"&&projectileType!="arrow"&&projectileType!="grapple"){
             error="Invalid ["+section+"] ProjectileType";return false;
         }
         item.rocket=projectileType=="rocket";
         item.melee=projectileType=="melee";
         item.arrow=projectileType=="arrow";
+        item.grapple=projectileType=="grapple";
         item.silenced=silenced!=0;
         if(streamType=="none")item.streamType=0;
         else if(streamType=="flame")item.streamType=1;
@@ -81,7 +82,7 @@ bool load(const char* file){
         if(item.rocket&&item.streamType!=0){
             error="Rocket ["+section+"] cannot also be a stream";return false;
         }
-        if(item.melee&&(item.streamType!=0||driveBy!=0||item.rocket||
+        if((item.melee||item.grapple)&&(item.streamType!=0||driveBy!=0||item.rocket||
             item.explosionRadius!=0||item.explosionDamage!=0||item.pellets!=1)){
             error="Invalid melee settings in ["+section+"]";return false;
         }

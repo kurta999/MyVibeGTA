@@ -13,10 +13,13 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
 void removeRagdoll(const std::string& pedId);
 void clearRagdolls();
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt);
+void moveGrappleCharacter(game::Vec3 velocity,float dt);
+bool staticAnchor(game::Vec3 origin,game::Vec3 direction,float range,game::Vec3& point);
 void teleportCharacter(game::Vec2 position,float height);
 void movePed(std::size_t index,game::Vec2 horizontal,float dt);
 void addPed();
 void driveVehicle(std::size_t index,float throttle,float steering,float dt,bool brake=false);
+void flyHelicopter(std::size_t index,float throttle,float steering,float lift,float dt);
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle);
 void stopVehicle(std::size_t index);
 void coastVehicle(std::size_t index,float dt);

@@ -37,6 +37,12 @@
 #include <vector>
 #include <chrono>
 
+int vehicleIndex(const char* id){
+    auto found=std::find_if(game::vehicles.begin(),game::vehicles.end(),
+        [&](const game::Vehicle& v){return v.id==id;});
+    assert(found!=game::vehicles.end());return int(found-game::vehicles.begin());
+}
+
 double connectedPlayableArea(){
     constexpr int step=100;
     constexpr int columns=int(regions::WIDTH)/step;
@@ -81,7 +87,13 @@ void driverScenarios();
 void vehicleCollisionScenarios();
 void pedScenarios();
 void sceneJobScenarios();
+void equipmentScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&std::string(argv[1])=="--equipment-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        equipmentScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--save-benchmark-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());
@@ -192,7 +204,7 @@ int main(int argc,char** argv){
         weapons::indexOf("water-cannon")==8&&
         weapons::indexOf("silenced-pistol")==9&&
         weapons::indexOf("katana")==10&&weapons::indexOf("bat")==15&&
-        weapons::indexOf("bow")==16&&weapons::count()==17);
+        weapons::indexOf("bow")==16&&weapons::count()==20);
     auto duplicate=config.find("Id=smg");
     assert(duplicate!=std::string::npos);
     config.replace(duplicate,6,"Id=pistol");
@@ -286,7 +298,7 @@ int main(int argc,char** argv){
     for(int tick=0;tick<200&&game::peds[0].alive;++tick)fire::update(0.05f);
     assert(!game::peds[0].alive&&game::peds[0].burnTime==0);
     game::reset();
-    int burningCar=int(game::vehicles.size())-6;
+    int burningCar=vehicleIndex("starter-car");
     game::damageVehicle(burningCar,200);
     assert(game::vehicles[burningCar].burnTime>0&&!game::vehicles[burningCar].exploded);
     float burningCarHealth=game::vehicleHealth(burningCar);
@@ -573,7 +585,7 @@ int main(int argc,char** argv){
         jolt_world::moveCharacter({400,0},false,1.0f/60.0f);
     assert(game::player.x>8050&&!game::swimming);
     game::player={300,250};
-    int crossingCar=int(game::vehicles.size())-6;
+    int crossingCar=vehicleIndex("starter-car");
     jolt_world::teleportVehicle(crossingCar,{7540,8500},0);
     for(int tick=0;tick<360;++tick){
         jolt_world::driveVehicle(crossingCar,1,0,1.0f/60.0f);
@@ -651,7 +663,7 @@ int main(int argc,char** argv){
     assert(game::playerY>10);
     traversal::detach();
     game::reset();
-    assert(commerce::shops.size()==8&&commerce::houses.size()==14&&commerce::items.size()==26);
+    assert(commerce::shops.size()==8&&commerce::houses.size()==14&&commerce::items.size()==29);
     for(const auto& shop:commerce::shops)assert(!game::solid(shop.p,12));
     for(const auto& house:commerce::houses){
         assert(!game::solid(house.p,12));
@@ -765,11 +777,8 @@ int main(int argc,char** argv){
     for(int tick=0;tick<30;++tick)game::update(1.0f/60.0f);
     assert(game::len(game::peds[0].p-game::peds[0].pinAnchor)<30);
     assert(savegame::save()&&savegame::load());
-    assert(game::peds[0].pinned&&!game::peds[0].alive);
-    for(int tick=0;tick<2;++tick)game::update(1.0f/60.0f);
-    assert(game::ragdollParts.size()==6);
-    for(int tick=0;tick<420;++tick)game::update(1.0f/60.0f);
-    assert(game::peds[0].pinned&&game::ragdollParts.size()==6);
+    assert(!game::peds[0].pinned&&game::peds[0].alive);
+    assert(game::ragdollParts.empty()&&game::corpseSnapshots.empty());
     game::reset();game::player={5100,5100};
     game::peds[0].p={5140,5100};game::peds[0].health=100;
     game::peds[0].armor=0;game::peds[0].knockedDown=1;
@@ -976,8 +985,8 @@ int main(int argc,char** argv){
     std::string worldConfig=std::string(currentDirectory)+"\\world-test.ini";
     {std::ofstream data(worldConfig);data<<world;}
     assert(content::populate(worldConfig.c_str()));
-    assert(game::vehicles[game::vehicles.size()-6].id=="starter-car");
-    assert(game::vehicles[game::vehicles.size()-6].p.x==355);
+    assert(game::vehicles[vehicleIndex("starter-car")].id=="starter-car");
+    assert(game::vehicles[vehicleIndex("starter-car")].p.x==355);
     auto duplicateVehicle=world.find("Id=sport-car");
     assert(duplicateVehicle!=std::string::npos);
     world.replace(duplicateVehicle,12,"Id=starter-car");
@@ -1017,7 +1026,7 @@ int main(int argc,char** argv){
     game::player=game::missions[0].start;
     game::startMission();
     assert(game::activeMission==0&&game::missionStep==0);
-    int car=int(game::vehicles.size())-6;
+    int car=vehicleIndex("starter-car");
     game::occupied=car;
     for(size_t step=0;step<game::missions[0].goals.size();++step){
         game::vehicles[car].p=game::missions[0].goals[step];
@@ -1035,7 +1044,7 @@ int main(int argc,char** argv){
     game::missionDone.fill(true);game::missionDone[5]=false;
     game::player=game::missions[5].start;game::startMission();
     assert(game::activeMission==5&&game::missionStep==0);
-    car=int(game::vehicles.size())-6;game::occupied=car;
+    car=vehicleIndex("starter-car");game::occupied=car;
     game::vehicles[car].p=game::missions[5].goals[0];game::player=game::vehicles[car].p;
     game::update(1.0f/60.0f);
     assert(game::missionStep==1);
@@ -1044,7 +1053,7 @@ int main(int argc,char** argv){
     game::bullets.push_back({{beachTarget.x,20,beachTarget.z-20},{0,0,1200},1,12,0});
     game::update(1.0f/60.0f);
     assert(game::missionStep==2);
-    int boat=int(game::vehicles.size())-1;game::occupied=boat;
+    int boat=vehicleIndex("harbor-boat-east");game::occupied=boat;
     game::vehicles[boat].p=game::missions[5].goals[2];game::player=game::vehicles[boat].p;
     game::update(1.0f/60.0f);
     assert(game::activeMission==-1&&game::missionDone[5]);
@@ -1066,9 +1075,9 @@ int main(int argc,char** argv){
                 int vehicle=definition.kind==game::MissionKind::Collect?-1:
                     definition.kind==game::MissionKind::Boat||
                     (definition.kind==game::MissionKind::Finale&&goal==2)?
-                    int(game::vehicles.size())-1:
+                    vehicleIndex("harbor-boat-east"):
                     definition.kind==game::MissionKind::Bike?
-                    int(game::vehicles.size())-4:int(game::vehicles.size())-6;
+                    vehicleIndex("starter-bike"):vehicleIndex("starter-car");
                 game::occupied=vehicle;
                 if(vehicle>=0)game::vehicles[vehicle].p=definition.goals[goal];
                 game::player=definition.goals[goal];
@@ -1133,7 +1142,7 @@ int main(int argc,char** argv){
     game::leftMouse=false;game::rightMouse=false;game::telescopeActive=false;
     game::scopeBlend=0;
     game::reset();game::buildings.clear();game::peds.clear();game::props.clear();
-    int damagedCar=int(game::vehicles.size())-6;
+    int damagedCar=vehicleIndex("starter-car");
     const auto carStart=game::vehicles[damagedCar].p;
     game::bullets.push_back({{carStart.x-35,20,carStart.z},{1200,0,0},1,52,0});
     game::update(1.0f/60.0f);
@@ -1150,11 +1159,11 @@ int main(int argc,char** argv){
     assert(!game::repairVehicle(damagedCar));
     assert(savegame::save());
     assert(savegame::load());
-    int savedCar=int(game::vehicles.size())-6;
+    int savedCar=vehicleIndex("starter-car");
     assert(game::vehicles[savedCar].exploded&&game::repairKits==0);
     game::reset();
     game::buildings.clear();game::peds.clear();game::props.clear();
-    int rocketCar=int(game::vehicles.size())-6;
+    int rocketCar=vehicleIndex("starter-car");
     game::weapon=weapons::indexOf("rpg");game::unlocked[game::weapon]=true;
     game::magazine[game::weapon]=1;
     game::cameraYaw=0;game::cameraPitch=0;
@@ -1254,7 +1263,7 @@ int main(int argc,char** argv){
     assert(crate.health==oldHealth-25);
 #ifdef MINI_CITY_JOLT
     game::reset();
-    int driveByCar=int(game::vehicles.size())-6;
+    int driveByCar=vehicleIndex("starter-car");
     game::occupied=driveByCar;game::player=game::vehicles[driveByCar].p;
     game::leftMouse=true;
     game::update(1.0f/60.0f);
@@ -1262,7 +1271,7 @@ int main(int argc,char** argv){
     assert(game::magazine[0]==weapons::stats(0).magazine-1);
     assert(game::lastMuzzle.y>15);
     game::reset();
-    driveByCar=int(game::vehicles.size())-6;
+    driveByCar=vehicleIndex("starter-car");
     game::occupied=driveByCar;game::player=game::vehicles[driveByCar].p;
     game::weapon=4;game::unlocked[4]=true;
     game::magazine[4]=weapons::stats(4).magazine;
@@ -1271,7 +1280,7 @@ int main(int argc,char** argv){
     game::leftMouse=false;
     assert(game::magazine[4]==weapons::stats(4).magazine);
     game::reset();
-    int drivenCar=int(game::vehicles.size())-6;
+    int drivenCar=vehicleIndex("starter-car");
     game::occupied=drivenCar;
     game::Vec2 parkedStart=game::vehicles[drivenCar].p;
     game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
@@ -1280,7 +1289,7 @@ int main(int argc,char** argv){
     assert(game::len(game::vehicles[drivenCar].p-parkedStart)>80);
     assert(jolt_world::wheelContactCount(drivenCar)>=2);
     game::reset();
-    drivenCar=int(game::vehicles.size())-6;
+    drivenCar=vehicleIndex("starter-car");
     jolt_world::teleportVehicle(drivenCar,{90,80},game::PI);
     game::occupied=drivenCar;
     game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
@@ -1305,7 +1314,7 @@ int main(int argc,char** argv){
     game::enterExit();
     assert(game::occupied==-1&&!game::solid(game::player,12));
     game::reset();
-    drivenCar=int(game::vehicles.size())-6;
+    drivenCar=vehicleIndex("starter-car");
     game::vehicles[drivenCar].p={300,400};
     game::vehicles[drivenCar].angle=game::PI/2;
     game::occupied=drivenCar;
@@ -1328,7 +1337,7 @@ int main(int argc,char** argv){
     game::keys[ui::bindings[int(ui::Action::Backward)]]=false;
     assert(std::abs(game::vehicles[drivenCar].speed)<speedBeforeBrake*0.8f);
     game::reset();
-    int drivenBike=int(game::vehicles.size())-4;
+    int drivenBike=vehicleIndex("starter-bike");
     game::occupied=drivenBike;
     game::Vec2 bikeStart=game::vehicles[drivenBike].p;
     game::keys[ui::bindings[int(ui::Action::Forward)]]=true;
@@ -1416,7 +1425,7 @@ int main(int argc,char** argv){
     assert(!game::crouched);
     input::windowProc(nullptr,WM_KEYUP,VK_CONTROL,0);
     game::reset();
-    int entryCar=int(game::vehicles.size())-6;
+    int entryCar=vehicleIndex("starter-car");
     game::player=game::vehicles[entryCar].p+game::Vec2{20,0};
     game::enterExit();
     assert(game::enteringVehicle==entryCar&&game::occupied==-1);
@@ -1448,7 +1457,7 @@ int main(int argc,char** argv){
         props::update(1.0f/60.0f);
     }
     assert(game::player.x>start.x+4.0f);
-    int boatIndex=int(game::vehicles.size())-1;
+    int boatIndex=vehicleIndex("harbor-boat-east");
     game::Vec2 boatStart=game::vehicles[boatIndex].p;
     game::vehicles[boatIndex].velocity={90,0};
     jolt_world::driveVehicle(boatIndex,0,0,1.0f/60.0f);
@@ -1478,15 +1487,11 @@ int main(int argc,char** argv){
     const auto frozen=game::corpseSnapshots[0].parts[0].p;
     assert(savegame::save());
     assert(savegame::load());
-    auto restored=std::find_if(game::corpseSnapshots.begin(),
-        game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& pose){
-            return pose.pedId==pinnedId;
-        });
-    assert(restored!=game::corpseSnapshots.end());
-    assert(std::abs(restored->parts[0].p.x-frozen.x)<0.01f);
-    assert(std::abs(restored->parts[0].p.y-frozen.y)<0.01f);
-    props::update(1.0f/60.0f);
-    assert(game::ragdollParts.size()==6);
+    assert(game::corpseSnapshots.empty()&&game::ragdollParts.empty());
+    auto restored=std::find_if(game::peds.begin(),game::peds.end(),
+        [&](const game::Ped& ped){return ped.id==pinnedId;});
+    assert(restored!=game::peds.end()&&restored->alive&&!restored->pinned);
+
 #endif
 
     game::money=1234;game::health=68;game::weapon=1;game::unlocked[1]=true;
@@ -1545,7 +1550,7 @@ int main(int argc,char** argv){
     game::money=0;game::armor=0;game::peds[0].looted=false;game::peds[0].cash=70;
     assert(savegame::load());
     assert(game::money==70&&game::armor==12);
-    assert(game::peds[0].looted&&game::peds[0].cash==0&&!game::peds[0].alive);
+    assert(!game::peds[0].looted&&game::peds[0].alive);
     game::peds.clear();game::buildings.clear();
     game::Ped victim{};
     victim.id="test-victim";victim.p={310,250};victim.angle=0;victim.cash=90;

@@ -171,7 +171,7 @@ Vec3 weaponMuzzle(Vec2 position,float height,float yaw,Vec3 target){
     if(len(direction)<0.001f)direction={facing.x,0,facing.z};
     const std::string& id=weapons::stats(weapon).id;
     float reach=id=="pistol"||id=="silenced-pistol"?10.0f:
-        id=="smg"?13.0f:18.0f;
+        id=="smg"?13.0f:id=="minigun"?34.0f:18.0f;
     return hand+direction*reach;
 }
 }

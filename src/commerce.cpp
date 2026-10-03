@@ -223,7 +223,7 @@ bool buyItem(int itemIndex){
     }
     if(item.kind==ItemKind::Weapon){
         game::unlocked[item.weapon]=true;
-        if(weapons::stats(item.weapon).melee){
+        if(weapons::stats(item.weapon).melee||weapons::stats(item.weapon).grapple){
             game::ammo[item.weapon]=-1;game::magazine[item.weapon]=1;
         }else if(game::ammo[item.weapon]>=0)
             game::ammo[item.weapon]=std::min(9999,game::ammo[item.weapon]+item.amount);

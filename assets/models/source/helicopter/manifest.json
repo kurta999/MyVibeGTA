@@ -1,0 +1,9 @@
+{
+  "title": "Helicopter",
+  "author": "Poly by Google",
+  "license": "CC-BY 3.0",
+  "page": "https://poly.pizza/m/cTzINMr0WdS",
+  "download": "https://static.poly.pizza/5b60184f-6dbc-4dd9-8f9c-98db31bc2b79.glb",
+  "sha256": "98ed6f66bef79b5b3791908236f971da7d7d0cde7f4f60d5b2e858a677d6fb09",
+  "modifications": "Source vertex colors converted from linear to sRGB; rotated toward +Z, uniform scale; source main rotor nodes 1 and 9 separated for runtime rotation. Added procedural tail rotor overlay."
+}

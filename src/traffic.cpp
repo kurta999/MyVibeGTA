@@ -87,7 +87,7 @@ bool available(int car,int who){
     if(!validCar(car)||car==occupied||car==enteringVehicle)return false;
     const auto& v=vehicles[car];
     return !v.exploded&&!v.owned&&v.burnTime<=0&&v.damage<75&&
-        v.kind!=Kind::Boat&&v.kind!=Kind::Bike&&v.driver<0&&
+        v.kind!=Kind::Boat&&v.kind!=Kind::Bike&&v.kind!=Kind::Helicopter&&v.driver<0&&
         (v.reservedBy<0||v.reservedBy==who)&&std::abs(v.speed)<8;
 }
 bool exitCar(Ped& ped){
@@ -212,7 +212,7 @@ bool canPlayerEnter(int index){
     if(!validCar(index)||health<=0||occupied>=0||enteringVehicle>=0)return false;
     const auto& v=vehicles[index];
     if(v.exploded||std::max(std::abs(v.speed),len(v.velocity))>MAX_CARJACK_SPEED||
-       len(v.p-player)>=85||std::abs(playerY)>18||!clearLine(player,v.p))return false;
+       len(v.p-player)>=85||std::abs(playerY-v.rideHeight)>18||!clearLine(player,v.p))return false;
     // Do not allow reaching through thin walls that the coarse visibility probe misses.
     Vec2 delta=v.p-player;int steps=std::max(1,int(std::ceil(len(delta)/3)));
     for(int n=1;n<steps;++n){Vec2 p=player+delta*(float(n)/steps);

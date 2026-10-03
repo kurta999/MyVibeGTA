@@ -60,6 +60,7 @@ bool kind(const std::string& v,Kind& out){
     else if(v=="sport-car")out=Kind::SportCar;
     else if(v=="bike")out=Kind::Bike;
     else if(v=="boat")out=Kind::Boat;
+    else if(v=="helicopter")out=Kind::Helicopter;
     else return false;
     return true;
 }

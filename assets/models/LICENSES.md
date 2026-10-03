@@ -1,6 +1,6 @@
 # Imported 3D assets
 
-The original city models listed below are CC0. The newer animal and bird models are CC BY 3.0; their attribution and license are listed in `ANIMALS.md` and `BIRDS.md`.
+The original city models listed below are CC0. The newer animal and bird models are CC BY 3.0; their attribution and license are listed in `ANIMALS.md`, `BIRDS.md`, and `HELICOPTER.md`.
 
 | Models | Creator and source | License |
 | --- | --- | --- |

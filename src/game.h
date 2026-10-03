@@ -62,9 +62,10 @@ struct Ped{Vec2 p,target;float speed,angle,respawn=0;bool alive=true;Color shirt
     PedNavigation navigation;
 };
 enum class TrafficState{Parked,Cruise,Yield,React,Pursue,Search};
-enum class Kind{Car,SportCar,Bike,Boat};
+enum class Kind{Car,SportCar,Bike,Boat,Helicopter};
 enum class CameraMode{FirstClose,FirstWide,ThirdNear,ThirdFar,Overview};
 struct Vehicle{Vec2 p;float angle=0,speed=0;Kind kind;Color c;
+    float verticalSpeed=0,rotorSpeed=0,rotorAngle=0,flightPitch=0;
     Vec2 velocity{};float yawRate=0,lean=0,damage=0,rideHeight=0;std::string id;
     int trafficRoute=-1;bool trafficForward=true;
     bool exploded=false;float explosionVisualTime=0,collisionCooldown=0,burnTime=0;

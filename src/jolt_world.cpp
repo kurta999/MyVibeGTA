@@ -9,6 +9,10 @@
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Constraints/DistanceConstraint.h>
 #include <Jolt/Physics/Vehicle/VehicleConstraint.h>
@@ -307,17 +311,19 @@ void reset(){
         const std::size_t vehicleIndex=vehicleBodies.size();
         const auto tuning=physics::tuning(vehicle.kind);
         bool boat=vehicle.kind==game::Kind::Boat;
+        bool helicopter=vehicle.kind==game::Kind::Helicopter;
         bool bike=vehicle.kind==game::Kind::Bike;
-        float halfW=bike?5.0f:boat?12.0f:13.0f;
-        float halfL=vehicle.kind==game::Kind::Bike?13.0f:24.0f;
-        float halfH=boat?10.0f:bike?4.0f:5.0f;
+        float halfW=helicopter?16.0f:bike?5.0f:boat?12.0f:13.0f;
+        float halfL=helicopter?30.0f:vehicle.kind==game::Kind::Bike?13.0f:24.0f;
+        float halfH=helicopter?12.0f:boat?10.0f:bike?4.0f:5.0f;
         float mass=tuning.mass;
         JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(halfW,halfH,halfL)),
-            JPH::RVec3(vehicle.p.x,boat?halfH:bike?13.0f:14.0f,vehicle.p.z),
+            JPH::RVec3(vehicle.p.x,helicopter?12.0f:boat?halfH:bike?13.0f:14.0f,vehicle.p.z),
             JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-vehicle.angle),
             JPH::EMotionType::Dynamic,Layer::moving);
         // Wheels provide ground contact; the chassis should not drag on the road.
-        settings.mFriction=0.02f;settings.mRestitution=0.04f;
+        settings.mFriction=helicopter?0.8f:0.02f;settings.mRestitution=0.04f;
+        if(helicopter)settings.mAllowedDOFs=JPH::EAllowedDOFs::TranslationX|JPH::EAllowedDOFs::TranslationY|JPH::EAllowedDOFs::TranslationZ|JPH::EAllowedDOFs::RotationY;
         settings.mMotionQuality=JPH::EMotionQuality::LinearCast;
         settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
         settings.mMassPropertiesOverride.mMass=mass;
@@ -326,7 +332,7 @@ void reset(){
         if(body)bodies.AddBody(id,JPH::EActivation::Activate);
         vehicleBodies.push_back(id);vehicleSynced.push_back(vehicle.p);
         JPH::Ref<JPH::VehicleConstraint> constraint;
-        if(body&&!boat){
+        if(body&&!boat&&!helicopter){
             JPH::VehicleConstraintSettings wheels;
             wheels.mMaxPitchRollAngle=bike?0.48f:0.62f;
             float radius=tuning.wheelRadius;
@@ -460,7 +466,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
        std::abs(float(position.GetY())-game::playerY)>45)
         playerCharacter->SetPosition(JPH::RVec3(game::player.x,game::playerY,game::player.z));
     position=playerCharacter->GetPosition();
-    bool swimming=regions::waterAt(game::player+horizontal*dt);
+    bool swimming=position.GetY()<10&&regions::waterAt(game::player+horizontal*dt);
     bool supported=playerCharacter->IsSupported();
     float vertical=playerCharacter->GetLinearVelocity().GetY();
     if(swimming)vertical=std::clamp(-float(position.GetY())*6.0f,-50.0f,50.0f);
@@ -513,6 +519,35 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     game::swimming=swimming;
     if(!swimming&&!supported&&game::grounded&&vertical<-380)
         game::applyDamage((std::abs(vertical)-380)*0.06f);
+}
+bool staticAnchor(game::Vec3 origin,game::Vec3 direction,float range,game::Vec3& point){
+    if(!world||range<=0)return false;
+    syncBuildingColliders({origin.x,origin.z});syncSceneryColliders({origin.x,origin.z});
+    JPH::RRayCast ray(JPH::RVec3(origin.x,origin.y,origin.z),
+        JPH::Vec3(direction.x*range,direction.y*range,direction.z*range));
+    JPH::RayCastResult hit;
+    if(!world->GetNarrowPhaseQuery().CastRay(ray,hit))return false;
+    JPH::BodyLockRead lock(world->GetBodyLockInterface(),hit.mBodyID);
+    if(!lock.Succeeded()||!lock.GetBody().IsStatic())return false;
+    auto position=ray.GetPointOnRay(hit.mFraction);
+    point={float(position.GetX()),float(position.GetY()),float(position.GetZ())};
+    return point.y>5; // Ground and water do not provide traversal anchors.
+}
+void moveGrappleCharacter(game::Vec3 velocity,float dt){
+    if(!world||!playerCharacter)return;
+    syncBuildingColliders(game::player);syncSceneryColliders(game::player);
+    playerCharacter->SetLinearVelocity(JPH::Vec3(velocity.x,velocity.y,velocity.z));
+    JPH::CharacterVirtual::ExtendedUpdateSettings settings;
+    settings.mWalkStairsStepUp=JPH::Vec3::sZero();
+    settings.mStickToFloorStepDown=JPH::Vec3::sZero();
+    playerCharacter->ExtendedUpdate(dt,JPH::Vec3::sZero(),settings,
+        world->GetDefaultBroadPhaseLayerFilter(Layer::moving),
+        world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
+    const auto position=playerCharacter->GetPosition();
+    game::player={float(position.GetX()),float(position.GetZ())};
+    game::playerY=std::max(0.0f,float(position.GetY()));
+    game::playerVerticalSpeed=playerCharacter->GetLinearVelocity().GetY();
+    game::grounded=playerCharacter->IsSupported();game::swimming=false;
 }
 void teleportCharacter(game::Vec2 position,float height){
     if(!playerCharacter)return;
@@ -659,6 +694,40 @@ void breakTree(std::size_t index,const SceneryImpact& impact){
     }
 }
 }
+void flyHelicopter(std::size_t index,float throttle,float steering,float lift,float dt){
+    if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
+    auto& v=game::vehicles[index];if(v.kind!=game::Kind::Helicopter)return;
+    auto& bodies=world->GetBodyInterface();auto id=vehicleBodies[index];
+    if(int(index)==game::occupied){syncBuildingColliders(v.p);syncSceneryColliders(v.p);}
+    bool powered=int(index)==game::occupied&&!v.exploded&&game::health>0;
+    float rotorTarget=powered?1.0f:0.0f;
+    v.rotorSpeed+=(rotorTarget-v.rotorSpeed)*std::min(1.0f,dt*2.5f);
+    auto current=bodies.GetLinearVelocity(id);
+    if(powered){
+        bodies.ActivateBody(id);
+        float authority=std::clamp((v.rotorSpeed-0.5f)*2,0.0f,1.0f);
+        float power=std::max(0.4f,1.0f-v.damage/140);
+        v.yawRate+=(steering*physics::tuning(v.kind).turnRate*authority-v.yawRate)*std::min(1.0f,dt*4);
+        v.angle+=v.yawRate*dt;
+        game::Vec2 facing=game::forward(v.angle);
+        float target=throttle*(throttle>=0?physics::tuning(v.kind).maxSpeed:
+            physics::tuning(v.kind).reverseSpeed)*power*authority;
+        float response=std::min(1.0f,dt*physics::tuning(v.kind).grip);
+        bodies.SetLinearVelocity(id,JPH::Vec3(
+            current.GetX()+(facing.x*target-current.GetX())*response,current.GetY(),
+            current.GetZ()+(facing.z*target-current.GetZ())*response));
+        float desired=lift*150*power;
+        if(v.rideHeight>1250)desired=std::min(desired,-50.0f);
+        float acceleration=-world->GetGravity().GetY()*authority+
+            std::clamp((desired-current.GetY())*4,-500.0f,500.0f)*authority;
+        bodies.AddForce(id,JPH::Vec3(0,physics::tuning(v.kind).mass*acceleration,0));
+        bodies.SetRotation(id,JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-v.angle),JPH::EActivation::Activate);
+        bodies.SetAngularVelocity(id,JPH::Vec3::sZero());
+    }
+    v.flightPitch+=(throttle*0.16f*(powered?1:0)-v.flightPitch)*std::min(1.0f,dt*3);
+    v.lean+=(-steering*0.2f*(powered?1:0)-v.lean)*std::min(1.0f,dt*3);
+    v.rotorAngle=std::fmod(v.rotorAngle+v.rotorSpeed*42*dt,game::PI*2);
+}
 void driveVehicle(std::size_t index,float throttle,float steering,float,bool brake){
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
     auto& vehicle=game::vehicles[index];auto& bodies=world->GetBodyInterface();
@@ -696,9 +765,10 @@ void teleportVehicle(std::size_t index,game::Vec2 position,float angle){
     auto& vehicle=game::vehicles[index];
     vehicle.p=position;vehicle.angle=angle;
     vehicle.velocity={};vehicle.speed=0;vehicle.yawRate=0;
+    vehicle.rideHeight=0;vehicle.verticalSpeed=0;
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
     auto& bodies=world->GetBodyInterface();
-    float height=vehicle.kind==game::Kind::Boat?10.0f:
+    float height=vehicle.kind==game::Kind::Helicopter?12.0f:vehicle.kind==game::Kind::Boat?10.0f:
         vehicle.kind==game::Kind::Bike?13.0f:14.0f;
     bodies.SetPosition(vehicleBodies[index],
         JPH::RVec3(position.x,height,position.z),JPH::EActivation::Activate);
@@ -727,6 +797,7 @@ void coastVehicle(std::size_t index,float dt){
     auto& vehicle=game::vehicles[index];
     auto& bodies=world->GetBodyInterface();
     if(!bodies.IsActive(vehicleBodies[index])&&game::len(vehicle.p-vehicleSynced[index])<=3)return;
+    if(vehicle.kind==game::Kind::Helicopter){flyHelicopter(index,0,0,0,dt);return;}
     if(vehicle.kind==game::Kind::Boat)physics::stepVehicle(vehicle,0,0,dt);
     // Driver inputs persist in Jolt. Release them and cut engine power, while
     // preserving chassis momentum and contacts. Gentle drag settles a rolling
@@ -942,9 +1013,12 @@ void step(float dt){
         vehicle.p={position.GetX(),position.GetZ()};
         vehicleSynced[i]=vehicle.p;
         vehicle.velocity=resolved;
-        float restHeight=vehicle.kind==game::Kind::Boat?10.0f:
+        float restHeight=vehicle.kind==game::Kind::Helicopter?12.0f:vehicle.kind==game::Kind::Boat?10.0f:
             vehicle.kind==game::Kind::Bike?13.0f:14.0f;
-        vehicle.rideHeight=std::clamp(float(position.GetY())-restHeight,-6.0f,12.0f);
+        vehicle.rideHeight=vehicle.kind==game::Kind::Helicopter?
+            std::max(0.0f,float(position.GetY())-restHeight):
+            std::clamp(float(position.GetY())-restHeight,-6.0f,12.0f);
+        vehicle.verticalSpeed=velocity.GetY();
         if(vehicle.kind!=game::Kind::Boat){
             JPH::Vec3 forward=bodies.GetRotation(vehicleBodies[i])*JPH::Vec3::sAxisZ();
             vehicle.angle=std::atan2(forward.GetZ(),forward.GetX());

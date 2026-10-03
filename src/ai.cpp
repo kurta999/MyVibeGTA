@@ -123,6 +123,7 @@ bool startSocial(int first,int second,bool fight){
 
 bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
     if(!ped.alive||ped.drivingVehicle>=0||vehicle.exploded||vehicle.kind==Kind::Boat||
+       (vehicle.kind==Kind::Helicopter&&vehicle.rideHeight>37)||
        ped.vehicleImpactCooldown>0)return false;
     float speed=std::abs(vehicle.speed);
     float radius=vehicle.kind==Kind::Bike?17.0f:26.0f;

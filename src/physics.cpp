@@ -9,13 +9,14 @@
 namespace physics {
 using namespace game;
 namespace {
-const std::array<VehicleTuning,4> defaults{{
+const std::array<VehicleTuning,5> defaults{{
     {245,315,115,7.0f,0.95f,2.05f,5.5f,430,1100,70000,3.0f,0.78f,5.0f,0.43f,250000,180000,250,45,1,1,75,125,12,42,0.8f,120,7,45},
     {370,425,155,8.2f,0.75f,2.25f,7.0f,590,850,95000,3.0f,0.78f,5.0f,0.43f,250000,180000,200,45,1.15f,1,95,145,12,42,0.8f,130,7,60},
     {330,375,125,6.2f,0.90f,2.8f,8.0f,460,220,32000,3.4f,0.78f,5.5f,0.48f,250000,85000,130,50,1.3f,1,55,120,10,38,0.8f,115,7,35},
-    {140,205,75,1.15f,0.80f,1.25f,2.5f,155,550,0,0,0,0,0,0,0,220,45,1,1,65,999,12,42,0.8f,120,7,0}
+    {140,205,75,1.15f,0.80f,1.25f,2.5f,155,550,0,0,0,0,0,0,0,220,45,1,1,65,999,12,42,0.8f,120,7,0},
+    {330,330,180,1.6f,0.8f,1.25f,4,500,900,0,0,0,0,0,0,400,55,1,1,140,999,12,42,0.8f,120,7,0}
 }};
-std::array<VehicleTuning,4> entries=defaults;
+std::array<VehicleTuning,5> entries=defaults;
 std::array<float,4> surfaceGrip{1.0f,0.78f,0.62f,0.45f};
 float wetGrip=0.72f;
 std::string error;
@@ -26,9 +27,9 @@ bool load(const char* path){
     if(!file.load(path?path:data_file::resourcePath("vehicles.ini"))||!file.version(1)){
         error=file.lastError();return false;
     }
-    const char* names[]={"car","sport-car","bike","boat"};
-    std::array<VehicleTuning,4> parsed{};
-    for(int i=0;i<4;++i){
+    const char* names[]={"car","sport-car","bike","boat","helicopter"};
+    std::array<VehicleTuning,5> parsed{};
+    for(int i=0;i<5;++i){
         std::string section=std::string("Vehicle.")+names[i];auto& v=parsed[i];
         if(!file.real(section,"Acceleration",v.acceleration,1,2000)||
            !file.real(section,"MaxSpeed",v.maxSpeed,1,2000)||
@@ -76,7 +77,7 @@ bool load(const char* path){
 }
 const std::string& lastError(){return error;}
 VehicleTuning tuning(Kind kind){
-    return entries[std::clamp(int(kind),0,3)];
+    return entries[std::clamp(int(kind),0,4)];
 }
 float tractionAt(game::Vec2 point){
     float grip=surfaceGrip[0];

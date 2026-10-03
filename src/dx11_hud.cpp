@@ -9,6 +9,7 @@
 #include "game.h"
 #include "ui.h"
 #include "weapons.h"
+#include "grapple.h"
 #include "camera.h"
 #include "police.h"
 #include "commerce.h"
@@ -107,6 +108,49 @@ void scopeOverlay(int width,int height){
     label(x-63,y-radius+30,zoom,RGB(220,224,218));
     label(x-83,y+radius-52,"SCROLL TO ZOOM",RGB(203,212,207));
 }
+// Original high-contrast pictograms; integer strokes stay sharp on the HUD texture.
+void mapIcon(int x,int y,const std::string& id,COLORREF tint){
+    rect(x-10,y-10,21,21,RGB(22,29,35));
+    if(id=="house"){
+        line(x-7,y,x,y-7,tint);line(x,y-7,x+7,y,tint);
+        line(x-5,y-1,x-5,y+7,tint);line(x+5,y-1,x+5,y+7,tint);
+        line(x-5,y+7,x+5,y+7,tint);rect(x-1,y+3,3,5,tint);
+    }else if(id=="shop"){
+        line(x-6,y-2,x+6,y-2,tint);line(x-6,y-2,x-4,y+6,tint);
+        line(x+6,y-2,x+4,y+6,tint);line(x-4,y+6,x+4,y+6,tint);
+        line(x-3,y-2,x-3,y-6,tint);line(x+3,y-2,x+3,y-6,tint);
+        line(x-3,y-6,x+3,y-6,tint);
+    }else if(id=="helicopter"){
+        line(x-8,y-6,x+8,y-6,tint);line(x,y-6,x,y-2,tint);
+        rect(x-4,y-2,10,6,tint);line(x-9,y+1,x-4,y+1,tint);
+        line(x-8,y-2,x-8,y+3,tint);line(x-3,y+6,x+7,y+6,tint);
+        line(x-1,y+4,x-1,y+6,tint);line(x+5,y+4,x+5,y+6,tint);
+    }else if(id=="flag"){
+        line(x-4,y-7,x-4,y+7,tint);rect(x-3,y-7,10,6,tint);
+    }else if(id=="shovel"){
+        line(x-5,y-6,x+3,y+3,tint,3);rect(x+1,y+1,7,7,tint);
+        line(x-8,y-5,x-4,y-9,tint);
+    }else if(id=="grapple-hook"){
+        line(x-6,y+6,x+2,y-2,tint);line(x+2,y-2,x+2,y-7,tint);
+        line(x+2,y-7,x+7,y-7,tint);line(x+7,y-7,x+7,y-2,tint);
+        line(x+7,y-2,x+3,y+1,tint);
+    }else if(id=="bow"){
+        line(x-5,y-7,x+1,y,tint);line(x+1,y,x-5,y+7,tint);
+        line(x-5,y-7,x-5,y+7,tint,1);line(x-8,y,x+8,y,tint,1);
+    }else if(id=="car"){
+        rect(x-7,y-2,15,7,tint);rect(x-4,y-6,9,4,tint);
+        rect(x-5,y+5,3,3,tint);rect(x+3,y+5,3,3,tint);
+    }else if(id=="boat"){
+        line(x-8,y+1,x-4,y+6,tint);line(x-4,y+6,x+4,y+6,tint);
+        line(x+4,y+6,x+8,y+1,tint);line(x-8,y+1,x+8,y+1,tint);
+        line(x,y-7,x,y+1,tint);
+    }else if(id=="melee"){
+        line(x-7,y+7,x+6,y-6,tint,3);line(x-4,y,x,y+4,tint);
+    }else{
+        rect(x-7,y-4,15,4,tint);rect(x-5,y,4,7,tint);
+        if(id=="minigun")for(int i=0;i<3;++i)line(x-1,y-6+i*3,x+8,y-6+i*3,tint,1);
+    }
+}
 void map(int x,int y,int width,int height,bool large){
     rect(x-3,y-3,width+6,height+6,RGB(26,31,39));
     rect(x,y,width,height,RGB(116,147,107));
@@ -125,6 +169,10 @@ void map(int x,int y,int width,int height,bool large){
     auto marker=[&](game::Vec2 p,int radius,COLORREF tint){
         if(p.x<minX||p.x>minX+viewW||p.z<minZ||p.z>minZ+viewD)return;
         rect(sx(p.x)-radius,sy(p.z)-radius,radius*2+1,radius*2+1,tint);
+    };
+    auto iconAt=[&](game::Vec2 p,const std::string& id,COLORREF tint){
+        if(p.x>=minX&&p.x<=minX+viewW&&p.z>=minZ&&p.z<=minZ+viewD)
+            mapIcon(sx(p.x),sy(p.z),id,tint);
     };
     int saved=SaveDC(memoryDC);
     IntersectClipRect(memoryDC,x,y,x+width,y+height);
@@ -175,24 +223,28 @@ void map(int x,int y,int width,int height,bool large){
     if(game::activeMission>=0&&game::missionStep<int(game::missions[game::activeMission].goals.size())){
         game::Vec2 goal=game::missions[game::activeMission].goals[game::missionStep];
         if(large)line(sx(game::player.x),sy(game::player.z),sx(goal.x),sy(goal.z),RGB(170,255,137));
-        marker(goal,4,RGB(120,255,115));
+        iconAt(goal,"flag",RGB(120,255,115));
     }else if(next>=0){
         game::Vec2 start=game::missions[next].start;
         if(large)line(sx(game::player.x),sy(game::player.z),sx(start.x),sy(start.z),RGB(255,210,112));
-        marker(start,4,RGB(255,210,112));
+        iconAt(start,"flag",RGB(255,210,112));
     }
-    for(const auto& pickup:game::pickups)if(pickup.available)
-        marker(pickup.p,2,RGB(92,238,231));
-    for(const auto& shop:commerce::shops)
-        marker(shop.p,3,RGB(109,245,171));
+    for(const auto& v:game::vehicles)if(!v.exploded)
+        iconAt(v.p,v.kind==game::Kind::Helicopter?"helicopter":
+            v.kind==game::Kind::Boat?"boat":"car",RGB(219,225,233));
+    for(const auto& pickup:game::pickups)if(pickup.available){
+        const auto& stats=weapons::stats(pickup.weapon);
+        iconAt(pickup.p,stats.melee&&stats.id!="shovel"?"melee":stats.id,RGB(92,238,231));
+    }
+    for(const auto& shop:commerce::shops)iconAt(shop.p,"shop",RGB(109,245,171));
     for(const auto& house:commerce::houses)
-        marker(house.p,3,house.owned?RGB(91,170,245):RGB(185,134,230));
+        iconAt(house.p,"house",house.owned?RGB(91,170,245):RGB(185,134,230));
     for(size_t i=0;i<game::missions.size();++i){auto p=game::missions[i].start;
         COLORREF marker=game::missionDone[i]?RGB(136,211,140):
             int(i)==next?RGB(245,184,100):
             i>=6?RGB(246,126,76):RGB(110,119,125);
         if(p.x>=minX&&p.x<=minX+viewW&&p.z>=minZ&&p.z<=minZ+viewD)
-            rect(sx(p.x)-3,sy(p.z)-3,7,7,marker);}
+            mapIcon(sx(p.x),sy(p.z),"flag",marker);}
     int px=sx(game::player.x),py=sy(game::player.z);
     float forwardX=std::cos(game::cameraYaw),forwardY=std::sin(game::cameraYaw);
     int arrow=large?17:14;
@@ -333,7 +385,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     label(24,19,"MINI CITY 3D",RGB(255,225,151));
     if(ui::showHelp&&game::occupied>=0){
         const auto& vehicle=game::vehicles[game::occupied];
-        const char* name=vehicle.kind==game::Kind::Boat?"BOAT":vehicle.kind==game::Kind::Bike?"BIKE":
+        const char* name=vehicle.kind==game::Kind::Helicopter?"HELICOPTER":vehicle.kind==game::Kind::Boat?"BOAT":vehicle.kind==game::Kind::Bike?"BIKE":
             vehicle.kind==game::Kind::SportCar?"SPORT CAR":"CAR";
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  SPACE drift  |  H lights  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
@@ -347,6 +399,8 @@ void buildHud(unsigned char* pixels,int width,int height){
             weather::current().name.c_str());
         label(24,40,textBuffer,RGB(211,230,236));
     }
+    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Helicopter)
+        label(24,72,"W/S forward/back  |  A/D turn  |  SPACE rise  |  CTRL descend  |  E exit",RGB(230,223,178));
     map(18,height-169,180,140,false);
     int statusX=width-360;
     bool inVehicle=game::occupied>=0&&game::occupied<int(game::vehicles.size());
@@ -358,7 +412,8 @@ void buildHud(unsigned char* pixels,int width,int height){
         wantedStar(statusX+251+star*22,29,star<police::wantedLevel());
     rect(statusX+14,45,320,1,RGB(96,110,117));
     label(statusX+15,53,weapons::stats(game::weapon).name.c_str(),RGB(244,245,234));
-    if(weapons::stats(game::weapon).melee)std::snprintf(textBuffer,sizeof(textBuffer),"MELEE");
+    if(weapons::stats(game::weapon).grapple)std::snprintf(textBuffer,sizeof(textBuffer),grapple::active()?"HOLD LMB / RELEASE":grapple::cooldown()>0?"GRAPPLE RECHARGING":"AIM + HOLD LMB");
+    else if(weapons::stats(game::weapon).melee)std::snprintf(textBuffer,sizeof(textBuffer),"MELEE");
     else if(game::reloadRemaining>0)std::snprintf(textBuffer,sizeof(textBuffer),"RELOADING");
     else if(game::ammo[game::weapon]<0)std::snprintf(textBuffer,sizeof(textBuffer),"%d / --",game::magazine[game::weapon]);
     else std::snprintf(textBuffer,sizeof(textBuffer),"%d / %d",game::magazine[game::weapon],game::ammo[game::weapon]);
@@ -416,6 +471,15 @@ void buildHud(unsigned char* pixels,int width,int height){
         rect(gunX+77,gunY+11,15,7,wood);
     }else if(icon=="bat"){
         rect(gunX+12,gunY+12,29,7,wood);rect(gunX+39,gunY+8,53,15,RGB(185,127,72));
+    }else if(icon=="minigun"){
+        rect(gunX+12,gunY+6,28,20,dark);
+        for(int i=0;i<3;++i)rect(gunX+35,gunY+5+i*8,52,4,steel);
+        rect(gunX+16,gunY+26,10,9,dark);
+    }else if(icon=="shovel"){
+        line(gunX+12,gunY+25,gunX+63,gunY+10,wood,4);
+        rect(gunX+61,gunY+4,24,16,steel);
+    }else if(icon=="grapple-hook"){
+        mapIcon(gunX+47,gunY+16,"grapple-hook",steel);
     }else if(icon=="bow"){
         line(gunX+48,gunY-2,gunX+74,gunY+17,wood,4);
         line(gunX+74,gunY+17,gunX+48,gunY+36,wood,4);
@@ -439,7 +503,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(inVehicle){
         const auto& vehicle=game::vehicles[game::occupied];
         float damage=std::clamp(vehicle.damage,0.0f,100.0f);
-        const char* name=vehicle.kind==game::Kind::Bike?"BIKE":vehicle.kind==game::Kind::Boat?"BOAT":"CAR";
+        const char* name=vehicle.kind==game::Kind::Helicopter?"HELICOPTER":vehicle.kind==game::Kind::Bike?"BIKE":vehicle.kind==game::Kind::Boat?"BOAT":"CAR";
         COLORREF color=damage>=80?RGB(242,87,75):damage>=45?RGB(244,174,71):RGB(111,209,189);
         rect(statusX+14,156,320,1,RGB(96,110,117));
         std::snprintf(textBuffer,sizeof(textBuffer),"%s DAMAGE %d%%",name,int(std::round(damage)));

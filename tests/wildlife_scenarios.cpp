@@ -211,8 +211,8 @@ void wildlifeScenarios(){
     assert(wildlife::carrying());int cash=money;assert(savegame::save());
     assert(savegame::load());assert(!carryingBody());
     const auto& loaded=wildlife::animals[0];
-    assert(loaded.id==savedId&&loaded.health==0&&loaded.looted&&!loaded.carried);
-    assert(loaded.state==State::Dead&&money==cash);
+    assert(loaded.id==savedId&&loaded.health>0&&!loaded.looted&&!loaded.carried);
+    assert(loaded.state!=State::Dead&&money==cash);
     reset();
     player=wildlife::animals[0].p+Vec2{0,30};playerY=0;swimming=false;
     enterExit();assert(wildlife::riding());
