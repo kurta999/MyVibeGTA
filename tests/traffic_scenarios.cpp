@@ -197,10 +197,10 @@ void trafficScenarios(){
     for(int n=0;n<1800;++n)game::update(dt);
     int circulating=0;
     for(int i=0;i<int(vehicles.size());++i){
-        if(vehicles[i].driver>=0&&len(starts[i]-Vec2{750,640})<850)
+        bool local=vehicles[i].driver>=0&&len(starts[i]-Vec2{750,640})<traffic::ACTIVE_RADIUS;
+        if(local)
             std::printf("city %s moved %.1f at %.1f %.1f angle %.1f wanted %.1f state %d\n",vehicles[i].id.c_str(),len(vehicles[i].p-starts[i]),vehicles[i].p.x,vehicles[i].p.z,vehicles[i].angle,vehicles[i].desiredSpeed,int(vehicles[i].trafficState));
-        if(vehicles[i].driver>=0&&len(starts[i]-Vec2{750,640})<850&&
-           len(vehicles[i].p-starts[i])>200&&!vehicles[i].exploded)++circulating;
+        if(local&&len(vehicles[i].p-starts[i])>200&&!vehicles[i].exploded)++circulating;
     }
     std::printf("populated city: %d circulating cars\n",circulating);
     assert(circulating>=3);

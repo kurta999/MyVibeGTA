@@ -337,7 +337,7 @@ void update(float dt){
         if(!roadAssigned(v))assignRoad(v,false);
         if(!roadAssigned(v))continue;
         bool chasing=driver.grievance>0&&driver.hostile;
-        if(len(v.p-player)>1000&&!chasing){
+        if(len(v.p-player)>ACTIVE_RADIUS&&!chasing){
             v.desiredSpeed=0;jolt_world::driveVehicle(i,0,0,dt,true);continue;
         }
         v.reactionTime=std::max(0.0f,v.reactionTime-dt);
