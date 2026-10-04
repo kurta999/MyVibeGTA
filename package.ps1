@@ -65,7 +65,7 @@ foreach ($sourceMap in Get-ChildItem -LiteralPath $modernPackage -Filter '*.png'
     Remove-Item -LiteralPath $sourceMap.FullName
 }
 foreach ($fileName in @('LICENSES.md', 'TRAFFIC_WEAPONS_LICENSES.md', 'SHOWCASE_SOURCES.md',
-        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md', 'MODERN_ASSETS.md')) {
+        'CITY_MANIFEST.csv', 'NATURE_MANIFEST.csv', 'MARINA_PART.md', 'ANIMALS.md', 'BIRDS.md', 'TERRAIN.md', 'MODERN_ASSETS.md')) {
     Copy-Item -LiteralPath (Join-Path $modelSource $fileName) -Destination $modelDestination
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'data') -Destination $packageDirectory -Recurse

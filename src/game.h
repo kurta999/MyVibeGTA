@@ -164,6 +164,7 @@ extern std::vector<Pickup> pickups;
 extern std::vector<MissionDef> missions;
 extern std::array<bool,10> missionDone;
 
+float groundHeight(Vec2 point);
 void reset();
 void update(float dt);
 void enterExit();

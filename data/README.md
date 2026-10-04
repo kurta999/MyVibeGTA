@@ -11,6 +11,7 @@ The DX11 game loads these versioned INI files from the `data/` directory beside 
 | `commerce.ini` | Stable-ID shops and houses across cities and biome hubs, item prices, vehicle stock, garage capacity, and fast travel locations. Fourteen houses are available; the player can own ten. |
 | `traversal.ini` | Stable-ID downtown ladders, generated tall-building ladder thresholds, and climb anchors for selected trees. |
 | `regions.ini` | The 16,800 × 16,800 world, six biome regions, second-city layout, and four population hubs with data-defined pedestrian counts and vehicle spawn cycles. |
+| `terrain.ini` | Twenty mountain, ridge and dry-basin landforms sampled into shared DX11/Jolt terrain; roads and settlements retain smooth approaches. |
 | `roads.ini` | Ten connected regional road segments through the bridge, countryside, snowfields, desert, and savanna. |
 | `trees.ini` | Twenty-nine Kenney tree meshes assigned to countryside, snow, savanna, and desert biomes with render sizes and species climb heights. |
 | `biome_props.ini` | Six Kenney cactus and rock meshes for desert decoration. |

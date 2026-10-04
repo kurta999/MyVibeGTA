@@ -103,7 +103,7 @@ bool bodyWalkable(const Animal& a,Vec2 p,float angle,bool allowRoad){
             float along=std::clamp(offset.x*axis.x+offset.z*axis.z,-segment,segment);
             if(len(offset-axis*along)<r+otherR)return false;
         }
-        if(!riding()&&health>0&&occupied<0&&playerY<catalog[a.species].height&&
+        if(!riding()&&health>0&&occupied<0&&playerY<game::groundHeight(a.p)+catalog[a.species].height&&
            len(point-player)<r+10)return false;
     }
     return true;
@@ -113,7 +113,7 @@ int mountedIndex(){return riding()?mounted:-1;}
 namespace {
 bool canMount(int i){
     if(!living(i)||riding()||health<=0||occupied>=0||enteringVehicle>=0||
-       carryingBody()||traversal::active()||debug_menu::flyMode||swimming||std::abs(playerY)>8)return false;
+       carryingBody()||traversal::active()||debug_menu::flyMode||swimming||std::abs(playerY-game::groundHeight(player))>8)return false;
     const auto& a=animals[i];
     return (a.species==0||a.species==1)&&
         len(player-a.p)<std::max(radius(a),catalog[a.species].length*0.5f)+30&&clearLine(player,a.p);
@@ -122,7 +122,7 @@ void riderPose(){
     const auto& a=animals[mounted];
     // These meshes' backs reach almost to their full height. Align the rider's
     // hip (half of the 37-unit skin) to the back, rather than burying the torso.
-    player=a.p;playerY=catalog[a.species].height*(a.species==1?1.0f:0.94f)+1-18.5f;
+    player=a.p;playerY=game::groundHeight(a.p)+catalog[a.species].height*(a.species==1?1.0f:0.94f)+1-18.5f;
     playerVelocity={};playerVerticalSpeed=0;airTime=0;
     swimming=false;grounded=true;crouched=false;
     jolt_world::teleportCharacter(player,playerY);
@@ -162,10 +162,10 @@ bool dismount(bool force){
     for(float turn:{PI/2,-PI/2,PI,-PI/4,PI/4,0.0f}){
         Vec2 out=a.p+forward(a.angle+turn)*clearance;
         if(!walkable(out,12,true)||!clearLine(a.p,out))continue;
-        player=previousPlayer=out;playerY=0;playerVerticalSpeed=0;playerVelocity={};
+        player=previousPlayer=out;playerY=game::groundHeight(out);playerVerticalSpeed=0;playerVelocity={};
         grounded=true;swimming=false;airTime=0;
         a.home=a.target=a.p;a.state=a.health>0?State::Idle:State::Dead;a.timer=2;
-        mounted=-1;jolt_world::teleportCharacter(player,0);return true;
+        mounted=-1;jolt_world::teleportCharacter(player,playerY);return true;
     }
     if(force){mounted=-1;grounded=false;playerVelocity={};return true;}
     announce("No clear space to dismount.",2);return false;
@@ -249,18 +249,18 @@ void scare(Vec2 origin,float range){
         a.threat=origin;a.alert=4;a.state=State::Flee;a.peer=-1;a.playerThreat=false;}
 }
 int meleeTarget(float range){
-    if(playerY>45)return -1;
+    if(playerY>game::groundHeight(player)+45)return -1;
     int best=-1;Vec2 facing=forward(cameraYaw);
     for(int i=0;i<int(animals.size());++i){const auto& a=animals[i];Vec2 d=a.p-player;
         float distance=len(d);
-        if(a.health>0&&distance<range&&playerY<catalog[a.species].height+25&&
+        if(a.health>0&&distance<range&&playerY<game::groundHeight(a.p)+catalog[a.species].height+25&&
            facing.x*d.x+facing.z*d.z>distance*0.15f&&clearLine(player,a.p)){
             range=distance;best=i;}}
     return best;
 }
 bool hit(Vec3 p,int damage,Vec2 origin,bool playerCaused){
     for(int i=0;i<int(animals.size());++i){auto& a=animals[i];
-        if(a.health>0&&p.y>=0&&p.y<=catalog[a.species].height&&len(Vec2{p.x,p.z}-a.p)<radius(a)){
+        if(a.health>0&&p.y>=game::groundHeight(a.p)&&p.y<=game::groundHeight(a.p)+catalog[a.species].height&&len(Vec2{p.x,p.z}-a.p)<radius(a)){
             hurt(i,damage,origin,playerCaused);return true;}}
     return false;
 }
@@ -283,7 +283,7 @@ void update(float dt){
             steer(a,a.p+escape*100,s.speed*1.35f,dt);continue;
         }
         if(a.state==State::Attack){
-            bool validTarget=a.playerThreat?health>0&&occupied<0&&playerY<s.height+25:living(a.peer);
+            bool validTarget=a.playerThreat?health>0&&occupied<0&&playerY<game::groundHeight(a.p)+s.height+25:living(a.peer);
             Vec2 target=a.playerThreat?player:living(a.peer)?animals[a.peer].p:a.threat;
             float distance=len(target-a.p);
             if(!validTarget||distance>240||len(target-a.home)>400||a.alert<=0){
@@ -336,7 +336,7 @@ int nearbyCorpse(bool unlooted){
     int best=-1;float distance=38;
     for(int i=0;i<int(animals.size());++i){const auto& a=animals[i];float d=len(a.p-player);
         if(a.health==0&&!a.carried&&(!unlooted||!a.looted)&&d<distance&&
-           std::abs(playerY)<15&&clearLine(player,a.p)){best=i;distance=d;}}
+           std::abs(playerY-game::groundHeight(player))<15&&clearLine(player,a.p)){best=i;distance=d;}}
     return best;
 }
 void loot(int i){

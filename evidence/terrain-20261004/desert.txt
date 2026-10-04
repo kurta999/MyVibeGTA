@@ -1,0 +1,44 @@
+2026-10-4 14:46:30  Application started
+2026-10-4 14:46:30  Startup: Starting Mini City 3D took 0.006 s
+2026-10-4 14:46:30  Startup: Starting Direct3D 11
+2026-10-4 14:46:30  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-10-4 14:46:30  Startup: Starting Direct3D 11 took 0.061 s
+2026-10-4 14:46:30  Startup: Compiling graphics shaders
+2026-10-4 14:46:33  Shader loading: workers 4, peak active 4, completed 19/19, wall 2.621 s, CPU 3.727 s
+2026-10-4 14:46:33  Startup: Compiling graphics shaders took 2.631 s
+2026-10-4 14:46:33  Startup: Creating graphics buffers and shadows
+2026-10-4 14:46:35  Startup: Creating graphics buffers and shadows took 2.525 s
+2026-10-4 14:46:35  Startup: Loading surface textures
+2026-10-4 14:46:36  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.743 s, decode CPU 0.432 s, mip CPU 1.236 s, upload 0.038 s
+2026-10-4 14:46:36  Startup: Loading surface textures took 0.743 s
+2026-10-4 14:46:36  Startup: Loading city models and animations
+2026-10-4 14:46:37  Startup: Loading city models and animations took 0.591 s
+2026-10-4 14:46:37  Startup: Preparing city geometry
+2026-10-4 14:46:37  Startup: Preparing city geometry took 0.003 s
+2026-10-4 14:46:37  Startup: Preparing regional textures
+2026-10-4 14:46:45  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 8.711 s, decode CPU 3.247 s, mip CPU 22.117 s, upload 0.225 s
+2026-10-4 14:46:45  Startup: Preparing regional textures took 8.711 s
+2026-10-4 14:46:45  Startup: Uploading regional graphics
+2026-10-4 14:46:45  Startup: Uploading regional graphics took 0.062 s
+2026-10-4 14:46:45  Startup: Loading HDR lighting
+2026-10-4 14:46:45  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-4 14:46:45  CPU scene workers: 4
+2026-10-4 14:46:45  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-4 14:46:45  Renderer initialized
+2026-10-4 14:46:45  Startup: Loading HDR lighting took 0.021 s
+2026-10-4 14:46:45  Startup: Starting audio and loading settings
+2026-10-4 14:46:46  Startup: Starting audio and loading settings took 0.495 s
+2026-10-4 14:46:46  Startup: Loading gameplay data
+2026-10-4 14:46:46  Startup: Loading gameplay data took 0.033 s
+2026-10-4 14:46:46  Startup: Building the city and physics world
+2026-10-4 14:46:46  Startup: Building the city and physics world took 0.106 s
+2026-10-4 14:46:46  Startup: Loading saved progress
+2026-10-4 14:46:46  Startup: Loading saved progress took 0.000 s
+2026-10-4 14:46:46  Startup: Preparing the first frame
+2026-10-4 14:46:46  GPU skinning: 1 ordinary poses, 18618 vertices; shared color/shadow buffer
+2026-10-4 14:46:46  Screenshot saved: screenshots/MiniCity3D-20261004-144646-627-32860-0.png
+2026-10-4 14:46:46  Startup: Preparing the first frame took 0.278 s
+2026-10-4 14:46:46  Startup: Ready
+2026-10-4 14:46:46  Startup ready in 16.266 s
+2026-10-4 14:46:46  Smoke render completed
+2026-10-4 14:46:46  Application stopped

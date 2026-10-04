@@ -71,10 +71,14 @@ void vehicleCollisionScenarios(){
     // tree once and replaces the trunk with falling physical fragments.
     buildings.clear();occupied=-1;vehicles.clear();
     Tree tree{};tree.p={4500,4500};tree.id="collision-tree";
-    trees={tree};player={4400,4500};playerY=0;jolt_world::reset();
+    trees={tree};player={4400,4500};playerY=groundHeight(player);jolt_world::reset();
     assert(jolt_world::activeTreeColliderCount()==1);
-    for(int tick=0;tick<180;++tick)jolt_world::moveCharacter({80,0},false,dt);
-    assert(player.x<4486);
+    for(int tick=0;tick<180;++tick){
+        jolt_world::moveCharacter({80,0},false,dt);
+        // Slopes can steer the capsule around a trunk; its footprint must never penetrate it.
+        assert(len(player-tree.p)>=15.8f);
+    }
+    player={4400,4500};playerY=groundHeight(player);jolt_world::teleportCharacter(player,playerY);
     trees[0].destroyed=true;jolt_world::step(dt);
     assert(jolt_world::activeTreeColliderCount()==0);
     for(int tick=0;tick<90;++tick)jolt_world::moveCharacter({80,0},false,dt);
@@ -118,7 +122,7 @@ void vehicleCollisionScenarios(){
         car={};car.kind=Kind::Car;car.p={4100,4500};vehicles={car};
         wildlife::Animal a{};a.species=0;a.id="car-hit-tiger";
         a.p=a.home=a.target={4500,4500};a.health=180;a.timer=100;
-        wildlife::animals={a};player=car.p;occupied=driven?0:-1;playerY=0;
+        wildlife::animals={a};player=car.p;occupied=driven?0:-1;playerY=groundHeight(player);
         health=PLAYER_MAX_HEALTH;jolt_world::reset();
         for(int tick=0;tick<360&&wildlife::animals[0].health>0;++tick){
             jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
@@ -131,7 +135,7 @@ void vehicleCollisionScenarios(){
     // and the empty chassis comes to rest without an artificial collision.
     buildings.clear();trees.clear();
     for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike}){
-        car={};car.kind=kind;car.p={12000,2000};car.id="coast-test";
+        car={};car.kind=kind;car.p={10000,3000};car.id="coast-test";
         vehicles={car};player=car.p;occupied=0;health=PLAYER_MAX_HEALTH;
         jolt_world::reset();
         for(int tick=0;tick<300;++tick){jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);}
@@ -148,7 +152,7 @@ void vehicleCollisionScenarios(){
     }
     for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike,Kind::Boat}){
         car={};car.kind=kind;car.p={850,SHORE+200};vehicles={car};
-        player=car.p;occupied=0;playerY=0;swimming=false;
+        player=car.p;occupied=0;playerY=groundHeight(player);swimming=false;
         jolt_world::reset();enterExit();
         assert(occupied<0&&swimming&&regions::waterAt(player));
         Vec2 start=player;

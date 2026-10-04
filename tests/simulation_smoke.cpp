@@ -91,8 +91,13 @@ void grassScenarios();
 void equipmentScenarios();
 void ordnanceScenarios();
 void expansionScenarios();
+void terrainScenarios();
 int main(int argc,char** argv){
     std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--terrain-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        terrainScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--ordnance-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());
@@ -842,7 +847,7 @@ int main(int argc,char** argv){
     for(auto& ped:game::peds){ped.alive=false;ped.respawn=999999;}
     game::peds[0].alive=true;game::peds[0].p={5140,5100};
     game::peds[0].health=100;game::peds[0].armor=0;game::peds[0].knockedDown=1;
-    game::Bullet legShot{};legShot.p={5110,5,5100};legShot.v={900,0,0};
+    game::Bullet legShot{};legShot.p={5110,game::groundHeight({5140,5100})+5,5100};legShot.v={900,0,0};
     legShot.life=1;legShot.damage=20;legShot.range=600;
     game::bullets.push_back(legShot);
     for(int tick=0;tick<8;++tick)game::update(1.0f/60.0f);

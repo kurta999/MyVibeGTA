@@ -15,7 +15,7 @@ void pedScenarios(){
     using namespace game;
     constexpr float dt=1.0f/60;
     buildings.clear();vehicles.clear();props.clear();trees.clear();peds.clear();bullets.clear();
-    player=previousPlayer={4500,4500};playerY=0;health=PLAYER_MAX_HEALTH;
+    player=previousPlayer={4500,4500};playerY=groundHeight(player);health=PLAYER_MAX_HEALTH;
     occupied=-1;cameraYaw=0;cameraPitch=0;cameraMode=CameraMode::ThirdNear;
     rightMouse=true;leftMouse=false;weapon=weapons::indexOf("pistol");
     magazine[weapon]=12;reloadRemaining=0;recoil=0;fireCooldown=0;
@@ -32,7 +32,7 @@ void pedScenarios(){
     bullets.clear();peds.clear();
     Ped walker{};walker.id="walker";walker.p={4550,4500};
     walker.target=walker.p;walker.speed=0;peds.push_back(walker);
-    player=previousPlayer={4500,4500};playerY=0;cameraYaw=0;
+    player=previousPlayer={4500,4500};playerY=groundHeight(player);cameraYaw=0;
     rightMouse=false;keys['W']=true;jolt_world::reset();
     for(int tick=0;tick<45;++tick)update(dt);
     keys['W']=false;
@@ -40,14 +40,14 @@ void pedScenarios(){
     assert(peds[0].contactVisualTime>0&&playerContactVisualTime>0);
     assert(peds[0].alive&&peds[0].health==100);
     // Pedestrians also stop when they walk into a stationary player.
-    player=previousPlayer={4500,4500};playerY=0;
-    peds[0].p={4540,4500};jolt_world::teleportCharacter(player,0);
+    player=previousPlayer={4500,4500};playerY=groundHeight(player);
+    peds[0].p={4540,4500};jolt_world::teleportCharacter(player,playerY);
     jolt_world::reset();
     for(int tick=0;tick<40;++tick)jolt_world::movePed(0,{-120,0},dt);
     assert(len(peds[0].p-player)>=17.8f&&peds[0].contactVisualTime>0);
     // F starts a face-to-face talk without provoking or damaging either side.
     player={4500,4500};peds[0].p={4530,4500};peds[0].contactVisualTime=0;
-    jolt_world::teleportCharacter(player,0);
+    jolt_world::teleportCharacter(player,playerY);
     assert(interactionPrompt().find("TALK")!=std::string::npos);
     interact();assert(peds[0].state==PedState::Talk&&playerTalkTime>0);
     ai::update(dt);assert(peds[0].health==100&&!peds[0].hostile);

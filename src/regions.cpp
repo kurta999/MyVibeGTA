@@ -1,4 +1,7 @@
 #include "regions.h"
+#ifdef MINI_CITY_JOLT
+#include "terrain.h"
+#endif
 #include "content.h"
 #include "commerce.h"
 #include "data_file.h"
@@ -232,6 +235,9 @@ bool load(const char* path){
     cityVehicleCycle=std::move(parsedCityCycle);
     trafficPerRoad=parsedTrafficPerRoad;
     populationHubs=std::move(parsedHubs);
+#ifdef MINI_CITY_JOLT
+    if(!terrain::load()){error=terrain::lastError();return false;}
+#endif
     return true;
 }
 const std::string& lastError(){return error;}

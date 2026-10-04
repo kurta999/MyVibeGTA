@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <string>
 #include "game.h"
+#ifdef MINI_CITY_JOLT
+#include "terrain.h"
+#endif
 #include "audio.h"
 #include "ui.h"
 #include "physics.h"
@@ -301,8 +304,15 @@ bool solid(Vec2 p,float radius){
 #endif
     return false;
 }
+float groundHeight(Vec2 p){
+#ifdef MINI_CITY_JOLT
+    return terrain::height(p);
+#else
+    return 0;
+#endif
+}
 bool bulletSolid(Vec3 p){
-    if(p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH||p.y<0)return true;
+    if(p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH||p.y<groundHeight({p.x,p.z}))return true;
     for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
         if(destruction::contains(b,p))return true;
@@ -324,7 +334,11 @@ bool bulletSolidSegment(Vec3 start,Vec3 end,Vec3& impact){
     };
     boundary(start.x,delta.x,0,regions::WIDTH);
     boundary(start.z,delta.z,0,regions::DEPTH);
+    #ifdef MINI_CITY_JOLT
+    float terrainEntry=0;if(terrain::segmentHit(start,end,terrainEntry))nearest=std::min(nearest,terrainEntry);
+#else
     if(end.y<0&&delta.y<0)nearest=std::min(nearest,-start.y/delta.y);
+#endif
     for(const auto& building:buildings){
 #ifdef MINI_CITY_JOLT
         float damagedEntry=0;if(destruction::segment(building,start,end,damagedEntry))nearest=std::min(nearest,damagedEntry);
@@ -439,8 +453,9 @@ void move(Vec2& p,Vec2 d,float radius,Kind kind){
 bool clearLine(Vec2 a,Vec2 b){
 #ifdef MINI_CITY_JOLT
     if(ordnance::obscured(a,b))return false;
+    float terrainEntry=0;if(terrain::segmentHit({a.x,groundHeight(a)+22,a.z},{b.x,groundHeight(b)+22,b.z},terrainEntry))return false;
     for(const auto& building:buildings){float entry=0;
-        if(destruction::segment(building,{a.x,22,a.z},{b.x,22,b.z},entry))return false;
+        if(destruction::segment(building,{a.x,groundHeight(a)+22,a.z},{b.x,groundHeight(b)+22,b.z},entry))return false;
     }
     return true;
 #endif
@@ -720,7 +735,7 @@ void enterExit(){
                 if(&other!=&v&&len(out-other.p)<physics::vehicleRadius(other.kind)+12)return false;
             for(const auto& prop:props)if(prop.alive&&len(out-prop.p)<26)return false;
             player=previousPlayer=out;occupied=-1;
-            playerY=(v.kind==Kind::Helicopter||v.kind==Kind::Airplane)?v.rideHeight:0;
+            playerY=v.rideHeight;
             playerVerticalSpeed=(v.kind==Kind::Helicopter||v.kind==Kind::Airplane)?v.verticalSpeed:0;playerVelocity={};airTime=0;
             swimming=playerY<4&&regions::waterAt(out);grounded=playerY<4&&!swimming;
             jolt_world::teleportCharacter(out,playerY);
@@ -744,7 +759,7 @@ void enterExit(){
             return;
         }
         for(int sign:{1,-1}){Vec2 out=v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f)*physics::vehicleScale(v.kind));
-            if(!solid(out,12)){player=out;occupied=-1;return;}}
+            if(!solid(out,12)){player=out;playerY=groundHeight(out);occupied=-1;return;}}
         return;
 #endif
     }
@@ -810,7 +825,7 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
     savegame::request();
 }
 int stealthTarget(){
-    if(health<=0||occupied>=0||enteringVehicle>=0||swimming||playerY>4||
+    if(health<=0||occupied>=0||enteringVehicle>=0||swimming||playerY>groundHeight(player)+4||
         fireCooldown>0||weapons::stats(weapon).id!="knife")return -1;
     int result=-1;float best=44;
     for(int i=0;i<int(peds.size());++i){const auto& ped=peds[i];
@@ -859,7 +874,7 @@ void shoot(){
         meleeVisualAction=unarmed?10:11;
         Vec2 facing=forward(cameraYaw);
         int target=-1;float nearest=reach;
-        if(playerY<45)for(int index=0;index<int(peds.size());++index){
+        if(playerY<groundHeight(player)+45)for(int index=0;index<int(peds.size());++index){
             const Ped& ped=peds[index];
             Vec2 delta=ped.p-player;float distance=len(delta);
             if(!ped.alive||ped.drivingVehicle>=0||distance>=nearest||
@@ -1037,7 +1052,7 @@ void update(float dt){
             if(vehicles[occupied].kind!=Kind::Boat&&vehicles[occupied].kind!=Kind::Helicopter){
                 vehicles[occupied].lightsOn=true;vehicles[occupied].lightsManual=true;
             }
-            playerY=0;playerVerticalSpeed=0;playerVelocity={};grounded=true;airTime=0;
+            playerY=groundHeight(player);playerVerticalSpeed=0;playerVelocity={};grounded=true;airTime=0;
             audio::play(vehicles[occupied].kind==Kind::Boat?
                 audio::Effect::Splash:audio::Effect::Engine);
         }
@@ -1284,11 +1299,11 @@ void update(float dt){
                 const auto& tree=trees[index];
                 if(!tree.destroyed)
                     consider(tree.p,6.0f*std::min(tree.scale,4.0f),
-                        0,tree.height*tree.scale*0.6f);
+                        groundHeight(tree.p),groundHeight(tree.p)+tree.height*tree.scale*0.6f);
             }
 #ifdef MINI_CITY_JOLT
             for(const auto& animal:wildlife::animals)if(animal.health>0)
-                consider(animal.p,wildlife::radius(animal),0,wildlife::species()[animal.species].height);
+                consider(animal.p,wildlife::radius(animal),groundHeight(animal.p),groundHeight(animal.p)+wildlife::species()[animal.species].height);
             for(int i=0;i<int(birds::flock.size());++i){
                 float entry=0;
                 if(birds::segmentHit(birds::flock[i],bullet.p,next,entry,true)&&entry<nearest){
@@ -1298,14 +1313,14 @@ void update(float dt){
 #endif
             if(bullet.hostile){
                 if(health>0)consider(player,occupied>=0?19.0f:11.0f,
-                    2,occupied>=0?43.0f:playerY+37);
+                    playerY+2,playerY+(occupied>=0?43.0f:37));
             }else{
                 if(activeMission>=0&&(missions[activeMission].kind==MissionKind::Targets||
                    (missions[activeMission].kind==MissionKind::Finale&&missionStep==1))&&
                    missionStep<int(missions[activeMission].goals.size()))
                     consider(missions[activeMission].goals[missionStep],18.0f,0,45);
                 for(const auto& ped:peds)if(ped.alive)
-                    consider(ped.p,10.0f,2,37);
+                    consider(ped.p,10.0f,groundHeight(ped.p)+2,groundHeight(ped.p)+37);
             }
             if(dynamicHit){
                 Vec3 travel=next-bullet.p;
@@ -1360,8 +1375,8 @@ void update(float dt){
             for(int treeIndex:treeCandidates){
                 if(treeIndex<0||std::size_t(treeIndex)>=trees.size())continue;
                 Tree& tree=trees[treeIndex];
-                if(tree.destroyed||point.y<0||
-                   point.y>tree.height*tree.scale*0.6f||
+                if(tree.destroyed||point.y<groundHeight({point.x,point.z})||
+                   point.y>groundHeight(tree.p)+tree.height*tree.scale*0.6f||
                    len(tree.p-Vec2{point.x,point.z})>=
                        6.0f*std::min(tree.scale,4.0f))continue;
                 applyStreamEffect(bullet,point);
@@ -1393,7 +1408,7 @@ void update(float dt){
                 float radius=occupied>=0?19.0f:11.0f;
                 float height=occupied>=0?43.0f:playerY+37;
                 if(health>0&&len(Vec2{player.x-point.x,player.z-point.z})<radius&&
-                    point.y>=2&&point.y<=height){
+                    point.y>=playerY+2&&point.y<=height){
                     int zoneDamage=point.y>playerY+25?damage*2:point.y<playerY+11?damage/2:damage;
                     applyDamage(float(zoneDamage));
                     spawnHitFlash(bullet,point,true);
@@ -1420,16 +1435,16 @@ void update(float dt){
                 break;
             }
             for(auto& ped:peds)if(ped.alive&&len(Vec2{ped.p.x-point.x,ped.p.z-point.z})<10&&
-                point.y>=2&&point.y<=37){
+                point.y>=groundHeight(ped.p)+2&&point.y<=groundHeight(ped.p)+37){
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point,true);
                 if(bullet.streamType==1)fire::ignitePed(ped);
                 else if(bullet.streamType==2||bullet.streamType==3)ped.burnTime=0;
                 Vec2 side{-std::sin(ped.angle),std::cos(ped.angle)};
                 float lateral=(point.x-ped.p.x)*side.x+(point.z-ped.p.z)*side.z;
-                bool headshot=bullet.streamType==0&&point.y>=29;
+                bool headshot=bullet.streamType==0&&point.y>=groundHeight(ped.p)+29;
                 int zoneDamage=bullet.streamType==2?0:bullet.streamType==3?1:
-                    point.y<11?std::max(1,damage/2):
+                    point.y<groundHeight(ped.p)+11?std::max(1,damage/2):
                     std::abs(lateral)>5?std::max(1,damage*2/3):damage;
                 if(headshot)ped.health=0;
                 else{
@@ -1496,7 +1511,7 @@ void update(float dt){
     if(occupied>=0&&occupied<int(vehicles.size())){
         const Vehicle& driven=vehicles[occupied];
         player=driven.p;
-        if(vehicle_systems::aircraft(driven.kind))playerY=driven.rideHeight;
+        playerY=driven.rideHeight;
         float difference=std::atan2(std::sin(driven.angle-cameraYaw),
             std::cos(driven.angle-cameraYaw));
         if(driven.kind!=Kind::Tank&&vehicleLookTime<=0&&!leftMouse)
@@ -1510,7 +1525,7 @@ void update(float dt){
     physicsMs=physicsMs*0.9f+elapsedPhysics*0.1f;
     for(auto& part:debris){
         part.life-=dt;part.v.y-=530*dt;part.p=part.p+part.v*dt;
-        if(part.p.y<part.h*0.5f){part.p.y=part.h*0.5f;part.v.y=std::abs(part.v.y)*0.25f;
+        if(part.p.y<groundHeight({part.p.x,part.p.z})+part.h*0.5f){part.p.y=groundHeight({part.p.x,part.p.z})+part.h*0.5f;part.v.y=std::abs(part.v.y)*0.25f;
             part.v.x*=0.72f;part.v.z*=0.72f;}
         part.rotation+=part.spin*dt;
     }
@@ -1519,8 +1534,8 @@ void update(float dt){
         casing.life-=dt;
         casing.v.y-=530.0f*dt;
         casing.p=casing.p+casing.v*dt;
-        if(casing.p.y<0.7f){
-            casing.p.y=0.7f;
+        if(casing.p.y<groundHeight({casing.p.x,casing.p.z})+0.7f){
+            casing.p.y=groundHeight({casing.p.x,casing.p.z})+0.7f;
             casing.v.y=casing.v.y<-35.0f?-casing.v.y*0.22f:0;
             casing.v.x*=0.65f;casing.v.z*=0.65f;
             casing.spin*=0.65f;

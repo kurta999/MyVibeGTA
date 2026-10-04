@@ -520,7 +520,7 @@ void loadMeshes(const std::wstring& folder){
         }
         result.wrapTextures=path.rfind("modern/",0)==0;
         result.vehicleWear=path.rfind("vehicles/",0)==0;
-        result.allowTessellation=!result.wrapTextures;
+        result.allowTessellation=!result.wrapTextures&&path.rfind("nature/rock_namaqualand_",0)!=0&&path.rfind("nature/rock_coastal_",0)!=0;
         result.grassFoliage=path.rfind("nature/grass_",0)==0&&
             !result.materialRanges.empty();
         if(result.grassFoliage){

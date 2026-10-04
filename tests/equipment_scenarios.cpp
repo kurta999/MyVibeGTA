@@ -65,7 +65,7 @@ void equipmentScenarios(){
         assert(!vehicles[0].exploded);
         occupied=0;player=vehicles[0].p;keys[VK_CONTROL]=true;ticks(int(4/dt),dt);
         keys[VK_CONTROL]=false;ticks(int(1/dt),dt);
-        assert(vehicles[0].rideHeight<2&&std::abs(vehicles[0].verticalSpeed)<2);
+        assert(std::abs(vehicles[0].rideHeight-game::groundHeight(vehicles[0].p))<2&&std::abs(vehicles[0].verticalSpeed)<2);
         assert(!vehicles[0].exploded);
     }
     // A fast airborne hull must collide with a tall wall, not tunnel through it.

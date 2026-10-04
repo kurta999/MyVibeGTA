@@ -1,4 +1,6 @@
 #include "dx11_assets.h"
+#include "dx11_terrain.h"
+#include "terrain.h"
 #include "dx11_grass.h"
 #include "game.h"
 #include "game_internal.h"
@@ -478,6 +480,7 @@ void streetlights(){
 }
 void regionalTerrain(){
     float radius=1100*drawScale();
+    appendRegionalTerrain(*modelInstances,radius);
     auto emitTiles=[&](float tile,bool distant){
         int minX=std::max(0,int(std::floor((game::player.x-radius)/tile)));
         int maxX=std::min(int(regions::WIDTH/tile)-1,
@@ -489,23 +492,13 @@ void regionalTerrain(){
             float left=x*tile,top=z*tile;
             if(left<game::WORLD_W&&top<game::WORLD_D)continue;
             Vec2 sample{left+tile*0.5f,top+tile*0.5f};
+            if(!regions::waterAt(sample))continue;
             float distance=game::len(sample-game::player);
             if(distance>radius+tile||(!distant&&distance>1750)||
                (distant&&distance<1550))continue;
             float level=distant?-0.12f:0.0f;
-            if(regions::waterAt(sample))
-                ground(left,top,left+tile,top+tile,level-0.4f,
-                    game::rgb(74,145,183),-1,3);
-            else if(regions::roadAt(sample))
-                ground(left,top,left+tile,top+tile,level+0.11f,
-                    game::rgb(112,114,116),-1,7);
-            else{
-                auto biome=regions::biomeAt(sample);
-                int material=biome==regions::Biome::City||
-                    biome==regions::Biome::Countryside||biome==regions::Biome::Savanna?9:0;
-                ground(left,top,left+tile,top+tile,level,
-                    regions::groundColor(sample),-1,material);
-            }
+            ground(left,top,left+tile,top+tile,level-0.4f,
+                game::rgb(74,145,183),-1,3);
         }
     };
     if(radius>1600)emitTiles(400,true);
@@ -860,7 +853,7 @@ void texturedGrass(){
         // Detailed curved blades only nearby. Both cutout LODs share the
         // same root and physical size; distant clumps do not cast tiny shadows.
         if(distance>detailRadius)name+=distance>midRadius?"-lod2":"-lod1";
-        model(name,{tuft.p.x,.015f,tuft.p.z},
+        model(name,{tuft.p.x,terrain::height(tuft.p)+.015f,tuft.p.z},
             {tuft.width*fade,tuft.height*fade,tuft.width*fade},tuft.yaw,tuft.tint);
     }
 }
@@ -881,7 +874,7 @@ void vegetation(){
         float distance=game::len(prop.p-game::player);
         if(distance>1400&&index%4!=0)continue;
         if(distance>2900&&index%12!=0)continue;
-        model("nature/"+prop.modelId,{prop.p.x,0,prop.p.z},
+        model("nature/"+prop.modelId,{prop.p.x,terrain::height(prop.p),prop.p.z},
             {prop.width,prop.height,prop.depth},float(index)*0.73f);
     }
     for(int index:regions::nearbyTreeIndices(game::player,850*drawScale()+10)){
@@ -893,7 +886,7 @@ void vegetation(){
         if(tree.scale<5&&distance>1800&&index%3!=0)continue;
         if(tree.scale<5&&distance>3300&&index%8!=0)continue;
         if(tree.destroyed){
-            model("primitive/cylinder",{tree.p.x,0,tree.p.z},{8,13,8},0,
+            model("primitive/cylinder",{tree.p.x,terrain::height(tree.p),tree.p.z},{8,13,8},0,
                 game::rgb(44,40,37));continue;
         }
         float wear=std::clamp(tree.health/100.0f,0.25f,1.0f);
@@ -902,22 +895,22 @@ void vegetation(){
         float sway=std::sin(game::worldTime*(0.7f+wind)+tree.p.x*0.02f)*
             (0.025f+wind*0.035f);
         if(!tree.modelId.empty()){
-            model("nature/"+tree.modelId,{tree.p.x,0,tree.p.z},
+            model("nature/"+tree.modelId,{tree.p.x,terrain::height(tree.p),tree.p.z},
                 {tree.crownWidth*tree.scale,tree.height*tree.scale,
                  tree.crownWidth*tree.scale},float(index)*0.43f+sway,shade);
         }
         else if(tree.palm)
             model(tree.variant==0?"nature/tree_palmDetailedShort":"nature/tree_palmDetailedTall",
-                {tree.p.x,0,tree.p.z},
+                {tree.p.x,terrain::height(tree.p),tree.p.z},
                 {72*tree.scale,(tree.variant==0?70.0f:86.0f)*tree.scale,72*tree.scale},
                 float(index)*0.43f+sway,shade);
         else{
             model(tree.variant==0?"nature/tree_detailed":"nature/tree_oak",
-                {tree.p.x,0,tree.p.z},{54*tree.scale,68*tree.scale,54*tree.scale},
+                {tree.p.x,terrain::height(tree.p),tree.p.z},{54*tree.scale,68*tree.scale,54*tree.scale},
                 float(index)*0.9f+sway,shade);
             if(ui::vegetationDensity==2&&close(tree.p,420)&&
                regions::biomeAt(tree.p)==regions::Biome::Countryside)
-                model(bushName(index),{tree.p.x+18,0,tree.p.z-15},
+                model(bushName(index),{tree.p.x+18,terrain::height({tree.p.x+18,tree.p.z-15}),tree.p.z-15},
                     {11,10,11},float(index)*0.9f+0.5f,game::rgb(185,217,176));
         }
     }
@@ -1072,7 +1065,7 @@ void animals(){
         const auto& kind=wildlife::species()[animal.species];
         std::string name=std::string("animals/")+kind.id;
         Vec3 size{kind.width,kind.height,kind.length};
-        float height=animal.carried?game::playerY+23.0f:0.0f;
+        float height=animal.carried?game::playerY+23.0f:terrain::height(animal.p);
         if(animal.health<=0){name+="-dead";size={kind.height,kind.width,kind.length};}
         else if(animal.state==wildlife::State::Wander||animal.state==wildlife::State::Flee||
                 animal.state==wildlife::State::Play||animal.state==wildlife::State::Attack){
@@ -1098,19 +1091,19 @@ void people(){
             if(ped.pinned){
                 if(ped.corpseVisualDelay<=0)
                     character(ped.p,ped.angle,ped.style,false,false,false,
-                        0,5,1.0f,false,1.0f);
+                        terrain::height(ped.p),5,1.0f,false,1.0f);
                 beam({ped.p.x,21,ped.p.z},
                     {ped.pinAnchor.x,21,ped.pinAnchor.z},1.3f,1.3f,
                     game::rgb(129,85,48));
             }else if(ped.corpseVisualDelay<=0||ped.carried)
                 character(ped.p,ped.angle,ped.style,false,false,false,
-                    ped.carried?10.0f:0.0f,5,1.0f,false,1.0f);
+                    ped.carried?game::playerY+10.0f:terrain::height(ped.p),5,1.0f,false,1.0f);
             continue;
         }
         if(ped.knockedDown>0){
             float phase=ped.impactAnimationTotal>0?
                 std::clamp(1.0f-ped.knockedDown/ped.impactAnimationTotal,0.0f,1.0f):1.0f;
-            character(ped.p,ped.angle,ped.style,false,false,false,0,8,1.0f,false,phase);
+            character(ped.p,ped.angle,ped.style,false,false,false,terrain::height(ped.p),8,1.0f,false,phase);
             continue;
         }
         bool hit=ped.hitFlash>0;
@@ -1125,7 +1118,7 @@ void people(){
             entering?std::clamp(ped.boardingTime/0.75f,0.0f,1.0f):-1.0f;
         character(ped.p,ped.angle,ped.style,ped.armed,
             ped.panic>0||game::len(ped.target-ped.p)>10,
-            ped.panic>0,0,action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
+            ped.panic>0,terrain::height(ped.p),action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
             false,phase,ped.state==game::PedState::Talk?8:0,
             std::uint64_t(std::hash<std::string>{}(ped.id))|2);
     }
@@ -1276,14 +1269,14 @@ void vehicles(){
 }
 void marker(Vec2 p,float radius,float height,Color tint){
     float pulse=1.0f+0.045f*std::sin(game::worldTime*3.0f);
-    model("marker/ring",{p.x,0.45f,p.z},{radius*2*pulse,0.01f,radius*2*pulse},0,tint);
-    model("marker/pillar",{p.x,0.5f,p.z},{radius*2,height,radius*2},0,tint);
+    model("marker/ring",{p.x,terrain::height(p)+0.45f,p.z},{radius*2*pulse,0.01f,radius*2*pulse},0,tint);
+    model("marker/pillar",{p.x,terrain::height(p)+0.5f,p.z},{radius*2,height,radius*2},0,tint);
 }
 void markerArrow(Vec2 p,float height,Color tint,Vec2 direction){
     Vec2 f=game::norm(direction);
     if(game::len(f)<0.01f)f={0,1};
     Vec2 side{-f.z,f.x};
-    Vec3 tip{p.x+f.x*10,height+2.0f+std::sin(game::worldTime*2.5f)*2.0f,
+    Vec3 tip{p.x+f.x*10,terrain::height(p)+height+2.0f+std::sin(game::worldTime*2.5f)*2.0f,
         p.z+f.z*10};
     Vec3 left{p.x-f.x*6+side.x*8,tip.y,p.z-f.z*6+side.z*8};
     Vec3 right{p.x-f.x*6-side.x*8,tip.y,p.z-f.z*6-side.z*8};
@@ -1560,21 +1553,21 @@ void effects(){
             float y=std::fmod(float((index*59)%125)+
                 game::worldTime*speed,125.0f);
             if(conditions.snow)
-                sphere({x,125-y,z},1.7f,game::rgb(240,244,245));
-            else beam({x,125-y,z},
-                {x+conditions.wind.x,120-y,z+conditions.wind.z},
+                sphere({x,game::playerY+125-y,z},1.7f,game::rgb(240,244,245));
+            else beam({x,game::playerY+125-y,z},
+                {x+conditions.wind.x,game::playerY+120-y,z+conditions.wind.z},
                 0.2f,0.2f,game::rgb(137,170,192));
         }
     }
     for(const auto& flame:fire::active())if(close(flame.p,500))
-        handler.fireColumn({flame.p.x,0,flame.p.z},flame.intensity,
+        handler.fireColumn({flame.p.x,terrain::height(flame.p),flame.p.z},flame.intensity,
             grass::hash(int(flame.p.x),int(flame.p.z),41));
     for(std::size_t index=0;index<game::peds.size();++index){
         const auto& ped=game::peds[index];
         if(ped.alive&&ped.burnTime>0&&close(ped.p,500)){
             Vec2 side{-std::sin(ped.angle),std::cos(ped.angle)};
             for(float sign:{-1.0f,1.0f})
-                handler.fireColumn({ped.p.x+side.x*sign*7,7,
+                handler.fireColumn({ped.p.x+side.x*sign*7,terrain::height(ped.p)+7,
                     ped.p.z+side.z*sign*7},0.55f,
                     grass::hash(int(index),int(sign*ped.p.z),73));
         }
@@ -1644,7 +1637,7 @@ void effects(){
                 handler.impact(flash);
         for(const auto& impact:game::impacts)if(impact.person&&close(impact.p,500)){
             float size=15.0f+3.0f*(1.0f-std::clamp(impact.life/1.8f,0.0f,1.0f));
-            model("effect/blood-decal",{impact.p.x,0.55f,impact.p.z},
+            model("effect/blood-decal",{impact.p.x,terrain::height(impact.p)+0.55f,impact.p.z},
                 {size,0.01f,size},impact.p.x*0.13f,Color{0.55f,0.34f,0.34f});
         }
     }

@@ -1,0 +1,2 @@
+# Preserve downloaded terrain source bytes for the pinned provenance checksums.
+assets/models/source/terrain/**/*.gltf -text

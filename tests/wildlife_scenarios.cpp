@@ -41,7 +41,7 @@ void wildlifeScenarios(){
     }
     // A controlled open forest clearing keeps combat tests independent of trees.
     buildings.clear();trees.clear();vehicles.clear();props.clear();peds.clear();bullets.clear();
-    player={4500,4500};previousPlayer=player;playerY=0;health=PLAYER_MAX_HEALTH;
+    player={4500,4500};previousPlayer=player;playerY=groundHeight(player);health=PLAYER_MAX_HEALTH;
     occupied=-1;cameraYaw=0;keys[VK_SPACE]=false;rightMouse=false;
     assert(wildlife::walkable(player,40));
     wildlife::animals={animal(10,{4550,4500})};
@@ -68,8 +68,8 @@ void wildlifeScenarios(){
     assert(wildlife::animals[0].health==65&&wildlife::animals[1].health==65);
     // The live game projectile loop must sweep through a small animal in one tick.
     wildlife::animals={animal(14,{4580,4500})};
-    jolt_world::teleportCharacter(player,0);
-    Bullet bullet{};bullet.p={4540,2,4500};bullet.v={12000,0,0};
+    jolt_world::teleportCharacter(player,playerY);
+    Bullet bullet{};bullet.p={4540,groundHeight({4580,4500})+2,4500};bullet.v={12000,0,0};
     bullet.life=1;bullet.damage=50;bullet.range=500;bullets.push_back(bullet);
     update(1.0f/60);assert(wildlife::animals[0].health==0);assert(bullets.empty());
     // Melee uses the same input-facing cone and damage integration as pedestrians.
@@ -104,7 +104,7 @@ void wildlifeScenarios(){
     dx11::loadMeshes(L"assets/models/baked");
     for(int kind:{0,1}){
         wildlife::animals={animal(kind,{4500,4500})};
-        player={4500,4465};previousPlayer=player;playerY=0;health=PLAYER_MAX_HEALTH;
+        player={4500,4465};previousPlayer=player;playerY=groundHeight(player);health=PLAYER_MAX_HEALTH;
         occupied=-1;enteringVehicle=-1;swimming=false;grounded=true;cameraYaw=0;
         jolt_world::reset();
         assert(interactionPrompt().find("RIDE")!=std::string::npos);
@@ -127,13 +127,13 @@ void wildlifeScenarios(){
         for(int tick=0;tick<180;++tick)update(1.0f/60);
         keys['W']=false;keys[VK_SHIFT]=false;
         assert(player.x<buildings.back().x-wildlife::radius(wildlife::animals[0]));
-        buildings.clear();enterExit();assert(!wildlife::riding()&&playerY==0);
+        buildings.clear();enterExit();assert(!wildlife::riding()&&std::abs(playerY-groundHeight(player))<.01f);
         Vec2 onFoot=player;update(1.0f/60);assert(len(player-onFoot)<1);
         enterExit();assert(wildlife::riding());
         wildlife::hurt(0,10000,player+Vec2{100,0},false);
         assert(!wildlife::riding()&&wildlife::animals[0].state==State::Dead);
     }
-    wildlife::animals={animal(2,{4500,4500})};player={4500,4480};playerY=0;
+    wildlife::animals={animal(2,{4500,4500})};player={4500,4480};playerY=groundHeight(player);
     assert(!wildlife::mount(0));
     // The old length-sized clearance circle locked both mounts between trunks.
     // These gaps fit the body's width and must allow full-simulation riding.
@@ -143,7 +143,7 @@ void wildlifeScenarios(){
         for(float x:{4480.0f,4520.0f,4560.0f,4600.0f})for(float side:{-1.0f,1.0f}){
             Tree tree{};tree.p={x,4500+side*(r+8)};trees.push_back(tree);
         }
-        player={4460,4500};previousPlayer=player;playerY=0;health=PLAYER_MAX_HEALTH;
+        player={4460,4500};previousPlayer=player;playerY=groundHeight(player);health=PLAYER_MAX_HEALTH;
         occupied=-1;enteringVehicle=-1;swimming=false;grounded=true;
         jolt_world::reset();assert(wildlife::mount(0));
         cameraYaw=0;Vec2 start=player;float phase=wildlife::animals[0].phase;
@@ -168,7 +168,7 @@ void wildlifeScenarios(){
         wildlife::animals={animal(kind,{4500,4500})};trees.clear();
         float r=wildlife::radius(wildlife::animals[0]);
         Tree trunk{};trunk.p={4500+r+8,4500};trees={trunk};
-        player={4500,4500-r-18};previousPlayer=player;playerY=0;occupied=-1;
+        player={4500,4500-r-18};previousPlayer=player;playerY=groundHeight(player);occupied=-1;
         health=PLAYER_MAX_HEALTH;swimming=false;jolt_world::reset();
         assert(wildlife::walkable(wildlife::animals[0].p,r,true));
         assert(!wildlife::bodyWalkable(wildlife::animals[0],wildlife::animals[0].p,0,true));
@@ -183,7 +183,7 @@ void wildlifeScenarios(){
     // Every species has a physical body, independent of its AI state.
     for(int kind=0;kind<int(wildlife::species().size());++kind){
         wildlife::animals={animal(kind,{4500,4500})};
-        player={4400,4500};playerY=0;occupied=-1;health=PLAYER_MAX_HEALTH;
+        player={4400,4500};playerY=groundHeight(player);occupied=-1;health=PLAYER_MAX_HEALTH;
         jolt_world::reset();assert(jolt_world::activeAnimalColliderCount()==1);
         bool stopped=false,steppedOver=false;
         for(int i=0;i<180;++i){
@@ -214,10 +214,10 @@ void wildlifeScenarios(){
     assert(loaded.id==savedId&&loaded.health>0&&!loaded.looted&&!loaded.carried);
     assert(loaded.state!=State::Dead&&money==cash);
     reset();
-    player=wildlife::animals[0].p+Vec2{0,30};playerY=0;swimming=false;
+    player=wildlife::animals[0].p+Vec2{0,30};playerY=groundHeight(player);swimming=false;
     enterExit();assert(wildlife::riding());
     assert(savegame::save()&&savegame::load());
-    assert(!wildlife::riding()&&occupied<0&&playerY==0);
+    assert(!wildlife::riding()&&occupied<0&&std::abs(playerY-groundHeight(player))<.01f);
     // Sleeping populations do not drift while the player is elsewhere.
     player={300,250};Vec2 asleep=wildlife::animals.back().p;tick(5);
     assert(len(asleep-wildlife::animals.back().p)<0.001f);

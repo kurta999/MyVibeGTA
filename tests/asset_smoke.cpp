@@ -389,5 +389,12 @@ int main(){
         }
     }
     assert(std::ifstream("assets/models/baked/marina/MarinaFacade_NormalDX.png").good());
+    for(const char* name:{"rock_namaqualand_boulder_02","rock_coastal_cliff_02"}){
+        const auto* rock=dx11::mesh(std::string("nature/")+name);
+        const auto* lod=dx11::mesh(std::string("nature/")+name+"-lod");
+        assert(rock&&lod&&rock->textured&&!rock->allowTessellation);
+        assert(!rock->indices.empty()&&lod->indices.size()<rock->indices.size()/3);
+        assert(std::filesystem::exists(rock->textureFile));
+    }
     std::puts("asset smoke passed");
 }

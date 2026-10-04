@@ -192,7 +192,7 @@ bool load(){
 #endif
     game::reset();
     game::Vec2 position{float(read("Player","X",300,file)),float(read("Player","Z",250,file))};
-    float height=version>=2?float(std::clamp(read("Player","Y",0,file),0,1000)):0;
+    float height=version>=2?float(std::clamp(read("Player","Y",0,file),-250,2000)):0;
     bool safe=position.x>15&&position.x<regions::WIDTH-15&&
         position.z>15&&position.z<regions::DEPTH-15&&
         !regions::waterAt(position);
@@ -206,7 +206,7 @@ bool load(){
     }
     if(safe)game::player=position;
     game::previousPlayer=game::player;
-    game::occupied=-1;game::playerY=safe&&onRoof?height:0;
+    game::occupied=-1;game::playerY=safe&&onRoof?height:game::groundHeight(game::player);
     game::grounded=!onRoof;game::playerVerticalSpeed=0;game::playerVelocity={};
     game::clearCarry();
 #ifdef MINI_CITY_JOLT

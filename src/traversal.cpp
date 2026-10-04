@@ -136,7 +136,7 @@ bool startTree(int index){
     if(sourceIndex<0||sourceIndex>=int(game::trees.size())||
        game::trees[sourceIndex].destroyed)return false;
     state=State::Tree;activeIndex=index;climbHeight=0;
-    setPose(trees[index].bottom,0);return true;
+    setPose(trees[index].bottom,game::groundHeight(trees[index].bottom));return true;
 }
 void detach(){state=State::None;activeIndex=-1;climbHeight=0;}
 void update(float dt){
@@ -157,10 +157,10 @@ void update(float dt){
         const ClimbTree& tree=trees[activeIndex];
         if(tree.treeIndex<0||tree.treeIndex>=int(game::trees.size())||
            game::trees[tree.treeIndex].destroyed){detach();return;}
-        setPose(tree.bottom,climbHeight);
+        setPose(tree.bottom,game::groundHeight(tree.bottom)+climbHeight);
         if(game::keys[VK_SPACE]){
             game::Vec2 exit=tree.bottom+game::forward(game::cameraYaw)*19;
-            if(!game::solid(exit,11))setPose(exit,climbHeight+5);
+            if(!game::solid(exit,11))setPose(exit,game::groundHeight(tree.bottom)+climbHeight+5);
             detach();
         }
     }

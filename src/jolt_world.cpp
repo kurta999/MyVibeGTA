@@ -5,6 +5,8 @@
 #include <Jolt/Core/JobSystemSingleThreaded.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include "terrain.h"
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
@@ -31,6 +33,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 namespace jolt_world {
@@ -236,7 +239,7 @@ void syncBuildingColliders(game::Vec2 focus){
 JPH::Ref<JPH::CharacterVirtual> makePedCharacter(game::Vec2 point){
     if(!world||!pedestrianSettings)return nullptr;
     return new JPH::CharacterVirtual(pedestrianSettings,
-        JPH::RVec3(point.x,0,point.z),JPH::Quat::sIdentity(),
+        JPH::RVec3(point.x,terrain::height(point),point.z),JPH::Quat::sIdentity(),
         Layer::moving,world.get());
 }
 }
@@ -295,13 +298,21 @@ void reset(){
         {game::WORLD_W*0.5f,5,(game::WORLD_D-game::SHORE)*0.5f});
     addStatic({1200,-5,(game::SHORE+game::WORLD_D)*0.5f},
         {60,5,(game::WORLD_D-game::SHORE)*0.5f});
-    addStatic({game::WORLD_W*0.5f,-5,(game::WORLD_D+regions::DEPTH)*0.5f},
-        {game::WORLD_W*0.5f,5,(regions::DEPTH-game::WORLD_D)*0.5f});
-    addStatic({(game::WORLD_W+7600)*0.5f,-5,regions::DEPTH*0.5f},
-        {(7600-game::WORLD_W)*0.5f,5,regions::DEPTH*0.5f});
+    // A compressed surface replaces the regional flat boxes, allowing dry
+    // valleys below sea level as well as wheel/capsule contact on mountains.
+    auto terrainSamples=terrain::heights();
+    for(unsigned z=0;z<terrain::samples;++z)for(unsigned x=0;x<terrain::samples;++x)
+        if(regions::waterAt({x*terrain::spacing,z*terrain::spacing}))terrainSamples[z*terrain::samples+x]=-15;
+    JPH::HeightFieldShapeSettings surface(terrainSamples.data(),JPH::Vec3::sZero(),
+        JPH::Vec3(terrain::spacing,1,terrain::spacing),terrain::samples);
+    surface.mBlockSize=4;surface.mBitsPerSample=16;
+    auto surfaceResult=surface.Create();
+    if(surfaceResult.HasError())throw std::runtime_error(surfaceResult.GetError().c_str());
+    JPH::BodyCreationSettings terrainBody(surfaceResult.Get(),JPH::RVec3::sZero(),
+        JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
+    terrainBody.mFriction=.85f;
+    staticBodies.push_back(world->GetBodyInterface().CreateAndAddBody(terrainBody,JPH::EActivation::DontActivate));
     addStatic({7800,-20,regions::DEPTH*0.5f},{200,5,regions::DEPTH*0.5f});
-    addStatic({(8000+regions::WIDTH)*0.5f,-5,regions::DEPTH*0.5f},
-        {(regions::WIDTH-8000)*0.5f,5,regions::DEPTH*0.5f});
     addStatic({7800,-5,8500},{200,5,100});
     // Vehicles need the same world limit as the character. Without a collider
     // they can leave the physics floor and lose all wheel contact.
@@ -341,7 +352,7 @@ void reset(){
         float halfW=half.x,halfH=half.y,halfL=half.z;
         float mass=tuning.mass;
         JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(halfW,halfH,halfL)),
-            JPH::RVec3(vehicle.p.x,physics::vehicleRestHeight(vehicle.kind),vehicle.p.z),
+            JPH::RVec3(vehicle.p.x,terrain::height(vehicle.p)+physics::vehicleRestHeight(vehicle.kind),vehicle.p.z),
             JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-vehicle.angle),
             JPH::EMotionType::Dynamic,Layer::moving);
         auto& initialPose=game::vehicles[vehicleIndex];
@@ -432,6 +443,7 @@ void reset(){
     characterSettings->mMaxSlopeAngle=game::PI*0.28f;
     characterSettings->mSupportingVolume=JPH::Plane(JPH::Vec3::sAxisY(),-10.0f);
     characterSettings->mMaxStrength=250.0f;
+    game::playerY=std::max(game::playerY,terrain::height(game::player));
     playerCharacter=new JPH::CharacterVirtual(characterSettings,
         JPH::RVec3(game::player.x,game::playerY,game::player.z),
         JPH::Quat::sIdentity(),0,world.get());
@@ -483,7 +495,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
         std::clamp(game::player.z,edge,regions::DEPTH-edge)};
     if(playable.x!=game::player.x||playable.z!=game::player.z){
         game::player=playable;
-        game::playerY=std::max(0.0f,game::playerY);
+        game::playerY=std::max(terrain::height(playable),game::playerY);
         playerCharacter->SetPosition(JPH::RVec3(playable.x,game::playerY,playable.z));
         playerCharacter->SetLinearVelocity(JPH::Vec3::sZero());
     }
@@ -529,10 +541,10 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     float safeX=std::clamp(float(position.GetX()),edge,regions::WIDTH-edge);
     float safeZ=std::clamp(float(position.GetZ()),edge,regions::DEPTH-edge);
     if(safeX!=float(position.GetX())||safeZ!=float(position.GetZ())){
-        playerCharacter->SetPosition(JPH::RVec3(safeX,std::max(0.0f,float(position.GetY())),safeZ));
+        playerCharacter->SetPosition(JPH::RVec3(safeX,float(position.GetY()),safeZ));
         position=playerCharacter->GetPosition();
     }
-    if(game::playerY<25&&!swimming&&game::occupied<0){
+    if(game::playerY<terrain::height(game::player)+25&&!swimming&&game::occupied<0){
         game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
         for(auto& ped:game::peds){
             if(!ped.alive||ped.drivingVehicle>=0||
@@ -556,7 +568,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
         }
     }
     game::player={float(position.GetX()),float(position.GetZ())};
-    game::playerY=swimming?float(position.GetY()):std::max(0.0f,float(position.GetY()));
+    game::playerY=swimming?float(position.GetY()):float(position.GetY());
     game::playerVerticalSpeed=playerCharacter->GetLinearVelocity().GetY();
     game::grounded=!swimming&&playerCharacter->IsSupported();
     game::swimming=swimming;
@@ -588,7 +600,7 @@ void moveGrappleCharacter(game::Vec3 velocity,float dt){
         world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
     const auto position=playerCharacter->GetPosition();
     game::player={float(position.GetX()),float(position.GetZ())};
-    game::playerY=std::max(0.0f,float(position.GetY()));
+    game::playerY=float(position.GetY());
     game::playerVerticalSpeed=playerCharacter->GetLinearVelocity().GetY();
     game::grounded=playerCharacter->IsSupported();game::swimming=false;
 }
@@ -596,6 +608,7 @@ void teleportCharacter(game::Vec2 position,float height){
     if(!playerCharacter)return;
     syncBuildingColliders(position);
     syncSceneryColliders(position);
+    height=regions::waterAt(position)?height:std::max(height,terrain::height(position));
     playerCharacter->SetPosition(JPH::RVec3(position.x,height,position.z));
     playerCharacter->SetLinearVelocity(JPH::Vec3::sZero());
 }
@@ -607,7 +620,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     if(!character)return;
     auto position=character->GetPosition();
     bool teleported=game::len(game::Vec2{float(position.GetX()),float(position.GetZ())}-ped.p)>25;
-    if(teleported)character->SetPosition(JPH::RVec3(ped.p.x,0,ped.p.z));
+    if(teleported)character->SetPosition(JPH::RVec3(ped.p.x,terrain::height(ped.p),ped.p.z));
     float vertical=teleported?0.0f:character->GetLinearVelocity().GetY();
     if(character->IsSupported()&&vertical<0)vertical=0;
     vertical+=world->GetGravity().GetY()*dt;
@@ -620,7 +633,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
         world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
     position=character->GetPosition();
     game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
-    if(game::health>0&&game::occupied<0&&game::playerY<25&&
+    if(game::health>0&&game::occupied<0&&game::playerY<terrain::height(game::player)+25&&
        game::len(candidate-game::player)<18.0f){
         float previousDistance=game::len(ped.p-game::player);
         if(previousDistance>=18.0f||
@@ -670,7 +683,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
         float radius=treeRadius(tree),halfHeight=std::max(8.0f,tree.height*tree.scale*0.3f);
         if(id.IsInvalid()){
             JPH::BodyCreationSettings settings(new JPH::CylinderShape(halfHeight,radius),
-                JPH::RVec3(tree.p.x,halfHeight,tree.p.z),JPH::Quat::sIdentity(),
+                JPH::RVec3(tree.p.x,terrain::height(tree.p)+halfHeight,tree.p.z),JPH::Quat::sIdentity(),
                 JPH::EMotionType::Static,Layer::staticBody);
             settings.mFriction=0.8f;settings.mUserData=treeTag|i;
             id=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
@@ -685,7 +698,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
         const auto& a=wildlife::animals[i];auto& id=animalBodies[i];
         if(a.health<=0||a.carried||game::len(a.p-focus)>1000){destroyBody(id);continue;}
         const auto& species=wildlife::species()[a.species];
-        JPH::RVec3 target(a.p.x,species.height*0.5f,a.p.z);
+        JPH::RVec3 target(a.p.x,terrain::height(a.p)+species.height*0.5f,a.p.z);
         JPH::Quat rotation=JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-a.angle);
         if(!id.IsInvalid()&&animalBodySpecies[i]!=a.species)destroyBody(id);
         if(id.IsInvalid()){
@@ -717,7 +730,7 @@ void breakTree(std::size_t index,const SceneryImpact& impact){
             piece<4?game::Vec3{radius*1.8f,height*0.23f,radius*1.8f}:
                     game::Vec3{radius*0.6f,height*0.16f,radius*0.6f};
         game::Vec3 position{tree.p.x+(piece<4?0:std::cos(angle)*radius*2),
-            piece<4?2+height*(fraction+0.125f):height*(0.65f+fraction*0.3f),
+            terrain::height(tree.p)+(piece<4?2+height*(fraction+0.125f):height*(0.65f+fraction*0.3f)),
             tree.p.z+(piece<4?0:std::sin(angle)*radius*2)};
         JPH::Quat rotation=piece<4?JPH::Quat::sIdentity():
             JPH::Quat::sRotation(JPH::Vec3(std::cos(angle),0,std::sin(angle)),0.9f);
@@ -901,7 +914,7 @@ void driveVehicle(std::size_t index,float throttle,float steering,float,bool bra
     auto position=bodies.GetCenterOfMassPosition(id);
     bool relocated=game::len(vehicle.p-vehicleSynced[index])>3.0f;
     if(relocated){
-        bodies.SetPosition(id,JPH::RVec3(vehicle.p.x,position.GetY(),vehicle.p.z),JPH::EActivation::Activate);
+        bodies.SetPosition(id,JPH::RVec3(vehicle.p.x,terrain::height(vehicle.p)+physics::vehicleRestHeight(vehicle.kind),vehicle.p.z),JPH::EActivation::Activate);
         bodies.SetRotation(id,JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-vehicle.angle),
             JPH::EActivation::Activate);
         bodies.SetLinearVelocity(id,JPH::Vec3::sZero());
@@ -930,11 +943,11 @@ void teleportVehicle(std::size_t index,game::Vec2 position,float angle,float alt
     vehicle.p=position;vehicle.angle=angle;
     vehicle.flightThrottle=0;vehicle.flightPitch=vehicle.flightRoll=0;
     vehicle.velocity={};vehicle.speed=0;vehicle.yawRate=0;
-    vehicle.rideHeight=altitude;vehicle.verticalSpeed=0;
+    vehicle.rideHeight=altitude==0?terrain::height(position):altitude;vehicle.verticalSpeed=0;
     vehicle.qx=vehicle.qz=0;vehicle.qy=std::sin((game::PI/2-angle)*.5f);vehicle.qw=std::cos((game::PI/2-angle)*.5f);
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
     auto& bodies=world->GetBodyInterface();
-    float height=physics::vehicleRestHeight(vehicle.kind)+altitude;
+    float height=physics::vehicleRestHeight(vehicle.kind)+vehicle.rideHeight;
     bodies.SetPosition(vehicleBodies[index],
         JPH::RVec3(position.x,height,position.z),JPH::EActivation::Activate);
     bodies.SetRotation(vehicleBodies[index],
@@ -1038,7 +1051,7 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
         {-3,10,0,5,16,5}, {3,10,0,5,16,5}};
     Ragdoll ragdoll;ragdoll.style=ped.style;ragdoll.pedId=ped.id;
     if(pinAnchor)ragdoll.life=std::min(15.0f,ped.respawn);
-    ragdoll.origin={ped.p.x,0,ped.p.z};ragdoll.yaw=game::PI/2-ped.angle;
+    ragdoll.origin={ped.p.x,terrain::height(ped.p),ped.p.z};ragdoll.yaw=game::PI/2-ped.angle;
     float co=std::cos(ragdoll.yaw),si=std::sin(ragdoll.yaw);
     auto rotated=[&](float x,float z){return game::Vec2{co*x+si*z,-si*x+co*z};};
     auto& bodies=world->GetBodyInterface();
@@ -1046,9 +1059,9 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
     for(int i=0;i<6;++i){
         const auto& part=parts[i];
         game::Vec2 offset=rotated(part.x,part.z);
-        ragdoll.rest[i]={ped.p.x+offset.x,part.y,ped.p.z+offset.z};
+        ragdoll.rest[i]={ped.p.x+offset.x,ragdoll.origin.y+part.y,ped.p.z+offset.z};
         JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(part.w/2,part.h/2,part.d/2)),
-            JPH::RVec3(ragdoll.rest[i].x,part.y,ragdoll.rest[i].z),JPH::Quat::sIdentity(),
+            JPH::RVec3(ragdoll.rest[i].x,ragdoll.rest[i].y,ragdoll.rest[i].z),JPH::Quat::sIdentity(),
             JPH::EMotionType::Dynamic,Layer::moving);
         settings.mFriction=0.75f;settings.mRestitution=0.08f;
         settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
@@ -1069,15 +1082,15 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
         JPH::DistanceConstraintSettings settings;
         game::Vec2 anchor=rotated(anchors[i].x,anchors[i].z);
         settings.mPoint1=settings.mPoint2=JPH::RVec3(ped.p.x+anchor.x,
-            anchors[i].y,ped.p.z+anchor.z);
+            ragdoll.origin.y+anchors[i].y,ped.p.z+anchor.z);
         settings.mMinDistance=0;settings.mMaxDistance=0.5f;
         JPH::Ref<JPH::TwoBodyConstraint> joint=settings.Create(*created[parent[i]],*created[child[i]]);
         world->AddConstraint(joint.GetPtr());ragdoll.joints.push_back(joint);
     }
     if(pinAnchor){
         JPH::DistanceConstraintSettings settings;
-        settings.mPoint1=JPH::RVec3(pinAnchor->x,25,pinAnchor->z);
-        settings.mPoint2=JPH::RVec3(ped.p.x,25,ped.p.z);
+        settings.mPoint1=JPH::RVec3(pinAnchor->x,terrain::height(ped.p)+25,pinAnchor->z);
+        settings.mPoint2=JPH::RVec3(ped.p.x,terrain::height(ped.p)+25,ped.p.z);
         settings.mMinDistance=0;settings.mMaxDistance=2;
         JPH::Ref<JPH::TwoBodyConstraint> joint=
             settings.Create(JPH::Body::sFixedToWorld,*created[0]);
@@ -1182,9 +1195,7 @@ void step(float dt){
         vehicleSynced[i]=vehicle.p;
         vehicle.velocity=resolved;
         float restHeight=physics::vehicleRestHeight(vehicle.kind);
-        vehicle.rideHeight=vehicle_systems::aircraft(vehicle.kind)?
-            std::max(0.0f,float(position.GetY())-restHeight):
-            std::clamp(float(position.GetY())-restHeight,-6.0f*physics::vehicleScale(vehicle.kind),12.0f*physics::vehicleScale(vehicle.kind));
+        vehicle.rideHeight=float(position.GetY())-restHeight;
         vehicle.verticalSpeed=velocity.GetY();
         auto rotation=bodies.GetRotation(vehicleBodies[i]);
         vehicle.qx=rotation.GetX();vehicle.qy=rotation.GetY();vehicle.qz=rotation.GetZ();vehicle.qw=rotation.GetW();

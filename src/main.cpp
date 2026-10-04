@@ -284,6 +284,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--desert"))
         player=previousPlayer={12000,3500};
+    if(smoke&&commandLine&&std::strstr(commandLine,"--terrain-desert")){player=previousPlayer={13000,4000};cameraYaw=game::PI*.32f;}
+    if(smoke&&commandLine&&std::strstr(commandLine,"--terrain-savanna")){player=previousPlayer={13900,14200};cameraYaw=.4f;}
+    if(smoke&&commandLine&&std::strstr(commandLine,"--terrain-basin")){player=previousPlayer={13900,15450};cameraYaw=game::PI*.2f;}
     if(smoke&&commandLine&&std::strstr(commandLine,"--desert-hub")){
         player=previousPlayer={12000,3000};cameraYaw=game::PI/2;
     }
@@ -792,6 +795,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(smoke&&commandLine&&std::strstr(commandLine,"--underwater-preview")){
         player=previousPlayer={600,2000};playerY=-75;swimming=true;grounded=false;
         jolt_world::teleportCharacter(player,playerY);jolt_world::moveCharacter({},false,1.0f/60);
+    }
+    if(smoke&&commandLine&&!regions::waterAt(player)&&
+       (std::strstr(commandLine,"--terrain-")||playerY==0||playerY<game::groundHeight(player))){
+        playerY=game::groundHeight(player);jolt_world::teleportCharacter(player,playerY);
     }
     #endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot")

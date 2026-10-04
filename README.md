@@ -1,6 +1,6 @@
 # Mini City 3D
 
-A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district.
+A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 

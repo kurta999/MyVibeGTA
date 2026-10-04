@@ -1,6 +1,7 @@
 #include "ordnance.h"
 #include "game_internal.h"
 #include "physics.h"
+#include "terrain.h"
 #include "camera.h"
 #include "destruction.h"
 #include "fire.h"
@@ -36,7 +37,7 @@ Vec3 boxNormal(Vec3 p,Vec3 low,Vec3 high){
     int best=int(std::min_element(distances,distances+6)-distances);return normals[best];
 }
 Vec3 staticNormal(Vec3 p,Vec3 travel){
-    if(p.y<=1)return {0,1,0};
+    if(p.y<=terrain::height({p.x,p.z})+1)return terrain::normal({p.x,p.z});
     for(const auto& b:buildings)for(const auto& box:destruction::boxes(b)){
         Vec3 nearest{std::clamp(p.x,box.low.x,box.high.x),std::clamp(p.y,box.low.y,box.high.y),
             std::clamp(p.z,box.low.z,box.high.z)};

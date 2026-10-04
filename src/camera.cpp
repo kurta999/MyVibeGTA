@@ -1,6 +1,7 @@
 #include "camera.h"
 #ifdef MINI_CITY_JOLT
 #include "destruction.h"
+#include "terrain.h"
 #include "wildlife.h"
 #include "birds.h"
 #endif
@@ -70,7 +71,7 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     for(int i=1;i<=28;++i){
         float t=i/28.0f;
         Vec3 point=anchor+(desired-anchor)*t;
-        bool blocked=point.y<5&&!swimming;
+        bool blocked=point.y<game::groundHeight({point.x,point.z})+5&&!swimming;
         for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
             if(destruction::contains(b,point,5)){blocked=true;break;}
@@ -146,7 +147,7 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
     }
     for(const auto& ped:peds)if(ped.alive){
         float hit=boxHit(pose.eye,direction,
-            {ped.p.x-10,2,ped.p.z-10},{ped.p.x+10,37,ped.p.z+10},best);
+            {ped.p.x-10,game::groundHeight(ped.p)+2,ped.p.z-10},{ped.p.x+10,game::groundHeight(ped.p)+37,ped.p.z+10},best);
         if(hit<best){best=hit;pedDistance=hit;aimedPed=&ped;}
     }
     for(const auto& prop:props)if(prop.alive){
@@ -166,17 +167,21 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
     for(const auto& animal:wildlife::animals)if(animal.health>0){
         float r=wildlife::radius(animal),h=wildlife::species()[animal.species].height;
         best=std::min(best,boxHit(pose.eye,direction,
-            {animal.p.x-r,0,animal.p.z-r},{animal.p.x+r,h,animal.p.z+r},best));
+            {animal.p.x-r,game::groundHeight(animal.p),animal.p.z-r},{animal.p.x+r,game::groundHeight(animal.p)+h,animal.p.z+r},best));
     }
     for(const auto& bird:birds::flock)if(bird.health>0){
         float entry=0;
         if(birds::segmentHit(bird,pose.eye,pose.eye+direction*best,entry))best*=entry;
     }
 #endif
+    #ifdef MINI_CITY_JOLT
+    float terrainEntry=0;if(terrain::segmentHit(pose.eye,pose.eye+direction*best,terrainEntry))best*=terrainEntry;
+#else
     if(direction.y<-0.00001f){
         float groundDistance=-pose.eye.y/direction.y;
         if(groundDistance>=0)best=std::min(best,groundDistance);
     }
+    #endif
     Vec3 result=pose.eye+direction*best;
     // The camera picks a rectangular envelope, while bullets use a round
     // character hitbox. Aim at the selected character's centerline so a shot

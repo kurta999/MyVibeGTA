@@ -2043,7 +2043,7 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
     const float tangent=probeBakeActive?1.0f:
         std::tan(XMConvertToRadians(camera::fieldOfView())*0.5f);
     const float aspect=float(bufferW)/bufferH;
-    const float farPlane=1250.0f*ui::drawDistanceScale();
+    const float farPlane=std::max(5000.0f,1250.0f*ui::drawDistanceScale());
     XMMATRIX shadowMatrices[3]{
         XMLoadFloat4x4(&constants.shadowViewProjection[0]),
         XMLoadFloat4x4(&constants.shadowViewProjection[1]),
@@ -2521,7 +2521,7 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     float drawScale=ui::drawDistanceScale();
     XMMATRIX projection=probeBakeActive?XMMatrixPerspectiveFovLH(XM_PIDIV2,1,2,1250*drawScale):
         XMMatrixPerspectiveFovRH(XMConvertToRadians(camera::fieldOfView()),
-        float(bufferW)/bufferH,2.0f,1250.0f*drawScale);
+        float(bufferW)/bufferH,2.0f,std::max(5000.0f,1250.0f*drawScale));
     if(temporalAA){
         // Eight subpixel sample positions. Projection jitter is included in
         // both the current and previous matrices used for reprojection.
@@ -2537,7 +2537,7 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
     constants.sun={std::cos((gameHour-6)*PI/12),solar,0.3f,
         std::clamp(solar*6.0f,0.0f,1.0f)*light};
     if(std::strstr(GetCommandLineA(),"--no-direct-sun"))constants.sun.w=0;
-    XMVECTOR focus=XMVectorSet(player.x,0,player.z,1);
+    XMVECTOR focus=XMVectorSet(player.x,playerY,player.z,1);
     XMVECTOR sunDirection=XMVector3Normalize(XMVectorSet(constants.sun.x,constants.sun.y,constants.sun.z,0));
     XMVECTOR cameraForward=XMVector3Normalize(XMVectorSubtract(targetPoint,eye));
     const float splitNear[3]={2.0f,250.0f*drawScale,650.0f*drawScale};
@@ -2693,7 +2693,7 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
         constants.streetShadowInfo.y=1;
     }
     constants.eye={pose.eye.x,pose.eye.y,pose.eye.z,float(ui::graphicsQuality)};
-    float fogEnd=1250.0f*drawScale*0.94f*conditions.visibility;
+    float fogEnd=std::max(regions::biomeAt(player)==regions::Biome::City?0.0f:4200.0f,1250.0f*drawScale*0.94f)*conditions.visibility;
     constants.params={0,fogEnd*0.51f,fogEnd,
         shadowDepth[0]&&ui::shadowQuality>0&&daylight>0.05f?1.0f:0.0f};
     constants.shadowInfo={1.0f/float(std::max(1,shadowSize)),
@@ -2967,10 +2967,10 @@ void render(){
     vertices.clear();size_t starts[dx11::MATERIAL_GROUPS]{},counts[dx11::MATERIAL_GROUPS]{};
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){starts[group]=vertices.size();counts[group]=groups[group].size();
         vertices.insert(vertices.end(),groups[group].begin(),groups[group].end());}
-    if(!growVertexBuffer(vertices.size()))return;
+    if(!growVertexBuffer(std::max(size_t(1),vertices.size())))return;
     D3D11_MAPPED_SUBRESOURCE mapped{};
     if(FAILED(context->Map(vertexBuffer,0,D3D11_MAP_WRITE_DISCARD,0,&mapped)))return;
-    std::memcpy(mapped.pData,vertices.data(),vertices.size()*sizeof(dx11::Vertex));
+    if(!vertices.empty())std::memcpy(mapped.pData,vertices.data(),vertices.size()*sizeof(dx11::Vertex));
     context->Unmap(vertexBuffer,0);
     float solar=std::sin((gameHour-6)*PI/12.0f);
     float daylight=std::clamp(solar*2.3f+0.42f,0.0f,1.0f);
@@ -3196,7 +3196,7 @@ void render(){
         XMMatrixInverse(nullptr,XMLoadFloat4x4(&constants.viewProjection)));
     post.cameraEye=constants.eye;
     post.pixelSize={1.0f/bufferW,1.0f/bufferH,2.0f,
-        1250.0f*ui::drawDistanceScale()};
+        std::max(5000.0f,1250.0f*ui::drawDistanceScale())};
     const auto biome=regions::biomeAt(player);
     XMFLOAT4 tint{1,1,1,1.15f};
     if(biome==regions::Biome::Snow)tint={0.90f,0.97f,1.08f,1.12f};

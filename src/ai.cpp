@@ -94,7 +94,7 @@ void pedestrianContact(Ped& ped,float speed,Vec2 from){
     playerContactVisualTime=std::max(playerContactVisualTime,0.26f);
 }
 bool talkToPed(int index){
-    if(index<0||index>=int(peds.size())||health<=0||occupied>=0||playerY>12)return false;
+    if(index<0||index>=int(peds.size())||health<=0||occupied>=0||playerY>game::groundHeight(player)+12)return false;
     Ped& ped=peds[index];
     if(!ped.alive||ped.drivingVehicle>=0||ped.hostile||ped.police||
        ped.knockedDown>0||len(player-ped.p)>43||!clearLine(player,ped.p))return false;
@@ -310,7 +310,7 @@ void update(float dt){
                     if(ped.burstShots>=3)ped.burstShots=0;
                     audio::playAt(audio::Effect::Shot,ped.p.x,ped.p.z,ped.weaponIndex);
                     Vec2 direction2=norm(player-ped.p);
-                    Vec3 muzzle{ped.p.x+direction2.x*12,18,ped.p.z+direction2.z*12};
+                    Vec3 muzzle{ped.p.x+direction2.x*12,game::groundHeight(ped.p)+18,ped.p.z+direction2.z*12};
                     Vec3 target{player.x,occupied>=0?20.0f:playerY+18,player.z};
                     Vec3 direction3=norm(target-muzzle);
                     direction3=norm(Vec3{direction3.x+randf(-ped.accuracy,ped.accuracy),
