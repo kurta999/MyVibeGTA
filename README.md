@@ -18,22 +18,28 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - [Project layout](#project-layout)
 - [Technical Guide](TECHNICAL_README.md)
 - [Assets and attribution](#assets-and-attribution)
+- [Vehicle expansion controls and configuration](#vehicle-expansion-controls-and-configuration)
+- [Explosives, hiding and underwater controls](#explosives-hiding-and-underwater-controls)
 - [Current limitations](#current-limitations)
 
 ## Features
 
 - **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
-- **Rendering:** imported textured meshes, PBR material ranges, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections, and selectable FXAA/TAA.
+- **Rendering:** imported textured meshes, PBR material ranges, compressed DDS materials and mipmaps, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections with local-probe fallback, filmic tone mapping with bounded automatic exposure, and selectable FXAA/TAA. Supported scenery uses GPU instancing and geometry LOD.
 - **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
-- **Vehicles:** downloaded authored cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with explosive shells, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
+- **Vehicles:** 13 authored vehicle kinds, including cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with independently aimed turrets and barrels, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles show dirt and paint scratches and break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
 - **Audio and radio:** continuous recorded engine loops, distinct weapon effects, and ten live SomaFM presets. Mouse-wheel scrolling switches stations while driving; `data/radio.ini` accepts additional direct MP3/AAC stream URLs.
-- **Destruction and display:** RPG/tank explosions cut visible building holes and update collision for the current session. Windowed, borderless and exclusive fullscreen modes are selectable in Graphics and saved with progress/settings.
+- **Destruction:** RPGs, tank shells and explosive devices cut visible building holes and update collision for the current session. Building blasts eject physical bricks, hollow blocks, concrete chunks and exposed-rebar slabs that tumble and settle.
+- **Display:** windowed, borderless and exclusive fullscreen settings, saved resolution, and Alt+Enter switching, with borderless fallback when exclusive mode is unavailable.
 - **Wildlife:** 15 animal species, rideable elephants and tigers, and five bird species. Animals wander, play, flee, retaliate, and hunt according to species.
-- **Gameplay:** 20 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
-- **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
+- **Gameplay:** 27 weapons and tools, including C4/remote detonators, frag and smoke grenades, molotovs, flashbangs and timed bombs; six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages. Hideout corners let an unseen stationary player shed wanted stars; rear knife takedowns use witness-facing and visibility checks.
+- **Environment:** changing weather, volumetric cumulus clouds, cirrus, stars and moon, rain and snow, fire spread, burning trees and vehicles, swimming with dive/surface controls, ladders, and tree climbing.
 - **Grass:** textured 2K foliage with curved blades, wind, and distinct lawn, meadow, savanna, desert, snow, and coastal variants. **Esc → Graphics → Grass distance** controls the radius from **Off** to **800 world units** (default **230**). The separate **Grass LOD** slider extends detailed blades from **40 to 800 units** (default **95**) and pushes the next LOD transition farther out. Its visible extent is capped by Grass distance. Vegetation density selects Off/Medium/High independently; both distance controls are saved automatically. Larger detail radii draw more blade geometry and near grass shadows.
 - **Persistence:** saved progression, inventory, ownership, living wildlife damage and position, tree destruction, and graphics/control/audio settings.
+- **Debug tools:** F4 provides god mode, flight, health and equipment actions, infinite ammo, cash grants, wanted reset, and ammo grants. F3 shows performance information and F11 captures screenshots.
+
+The latest additions are documented in the [vehicle](#vehicle-expansion-controls-and-configuration) and [explosives](#explosives-hiding-and-underwater-controls) sections. Recorded verification from **2026-10-04** includes all **23 CTest entries passing** and inspected DX11 captures for [explosives and underwater controls](evidence/ordnance-20261004/README.md) and [masonry debris and tank aiming](evidence/masonry-tank-20261004/README.md). These are tested milestones within an unfinished prototype; see [current limitations](#current-limitations).
 
 ## Screenshots
 
@@ -156,19 +162,24 @@ These are the default bindings. Movement, sprint, vehicle interaction, sensitivi
 | Left Ctrl | Toggle crouch |
 | Space | Jump; handbrake while driving |
 | S while driving | Brake or reverse |
-| Mouse | Rotate the camera |
+| Mouse | Rotate the camera; aim the tank turret and elevate its barrel independently of the hull |
 | Hold right mouse button | Aim |
-| Left mouse button | Fire or use the selected melee weapon |
+| Left mouse button | Fire, use melee/tools, throw the selected device, or open timed-bomb placement; dive while swimming |
+| Right mouse button while swimming | Rise toward the surface; release both mouse buttons to hold depth |
 | Space + left mouse button without aiming | Unarmed punch or jump strike |
 | R | Reload; restart after death |
 | 1-9 / Q | Select or cycle unlocked weapons and tools |
 | E | Enter/exit a vehicle; mount/dismount a nearby tiger or elephant |
+| J in a truck | Attach/detach a nearby trailer at the rear hitch |
+| X | Detonate all active C4 charges |
+| K with the knife selected | Perform a rear takedown when prompted |
 | F / Tab | Use the selected nearby action / cycle nearby actions |
 | G | Carry or drop a corpse |
 | F near a ladder or climbable tree | Start climbing; W/S climb, F releases, Space jumps from a tree |
 | H while driving | Toggle car or motorcycle headlights |
 | C | Cycle first-person, third-person, and overview cameras |
 | B / mouse wheel | Telescope / telescope or sniper zoom |
+| Mouse wheel in a powered vehicle | Switch live radio stations or select Off |
 | M | Toggle the map |
 | T | Advance time by one hour |
 | Esc | Pause, settings, Save, and Load |
@@ -176,6 +187,7 @@ These are the default bindings. Movement, sprint, vehicle interaction, sensitivi
 | F3 | Toggle performance information |
 | F4 | Open the debug menu |
 | F11 | Save a PNG screenshot |
+| Alt+Enter | Toggle windowed/borderless display |
 
 Three helicopters are parked at **(170, 250)** downtown, **(1550, 1690)** near the beach, and **(2070, 1700)** near the harbor. Enter with **E**, use **W/S** for forward/reverse flight, **A/D** for yaw, **Space** to ascend, and hold **Ctrl** to descend. Releasing lift holds altitude after rotor spin-up. Landing uses the same solid-world collision and damage rules as other vehicles; exiting in the air starts a fall.
 
@@ -222,12 +234,21 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The 12 CTest entries cover the main simulation, wildlife, birds, drivers, vehicle collisions, pedestrians, traffic, navigation, assets, texture mip generation, reflection probe data, and loading-window responsiveness, cancellation, lifecycle, and embedded icon sizes. Collision scenarios exercise animal bodies, riding through narrow gaps, old-position recovery, low/high-impact tree crashes, physical fragments, and collider cleanup.
+The 23 CTest entries cover the main simulation, vehicle expansion, equipment, ordnance, wildlife, birds, drivers, vehicle collisions, pedestrians, traffic, navigation, grass, serial/parallel scene jobs, autosaves and background save jobs, assets, texture mips and loading, shader loading, reflection probe data, audio, GPU sky rendering, and loading-window responsiveness, cancellation, lifecycle, and embedded icon sizes. Collision scenarios exercise animal bodies, riding through narrow gaps, old-position recovery, low/high-impact tree crashes, physical fragments, and collider cleanup. Expansion and ordnance scenarios cover independent tank aiming, rubble settling and expiry, building-hole traversal, trailer coupling, flight, explosive devices, hiding, takedown witnesses, and underwater controls. See the [recorded full-suite result](evidence/masonry-tank-20261004/ctest.txt).
 
 To rerun focused scenarios after building with Ninja:
 
 ```powershell
 ctest --test-dir build-msvc-ninja -C Release -R 'wildlife_scenarios|vehicle_collision_scenarios' --output-on-failure
+ctest --test-dir build-msvc-ninja -C Release -R 'expansion_scenarios|equipment_scenarios|ordnance_scenarios|grass_scenarios' --output-on-failure
+```
+
+Use the build directory produced by your generator. To reproduce the latest DX11 captures after building:
+
+```powershell
+./tools/verify_vehicle_expansion.ps1
+./tools/verify_ordnance.ps1
+./tools/verify_masonry_tank.ps1
 ```
 
 Visual smoke flags stage repeatable scenes and exit after rendering:
@@ -281,6 +302,7 @@ Third-party assets have individual licenses; attribution is recorded alongside t
 - [Model licenses](assets/models/LICENSES.md), [nature manifest](assets/models/NATURE_MANIFEST.csv), and [city manifest](assets/models/CITY_MANIFEST.csv).
 - [Animals](assets/models/ANIMALS.md) and [birds](assets/models/BIRDS.md): Poly by Google assets via Poly Pizza, under CC BY 3.0, with modification notes.
 - [Traffic and weapon licenses](assets/models/TRAFFIC_WEAPONS_LICENSES.md).
+- [Vehicle expansion sources and licenses](assets/models/VEHICLE_EXPANSION.md), [recorded audio credits](assets/audio/README.md), and [C4 source manifest](assets/models/source/explosives/manifest.json).
 - [Marina Part provenance](assets/models/MARINA_PART.md) and [showcase sources](assets/models/SHOWCASE_SOURCES.md).
 - [Material licenses](assets/materials/LICENSES.md) and [effect licenses](assets/effects/LICENSES.md).
 - Jolt Physics: MIT license in `third_party/JoltPhysics/LICENSE`, copied into packages.
@@ -299,8 +321,9 @@ The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted
 
 Use **E** to enter/exit. **W/S** accelerate/brake ground vehicles; the combine's
 actual corn-header cutting auger turns while moving. In a truck, stop with its
-rear hitch close to the trailer and press **J** to attach/detach. **LMB** fires
-the tank cannon. Trailer coupling and fragments use Jolt rigid bodies.
+rear hitch close to the trailer and press **J** to attach/detach. In a tank,
+the **mouse** aims the turret/barrel independently of driving, and **LMB** fires
+from the moving barrel tip. Trailer coupling and fragments use Jolt rigid bodies.
 
 In an airplane, **W/S** adjust throttle, **Space/Ctrl** pitch, **A/D** bank and
 **Q/R** operate the rudder. Gain airspeed before pulling up; excessive angle of
@@ -325,13 +348,22 @@ exclusive mode falls back to borderless. The desktop verification confirmed
 windowed/borderless and fallback; this Windows session rejected actual exclusive
 mode with `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE`.
 
-RPG/tank blasts remove building volume and collision, including projectile,
+RPG/tank and explosive-device blasts remove building volume and collision, including projectile,
 character, camera and navigation checks. Surviving facade triangles keep their
 UVs/materials. Holes and debris reset on load/new game and are omitted from the
 save. Cuts are bounded axis-aligned volumes with matching compound collision;
 this is not a structural building-collapse simulation. Vehicle debris uses
 imported mesh assemblies with box collision approximations and an 18-second
 lifetime; the active debris count is bounded.
+
+In a tank, moving the mouse turns the turret independently of the driving
+direction and elevates the barrel within its mechanical limits. LMB fires
+from the moving barrel tip along its actual orientation. Tank camera aim stays
+where it is pointed while driving, without automatic recentering toward the
+hull. Joint poses update after Jolt's chassis movement. Unoccupied tanks
+keep their last turret direction. `expansion_scenarios` covers aiming, shots,
+rubble settling/cleanup and building-hole traversal;
+`tools/verify_masonry_tank.ps1` captures daytime DX11 previews.
 
 New spawns (`data/world.ini`, X/Z): skateboard 410/250, bicycle 500/250,
 tractor 4200/4500, combine 4400/4500, tank 1500/120, truck 1500/250,
@@ -342,18 +374,7 @@ an older save whose vehicle list predates this expansion.
 destruction and airborne plane in Direct3D 11. `--smoke --display-preview`
 checks real window styles and DXGI mode/fallback transitions without saving.
 
-## Current limitations
-
 DX11 weapon pickups and the HUD now share 27 transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
-
-- Animal poses and rider seating remain procedural; animal skeletal animation and ragdolls are not implemented.
-- The motorcycle uses a narrow four-wheel physics surrogate. Vehicle and impact behavior remain arcade-oriented.
-- Nearby physics colliders stream around the player, while world definitions and mutable regional state still load globally.
-- Instancing and LOD are integrated for supported scenery, including selected authored Marina chains; the broader asset and rendering roadmap remains incomplete.
-- Ordinary humanoid clips use GPU skinning, while procedural poses and ragdolls retain CPU paths. Animated-object temporal coverage remains incomplete.
-- Reflections combine screen-space techniques with bounded local probes; full off-screen scene reflections are not available. Material map coverage varies by asset.
-- Wildlife navigation uses bounded steering. Dense forests, animation quality, interactive gameplay tuning, and performance across more Windows hardware need further validation.
-- Automated scenarios and graphical previews do not replace a complete human mission playthrough.
 
 ## Explosives, hiding and underwater controls
 
@@ -369,6 +390,8 @@ The Direct3D 11 game has C4, a remote trigger, frag grenades, smoke grenades, mo
 
 `ctest -R ordnance_scenarios` covers the new gameplay, and `tools/verify_ordnance.ps1` captures fresh DX11 equipment, timer, large-blast and underwater screenshots. Throwable flight and bounces use continuous swept game-level collision rather than separate Jolt rigid bodies. Interactive balance tuning and detailed underwater scenery remain open.
 
+### Physical building rubble
+
 Building blasts in DX11 now eject beveled clay bricks, broken bricks, hollow
 concrete blocks, irregular concrete chunks and slabs with exposed steel.
 These original masonry meshes have mottled surface colors and Jolt bodies
@@ -377,11 +400,20 @@ blocks use five wall/web colliders so their two cores remain open. Blasts eject
 16-32 pieces per changed building. Rubble lasts 45 seconds, shares the existing
 160-fragment cap, and clears on new game/load.
 
-In a tank, moving the mouse turns the turret independently of the driving
-direction and elevates the barrel within its mechanical limits. LMB fires
-from the moving barrel tip along its actual orientation. Tank camera aim stays
-where it is pointed while driving, without automatic recentering toward the
-hull. Joint poses update after Jolt's chassis movement. Unoccupied tanks
-keep their last turret direction. `expansion_scenarios` covers aiming, shots,
-rubble settling/cleanup and building-hole traversal;
-`tools/verify_masonry_tank.ps1` captures daytime DX11 previews.
+## Current limitations
+
+The following work is still missing or needs further verification. The integrated Jolt physics/pedestrian ragdolls, runtime humanoid skeletal animation, and supported GPU instancing/LOD are present; their broader roadmap extensions remain open.
+
+| Area | Missing work or current boundary |
+| --- | --- |
+| Animal animation | Animal gait, combat, corpse poses and rider seating are procedural. Animal skeletal clips, GPU skinning and animal ragdolls are not implemented. |
+| Humanoid animation | Procedural poses and ragdolls retain CPU deformation. General retargeting, local-TRS/quaternion hierarchy support and motion vectors for all animated objects remain open. |
+| World streaming | Nearby physics colliders stream around the player, but world definitions and mutable regional state still load globally. Wildlife navigation uses bounded steering. |
+| Destruction and saves | Building holes, physical rubble, vehicle fragments, active devices, smoke and corpses are session-only and clear on new game/load. Building cuts subtract bounded axis-aligned volumes; structural collapse is not implemented. |
+| Vehicle physics | Handling and fixed-wing flight are arcade-oriented; the motorcycle uses a narrow four-wheel surrogate. Imported vehicle fragments use approximate colliders. |
+| Underwater world | Swimming depth is capped at 80 units; detailed seabed scenery is not implemented. |
+| Assets and rendering | Complete source material/sampler import, distance-based texture mip residency, broader authored LOD coverage, animal deformation and full animated-object temporal coverage remain open. Material map coverage varies by asset. Reflections use screen-space data and bounded local probes. |
+| Display verification | Windowed/borderless and exclusive-mode fallback were verified. Actual exclusive fullscreen and its focus restoration remain unverified on the tested desktop, which rejected exclusive mode. |
+| Playtesting and performance | A complete human mission playthrough, dense-forest and combat balance tuning, moving-scene visual checks, clean-machine validation and performance across more Windows hardware remain open. Automated tests and staged captures cover specific scenarios. |
+
+See [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md) for milestone history and remaining scope. Some earlier entries describe features that later milestones have superseded.
