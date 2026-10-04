@@ -13,6 +13,7 @@
 #include "radio.h"
 #include "vehicle_systems.h"
 #include "debug_menu.h"
+#include "ordnance.h"
 #endif
 
 namespace input {
@@ -41,7 +42,7 @@ void syncLookCapture(){
     bool gameplay=win&&IsWindowVisible(win)&&GetForegroundWindow()==win&&
         !ui::paused()&&commerce::menu()==commerce::Menu::None;
 #ifdef MINI_CITY_JOLT
-    gameplay=gameplay&&!debug_menu::open;
+    gameplay=gameplay&&!debug_menu::open&&!ordnance::timerOpen();
 #endif
     if(!gameplay){releaseLookCapture();return;}
     if(!lookCaptured){
@@ -72,6 +73,9 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         if(wp==VK_F11){
             if(!(lp&(1<<30)))requestScreenshot();
             return 0;
+        }
+        if(ordnance::timerOpen()){
+            if(!(lp&(1<<30)))ordnance::timerKey(int(wp));return 0;
         }
         if(debug_menu::open){
             if(!(lp&(1<<30)))debug_menu::handleKey(int(wp));
@@ -109,6 +113,8 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(wp==VK_TAB)cycleInteraction();
 #ifdef MINI_CITY_JOLT
             if(wp=='J')vehicle_systems::toggleTrailer();
+            if(wp=='X')ordnance::detonateRemote();
+            if(wp=='K')stealthKill();
 #endif
             if(wp=='G')carryDrop();
             if(wp=='H'&&occupied>=0&&occupied<int(vehicles.size())&&
@@ -147,6 +153,7 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         if(commerce::menu()==commerce::Menu::None
 #ifdef MINI_CITY_JOLT
         &&!debug_menu::open
+        &&!ordnance::timerOpen()
 #endif
         )
         leftMouse=true;return 0;
@@ -157,16 +164,18 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     case WM_RBUTTONDOWN:if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&
 #ifdef MINI_CITY_JOLT
         !debug_menu::open&&
+        !ordnance::timerOpen()&&
 #endif
         occupied<0&&!rightMouse){
         rightMouse=true;
-        if(!telescopeActive&&!weapons::stats(weapon).melee&&
+        if(!swimming&&!telescopeActive&&!weapons::stats(weapon).melee&&
             ai::notifyThreat(player,cameraYaw)>0)
             police::report(police::Crime::Threat,player,true);
     }return 0;
     case WM_RBUTTONUP:releaseAim();return 0;
     case WM_MOUSEWHEEL:
 #ifdef MINI_CITY_JOLT
+        if(ordnance::timerOpen())return 0;
         if(occupied>=0&&occupied<int(vehicles.size())&&!vehicle_systems::pedal(vehicles[occupied].kind)&&
            vehicles[occupied].kind!=Kind::Trailer&&!ui::paused()&&!debug_menu::open&&commerce::menu()==commerce::Menu::None){
             wheelRemainder+=GET_WHEEL_DELTA_WPARAM(wp);

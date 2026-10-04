@@ -11,6 +11,7 @@
 #include "../src/ui.h"
 #include "../src/ai.h"
 #include "../src/debug_menu.h"
+#include "../src/ordnance.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -96,8 +97,14 @@ void equipmentScenarios(){
     startReload();assert(reloadRemaining==0);
     for(int gun=0;gun<weapons::count();++gun){
         if(weapons::stats(gun).melee||weapons::stats(gun).grapple)continue;
-        weapon=gun;magazine[gun]=ammo[gun]=0;fireCooldown=0;
-        auto before=bullets.size();shoot();assert(bullets.size()>before&&magazine[gun]==0&&ammo[gun]==0);
+        weapon=gun;unlocked[gun]=true;magazine[gun]=ammo[gun]=0;fireCooldown=0;
+        auto before=bullets.size(),devices=ordnance::devices.size();shoot();
+        auto payload=weapons::stats(gun).payload;
+        if(payload==weapons::Payload::None)assert(bullets.size()>before);
+        else if(payload==weapons::Payload::Remote)assert(ordnance::c4Count()==0);
+        else if(payload==weapons::Payload::TimedBomb){assert(ordnance::timerOpen());ordnance::timerKey(VK_ESCAPE);}
+        else assert(ordnance::devices.size()>devices);
+        assert(magazine[gun]==0&&ammo[gun]==0);
     }
     weapon=weapons::indexOf("minigun");
     debug_menu::toggle();debug_menu::handleKey(VK_RETURN);assert(!debug_menu::infiniteAmmo);

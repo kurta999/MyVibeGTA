@@ -28,6 +28,7 @@
 #include "debug_menu.h"
 #include "wildlife.h"
 #include "birds.h"
+#include "ordnance.h"
 #endif
 #include "ai.h"
 #include "content.h"
@@ -386,6 +387,7 @@ Vec2 randomWalkable(){
 void reset(){
 #ifdef MINI_CITY_JOLT
     debug_menu::reset();
+    ordnance::reset();
     screenshotRequested=false;
 #endif
     buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();casings.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
@@ -435,6 +437,13 @@ void move(Vec2& p,Vec2 d,float radius,Kind kind){
     trial={p.x,p.z+d.z};if(valid(trial,kind,radius))p.z=trial.z;
 }
 bool clearLine(Vec2 a,Vec2 b){
+#ifdef MINI_CITY_JOLT
+    if(ordnance::obscured(a,b))return false;
+    for(const auto& building:buildings){float entry=0;
+        if(destruction::segment(building,{a.x,22,a.z},{b.x,22,b.z},entry))return false;
+    }
+    return true;
+#endif
     for(int i=1;i<12;++i){Vec2 point=a+(b-a)*(i/12.0f);
         for(const auto& building:buildings)
 #ifdef MINI_CITY_JOLT
@@ -800,6 +809,34 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
         announce("DUAL WIELD UNLOCKED: "+weapons::stats(weaponIndex).name,5);
     savegame::request();
 }
+int stealthTarget(){
+    if(health<=0||occupied>=0||enteringVehicle>=0||swimming||playerY>4||
+        fireCooldown>0||weapons::stats(weapon).id!="knife")return -1;
+    int result=-1;float best=44;
+    for(int i=0;i<int(peds.size());++i){const auto& ped=peds[i];
+        Vec2 delta=player-ped.p;float distance=len(delta);Vec2 f=forward(ped.angle);
+        if(!ped.alive||ped.drivingVehicle>=0||distance>=best||
+            f.x*delta.x+f.z*delta.z>-.5f*distance||!clearLine(player,ped.p))continue;
+        result=i;best=distance;
+    }
+    return result;
+}
+void stealthKill(){
+    int target=stealthTarget();if(target<0)return;
+    auto& ped=peds[target];bool seen=false;
+    // Check witnesses while the victim is still alive, excluding the victim.
+    for(int i=0;i<int(peds.size());++i){const auto& witness=peds[i];
+        if(i==target||!witness.alive)continue;
+        Vec2 delta=ped.p-witness.p;float distance=len(delta);Vec2 f=forward(witness.angle);
+        if(distance<180&&(distance<12||f.x*delta.x+f.z*delta.z>distance*.25f)&&
+            clearLine(witness.p,ped.p)){seen=true;break;}
+    }
+    ped.health=0;ped.alive=false;ped.respawn=ped.police?999999:45;ped.corpseVisualDelay=6;
+    spawnDebris(ped,{0,25,0});recordArmedKill(ped,weapon);
+    fireCooldown=.8f;meleeVisualTime=.4f;meleeVisualAction=11;
+    police::report(ped.police?police::Crime::AttackOfficer:police::Crime::Murder,ped.p,true,seen,true);
+    announce(seen?"STEALTH KILL WITNESSED":"SILENT TAKEDOWN",2);
+}
 void shoot(){
 #ifdef MINI_CITY_JOLT
     if(wildlife::riding())return;
@@ -807,6 +844,9 @@ void shoot(){
     if(health<=0||carryingBody()||fireCooldown>0||telescopeActive)return;
     const auto& stats=weapons::stats(weapon);
 #ifdef MINI_CITY_JOLT
+    if(swimming)return;
+    if(reloadRemaining>0&&reloadingWeapon==weapon)return;
+    if(ordnance::use(stats))return;
     if(stats.grapple){grapple::fire();return;}
 #endif
     bool unarmed=keys[VK_SPACE]&&!rightMouse&&occupied<0;
@@ -957,13 +997,16 @@ void spawnHitFlash(const Bullet& bullet,Vec3 point,bool person=false){
     hitFlashes.push_back({point,0.22f,tint,person});
 }
 void update(float dt){
+#ifdef MINI_CITY_JOLT
+    if(ordnance::timerOpen())return;
+#endif
     previousPlayer=player;
     audio::setListener(player.x,player.z,cameraYaw);
     dt=std::min(dt,0.05f);fireCooldown=std::max(-dt,fireCooldown-dt);
 #ifdef MINI_CITY_JOLT
     if(health<=0)grapple::release();
 #endif
-    bool scoped=occupied<0&&health>0&&(telescopeActive||
+    bool scoped=occupied<0&&health>0&&!swimming&&(telescopeActive||
         (rightMouse&&weapon==weapons::indexOf("sniper")));
     scopeBlend=std::clamp(scopeBlend+(scoped?1.0f:-1.0f)*dt*7.0f,0.0f,1.0f);
     vehicleLookTime=std::max(0.0f,vehicleLookTime-dt);
@@ -1076,7 +1119,7 @@ void update(float dt){
                     player.z>=BEACH_START?1:0);
                     stepTimer=running?0.29f:crouched||slowWalk?0.62f:0.43f;}
             }else stepTimer=0;
-            if(leftMouse)shoot();
+            if(leftMouse&&!swimming)shoot();
             }
         }else{
             Vehicle& v=vehicles[occupied];
@@ -1152,7 +1195,6 @@ void update(float dt){
         }
     }
 #ifdef MINI_CITY_JOLT
-    vehicle_systems::update(dt);
     bool driving=occupied>=0&&occupied<int(vehicles.size())&&health>0;
     if(driving){const auto& v=vehicles[occupied];
         audio::updateEngine(int(v.kind),std::abs(v.speed)/physics::tuning(v.kind).maxSpeed,
@@ -1198,6 +1240,11 @@ void update(float dt){
     for(auto& bullet:bullets){
         if(bullet.life<=0)continue;
         Vec3 next=bullet.p+bullet.v*dt;
+        // Clip every projectile's actual path to its configured maximum range.
+        float remaining=std::max(0.0f,bullet.range-bullet.distance);
+        float travel=len(next-bullet.p);
+        bool rangeExpired=travel>=remaining;
+        if(rangeExpired&&travel>0)next=bullet.p+(next-bullet.p)*(remaining/travel);
         Vec3 wallPoint{};
         bool wallHit=bulletSolidSegment(bullet.p,next,wallPoint);
         if(wallHit)next=wallPoint;
@@ -1426,6 +1473,7 @@ void update(float dt){
         }
         bullet.distance+=len(next-bullet.p);
         bullet.p=next;bullet.v.y-=bullet.gravity*dt;bullet.life-=dt;
+        if(rangeExpired)bullet.life=0;
         if(bullet.rocket&&bullet.life<=0)
             explodeAt(impactPoint,bullet.explosionRadius,bullet.explosionDamage,!bullet.hostile);
     }
@@ -1442,6 +1490,7 @@ void update(float dt){
     auto propsBegin=std::chrono::steady_clock::now();
     props::update(dt);
 #ifdef MINI_CITY_JOLT
+    ordnance::update(dt);
     // Jolt writes the current chassis pose during props::update. Follow that pose,
     // rather than the previous tick's angle used while collecting drive input.
     if(occupied>=0&&occupied<int(vehicles.size())){
@@ -1450,9 +1499,10 @@ void update(float dt){
         if(vehicle_systems::aircraft(driven.kind))playerY=driven.rideHeight;
         float difference=std::atan2(std::sin(driven.angle-cameraYaw),
             std::cos(driven.angle-cameraYaw));
-        if(vehicleLookTime<=0&&!leftMouse)
+        if(driven.kind!=Kind::Tank&&vehicleLookTime<=0&&!leftMouse)
             cameraYaw+=difference*std::min(1.0f,dt*9.0f);
     }
+    vehicle_systems::update(dt);
 #endif
     auto propsEnd=std::chrono::steady_clock::now();
     float elapsedPhysics=std::chrono::duration<float,std::milli>(physicsEnd-physicsBegin).count()+

@@ -344,7 +344,7 @@ checks real window styles and DXGI mode/fallback transitions without saving.
 
 ## Current limitations
 
-DX11 weapon pickups and the HUD now share 20 detailed transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
+DX11 weapon pickups and the HUD now share 27 transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
 
 - Animal poses and rider seating remain procedural; animal skeletal animation and ragdolls are not implemented.
 - The motorcycle uses a narrow four-wheel physics surrogate. Vehicle and impact behavior remain arcade-oriented.
@@ -354,3 +354,34 @@ DX11 weapon pickups and the HUD now share 20 detailed transparent weapon/tool te
 - Reflections combine screen-space techniques with bounded local probes; full off-screen scene reflections are not available. Material map coverage varies by asset.
 - Wildlife navigation uses bounded steering. Dense forests, animation quality, interactive gameplay tuning, and performance across more Windows hardware need further validation.
 - Automated scenarios and graphical previews do not replace a complete human mission playthrough.
+
+## Explosives, hiding and underwater controls
+
+The Direct3D 11 game has C4, a remote trigger, frag grenades, smoke grenades, molotov cocktails, police flashbangs, and a timed bomb. Buy them at shops, collect their city pickups, or equip them through F4. C4 uses an online CC0 model by Lucian Pavel; provenance is in `assets/models/source/explosives/manifest.json`.
+
+- LMB throws the selected device. C4 sticks to buildings and follows attached cars, with at most 40 active charges including airborne ones. Equip the remote and click LMB, or press X, to detonate all active C4.
+- Frag grenades bounce and explode after three seconds using RPG building-hole and blast damage. Smoke grenades produce sight-blocking smoke for 24 seconds. Molotovs break on impact and ignite nearby surfaces and actors. Flashbangs stun visible nearby pedestrians for five seconds and briefly flash the player's view.
+- LMB with the timed bomb opens a paused seconds-entry screen. Enter 1-600 seconds and press Enter to place it, or Escape to cancel without spending ammunition. Its 500-unit blast can destroy whole nearby buildings, vehicles and props, with broad fire and lingering smoke. Nearby bombs show a countdown. Active devices and smoke are session effects and are cleared on new game/load.
+- Teal hideout markers appear at 16 randomly chosen reachable building corners. Stand within a marker, away from police sight, to lose one wanted star every 15 seconds. Movement, witnessed crime or a visible officer interrupts this progress.
+- With the knife selected, approach behind a pedestrian and press K when the takedown prompt appears. An unwitnessed takedown produces no wanted report; nearby observers must face the victim and have an unobstructed view to report it.
+- While swimming, hold LMB to dive and RMB to rise to the surface. Releasing both holds depth. Swimming uses a bounded 80-unit water layer; weapons cannot fire while these controls are active. RPGs explode at their range limit and all ballistic weapons clip their actual travel to their catalog range.
+- F4 includes Add $100,000, Reset wanted level, and Add 1,000 ammo to all weapons. Vehicles receive UV-attached dirt patches and fine paint scratches through the DX11 material shader; glass keeps its transparent surface response.
+
+`ctest -R ordnance_scenarios` covers the new gameplay, and `tools/verify_ordnance.ps1` captures fresh DX11 equipment, timer, large-blast and underwater screenshots. Throwable flight and bounces use continuous swept game-level collision rather than separate Jolt rigid bodies. Interactive balance tuning and detailed underwater scenery remain open.
+
+Building blasts in DX11 now eject beveled clay bricks, broken bricks, hollow
+concrete blocks, irregular concrete chunks and slabs with exposed steel.
+These original masonry meshes have mottled surface colors and Jolt bodies
+that tumble, collide and settle. Convex colliders follow the chipped outlines;
+blocks use five wall/web colliders so their two cores remain open. Blasts eject
+16-32 pieces per changed building. Rubble lasts 45 seconds, shares the existing
+160-fragment cap, and clears on new game/load.
+
+In a tank, moving the mouse turns the turret independently of the driving
+direction and elevates the barrel within its mechanical limits. LMB fires
+from the moving barrel tip along its actual orientation. Tank camera aim stays
+where it is pointed while driving, without automatic recentering toward the
+hull. Joint poses update after Jolt's chassis movement. Unoccupied tanks
+keep their last turret direction. `expansion_scenarios` covers aiming, shots,
+rubble settling/cleanup and building-hole traversal;
+`tools/verify_masonry_tank.ps1` captures daytime DX11 previews.

@@ -1,0 +1,7 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 6: expansion_scenarios
+1/1 Test #6: expansion_scenarios ..............   Passed    3.84 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   3.85 sec

@@ -25,6 +25,9 @@ float witnessSight=180,witnessHearing=260;
 float quietTime=0,spawnTimer=0;
 int wanted=0,serial=0;
 game::Vec2 lastReport{};
+std::vector<game::Vec2> hideoutPoints;
+float hidingSeconds=0;
+bool inHideout=false;
 int severity(Crime crime){
     switch(crime){
     case Crime::Murder:case Crime::Arson:case Crime::AttackOfficer:return 2;
@@ -33,7 +36,7 @@ int severity(Crime crime){
 }
 bool witnessed(game::Vec2 place,bool silent,bool directWitness){
     if(directWitness)return true;
-    for(const auto& ped:game::peds)if(ped.alive&&!ped.police){
+    for(const auto& ped:game::peds)if(ped.alive){
         float distance=game::len(ped.p-place);
         if(distance<witnessSight&&game::clearLine(ped.p,place))return true;
         if(!silent&&distance<witnessHearing&&distance<90)return true;
@@ -149,17 +152,32 @@ bool load(const char* path){
 }
 const std::string& lastError(){return error;}
 void reset(){wanted=0;serial=0;quietTime=0;spawnTimer=0;lastReport={};
-    pending.clear();cooldowns.fill(0);}
+    pending.clear();cooldowns.fill(0);hideoutPoints.clear();hidingSeconds=0;inHideout=false;
+#ifdef MINI_CITY_JOLT
+    // Random reachable corners across both cities; generated after world population.
+    for(int attempt=0;attempt<600&&hideoutPoints.size()<16&&!game::buildings.empty();++attempt){
+        const auto& b=game::buildings[game::randi(int(game::buildings.size()))];
+        game::Vec2 p{b.x+(game::randi(2)?b.w+24:-24),b.z+(game::randi(2)?b.d-20:20)};
+        if(p.x<20||p.z<20||p.x>regions::WIDTH-20||p.z>regions::DEPTH-20||
+            regions::waterAt(p)||game::solid(p,14))continue;
+        bool duplicate=false;for(auto other:hideoutPoints)if(game::len(p-other)<120)duplicate=true;
+        if(!duplicate)hideoutPoints.push_back(p);
+    }
+#endif
+}
+const std::vector<game::Vec2>& hideouts(){return hideoutPoints;}
+bool hiding(){return inHideout;}
+float hideProgress(){return std::clamp(hidingSeconds/15.0f,0.0f,1.0f);}
 void setWantedLevel(int level){wanted=std::clamp(level,0,4);quietTime=0;
-    lastReport=game::player;pending.clear();}
+    lastReport=game::player;pending.clear();hidingSeconds=0;inHideout=false;}
 int wantedLevel(){return wanted;}
-bool report(Crime crime,game::Vec2 place,bool silent,bool directWitness){
+bool report(Crime crime,game::Vec2 place,bool silent,bool directWitness,bool witnessesChecked){
     int index=int(crime);
-    if(cooldowns[index]>0||!witnessed(place,silent,directWitness))return false;
+    if(cooldowns[index]>0||!(witnessesChecked?directWitness:witnessed(place,silent,directWitness)))return false;
     cooldowns[index]=0.7f;
     pending.push_back({reportDelay,severity(crime)});
     lastReport=place;
-    quietTime=0;return true;
+    quietTime=0;hidingSeconds=0;return true;
 }
 void update(float dt){
     dt=std::clamp(dt,0.0f,0.25f);
@@ -173,7 +191,21 @@ void update(float dt){
     }
     pending.erase(std::remove_if(pending.begin(),pending.end(),
         [](const Pending& p){return p.delay<=0;}),pending.end());
-    if(wanted>0&&pending.empty()){
+    inHideout=false;
+#ifdef MINI_CITY_JOLT
+    bool officerSees=false;
+    for(const auto& ped:game::peds)if(ped.alive&&ped.police&&ped.stunRemaining<=0&&
+        game::playerY>-20&&game::len(ped.p-game::player)<220&&game::clearLine(ped.p,game::player))officerSees=true;
+    if(wanted>0&&pending.empty()&&game::health>0&&game::occupied<0&&game::playerY<5&&
+        game::playerY>=0&&!officerSees&&game::len(game::playerVelocity)<15){
+        for(auto point:hideoutPoints)if(game::len(point-game::player)<32){inHideout=true;break;}
+    }
+    if(inHideout){hidingSeconds+=dt;
+        if(hidingSeconds>=15){wanted=std::max(0,wanted-1);hidingSeconds=0;quietTime=0;
+            game::announce("HIDEOUT: WANTED LEVEL DECREASED",3);}}
+    else hidingSeconds=0;
+#endif
+    if(wanted>0&&pending.empty()&&!inHideout){
         quietTime+=dt;
         if(quietTime>=decaySeconds){wanted=std::max(0,wanted-1);quietTime=0;}
     }

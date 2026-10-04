@@ -116,6 +116,16 @@ def cook(config,inspect=False):
     if key=='combine':center.y=420  # body centre; the authored corn header projects forward
     def position(p):return Vector(((p.x-center.x)*scale,(p.z-lo.z)*scale-rest,-(p.y-center.y)*scale))
     def normal(n):return Vector((n.x,n.z,-n.y)).normalized()
+    # The source tank is posed with its turret turned and gun elevated. Undo
+    # that pose when baking, retaining separate authored joint assemblies.
+    turret_objects={'Cube.001','Cylinder','Plane.002','Cube.013','Circle.000'}
+    turret_pivot=position(Vector((.096639,.045987,.472497)))
+    if key=='tank':
+        gun=bpy.data.objects['Circle.020']
+        axis=normal(gun.matrix_world.to_3x3()@Vector((0,0,1)))
+        unyaw=Matrix.Rotation(-math.atan2(axis.x,axis.z),3,'Y')
+        unpitch=Matrix.Rotation(math.asin(axis.y),3,'X')
+        gun_pivot=turret_pivot+unyaw@(position(gun.location)-turret_pivot)
     local_components={}
     for n,c,l,h,v in comps:
         a,b=position(l),position(h)
@@ -158,7 +168,11 @@ def cook(config,inspect=False):
                 if same_object and (mid-wc).length<radius*1.05 and max(h-l)<radius*2.05:
                     assembly=f'wheel-{index}';pivots[assembly]=wc;spin[assembly]=1;break
             if assembly is None:
-                if key=='helicopter' and o.name in ('Box04_Box014','Box20183'):
+                if key=='tank' and o.name in turret_objects:
+                    assembly='turret';spin[assembly]=5;pivots[assembly]=turret_pivot
+                elif key=='tank' and o.name=='Circle.020':
+                    assembly='barrel';spin[assembly]=6;pivots[assembly]=gun_pivot
+                elif key=='helicopter' and o.name in ('Box04_Box014','Box20183'):
                     assembly='rotor';spin[assembly]=2
                     pivots[assembly]=position(Vector((932.3,-172.9,235.9)))
                 elif key=='airplane' and any(s in o.name.lower() for s in ('elica','pala')):
@@ -179,6 +193,9 @@ def cook(config,inspect=False):
                 if mid.z>40:md['color']=(.54,.48,.035,1)
             for vi,li in zip(tri.vertices,tri.loops):
                 p=position(points[vi]);n=normal(nmat@m.corner_normals[li].vector)
+                if key=='tank' and assembly in ('turret','barrel'):
+                    p=turret_pivot+unyaw@(p-turret_pivot);n=unyaw@n
+                    if assembly=='barrel':p=gun_pivot+unpitch@(p-gun_pivot);n=unpitch@n
                 tex=uv.data[li].uv if uv else (0,0)
                 col=list(md['color'])
                 if color_attr:
@@ -234,7 +251,12 @@ if __name__=='__main__':
             for s in ini.sections():old[s]=dict(ini[s])
         for key,parts in catalog.items():
             old[key]={'Count':str(len(parts))}
+            if key=='tank':
+                gun=next(p for p in parts if p['spin']==6)
+                raw=(OUT/(gun['mesh'].split('/')[-1]+'.m3d')).read_bytes()
+                count=struct.unpack_from('<I',raw,4)[0]
+                old[key]['GunLength']=f'{max(struct.unpack_from("<3f",raw,12+i*48)[2] for i in range(count)):.6f}'
             for i,p in enumerate(parts):
                 old[key][f'Part{i}']=' '.join([p['mesh']]+[f'{v:.6f}' for v in p['center']+p['size']]+[str(p['spin'])])
-        path.write_text('; Authored mesh assemblies, centers/dimensions in game units, spin axis 0/1/2/3\n'+
+        path.write_text('; Authored mesh assemblies; spin: 0 body, 1 wheel, 2/3/4 rotor, 5 turret, 6 gun\n'+
             '\n'.join('['+s+']\n'+'\n'.join(k+'='+v for k,v in fields.items())+'\n' for s,fields in old.items()))

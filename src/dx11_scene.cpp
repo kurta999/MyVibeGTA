@@ -18,6 +18,8 @@
 #include "jolt_world.h"
 #include "destruction.h"
 #include "dx11_damage.h"
+#include "ordnance.h"
+#include "police.h"
 #include <list>
 #include "vehicle_systems.h"
 #include "cpu_jobs.h"
@@ -192,6 +194,12 @@ void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint=
     if(source->transparent)group=13;
     modelInstances->push_back({source,group,sx,sy,sz,co,si,position.x,position.y,position.z,
         centerX,source->minY,centerZ,tint.r,tint.g,tint.b});
+}
+void equipmentModel(const std::string& id,Vec3 position,float size,float yaw){
+    std::string name="weapons/"+id;const auto* source=mesh(name);if(!source)return;
+    Vec3 extent{source->maxX-source->minX,source->maxY-source->minY,source->maxZ-source->minZ};
+    float scale=size/std::max({extent.x,extent.y,extent.z,.01f});
+    model(name,position,extent*scale,yaw);
 }
 void glowBox(Vec3 bottom,Vec3 size,float yaw,Color tint){
     if(!modelInstances)return;
@@ -962,6 +970,12 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     bool meleeHeld=playerControlled&&game::playerTalkTime<=0&&
         weapons::stats(game::weapon).melee;
     if(armed||meleeHeld||playerWeapon){
+        if(playerControlled&&weapons::stats(game::weapon).payload!=weapons::Payload::None){
+            const auto& stats=weapons::stats(game::weapon);
+            float size=stats.payload==weapons::Payload::TimedBomb?13:stats.payload==weapons::Payload::C4?10:7;
+            equipmentModel(stats.id,hand,size,game::PI/2-angle);
+            return;
+        }
         if(playerControlled&&weapons::stats(game::weapon).arrow){
             Vec3 across{-f.z*12,0,f.x*12};
             Vec3 middle=hand+Vec3{f.x*8,0,f.z*8};
@@ -1224,11 +1238,7 @@ void vehicles(){
         int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
             game::peds[v.driver].style:-1;
         for(const auto& part:vehicle_systems::parts(v)){
-            Vec3 q{v.qx,v.qy,v.qz};
-            Vec3 c{q.y*part.center.z-q.z*part.center.y,q.z*part.center.x-q.x*part.center.z,q.x*part.center.y-q.y*part.center.x};
-            Vec3 d{q.y*c.z-q.z*c.y,q.z*c.x-q.x*c.z,q.x*c.y-q.y*c.x};
-            Vec3 position=Vec3{v.p.x,v.rideHeight+physics::vehicleRestHeight(v.kind),v.p.z}+part.center+(c*v.qw+d)*2;
-            rigidVehicleMesh(part.mesh,position,vehicle_systems::partRotation(v,part));
+            rigidVehicleMesh(part.mesh,vehicle_systems::partPosition(v,part),vehicle_systems::partRotation(v,part));
         }
         if(style>=0&&v.kind!=game::Kind::Trailer){
             const char* names[]={"casual-man","hoodie-man","casual-woman","beach-man"};
@@ -1281,6 +1291,8 @@ void markerArrow(Vec2 p,float height,Color tint,Vec2 direction){
     beam(right,tip,1.8f,1.8f,tint);
 }
 void markers(){
+    for(auto point:police::hideouts())if(close(point,400))
+        marker(point,18,2,game::rgb(96,196,188));
     for(const auto& ladder:traversal::ladders)if(close(ladder.bottom,650)){
         Vec3 left{ladder.bottom.x-6,0,ladder.bottom.z};
         Vec3 right{ladder.bottom.x+6,0,ladder.bottom.z};
@@ -1438,7 +1450,7 @@ struct EffectHandler {
     }
     void explosion(const game::Blast& blast){
         float progress=std::clamp(1.0f-blast.life/0.75f,0.0f,1.0f);
-        float radius=std::clamp(blast.radius,25.0f,130.0f);
+        float radius=std::clamp(blast.radius,25.0f,500.0f);
         if(progress<0.56f){
             float burst=std::sin(progress/0.56f*game::PI);
             sprite("effect/flash",blast.p-Vec3{0,radius*0.19f,0},
@@ -1515,6 +1527,22 @@ struct EffectHandler {
     }
 };
 void effects(){
+    for(const auto& device:ordnance::devices)if(close({device.p.x,device.p.z},700)){
+        const char* id=device.kind==weapons::Payload::C4?"c4":device.kind==weapons::Payload::Grenade?"grenade":
+            device.kind==weapons::Payload::Smoke?"smoke-grenade":device.kind==weapons::Payload::Molotov?"molotov":
+            device.kind==weapons::Payload::Flashbang?"flashbang":"timed-bomb";
+        float size=device.kind==weapons::Payload::TimedBomb?16:device.kind==weapons::Payload::C4?10:6;
+        std::size_t first=modelInstances->size();
+        equipmentModel(id,device.p,size,0);
+        if(modelInstances->size()>first&&device.settled){
+            auto& instance=modelInstances->back();Vec3 n=device.normal;
+            float w=std::sqrt(std::max(0.0f,(1+n.y)*.5f));
+            if(w>.001f){instance.qx=n.z/(2*w);instance.qz=-n.x/(2*w);instance.qw=w;}
+            else {instance.qx=1;instance.qw=0;}
+        }
+        if(device.kind==weapons::Payload::C4||device.kind==weapons::Payload::TimedBomb)
+            glowBox(device.p+device.normal*4,{1,1,1},0,game::rgb(255,75,48));
+    }
     if(grapple::active()){
         Vec3 hand{game::player.x,game::playerY+25,game::player.z};
         beam(hand,grapple::hook(),0.65f,0.65f,game::rgb(226,212,151));
@@ -1593,6 +1621,18 @@ void effects(){
                     (brass->minZ+brass->maxZ)*0.5f,
                     0.58f,0.43f,0.20f,std::sin(pitch),std::cos(pitch)});
             }
+    for(const auto& cloud:ordnance::smoke)if(close({cloud.p.x,cloud.p.z},950)){
+        float duration=cloud.dark?36.0f:24.0f,age=duration-cloud.life;
+        float radius=cloud.radius*std::min(1.0f,age*.8f);
+        radius*=std::min(1.0f,cloud.life/3);
+        for(int i=0;i<15;++i){float angle=i*2.39996f;
+            float spread=std::sqrt(float(i)/15)*radius*.7f;
+            handler.sprite("effect/smoke",cloud.p+Vec3{std::cos(angle)*spread,
+                15+float(i%4)*radius*.23f+std::sin(age+i)*4,std::sin(angle)*spread},
+                radius*(.9f+float(i%3)*.12f),radius*(.85f+float(i%4)*.1f),
+                0,cloud.dark?game::rgb(55,53,49):game::rgb(174,183,181));
+        }
+    }
     for(const auto& blast:game::blasts)if(close({blast.p.x,blast.p.z},550))
         handler.explosion(blast);
     for(std::size_t index=0;index+5<game::ragdollParts.size();index+=6)
@@ -1621,7 +1661,15 @@ void effects(){
         if(!close({fragment.p.x,fragment.p.z},800))continue;
         if(fragment.category){
             RagdollPart rotation{};rotation.qx=fragment.qx;rotation.qy=fragment.qy;rotation.qz=fragment.qz;rotation.qw=fragment.qw;
-            if(!fragment.mesh.empty())rigidVehicleMesh(fragment.mesh,fragment.p,rotation);
+            if(fragment.category==2){
+                const Mesh* source=mesh(fragment.mesh);if(!source)continue;
+                ModelInstance instance{};instance.source=source;instance.material=0;
+                instance.scaleX=fragment.size.x;instance.scaleY=fragment.size.y;instance.scaleZ=fragment.size.z;
+                instance.cosYaw=instance.cosPitch=1;instance.r=instance.g=instance.b=1;
+                instance.x=fragment.p.x;instance.y=fragment.p.y;instance.z=fragment.p.z;
+                instance.qx=fragment.qx;instance.qy=fragment.qy;instance.qz=fragment.qz;instance.qw=fragment.qw;
+                modelInstances->push_back(instance);
+            }else if(!fragment.mesh.empty())rigidVehicleMesh(fragment.mesh,fragment.p,rotation);
             else drawRigidPart(fragment.p,fragment.size,fragment.color,fragment.shape,rotation);
             continue;
         }

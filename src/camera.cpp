@@ -12,8 +12,8 @@
 
 namespace camera {
 using namespace game;
-bool isScoped(){return occupied<0&&rightMouse&&weapon==weapons::indexOf("sniper");}
-bool zoomActive(){return occupied<0&&(isScoped()||telescopeActive);}
+bool isScoped(){return occupied<0&&!swimming&&rightMouse&&weapon==weapons::indexOf("sniper");}
+bool zoomActive(){return occupied<0&&!swimming&&(isScoped()||telescopeActive);}
 bool firstPersonActive(){
     return occupied<0&&(zoomActive()||scopeBlend>0||
         cameraMode==CameraMode::FirstClose||cameraMode==CameraMode::FirstWide);
@@ -29,6 +29,7 @@ float fieldOfView(){
     return base+(scoped-base)*scopeBlend;
 }
 Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
+    if(swimming&&occupied<0)aiming=false;
     Vec2 f=forward(cameraYaw),right{-f.z,f.x};
     float scale=occupied>=0&&occupied<int(vehicles.size())?physics::vehicleScale(vehicles[occupied].kind):1.0f;
     float stance=game::crouched&&occupied<0?10.0f:0.0f;
@@ -69,7 +70,7 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     for(int i=1;i<=28;++i){
         float t=i/28.0f;
         Vec3 point=anchor+(desired-anchor)*t;
-        bool blocked=point.y<5;
+        bool blocked=point.y<5&&!swimming;
         for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
             if(destruction::contains(b,point,5)){blocked=true;break;}

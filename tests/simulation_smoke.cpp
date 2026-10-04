@@ -89,9 +89,15 @@ void pedScenarios();
 void sceneJobScenarios();
 void grassScenarios();
 void equipmentScenarios();
+void ordnanceScenarios();
 void expansionScenarios();
 int main(int argc,char** argv){
     std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--ordnance-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        ordnanceScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--expansion-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
         expansionScenarios();return 0;
@@ -216,7 +222,7 @@ int main(int argc,char** argv){
         weapons::indexOf("water-cannon")==8&&
         weapons::indexOf("silenced-pistol")==9&&
         weapons::indexOf("katana")==10&&weapons::indexOf("bat")==15&&
-        weapons::indexOf("bow")==16&&weapons::count()==20);
+        weapons::indexOf("bow")==16&&weapons::count()==27);
     auto duplicate=config.find("Id=smg");
     assert(duplicate!=std::string::npos);
     config.replace(duplicate,6,"Id=pistol");
@@ -675,7 +681,7 @@ int main(int argc,char** argv){
     assert(game::playerY>10);
     traversal::detach();
     game::reset();
-    assert(commerce::shops.size()==8&&commerce::houses.size()==14&&commerce::items.size()==29);
+    assert(commerce::shops.size()==8&&commerce::houses.size()==14&&commerce::items.size()==36);
     for(const auto& shop:commerce::shops)assert(!game::solid(shop.p,12));
     for(const auto& house:commerce::houses){
         assert(!game::solid(house.p,12));

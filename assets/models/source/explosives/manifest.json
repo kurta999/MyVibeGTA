@@ -1,0 +1,10 @@
+{
+  "title": "Low poly Sticky-Bomb",
+  "author": "Lucian Pavel",
+  "license": "CC0-1.0",
+  "source": "https://opengameart.org/content/low-poly-sticky-bomb",
+  "download": "https://opengameart.org/sites/default/files/Sticky%20Bomb.zip",
+  "sha256": "dde3e306e9028241adc82ebf344e5d6e1079ab49605f3e49e43400e6823487d7",
+  "modifications": "Normalized mesh, preserved UVs and supplied texture; cooked to M3D1.",
+  "other_meshes": "Original procedural throwable, remote and timed-bomb models."
+}

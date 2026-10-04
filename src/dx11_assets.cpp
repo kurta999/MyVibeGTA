@@ -1,4 +1,5 @@
 #include "dx11_assets.h"
+#include "masonry.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -159,6 +160,15 @@ void loadMeshes(const std::wstring& folder){
     boxBase.minX=boxBase.minZ=-0.5f;boxBase.maxX=boxBase.maxZ=0.5f;
     boxBase.minY=0;boxBase.maxY=1;
     meshes.emplace("primitive/box",distantBox(boxBase,1,1,1));
+    for(int kind=0;kind<masonry::Count;++kind){
+        Mesh rubble;rubble.minX=rubble.minY=rubble.minZ=-.5f;
+        rubble.maxX=rubble.maxY=rubble.maxZ=.5f;rubble.roughness=.96f;rubble.allowTessellation=false;
+        for(const auto& t:masonry::build(kind).triangles){
+            auto a=t.b-t.a,b=t.c-t.a;auto n=game::norm(game::Vec3{a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x});
+            for(auto p:{t.a,t.b,t.c})rubble.vertices.push_back({p.x,p.y,p.z,n.x,n.y,n.z,p.x+.5f,p.z+.5f,t.color.r,t.color.g,t.color.b,1});
+        }
+        meshes.emplace(masonry::name(kind),std::move(rubble));
+    }
     auto effectSprite=[&](const char* name,const wchar_t* texture){
         Mesh sprite;
         sprite.minX=sprite.minZ=-0.5f;sprite.maxX=sprite.maxZ=0.5f;
@@ -331,6 +341,8 @@ void loadMeshes(const std::wstring& folder){
         "vehicles/traffic-1","vehicles/traffic-2","vehicles/traffic-3",
         "vehicles/traffic-4","vehicles/traffic-5",
         "weapons/pistol","weapons/ak","weapons/lightning",
+        "weapons/c4","weapons/remote-trigger","weapons/grenade","weapons/smoke-grenade",
+        "weapons/molotov","weapons/flashbang","weapons/timed-bomb",
         "modern/coastal-office","modern/terrace-apartments",
         "modern/compact-pistol","modern/carbine","modern/street-lamp",
         "modern/twin-lamp","modern/bench","modern/bin","modern/bollard",
@@ -507,6 +519,7 @@ void loadMeshes(const std::wstring& folder){
             }
         }
         result.wrapTextures=path.rfind("modern/",0)==0;
+        result.vehicleWear=path.rfind("vehicles/",0)==0;
         result.allowTessellation=!result.wrapTextures;
         result.grassFoliage=path.rfind("nature/grass_",0)==0&&
             !result.materialRanges.empty();

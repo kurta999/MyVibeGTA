@@ -25,7 +25,7 @@ void vehicleImpulse(std::size_t index,game::Vec3 impulse);
 bool toggleTrailer(std::size_t index);
 void breakVehicle(std::size_t index,bool fragments=true);
 void rebuildBuilding(std::size_t index);
-void spawnFragment(game::Vec3 p,game::Vec3 size,game::Vec3 velocity,game::Color color,int shape=0);
+void spawnFragment(game::Vec3 p,game::Vec3 size,game::Vec3 velocity,game::Color color,int shape=0,int masonryKind=-1);
 void teleportVehicle(std::size_t index,game::Vec2 position,float angle,float altitude=0);
 void stopVehicle(std::size_t index);
 void coastVehicle(std::size_t index,float dt);

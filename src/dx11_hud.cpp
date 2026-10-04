@@ -21,6 +21,7 @@
 #include "regions.h"
 #include "debug_menu.h"
 #include "fire.h"
+#include "ordnance.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
 #endif
@@ -257,6 +258,7 @@ void map(int x,int y,int width,int height,bool large){
         iconAt(pickup.p,stats.melee&&stats.id!="shovel"?"melee":stats.id,RGB(92,238,231));
     }
     for(const auto& shop:commerce::shops)iconAt(shop.p,"shop",RGB(109,245,171));
+    for(auto point:police::hideouts())iconAt(point,"house",RGB(96,224,211));
     for(const auto& house:commerce::houses)
         iconAt(house.p,"house",house.owned?RGB(91,170,245):RGB(185,134,230));
     for(size_t i=0;i<game::missions.size();++i){auto p=game::missions[i].start;
@@ -388,6 +390,9 @@ void debugMenu(int width,int height){
             weather::current().name.c_str());
         else if(index==5)std::snprintf(entry,sizeof(entry),"Infinite ammo: %s",
             debug_menu::infiniteAmmo?"ON":"OFF");
+        else if(index==6)std::snprintf(entry,sizeof(entry),"Add $100,000");
+        else if(index==7)std::snprintf(entry,sizeof(entry),"Reset wanted level");
+        else if(index==8)std::snprintf(entry,sizeof(entry),"Add 1,000 ammo to all weapons");
         else{
             int weaponIndex=index-debug_menu::WEAPONS_START;
             std::snprintf(entry,sizeof(entry),"%2d. %s%s",weaponIndex+1,
@@ -439,7 +444,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Truck)
         label(24,72,"J attach/detach trailer near the rear hitch  |  MOUSE WHEEL radio",RGB(230,223,178));
     if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Tank)
-        label(24,72,"LMB fire cannon  |  Mouse pitch elevates barrel aim  |  MOUSE WHEEL radio",RGB(230,223,178));
+        label(24,72,"Mouse aims turret and barrel  |  LMB fire cannon  |  MOUSE WHEEL radio",RGB(230,223,178));
     map(18,height-169,180,140,false);
     int statusX=width-360;
     bool inVehicle=game::occupied>=0&&game::occupied<int(game::vehicles.size());
@@ -451,7 +456,9 @@ void buildHud(unsigned char* pixels,int width,int height){
         wantedStar(statusX+251+star*22,29,star<police::wantedLevel());
     rect(statusX+14,45,320,1,RGB(96,110,117));
     label(statusX+15,53,weapons::stats(game::weapon).name.c_str(),RGB(244,245,234));
-    if(weapons::stats(game::weapon).grapple)std::snprintf(textBuffer,sizeof(textBuffer),grapple::active()?"HOLD LMB / RELEASE":grapple::cooldown()>0?"GRAPPLE RECHARGING":"AIM + HOLD LMB");
+    if(weapons::stats(game::weapon).payload==weapons::Payload::Remote)
+        std::snprintf(textBuffer,sizeof(textBuffer),"LMB DETONATE  |  C4 %d / 40",ordnance::c4Count());
+    else if(weapons::stats(game::weapon).grapple)std::snprintf(textBuffer,sizeof(textBuffer),grapple::active()?"HOLD LMB / RELEASE":grapple::cooldown()>0?"GRAPPLE RECHARGING":"AIM + HOLD LMB");
     else if(weapons::stats(game::weapon).melee)std::snprintf(textBuffer,sizeof(textBuffer),"MELEE");
     else if(debug_menu::infiniteAmmo)std::snprintf(textBuffer,sizeof(textBuffer),"INFINITE AMMO");
     else if(game::reloadRemaining>0)std::snprintf(textBuffer,sizeof(textBuffer),"RELOADING");
@@ -503,11 +510,25 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(width-346,missionY+33,"Follow gold map line, then press F",RGB(225,235,224));
     }
     std::string prompt=game::interactionPrompt();
+    if(game::stealthTarget()>=0)prompt="K: KNIFE STEALTH TAKEDOWN";
+    if(game::swimming)prompt="LMB: DIVE   RMB: SURFACE";
+    if(police::hiding()){
+        std::snprintf(textBuffer,sizeof(textBuffer),"HIDEOUT: LOSING WANTED LEVEL %d%%",int(police::hideProgress()*100));
+        label(width/2-190,height-132,textBuffer,RGB(110,238,219));
+    }
+    float nearestBomb=601;
+    for(const auto& d:ordnance::devices)if(d.kind==weapons::Payload::TimedBomb&&
+        game::len(game::Vec3{game::player.x,game::playerY,game::player.z}-d.p)<550)
+        nearestBomb=std::min(nearestBomb,d.fuse);
+    if(nearestBomb<601){
+        std::snprintf(textBuffer,sizeof(textBuffer),"TIMED BOMB: %d SECONDS",int(std::ceil(nearestBomb)));
+        label(width/2-140,height-156,textBuffer,RGB(255,155,112));
+    }
     std::string carry=game::carryPrompt();
     if(!prompt.empty())label(width/2-125,height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
     if(!carry.empty())label(width/2-125,height-51,carry.c_str(),RGB(210,228,244));
     if(camera::zoomActive()&&game::scopeBlend>0.85f&&!ui::paused())scopeOverlay(width,height);
-    else if(game::occupied<0&&game::rightMouse&&!ui::paused()){
+    else if(game::occupied<0&&game::rightMouse&&!game::swimming&&!ui::paused()){
         int x=width/2,y=height/2,kick=int(game::recoil*9);
         rect(x-10-kick,y-1,7,2,RGB(251,244,215));rect(x+4+kick,y-1,7,2,RGB(251,244,215));
         rect(x-1,y-10-kick,2,7,RGB(251,244,215));rect(x-1,y+4+kick,2,7,RGB(251,244,215));
@@ -517,7 +538,7 @@ void buildHud(unsigned char* pixels,int width,int height){
             int(mapW*regions::DEPTH/regions::WIDTH));
         int x=(width-mapW)/2,y=(height-mapH)/2;
         rect(x-25,y-49,mapW+50,mapH+100,RGB(30,41,51));
-        label(x,y-31,"MAP: yellow route  orange jobs  green shops  blue owned  purple homes",RGB(247,238,211));
+        label(x,y-31,"MAP: yellow route  orange jobs  green shops  blue homes  teal hideouts",RGB(247,238,211));
         map(x,y,mapW,mapH,true);
     }
     if(game::messageTime>0){
@@ -567,7 +588,7 @@ void buildHud(unsigned char* pixels,int width,int height){
             fire::active().size(),game::bullets.size(),game::props.size());
         label(width-304,height-52,textBuffer,RGB(224,245,220));}
     if(ui::showHelp&&!ui::paused()&&!debug_menu::open)
-        label(18,height-28,"F4 DEBUG MENU",RGB(197,211,213));
+        label(18,height-28,"F4 DEBUG  |  X C4 DETONATE  |  K KNIFE TAKEDOWN  |  SWIM: LMB DIVE / RMB SURFACE",RGB(197,211,213));
     if(commerce::menu()!=commerce::Menu::None&&!ui::paused()){
         auto entries=commerce::menuEntries();
         int x=width/2-300,y=height/2-275;
@@ -596,10 +617,24 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(x+24,y+515,"UP/DOWN select   ENTER buy/use   ESC close",RGB(198,215,215));
     }
     debugMenu(width,height);
+    if(ordnance::timerOpen()){
+        int x=width/2-240,y=height/2-92;
+        rect(x,y,480,184,RGB(30,42,48));
+        label(x+24,y+20,"TIMED BOMB: HOW MANY SECONDS?",RGB(255,227,156));
+        std::string entry=ordnance::timerText()+" seconds (1-600)";
+        label(x+24,y+66,entry.c_str(),RGB(240,246,233));
+        label(x+24,y+122,"Digits / Backspace   Enter: place   Esc: cancel",RGB(187,209,215));
+    }
     pauseMenu(width,height);
     for(size_t i=0;i<size_t(width)*height;++i)
         if(dib[i*4]||dib[i*4+1]||dib[i*4+2])dib[i*4+3]=255;
     std::memcpy(pixels,dib,size_t(width)*height*4);
+    if(ordnance::flash>0){
+        unsigned char alpha=static_cast<unsigned char>(std::min(235.0f,ordnance::flash*94));
+        for(size_t i=0;i<size_t(width)*height;++i){
+            pixels[i*4]=pixels[i*4+1]=pixels[i*4+2]=245;pixels[i*4+3]=alpha;
+        }
+    }
 }
 void shutdownHud(){
     weaponIcons.clear();

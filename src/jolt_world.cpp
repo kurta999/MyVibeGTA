@@ -7,6 +7,8 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
+#include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include "masonry.h"
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -491,10 +493,26 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
        std::abs(float(position.GetY())-game::playerY)>45)
         playerCharacter->SetPosition(JPH::RVec3(game::player.x,game::playerY,game::player.z));
     position=playerCharacter->GetPosition();
-    bool swimming=position.GetY()<10&&regions::waterAt(game::player+horizontal*dt);
+    game::Vec2 nextHorizontal=game::player+horizontal*dt;
+    bool nextWater=regions::waterAt(nextHorizontal);
+    bool swimming=position.GetY()<10&&(nextWater||
+        (position.GetY()<-2&&regions::waterAt(game::player)));
     bool supported=playerCharacter->IsSupported();
     float vertical=playerCharacter->GetLinearVelocity().GetY();
-    if(swimming)vertical=std::clamp(-float(position.GetY())*6.0f,-50.0f,50.0f);
+    if(swimming){
+        // The district's flat ground body extends under the water. Swim against
+        // a bounded water depth instead, retaining the chosen depth on release.
+        vertical=(float(game::rightMouse)-float(game::leftMouse))*48.0f;
+        float y=std::clamp(float(position.GetY())+vertical*dt,-80.0f,0.0f);
+        if((y>=0&&vertical>0)||(y<=-80&&vertical<0))vertical=0;
+        if(!nextWater)nextHorizontal=game::player;
+        nextHorizontal.x=std::clamp(nextHorizontal.x,edge,regions::WIDTH-edge);
+        nextHorizontal.z=std::clamp(nextHorizontal.z,edge,regions::DEPTH-edge);
+        playerCharacter->SetPosition(JPH::RVec3(nextHorizontal.x,y,nextHorizontal.z));
+        playerCharacter->SetLinearVelocity(JPH::Vec3(horizontal.x,vertical,horizontal.z));
+        game::player=nextHorizontal;game::playerY=y;game::playerVerticalSpeed=vertical;
+        game::grounded=false;game::swimming=true;return;
+    }
     else{
         if(supported&&vertical<0)vertical=0;
         if(jump&&supported)vertical=230;
@@ -724,19 +742,36 @@ void rebuildBuilding(std::size_t index){
     bool active=!buildingBodies[index].IsInvalid();destroyBody(buildingBodies[index]);
     if(active)buildingBodies[index]=createBuilding(game::buildings[index]);
 }
-void spawnFragment(game::Vec3 p,game::Vec3 size,game::Vec3 velocity,game::Color tint,int shape){
+void spawnFragment(game::Vec3 p,game::Vec3 size,game::Vec3 velocity,game::Color tint,int shape,int masonryKind){
     if(!world)return;
     while(fragmentBodies.size()>=160){destroyBody(fragmentBodies.front().id);fragmentBodies.erase(fragmentBodies.begin());}
-    JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(size.x*.5f,size.y*.5f,size.z*.5f),.1f),
+    JPH::RefConst<JPH::Shape> collider=new JPH::BoxShape(JPH::Vec3(size.x*.5f,size.y*.5f,size.z*.5f),.1f);
+    if(masonryKind==masonry::Block){
+        JPH::StaticCompoundShapeSettings block;
+        auto wall=[&](game::Vec3 center,game::Vec3 extent){
+            block.AddShape(JPH::Vec3(center.x*size.x,center.y*size.y,center.z*size.z),JPH::Quat::sIdentity(),
+                new JPH::BoxShape(JPH::Vec3(extent.x*size.x,extent.y*size.y,extent.z*size.z),.03f));
+        };
+        wall({0,0,-.4f},{.5f,.5f,.1f});wall({0,0,.4f},{.5f,.5f,.1f});
+        for(float x:{-.435f,0.0f,.435f})wall({x,0,0},{.065f,.5f,.3f});
+        auto result=block.Create();if(result.IsValid())collider=result.Get();
+    }else if(masonryKind>=0){
+        auto geometry=masonry::build(masonryKind);JPH::Array<JPH::Vec3> points;
+        for(auto point:geometry.hull)points.push_back(JPH::Vec3(point.x*size.x,point.y*size.y,point.z*size.z));
+        JPH::ConvexHullShapeSettings hull(points,.05f);auto result=hull.Create();
+        if(result.IsValid())collider=result.Get();
+    }
+    JPH::BodyCreationSettings settings(collider,
         JPH::RVec3(p.x,p.y,p.z),JPH::Quat::sIdentity(),JPH::EMotionType::Dynamic,Layer::moving);
-    settings.mFriction=.7f;settings.mRestitution=.15f;settings.mMotionQuality=JPH::EMotionQuality::LinearCast;
+    settings.mFriction=masonryKind>=0?.85f:.7f;settings.mRestitution=masonryKind>=0?.08f:.15f;settings.mMotionQuality=JPH::EMotionQuality::LinearCast;
     settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
     settings.mMassPropertiesOverride.mMass=std::clamp(size.x*size.y*size.z*.01f,2.0f,180.0f);
     settings.mLinearVelocity=JPH::Vec3(velocity.x,velocity.y,velocity.z);
-    settings.mAngularVelocity=JPH::Vec3(1.7f,.9f,2.1f);
+    settings.mAngularVelocity=JPH::Vec3(1.7f+velocity.z*.015f,.9f,2.1f-velocity.x*.012f);
     auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::Activate);
     TreeFragment visual;visual.p=p;visual.size=size;visual.category=1;visual.shape=shape;visual.color=tint;
-    if(!id.IsInvalid())fragmentBodies.push_back({id,visual,18});
+    if(masonryKind>=0){visual.category=2;visual.mesh=masonry::name(masonryKind);}
+    if(!id.IsInvalid())fragmentBodies.push_back({id,visual,masonryKind>=0?45.0f:18.0f});
 }
 void vehicleImpulse(std::size_t index,game::Vec3 impulse){
     if(world&&index<vehicleBodies.size()&&!vehicleBodies[index].IsInvalid())
@@ -783,8 +818,7 @@ void breakVehicle(std::size_t index,bool fragments){
     }
     destroyBody(vehicleBodies[index]);
     if(fragments){int n=0;for(const auto& part:vehicle_systems::parts(v)){
-        auto offset=rotation*JPH::Vec3(part.center.x,part.center.y,part.center.z);
-        game::Vec3 p{v.p.x+offset.GetX(),std::max(3.0f,v.rideHeight+physics::vehicleRestHeight(v.kind)+offset.GetY()),v.p.z+offset.GetZ()};
+        game::Vec3 p=vehicle_systems::partPosition(v,part);p.y=std::max(3.0f,p.y);
         float a=n++*2.39996f;
         spawnFragment(p,part.size,{velocity.GetX()+std::cos(a)*130,velocity.GetY()+120+float(n%4)*30,velocity.GetZ()+std::sin(a)*130},part.color,part.shape);
         if(!fragmentBodies.empty()){auto& f=fragmentBodies.back();f.visual.mesh=part.mesh;
@@ -1206,7 +1240,7 @@ void step(float dt){
     for(auto it=fragmentBodies.begin();it!=fragmentBodies.end();){
         it->life-=dt;
         if(it->life<=0){destroyBody(it->id);it=fragmentBodies.erase(it);continue;}
-        auto p=bodies.GetCenterOfMassPosition(it->id);auto q=bodies.GetRotation(it->id);
+        auto p=bodies.GetPosition(it->id);auto q=bodies.GetRotation(it->id);
         it->visual.p={p.GetX(),p.GetY(),p.GetZ()};
         it->visual.qx=q.GetX();it->visual.qy=q.GetY();it->visual.qz=q.GetZ();it->visual.qw=q.GetW();
         fragmentVisuals.push_back(it->visual);++it;

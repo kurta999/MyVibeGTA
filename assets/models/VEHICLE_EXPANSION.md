@@ -47,6 +47,11 @@ rotate about source-derived pivots; the same parts become physical debris.
 
 `data/vehicle-models.ini` stores each rigid assembly's mesh, center, collision
 extent and spin axis (0 static, 1 wheel X, 2 rotor Y, 3 propeller Z, 4 auger X).
+Tank axes 5/6 designate the turret yaw and gun elevation joints. The baker
+separates the authored turret, hatch and barrel and removes their original
+posed yaw/elevation. Source-derived pivots and the baked barrel length keep
+the moving muzzle, shots and explosion fragments aligned with the model;
+all 45,532 tank triangles remain present.
 Physics hulls approximate the visual models. Asset detail varies: the original
 motorboat/helicopter and the motorcycle are low-poly authored assets; the new
 tractor, combine, tank, cars and truck retain substantially more detail.

@@ -17,6 +17,7 @@
 #include "vehicle_systems.h"
 #include "destruction.h"
 #include "debug_menu.h"
+#include "ordnance.h"
 #include "wildlife.h"
 #include "birds.h"
 #endif
@@ -686,6 +687,27 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int tick=0;tick<12;++tick)jolt_world::step(1.0f/60);
         jolt_world::teleportCharacter(player,playerY);
     }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--masonry-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=0;cameraPitch=-.08f;
+        cameraMode=CameraMode::FirstWide;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        buildings.push_back({4650,4420,55,160,140,rgb(175,151,129),"masonry-preview"});
+        jolt_world::reset();destruction::blast({4650,40,4500},120);
+        for(int tick=0;tick<180;++tick)jolt_world::step(1.0f/60);
+        jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--tank-aim-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=.9f;cameraPitch=.25f;
+        cameraMode=CameraMode::ThirdNear;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        Vehicle tank{};tank.kind=Kind::Tank;tank.p=player;tank.angle=0;tank.id="tank-aim-preview";vehicles.push_back(tank);
+        jolt_world::reset();occupied=0;
+        for(int tick=0;tick<90;++tick)jolt_world::step(1.0f/60);
+        vehicle_systems::update(1.0f/60);playerY=vehicles[0].rideHeight;
+        if(std::strstr(commandLine,"--tank-side-view")){
+            occupied=-1;cameraYaw=-.5f;cameraPitch=.1f;playerY=0;
+        }
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--airplane-preview")){
         player=previousPlayer={4500,4900};playerY=0;cameraYaw=0;cameraPitch=0;
         cameraMode=CameraMode::ThirdFar;rightMouse=false;ui::grassDistance=0;
@@ -738,6 +760,40 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         logging::write(grapple::active()?"Grapple smoke: attached":"Grapple smoke: missed");
     }
 #endif
+    #ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--ordnance-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=.45f;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;cameraYaw=0;ui::grassDistance=0;
+        trees.clear();buildings.clear();vehicles.clear();peds.clear();props.clear();pickups.clear();
+        buildings.push_back({4590,4450,110,150,140,rgb(181,164,137),"ordnance-preview-wall"});
+        Vehicle car{};car.kind=Kind::Car;car.p={4520,4430};car.id="ordnance-preview-car";car.c=rgb(190,62,40);
+        vehicles.push_back(car);jolt_world::reset();jolt_world::teleportCharacter(player,0);
+        weapon=weapons::indexOf("c4");unlocked[weapon]=true;magazine[weapon]=40;ammo[weapon]=40;
+        ordnance::devices.push_back({weapons::Payload::C4,{4589.5f,30,4500},{},{-1,0,0},{},{0,1,0},3,130,210,true});
+        ordnance::devices.push_back({weapons::Payload::TimedBomb,{4540,1,4535},{},{0,1,0},{},{0,1,0},30,500,1800,true});
+        for(int i=0;i<3;++i)ordnance::devices.push_back({weapons::Payload::Grenade,
+            {4510+float(i)*15,2,4510},{},{0,1,0},{},{0,1,0},3,115,140,true});
+        destruction::blast({4590,25,4550},115);
+        ordnance::smoke.push_back({{4590,0,4600},20,75,false});
+        message="C4 / TIMED BOMB / FRAG / SMOKE / VEHICLE WEAR";messageTime=5;
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--bomb-timer-preview")){
+        weapon=weapons::indexOf("timed-bomb");unlocked[weapon]=true;magazine[weapon]=1;
+        fireCooldown=0;shoot();
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--big-bomb-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=.5f;cameraPitch=0;
+        cameraMode=CameraMode::ThirdFar;ui::grassDistance=0;trees.clear();buildings.clear();vehicles.clear();peds.clear();props.clear();pickups.clear();
+        buildings.push_back({4650,4420,150,170,210,rgb(177,158,135),"big-bomb-wall"});
+        jolt_world::reset();debug_menu::godMode=true;
+        ordnance::devices.push_back({weapons::Payload::TimedBomb,{4610,1,4490},{},{0,1,0},{},{0,1,0},.01f,500,1800,true});
+        ordnance::update(.02f);for(int i=0;i<60;++i)ordnance::update(1.0f/60);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--underwater-preview")){
+        player=previousPlayer={600,2000};playerY=-75;swimming=true;grounded=false;
+        jolt_world::teleportCharacter(player,playerY);jolt_world::moveCharacter({},false,1.0f/60);
+    }
+    #endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--screenshot")
 #ifdef MINI_CITY_JOLT
        &&!std::strstr(commandLine,"--temporal-preview")
@@ -952,7 +1008,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         frameMs=frameMs*0.9f+float(dt*1000.0)*0.1f;
         if(!ui::paused()
 #ifdef MINI_CITY_JOLT
-            &&!debug_menu::open
+            &&!debug_menu::open&&!ordnance::timerOpen()
 #endif
             )accumulator+=dt;
         else accumulator=0;

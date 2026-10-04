@@ -129,7 +129,8 @@ int main(){
     dx11::loadMeshes(L"assets/models/baked");
     for(const char* id:{"pistol","silenced-pistol","smg","shotgun","rifle","sniper","rpg",
         "flamethrower","fire-extinguisher","water-cannon","katana","knife","machete",
-        "novelty-toy","rolling-pin","bat","bow","minigun","shovel","grapple-hook"}){
+        "novelty-toy","rolling-pin","bat","bow","minigun","shovel","grapple-hook",
+        "c4","remote-trigger","grenade","smoke-grenade","molotov","flashbang","timed-bomb"}){
         const auto* icon=dx11::mesh(std::string("icons/")+id);
         assert(icon&&icon->textured&&icon->transparent&&icon->unlit&&!icon->castsShadow);
         assert(!icon->allowTessellation&&icon->vertices.size()==6&&icon->maxY>0);
@@ -137,6 +138,12 @@ int main(){
     }
     for(const auto& issue:dx11::assetIssues())std::fprintf(stderr,"%s\n",issue.c_str());
     assert(dx11::assetIssues().empty());
+    for(const char* id:{"c4","remote-trigger","grenade","smoke-grenade","molotov","flashbang","timed-bomb"}){
+        const auto* asset=dx11::mesh(std::string("weapons/")+id);
+        assert(asset&&!asset->vertices.empty()&&asset->maxY>asset->minY);
+    }
+    assert(dx11::mesh("weapons/c4")->textured);
+    assert(dx11::mesh("vehicles/sedan")->vehicleWear);
     // Original modern meshes must arrive with contiguous indexed material
     // sections, complete maps, valid LOD bounds and safe glass/history routing.
     for(const char* name:{"coastal-office","terrace-apartments",

@@ -33,6 +33,7 @@ struct Mesh {
     bool temporalStable=true;
     bool grassFoliage=false;
     bool wrapTextures=false;
+    bool vehicleWear=false;
     bool allowTessellation=true;
     const Mesh* shadowProxy=nullptr;
     std::wstring textureFile;

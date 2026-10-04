@@ -175,7 +175,7 @@ void update(float dt){
             if(!regions::homeForPed(ped.id,ped.p))ped.p=randomWalkable();
             ped.target=ped.p;
             ped.alive=true;ped.health=100;ped.panic=0;ped.hostile=false;ped.fireCooldown=0;
-            ped.burnTime=0;
+            ped.burnTime=0;ped.stunRemaining=0;
             ped.state=PedState::Wander;ped.alertTime=0;ped.knockback={};
             ped.sightMemory=0;ped.tacticTimer=0;ped.burstShots=0;
             ped.attackVisualTime=0;ped.hitFlash=0;
@@ -186,6 +186,8 @@ void update(float dt){
             ped.impactAnimationTotal=0;ped.vehicleImpactCooldown=0;
             ped.pinned=false;ped.pinAnchor={};}continue;}
         ped.hitFlash=std::max(0.0f,ped.hitFlash-dt);
+        if(ped.stunRemaining>0){ped.stunRemaining=std::max(0.0f,ped.stunRemaining-dt);
+            ped.fireCooldown=std::max(ped.fireCooldown,.3f);continue;}
         ped.attackVisualTime=std::max(0.0f,ped.attackVisualTime-dt);
         ped.contactVisualTime=std::max(0.0f,ped.contactVisualTime-dt);
         ped.socialCooldown=std::max(0.0f,ped.socialCooldown-dt);

@@ -1120,6 +1120,22 @@ const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
         roughness=clamp(roughness*orm.g,0.06,1.0);
         metallic*=orm.b;
     }
+    // UV-space grime and fine scuffs stay attached to moving bodywork.
+    // Keep glass transparent and leave its Fresnel response intact.
+    if((mapFlags&64)!=0&&materialSurface.z<1){
+        float2 q=input.uv*32;
+        float grain=frac(sin(dot(floor(q),float2(127.1,311.7)))*43758.5453);
+        float patches=saturate(.5+.35*sin(q.x*.37+sin(q.y*.29))+.25*sin(q.y*.61));
+        float dirt=smoothstep(.48,.92,patches)*(.20+.20*grain);
+        float phase=frac(input.uv.y*137+sin(input.uv.x*41)*.13);
+        float aa=max(fwidth(input.uv.y*137),.006);
+        float scratch=(1-smoothstep(.006,.006+aa,min(phase,1-phase)))*
+            step(.78,grain)*smoothstep(.2,.6,patches);
+        base.rgb=lerp(base.rgb,float3(.12,.09,.055),dirt);
+        base.rgb=lerp(base.rgb,float3(.36,.38,.39),scratch*.6);
+        roughness=lerp(roughness,.91,dirt);
+        roughness=lerp(roughness,.67,scratch*.4);
+    }
     bool road=(material==7||material==15)&&normal.y>0.8;
     if(road&&precipitation>0.05){
         float puddle=sin(input.world.x*0.091+sin(input.world.z*0.047))*
@@ -2250,6 +2266,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
                 constants.materialPbr.y=drawn->metallic;
             }
             if(!range&&masked)constants.materialPbr.w=16;
+            if(drawn->vehicleWear)constants.materialPbr.w=float(int(constants.materialPbr.w)|64);
             if(drawn->unlit)constants.materialPbr.z=-1;
             context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
             if(shadow){
@@ -2862,7 +2879,9 @@ bool initRenderer(){
     auto regionalMeshes=dx11::regionalMeshes();
     // Equipping a pickup must not decode its held-weapon texture or create its
     // static buffers on the first gameplay frame that uses that weapon.
-    for(const char* name:{"weapons/pistol","weapons/ak","weapons/lightning"})
+    for(const char* name:{"weapons/pistol","weapons/ak","weapons/lightning","weapons/c4",
+        "weapons/remote-trigger","weapons/grenade","weapons/smoke-grenade","weapons/molotov",
+        "weapons/flashbang","weapons/timed-bomb"})
         if(const auto* weaponMesh=dx11::mesh(name))regionalMeshes.push_back(weaponMesh);
     // Gather and deduplicate before workers start. Only the main thread touches
     // renderer caches and D3D; the CPU pipeline holds at most N prepared images.

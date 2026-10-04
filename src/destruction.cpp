@@ -1,5 +1,6 @@
 #include "destruction.h"
 #include "jolt_world.h"
+#include "masonry.h"
 namespace destruction {
 using namespace game;
 std::vector<Box> boxes(const Building& b){
@@ -29,11 +30,11 @@ bool segment(const Building& b,Vec3 start,Vec3 end,float& entry){
     entry=nearest;return nearest<=1;
 }
 void blast(Vec3 p,float radius){
-    float r=std::clamp(radius*0.65f,24.0f,90.0f);
+    float r=std::clamp(radius*(radius>200?.85f:.65f),24.0f,425.0f);
     for(std::size_t index=0;index<buildings.size();++index){
         auto& b=buildings[index];
         Vec3 nearest{std::clamp(p.x,b.x,b.x+b.w),std::clamp(p.y,0.0f,b.h),std::clamp(p.z,b.z,b.z+b.d)};
-        if(len(p-nearest)>radius*0.55f)continue;
+        if(len(p-nearest)>radius*(radius>200?1.0f:.55f))continue;
         // Subtract a bounded blast volume. Repeated shots enlarge the hole;
         // all consumers use the remaining boxes, including streamed Jolt bodies.
         Box cut{p-Vec3{r,r,r},p+Vec3{r,r,r}};
@@ -57,10 +58,20 @@ void blast(Vec3 p,float radius){
         if(!changed||remaining.size()>192)continue;
         b.damaged=true;b.pieces=std::move(remaining);b.cuts.push_back({cut.low,cut.high});
         jolt_world::rebuildBuilding(index);
-        for(int n=0;n<12;++n){
-            float a=n*2.39996f;Vec3 position=nearest+Vec3{std::cos(a)*r*.3f,5+float(n%3)*7,std::sin(a)*r*.3f};
-            jolt_world::spawnFragment(position,{7+float(n%4)*3,8,9},
-                {std::cos(a)*90,100+float(n%3)*35,std::sin(a)*90},b.c,1);
+        Vec3 outward=norm(p-Vec3{b.x+b.w*.5f,nearest.y,b.z+b.d*.5f});
+        if(len(outward)<.1f)outward={1,0,0};
+        Vec3 tangent{-outward.z,0,outward.x};
+        int count=std::clamp(int(radius*.16f),16,32);
+        for(int n=0;n<count;++n){
+            int kind=n%masonry::Count;float a=n*2.39996f;
+            Vec3 size=kind==masonry::Brick?Vec3{12,5,6}:kind==masonry::BrokenBrick?Vec3{8,5,6}:
+                kind==masonry::Block?Vec3{17,9,10}:kind==masonry::Slab?Vec3{22,7,17}:Vec3{11+float(n%3)*3,10,12};
+            Vec3 position=nearest+tangent*(std::cos(a)*r*.65f)+outward*(size.x*.65f+float(n%3)*5);
+            position.y=std::clamp(nearest.y+std::sin(a)*r*.45f,size.y*.6f,std::max(size.y*.6f,b.h-size.y*.6f));
+            // Eject from the removed facade into the street instead of trapping
+            // masonry in surviving wall colliders.
+            for(int attempt=0;attempt<12&&contains(b,position,std::max(size.x,size.z)*.6f);++attempt)position=position+outward*10;
+            jolt_world::spawnFragment(position,size,outward*(65+float(n%4)*20)+tangent*(std::sin(a)*60)+Vec3{0,70+float(n%3)*25,0},b.c,0,kind);
         }
     }
 }

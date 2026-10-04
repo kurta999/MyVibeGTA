@@ -9,6 +9,9 @@ const std::string& lastError();
 void reset();
 void setWantedLevel(int level);
 int wantedLevel();
-bool report(Crime crime,game::Vec2 place,bool silent=false,bool directWitness=false);
+bool report(Crime crime,game::Vec2 place,bool silent=false,bool directWitness=false,bool witnessesChecked=false);
+const std::vector<game::Vec2>& hideouts();
+bool hiding();
+float hideProgress();
 void update(float dt);
 }

@@ -73,6 +73,19 @@ bool load(const char* file){
         item.melee=projectileType=="melee";
         item.arrow=projectileType=="arrow";
         item.grapple=projectileType=="grapple";
+        if(data.has(section,"Payload")){
+            std::string payload;
+            if(!data.string(section,"Payload",payload))break;
+            const char* names[]={"none","c4","remote","grenade","smoke","molotov","flashbang","timed-bomb"};
+            int kind=0;for(;kind<8;++kind)if(payload==names[kind])break;
+            if(kind==8){error="Invalid ["+section+"] Payload";return false;}
+            item.payload=Payload(kind);
+            if(data.has(section,"FuseSeconds")&&!data.real(section,"FuseSeconds",item.fuseSeconds,0.1f,600))break;
+            if(item.payload!=Payload::None&&(item.rocket||item.arrow||item.melee||item.grapple||
+                streamType!="none"||driveBy||dual||item.pellets!=1)){
+                error="Invalid throwable settings in ["+section+"]";return false;
+            }
+        }
         item.silenced=silenced!=0;
         if(streamType=="none")item.streamType=0;
         else if(streamType=="flame")item.streamType=1;

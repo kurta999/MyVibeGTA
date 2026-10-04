@@ -1,0 +1,7 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 8: ordnance_scenarios
+1/1 Test #8: ordnance_scenarios ...............   Passed    1.21 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.22 sec

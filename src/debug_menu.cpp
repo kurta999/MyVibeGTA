@@ -4,6 +4,7 @@
 #include "traversal.h"
 #include "jolt_world.h"
 #include "weather.h"
+#include "police.h"
 #include <algorithm>
 #include <cmath>
 
@@ -61,6 +62,16 @@ void handleKey(int key){
         infiniteAmmo=!infiniteAmmo;
         if(infiniteAmmo)game::reloadRemaining=0;
         return;
+    }
+    if(selection==6){game::creditMoney(100000);return;}
+    if(selection==7){police::setWantedLevel(0);return;}
+    if(selection==8){
+        for(int i=0;i<weapons::count();++i)if(!weapons::stats(i).melee&&!weapons::stats(i).grapple&&
+            weapons::stats(i).payload!=weapons::Payload::Remote){
+            if(game::ammo[i]>=0)game::ammo[i]=std::min(9999,game::ammo[i]+1000);
+            game::magazine[i]=weapons::stats(i).magazine;
+        }
+        game::reloadRemaining=0;return;
     }
     int chosen=selection-WEAPONS_START;
     if(chosen<0||chosen>=weapons::count())return;

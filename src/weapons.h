@@ -2,6 +2,7 @@
 #include <string>
 
 namespace weapons {
+enum class Payload {None, C4, Remote, Grenade, Smoke, Molotov, Flashbang, TimedBomb};
 struct Stats {
     std::string name;
     int magazine;
@@ -27,6 +28,8 @@ struct Stats {
     bool arrow=false;
     bool dualWieldAllowed=false;
     bool grapple=false;
+    Payload payload=Payload::None;
+    float fuseSeconds=3;
 };
 bool load(const char* path=nullptr);
 const Stats& stats(int index);
