@@ -163,6 +163,7 @@ struct SkinConstants {
 static_assert(sizeof(SkinConstants)%16==0);
 std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshBuffers;
 std::unordered_map<const dx11::Mesh*,ID3D11Buffer*> meshIndexBuffers;
+std::unordered_map<const dx11::Mesh*,std::uint64_t> meshRevisions;
 std::unordered_map<const dx11::Mesh*,ID3D11ShaderResourceView*> modelTextures;
 std::unordered_map<std::wstring,ID3D11ShaderResourceView*> sharedModelTextures;
 std::unordered_map<std::wstring,ID3D11ShaderResourceView*> pbrTextures;
@@ -204,7 +205,7 @@ std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
 size_t staticStarts[dx11::MATERIAL_GROUPS]{},staticCounts[dx11::MATERIAL_GROUPS]{};
 std::vector<dx11::Vertex> vertices;
 std::vector<dx11::ModelInstance> models;
-struct InstanceData {XMFLOAT4 a,b,c,tint;};
+struct InstanceData {XMFLOAT4 a,b,c,tint,quaternion;};
 struct InstanceBatch {const dx11::Mesh* mesh;int material;UINT start,count;};
 std::vector<InstanceData> instanceData;
 std::vector<InstanceBatch> instanceBatches;
@@ -781,6 +782,7 @@ struct Input { float3 position:POSITION; float3 normal:NORMAL; float2 uv:TEXCOOR
 struct InstancedInput {
     float3 position:POSITION; float3 normal:NORMAL; float2 uv:TEXCOORD0; float4 color:COLOR0;
     float4 a:INSTANCE0; float4 b:INSTANCE1; float4 c:INSTANCE2; float4 tint:INSTANCE3;
+    float4 quaternion:INSTANCE4;
 };
 struct SkinnedInput {
     float3 position:POSITION;float3 normal:NORMAL;float2 uv:TEXCOORD0;float4 color:COLOR0;
@@ -808,6 +810,7 @@ Output VSInstanced(InstancedInput input){
     float3 local=float3((input.position.x-input.c.x)*input.a.x,
         (input.position.y-input.c.y)*input.a.y,
         (input.position.z-input.c.z)*input.a.z);
+    local+=2*cross(input.quaternion.xyz,cross(input.quaternion.xyz,local)+input.quaternion.w*local);
     float3 pitched=float3(local.x,input.tint.w*local.y+input.c.w*local.z,
         -input.c.w*local.y+input.tint.w*local.z);
     float3 world=float3(input.b.y+input.a.w*pitched.x+input.b.x*pitched.z,
@@ -819,6 +822,7 @@ Output VSInstanced(InstancedInput input){
         world.x+=bend;world.z+=bend*.48;
     }
     float3 scaledNormal=input.normal/max(input.a.xyz,float3(0.0001,0.0001,0.0001));
+    scaledNormal+=2*cross(input.quaternion.xyz,cross(input.quaternion.xyz,scaledNormal)+input.quaternion.w*scaledNormal);
     float3 pitchedNormal=float3(scaledNormal.x,
         input.tint.w*scaledNormal.y+input.c.w*scaledNormal.z,
         -input.c.w*scaledNormal.y+input.tint.w*scaledNormal.z);
@@ -1679,11 +1683,12 @@ bool createShaders(){
         {"INSTANCE",0,DXGI_FORMAT_R32G32B32A32_FLOAT,1,0,D3D11_INPUT_PER_INSTANCE_DATA,1},
         {"INSTANCE",1,DXGI_FORMAT_R32G32B32A32_FLOAT,1,16,D3D11_INPUT_PER_INSTANCE_DATA,1},
         {"INSTANCE",2,DXGI_FORMAT_R32G32B32A32_FLOAT,1,32,D3D11_INPUT_PER_INSTANCE_DATA,1},
-        {"INSTANCE",3,DXGI_FORMAT_R32G32B32A32_FLOAT,1,48,D3D11_INPUT_PER_INSTANCE_DATA,1}};
-    D3D11_INPUT_ELEMENT_DESC fullLayout[8]{};
+        {"INSTANCE",3,DXGI_FORMAT_R32G32B32A32_FLOAT,1,48,D3D11_INPUT_PER_INSTANCE_DATA,1},
+        {"INSTANCE",4,DXGI_FORMAT_R32G32B32A32_FLOAT,1,64,D3D11_INPUT_PER_INSTANCE_DATA,1}};
+    D3D11_INPUT_ELEMENT_DESC fullLayout[9]{};
     std::copy(std::begin(layout),std::end(layout),fullLayout);
     std::copy(std::begin(instanceElements),std::end(instanceElements),fullLayout+4);
-    if(SUCCEEDED(result))result=device->CreateInputLayout(fullLayout,8,instanced->GetBufferPointer(),
+    if(SUCCEEDED(result))result=device->CreateInputLayout(fullLayout,9,instanced->GetBufferPointer(),
         instanced->GetBufferSize(),&instanceLayout);
     release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
     release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
@@ -1821,7 +1826,7 @@ bool bc5Normal(const std::wstring& file){
 }
 bool createTargets(int width,int height){
     if(width<1||height<1)return false;
-    if(bufferW&&FAILED(swapChain->ResizeBuffers(0,width,height,DXGI_FORMAT_UNKNOWN,0)))return false;
+    if(bufferW&&FAILED(swapChain->ResizeBuffers(0,width,height,DXGI_FORMAT_UNKNOWN,DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH)))return false;
     ID3D11Texture2D* backBuffer=nullptr;
     HRESULT result=swapChain->GetBuffer(0,__uuidof(ID3D11Texture2D),reinterpret_cast<void**>(&backBuffer));
     if(SUCCEEDED(result))result=device->CreateRenderTargetView(backBuffer,nullptr,&target);
@@ -1940,6 +1945,14 @@ bool growVertexBuffer(size_t count){
     return SUCCEEDED(device->CreateBuffer(&description,nullptr,&vertexBuffer));
 }
 bool cacheModel(const dx11::Mesh* source){
+    auto prior=meshRevisions.find(source);
+    if(prior!=meshRevisions.end()&&prior->second!=source->revision){
+        auto vertices=meshBuffers.find(source);
+        if(vertices!=meshBuffers.end()){release(vertices->second);meshBuffers.erase(vertices);}
+        auto indices=meshIndexBuffers.find(source);
+        if(indices!=meshIndexBuffers.end()){release(indices->second);meshIndexBuffers.erase(indices);}
+    }
+    meshRevisions[source]=source->revision;
     if(meshBuffers.find(source)==meshBuffers.end()){
         D3D11_BUFFER_DESC desc{};
         desc.ByteWidth=UINT(source->vertices.size()*sizeof(dx11::Vertex));
@@ -2065,7 +2078,8 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
         instanceData.push_back({{model.scaleX,model.scaleY,model.scaleZ,model.cosYaw},
             {model.sinYaw,model.x,model.y,model.z},
             {model.centerX,model.minY,model.centerZ,model.sinPitch},
-            {model.r,model.g,model.b,model.cosPitch}});
+            {model.r,model.g,model.b,model.cosPitch},
+            {model.qx,model.qy,model.qz,model.qw}});
     };
     for(const auto& model:models){
         if(!disableCulling&&!visibleInCamera(dx11::instanceBounds(model)))continue;
@@ -2761,6 +2775,22 @@ void captureIfRequested(){
     release(staging);release(back);
 }
 }
+bool exclusiveFullscreenEnabled(){
+    BOOL enabled=FALSE;return swapChain&&SUCCEEDED(swapChain->GetFullscreenState(&enabled,nullptr))&&enabled;
+}
+bool setExclusiveFullscreen(bool enabled,int width,int height){
+    if(!swapChain)return !enabled;
+    BOOL current=FALSE;if(FAILED(swapChain->GetFullscreenState(&current,nullptr)))return false;
+    if(bool(current)==enabled)return true;
+    HRESULT result=swapChain->SetFullscreenState(enabled,nullptr);
+    bool ok=SUCCEEDED(result);
+    if(ok&&enabled){DXGI_MODE_DESC mode{};mode.Width=width;mode.Height=height;mode.Format=DXGI_FORMAT_B8G8R8A8_UNORM;
+        result=swapChain->ResizeTarget(&mode);ok=SUCCEEDED(result);
+        if(!ok)swapChain->SetFullscreenState(FALSE,nullptr);}
+    if(!ok){char message[128];std::snprintf(message,sizeof(message),"DXGI fullscreen transition failed: 0x%08lx",static_cast<unsigned long>(result));logging::write(message);}
+    if(ok){RECT client{};GetClientRect(win,&client);screenW=std::max(1,int(client.right));screenH=std::max(1,int(client.bottom));}
+    return ok;
+}
 bool initRenderer(){
     if(!startup::report(2,"Starting Direct3D 11"))return false;
     DXGI_SWAP_CHAIN_DESC description{};description.BufferCount=2;
@@ -2769,6 +2799,7 @@ bool initRenderer(){
     description.BufferDesc.Format=DXGI_FORMAT_B8G8R8A8_UNORM;
     description.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT;
     description.OutputWindow=win;description.SampleDesc.Count=1;
+    description.Flags=DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     description.Windowed=TRUE;description.SwapEffect=DXGI_SWAP_EFFECT_DISCARD;
     D3D_FEATURE_LEVEL requested=D3D_FEATURE_LEVEL_11_0,created{};
     HRESULT result=D3D11CreateDeviceAndSwapChain(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,
@@ -2778,6 +2809,9 @@ bool initRenderer(){
         D3D11_CREATE_DEVICE_BGRA_SUPPORT,&requested,1,D3D11_SDK_VERSION,&description,
         &swapChain,&device,&created,&context);
     if(FAILED(result))return false;
+    IDXGIFactory* displayFactory=nullptr;
+    if(SUCCEEDED(swapChain->GetParent(__uuidof(IDXGIFactory),reinterpret_cast<void**>(&displayFactory)))){
+        displayFactory->MakeWindowAssociation(win,DXGI_MWA_NO_ALT_ENTER);displayFactory->Release();}
     logAdapter();
     Gdiplus::GdiplusStartupInput startup;
     if(Gdiplus::GdiplusStartup(&gdiplusToken,&startup,nullptr)!=Gdiplus::Ok)return false;
@@ -3446,6 +3480,7 @@ void shutdownRenderer(){
     skinValidationDone=false;
     for(auto& item:meshBuffers)release(item.second);
     meshBuffers.clear();
+    meshRevisions.clear();
     for(auto& item:meshIndexBuffers)release(item.second);
     meshIndexBuffers.clear();
     for(auto& item:modelTextures)release(item.second);
@@ -3459,6 +3494,7 @@ void shutdownRenderer(){
     release(hudVS);release(hudPS);release(postPS);release(bloomPS);release(reflectionPS);
     release(motionPS);release(temporalPS);release(temporalCopyPS);
     release(meterPS);release(meterReducePS);release(exposurePS);release(tonePS);
+    if(swapChain)swapChain->SetFullscreenState(FALSE,nullptr);
     release(swapChain);release(context);release(device);
     deviceLost=false;
     if(gdiplusToken){Gdiplus::GdiplusShutdown(gdiplusToken);gdiplusToken=0;}

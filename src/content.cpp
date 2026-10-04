@@ -61,6 +61,14 @@ bool kind(const std::string& v,Kind& out){
     else if(v=="bike")out=Kind::Bike;
     else if(v=="boat")out=Kind::Boat;
     else if(v=="helicopter")out=Kind::Helicopter;
+    else if(v=="skateboard")out=Kind::Skateboard;
+    else if(v=="bicycle")out=Kind::Bicycle;
+    else if(v=="tractor")out=Kind::Tractor;
+    else if(v=="combine")out=Kind::Combine;
+    else if(v=="tank")out=Kind::Tank;
+    else if(v=="truck")out=Kind::Truck;
+    else if(v=="trailer")out=Kind::Trailer;
+    else if(v=="airplane")out=Kind::Airplane;
     else return false;
     return true;
 }
@@ -176,11 +184,11 @@ bool populate(const char* worldPath,const char* missionsPath){
         Vehicle v{};
         if(!id(world,s,v.id,vehicleIds)||!string(world,s,"Kind",value))return false;
         if(!kind(value,v.kind))return bad(s,"Kind");
-        if(!real(world,s,"X",v.p.x,0,WORLD_W)||
-           !real(world,s,"Z",v.p.z,0,WORLD_D)||
+        if(!real(world,s,"X",v.p.x,0,regions::WIDTH)||
+           !real(world,s,"Z",v.p.z,0,regions::DEPTH)||
            !real(world,s,"Angle",v.angle,-PI,PI)||
            !color(world,s,"Color",v.c))return false;
-        if((v.kind==Kind::Boat)!=(v.p.z>=SHORE))return bad(s,"Z for vehicle kind");
+        if((v.kind==Kind::Boat)!=regions::waterAt(v.p))return bad(s,"Z for vehicle kind");
         placed.push_back(v);
     }
     std::vector<Pickup> placedPickups;placedPickups.reserve(pickupCount);

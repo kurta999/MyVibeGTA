@@ -10,6 +10,8 @@
 #include "police.h"
 #include "commerce.h"
 #ifdef MINI_CITY_JOLT
+#include "radio.h"
+#include "vehicle_systems.h"
 #include "debug_menu.h"
 #endif
 
@@ -59,12 +61,14 @@ void applyMouseDelta(LONG x,LONG y){
 
 LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     switch(msg){
+    case WM_ACTIVATEAPP:ui::setWindowActive(wp!=0);return 0;
     case WM_SIZE:screenW=std::max(1,int(LOWORD(lp)));screenH=std::max(1,int(HIWORD(lp)));
         if(lookCaptured)clipLookCursor();return 0;
     case WM_MOVE:if(lookCaptured)clipLookCursor();return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
 #ifdef MINI_CITY_JOLT
+        if(wp==VK_RETURN&&(lp&(1<<29))&&!(lp&(1<<30))){ui::toggleFullscreen();releaseLookCapture();return 0;}
         if(wp==VK_F11){
             if(!(lp&(1<<30)))requestScreenshot();
             return 0;
@@ -103,6 +107,9 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(int(wp)==ui::bindings[int(ui::Action::Interact)]&&health>0)enterExit();
             if(wp=='F'){interact();if(commerce::menu()!=commerce::Menu::None)releaseAim();}
             if(wp==VK_TAB)cycleInteraction();
+#ifdef MINI_CITY_JOLT
+            if(wp=='J')vehicle_systems::toggleTrailer();
+#endif
             if(wp=='G')carryDrop();
             if(wp=='H'&&occupied>=0&&occupied<int(vehicles.size())&&
                vehicles[occupied].kind!=Kind::Boat){
@@ -128,10 +135,10 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(wp==VK_F3)debugHud=!debugHud;
             if(wp==VK_F1)ui::showHelp=!ui::showHelp;
             if(wp=='T')gameHour=std::fmod(gameHour+1.0f,24.0f);
-            if(wp=='Q')for(int i=1;i<=weapons::count();++i){int candidate=(weapon+i)%weapons::count();
+            if(wp=='Q'&&(occupied<0||vehicles[occupied].kind!=Kind::Airplane))for(int i=1;i<=weapons::count();++i){int candidate=(weapon+i)%weapons::count();
                 if(unlocked[candidate]){weapon=candidate;break;}}
         }
-        if(wp=='R'){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
+        if(wp=='R'&&(occupied<0||vehicles[occupied].kind!=Kind::Airplane)){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:if(wp<256)keys[wp]=false;return 0;
     case WM_LBUTTONDOWN:if(ui::paused()){
@@ -159,6 +166,15 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     }return 0;
     case WM_RBUTTONUP:releaseAim();return 0;
     case WM_MOUSEWHEEL:
+#ifdef MINI_CITY_JOLT
+        if(occupied>=0&&occupied<int(vehicles.size())&&!vehicle_systems::pedal(vehicles[occupied].kind)&&
+           vehicles[occupied].kind!=Kind::Trailer&&!ui::paused()&&!debug_menu::open&&commerce::menu()==commerce::Menu::None){
+            wheelRemainder+=GET_WHEEL_DELTA_WPARAM(wp);
+            while(std::abs(wheelRemainder)>=WHEEL_DELTA){int direction=wheelRemainder>0?1:-1;
+                radio::cycle(direction);wheelRemainder-=direction*WHEEL_DELTA;}
+            message=radio::status();messageTime=3;ui::save();return 0;
+        }
+#endif
         if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&camera::zoomActive()
 #ifdef MINI_CITY_JOLT
             &&!debug_menu::open

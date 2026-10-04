@@ -1,3 +1,4 @@
+#include "destruction.h"
 #include "ped_navigation.h"
 #include "regions.h"
 #include "physics.h"
@@ -38,7 +39,9 @@ struct Obstacles {
         float z0=std::min(from.z,to.z)-400,z1=std::max(from.z,to.z)+400;
         for(const auto& b:buildings){
             if(b.x>x1||b.x+b.w<x0||b.z>z1||b.z+b.d<z0)continue;
-            boxes.push_back({{b.x+b.w/2,b.z+b.d/2},{b.w/2+radius+2,b.d/2+radius+2}});
+            for(const auto& piece:destruction::boxes(b))if(piece.low.y<36&&piece.high.y>1)
+                boxes.push_back({{(piece.low.x+piece.high.x)/2,(piece.low.z+piece.high.z)/2},
+                    {(piece.high.x-piece.low.x)/2+radius+2,(piece.high.z-piece.low.z)/2+radius+2}});
         }
         for(const auto& car:vehicles){
             if(car.p.x<x0||car.p.x>x1||car.p.z<z0||car.p.z>z1)continue;

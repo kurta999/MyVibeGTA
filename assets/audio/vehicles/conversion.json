@@ -1,0 +1,92 @@
+[
+  {
+    "profile": "car",
+    "source": "assets\\audio\\source\\engine-loop\\engine-loop-1.wav",
+    "offset": 0,
+    "pitch": 1,
+    "lowpass": 5500,
+    "samples": 190560,
+    "source_sha256": "e1db4d0d186040ad8b465d028578e93a4861e381163a0b8396282bb127478f80"
+  },
+  {
+    "profile": "sport-car",
+    "source": "assets\\audio\\source\\engine-loop\\engine-loop-1.wav",
+    "offset": 0,
+    "pitch": 1.12,
+    "lowpass": 6500,
+    "samples": 169989,
+    "source_sha256": "e1db4d0d186040ad8b465d028578e93a4861e381163a0b8396282bb127478f80"
+  },
+  {
+    "profile": "motorcycle",
+    "source": "assets\\audio\\source\\engine-loop\\engine-loop-1.wav",
+    "offset": 0,
+    "pitch": 1.36,
+    "lowpass": 6500,
+    "samples": 139737,
+    "source_sha256": "e1db4d0d186040ad8b465d028578e93a4861e381163a0b8396282bb127478f80"
+  },
+  {
+    "profile": "boat",
+    "source": "assets\\audio\\source\\heavy-engine.wav",
+    "offset": 0,
+    "pitch": 0.92,
+    "lowpass": 3000,
+    "samples": 206858,
+    "source_sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400"
+  },
+  {
+    "profile": "helicopter",
+    "source": "assets\\audio\\source\\helicopter.mp3",
+    "offset": 0.2,
+    "pitch": 1,
+    "lowpass": 6500,
+    "samples": 190560,
+    "source_sha256": "06b910f2e73cf4c6ba6e749ddc5e18674565f30de573ef94e4f42f43fd3711b6"
+  },
+  {
+    "profile": "tractor",
+    "source": "assets\\audio\\source\\heavy-engine.wav",
+    "offset": 0,
+    "pitch": 0.83,
+    "lowpass": 3400,
+    "samples": 229445,
+    "source_sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400"
+  },
+  {
+    "profile": "combine",
+    "source": "assets\\audio\\source\\heavy-engine.wav",
+    "offset": 0,
+    "pitch": 0.75,
+    "lowpass": 3000,
+    "samples": 254072,
+    "source_sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400"
+  },
+  {
+    "profile": "tank",
+    "source": "assets\\audio\\source\\heavy-engine.wav",
+    "offset": 0,
+    "pitch": 0.65,
+    "lowpass": 2600,
+    "samples": 293382,
+    "source_sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400"
+  },
+  {
+    "profile": "truck",
+    "source": "assets\\audio\\source\\heavy-engine.wav",
+    "offset": 0,
+    "pitch": 0.9,
+    "lowpass": 4500,
+    "samples": 211487,
+    "source_sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400"
+  },
+  {
+    "profile": "airplane",
+    "source": "assets\\audio\\source\\airplane.flac",
+    "offset": 0,
+    "pitch": 1,
+    "lowpass": 6000,
+    "samples": 236496,
+    "source_sha256": "9e44850a2dfdd984bc9476c207ff0a37457cb50d28bec5d2d4d69539cf2aeafd"
+  }
+]

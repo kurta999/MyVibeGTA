@@ -20,6 +20,7 @@ struct MaterialRange {
     std::wstring baseFile,normalFile,ormFile,occlusionFile,emissiveFile;
 };
 struct Mesh {
+    std::uint64_t revision=0; // Session meshes replace their GPU buffers after another blast.
     std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;
     std::vector<MaterialRange> materialRanges;
@@ -68,6 +69,8 @@ struct ModelInstance {
     float x,y,z,centerX,minY,centerZ;
     float r,g,b;
     float sinPitch=0,cosPitch=1;
+    // Rigid asset orientation, applied before the legacy pitch/yaw transform.
+    float qx=0,qy=0,qz=0,qw=1;
 };
 struct BoundingSphere {float x,y,z,radius;};
 bool chooseDetailedLod(float pixels,float distance,float threshold,float cap,

@@ -15,7 +15,21 @@ float vehicleScale(Kind kind){
     return 1.0f;
 #endif
 }
+Vec3 chassisHalf(Kind k){
+    switch(k){
+    case Kind::Skateboard:return {5,1,15};case Kind::Bicycle:return {5,4,17};
+    case Kind::Tractor:return {19,8,27};case Kind::Combine:return {31,12,42};
+    case Kind::Tank:return {30,10,43};case Kind::Truck:return {26,10,58};
+    case Kind::Trailer:return {27,8,54};case Kind::Airplane:return {74,8,52};
+    default:return Vec3{k==Kind::Helicopter?16.0f:k==Kind::Bike?5.0f:k==Kind::Boat?12.0f:13.0f,
+        k==Kind::Helicopter?12.0f:k==Kind::Boat?10.0f:k==Kind::Bike?4.0f:5.0f,
+        k==Kind::Helicopter?30.0f:k==Kind::Bike?13.0f:24.0f}*vehicleScale(k);
+    }
+}
 float vehicleRestHeight(Kind kind){
+    if(int(kind)>=5)return kind==Kind::Skateboard?4:kind==Kind::Bicycle?12:
+        kind==Kind::Tractor?22:kind==Kind::Combine?26:kind==Kind::Tank?18:
+        kind==Kind::Truck?24:kind==Kind::Trailer?22:16;
     return (kind==Kind::Helicopter?12.0f:kind==Kind::Boat?10.0f:
         kind==Kind::Bike?13.0f:14.0f)*vehicleScale(kind);
 }
@@ -23,12 +37,15 @@ float vehicleRadius(Kind kind){
 #ifndef MINI_CITY_JOLT
     return kind==Kind::Bike?14.0f:kind==Kind::Boat?25.0f:26.0f;
 #else
+    if(int(kind)>=5){auto half=chassisHalf(kind);return std::sqrt(half.x*half.x+half.z*half.z);}
     return (kind==Kind::Bike?14.0f:kind==Kind::Boat?25.0f:
         kind==Kind::Helicopter?34.0f:26.0f)*vehicleScale(kind);
 #endif
 }
 namespace {
 Vec3 hitSize(Kind kind){
+    if(int(kind)>=5){auto half=chassisHalf(kind);return {half.x,kind==Kind::Skateboard?5.0f:
+        kind==Kind::Bicycle?26.0f:kind==Kind::Tank?34.0f:kind==Kind::Airplane?29.0f:55.0f,half.z};}
     Vec3 size=kind==Kind::Helicopter?Vec3{13.25f,30.5f,40.75f}:
         kind==Kind::Bike?Vec3{7,42,15}:kind==Kind::Boat?Vec3{12,42,24}:
         Vec3{13,kind==Kind::SportCar?20.0f:26.0f,24};
@@ -62,14 +79,22 @@ bool vehicleSegmentHit(const Vehicle& vehicle,Vec3 start,Vec3 end,float& entry){
     entry=first;return true;
 }
 namespace {
-const std::array<VehicleTuning,5> defaults{{
+const std::array<VehicleTuning,13> defaults{{
     {245,315,115,7.0f,0.95f,2.05f,5.5f,430,1100,70000,3.0f,0.78f,5.0f,0.43f,250000,180000,250,45,1,1,75,125,12,42,0.8f,120,7,45},
     {370,425,155,8.2f,0.75f,2.25f,7.0f,590,850,95000,3.0f,0.78f,5.0f,0.43f,250000,180000,200,45,1.15f,1,95,145,12,42,0.8f,130,7,60},
     {330,375,125,6.2f,0.90f,2.8f,8.0f,460,220,32000,3.4f,0.78f,5.5f,0.48f,250000,85000,130,50,1.3f,1,55,120,10,38,0.8f,115,7,35},
     {140,205,75,1.15f,0.80f,1.25f,2.5f,155,550,0,0,0,0,0,0,0,220,45,1,1,65,999,12,42,0.8f,120,7,0},
-    {330,330,180,1.6f,0.8f,1.25f,4,500,900,0,0,0,0,0,0,400,55,1,1,140,999,12,42,0.8f,120,7,0}
+    {330,330,180,1.6f,0.8f,1.25f,4,500,900,0,0,0,0,0,0,400,55,1,1,140,999,12,42,0.8f,120,7,0},
+    {100,135,35,6,.8f,2.8f,5,200,80,2500,4,.8f,2,.6f,15000,12000,80,65,.4f,1,10,999,12,42,.8f,120,7,0},
+    {120,190,40,7,.8f,2.5f,6,260,100,3500,3,.8f,8,.5f,22000,12000,100,65,.5f,1,15,999,12,42,.8f,120,7,0},
+    {100,160,60,9,1,1.3f,4,380,2500,145000,3,.8f,12,.5f,360000,250000,550,50,.7f,1,100,999,12,42,.8f,120,7,0},
+    {80,125,40,8,1,1,4,380,5000,230000,3,.8f,12,.45f,550000,450000,700,50,.6f,1,150,999,12,42,.8f,120,7,0},
+    {110,175,70,12,1,1.7f,5,600,9500,400000,3,.9f,8,.55f,850000,750000,1800,60,.4f,.25f,200,999,12,42,.8f,120,7,0},
+    {120,240,70,8,1,1.1f,4,440,4200,260000,3,.8f,9,.45f,550000,450000,800,50,.7f,1,150,999,12,42,.8f,120,7,0},
+    {1,240,70,8,1,1,4,400,2500,0,3,.8f,8,0,400000,300000,650,50,.7f,1,100,999,12,42,.8f,120,7,0},
+    {550,600,1,2,.05f,1.2f,4,300,1300,0,3,.8f,5,.4f,250000,180000,450,55,2,1,150,999,12,42,.8f,120,7,0}
 }};
-std::array<VehicleTuning,5> entries=defaults;
+std::array<VehicleTuning,13> entries=defaults;
 std::array<float,4> surfaceGrip{1.0f,0.78f,0.62f,0.45f};
 float wetGrip=0.72f;
 std::string error;
@@ -80,9 +105,9 @@ bool load(const char* path){
     if(!file.load(path?path:data_file::resourcePath("vehicles.ini"))||!file.version(1)){
         error=file.lastError();return false;
     }
-    const char* names[]={"car","sport-car","bike","boat","helicopter"};
-    std::array<VehicleTuning,5> parsed{};
-    for(int i=0;i<5;++i){
+    const char* names[]={"car","sport-car","bike","boat","helicopter","skateboard","bicycle","tractor","combine","tank","truck","trailer","airplane"};
+    std::array<VehicleTuning,13> parsed{};
+    for(int i=0;i<13;++i){
         std::string section=std::string("Vehicle.")+names[i];auto& v=parsed[i];
         if(!file.real(section,"Acceleration",v.acceleration,1,2000)||
            !file.real(section,"MaxSpeed",v.maxSpeed,1,2000)||
@@ -130,7 +155,7 @@ bool load(const char* path){
 }
 const std::string& lastError(){return error;}
 VehicleTuning tuning(Kind kind){
-    return entries[std::clamp(int(kind),0,4)];
+    return entries[std::clamp(int(kind),0,12)];
 }
 float tractionAt(game::Vec2 point){
     float grip=surfaceGrip[0];

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "heavy-engine",
+    "page": "https://opengameart.org/content/engine-loop-heavy-vehicletank",
+    "download": "https://opengameart.org/sites/default/files/engine_heavy_loop_0.wav",
+    "sha256": "11b053f13c40a8ea9926b16cc8ed51c67ad90bfe9b49e80cfd974500ded6a400",
+    "author": "Nayckron; original recording by qubodup",
+    "license": "CC BY 3.0"
+  },
+  {
+    "id": "helicopter",
+    "page": "https://opengameart.org/content/helicopter-sounds",
+    "download": "https://opengameart.org/sites/default/files/helicopter_0.mp3",
+    "sha256": "06b910f2e73cf4c6ba6e749ddc5e18674565f30de573ef94e4f42f43fd3711b6",
+    "author": "aquinn",
+    "license": "CC0 1.0"
+  },
+  {
+    "id": "airplane",
+    "page": "https://opengameart.org/content/airplane-prop-loop",
+    "download": "https://opengameart.org/sites/default/files/airplane_prop.flac",
+    "sha256": "9e44850a2dfdd984bc9476c207ff0a37457cb50d28bec5d2d4d69539cf2aeafd",
+    "author": "jakobthiesen; loop edit by AntumDeluge",
+    "license": "CC BY 3.0"
+  },
+  {
+    "id": "car",
+    "author": "qubodup",
+    "license": "CC BY 3.0",
+    "page": "https://opengameart.org/content/car-engine-loop-96khz-4s",
+    "download": "https://opengameart.org/sites/default/files/engine-loop.7z",
+    "sha256": "06b14b760fde613b357d043517f604dfde024318e764dff209a179ea39c566d6"
+  }
+]

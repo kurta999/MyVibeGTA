@@ -11,7 +11,7 @@ from mathutils import Vector
 ROOT=Path(__file__).resolve().parents[1]
 OUT=Path(os.environ.get('MODERN_STUDIO_OUTPUT',str(ROOT/'evidence/modern-assets-20260928/studio')))
 OUT.mkdir(parents=True,exist_ok=True)
-NAMES=("coastal-office","terrace-apartments","aurora-sedan","aurora-coupe",
+NAMES=("coastal-office","terrace-apartments",
        "compact-pistol","carbine","street-lamp","twin-lamp","bench","bin",
        "bollard","bike-rack","planter","hydrant")
 if "--" in sys.argv:

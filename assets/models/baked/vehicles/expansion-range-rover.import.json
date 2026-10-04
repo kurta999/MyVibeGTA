@@ -1,0 +1,122 @@
+{
+  "source": "assets\\models\\source\\expansion\\range-rover.glb",
+  "sha256": "5d4b7cf00d2d9539d9a8f5260b24f314703206793e152e9e2d66faf2acb155ee",
+  "source_triangles": 31418,
+  "baked_triangles": 31418,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-range-rover-body-0",
+      "center": [
+        -8.75538444519043,
+        -4.077415943145752,
+        -21.78313446044922
+      ],
+      "size": [
+        19.514598846435547,
+        38.421043395996094,
+        52.43373107910156
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-body-1",
+      "center": [
+        3.747725009918213,
+        -4.0774149894714355,
+        -21.65512466430664
+      ],
+      "size": [
+        29.257091522216797,
+        38.42103958129883,
+        52.177703857421875
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-body-2",
+      "center": [
+        -8.595955848693848,
+        -6.057217121124268,
+        15.671245574951172
+      ],
+      "size": [
+        19.433263778686523,
+        36.35917663574219,
+        64.65750885009766
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-body-3",
+      "center": [
+        4.098291397094727,
+        -6.057217121124268,
+        15.642807960510254
+      ],
+      "size": [
+        28.994701385498047,
+        36.35917663574219,
+        64.71438598632812
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-wheel-0",
+      "center": [
+        14.966547012329102,
+        -20.178295135498047,
+        -18.28423500061035
+      ],
+      "size": [
+        7.350893974304199,
+        15.643411636352539,
+        15.643404960632324
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-wheel-1",
+      "center": [
+        14.966547012329102,
+        -20.178285598754883,
+        33.63835906982422
+      ],
+      "size": [
+        7.350893974304199,
+        15.643409729003906,
+        15.64340591430664
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-wheel-2",
+      "center": [
+        -14.955684661865234,
+        -20.17828941345215,
+        33.63835144042969
+      ],
+      "size": [
+        7.37261962890625,
+        15.643399238586426,
+        16.317895889282227
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-range-rover-wheel-3",
+      "center": [
+        -14.955684661865234,
+        -20.178295135498047,
+        -18.28423500061035
+      ],
+      "size": [
+        7.37261962890625,
+        15.64339828491211,
+        16.31789779663086
+      ],
+      "spin": 1
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

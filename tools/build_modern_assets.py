@@ -368,83 +368,6 @@ def building(style, level):
     return m
 
 
-def car(coupe, level):
-    m=Mesh(); mat="pearl_paint" if coupe else "blue_paint"
-    sides=(40,24,16,8)[level]; tube=(10,8,6,4)[level]
-    # Multiple sections produce a tapered body with rolled shoulders, not a box.
-    m.loft([(-2.4,.71,.32,.63,.78),(-2.12,.88,.27,.78,.91),(-1.45,.91,.26,.87,.98),
-            (-.45,.92,.26,.85,.94),(.75,.90,.26,.85,.93),(1.6,.86,.30,.81,.90),
-            (2.26,.78,.36,.67,.78),(2.4,.69,.4,.61,.72)],mat,smooth=level<2)
-    roof=1.37 if coupe else 1.52
-    m.loft([(-.70,.71,roof-.05,roof-.02,roof),
-            (.22,.69,roof-.05,roof-.02,roof)],mat)
-    for side in (-1,1):
-        for a,b in (((side*.74,.98,-1.44),(side*.67,roof-.04,-.72)),
-                    ((side*.71,1.02,.97),(side*.66,roof-.06,.25)),
-                    ((side*.741,.99,-.17),(side*.685,roof-.1,-.17))):
-            m.beam(a,b,.022,mat,8)
-    # Windshield, rear glass, split side glazing; opaque painted pillars separate panes.
-    m.face(tuple(reversed(((-.66,roof-.06,.25),(.66,roof-.06,.25),(.71,1.02,.97),(-.71,1.02,.97)))),"car_glass")
-    m.face(((.74,.98,-1.44),(-.74,.98,-1.44),(-.67,roof-.04,-.72),(.67,roof-.04,-.72)),"car_glass")
-    for side in (-1,1):
-        for z0,z1 in ((-1.26,-.20),(-.12,.72)):
-            x=side*.741
-            corners=((x,.99,z0),(x,.99,z1),(side*.685,roof-.1,min(z1,.25)),
-                     (side*.685,roof-.1,max(z0,-.68)))
-            if side>0: corners=tuple(reversed(corners))
-            m.face(corners,"car_glass")
-        # Panels, sill trim, handles and mirrors.
-        m.box((side*.908-.018,.40,-1.45),(side*.908+.018,.47,1.48),"metal")
-        m.box((side*1.005-.105,1.04,.53),(side*1.005+.105,1.14,.76),mat)
-        if level<2:
-            for z in (-.9,.22):
-                m.box((side*.915-.018,.76,z),(side*.915+.018,.795,z+.19),"silver")
-            m.beam((side*.74,.99,.56),(side*1.01,1.08,.63),.035,"metal",8)
-            if level==0:
-                for z in (-1.36,-.14,1.32):
-                    m.beam((side*.925,.48,z),(side*.925,.88,z),.005,"polymer",6)
-    for side in (-1,1):
-        for z in (-1.5,1.48):
-            center=(side*.91,.34,z)
-            m.torus(center,.238,.097,"rubber",sides,tube)
-            # A small flattened contact patch fixes the full-chain floor bounds
-            # without depending on tessellation of individual tread ribs.
-            m.box((side*.91-.055,.001,z-.040),(side*.91+.055,.015,z+.040),"rubber")
-            outer=side*1.012
-            m.beam((outer-side*.05,.34,z),(outer,.34,z),.22,"gunmetal",sides)
-            m.beam((outer,.34,z),(outer+side*.005,.34,z),.070,"silver",12)
-            for j in range(10 if level<2 else 5):
-                a=j*math.tau/(10 if level<2 else 5)
-                m.beam((outer+side*.009,.34+math.cos(a)*.067,z+math.sin(a)*.067),
-                       (outer+side*.015,.34+math.cos(a+.19)*.201,z+math.sin(a+.19)*.201),
-                       .013 if level<2 else .019,"silver",6)
-            if level==0:
-                for j in range(40):
-                    a=j*math.tau/40
-                    p=(side*.91,.34+math.cos(a)*.335,z+math.sin(a)*.335)
-                    m.beam((p[0]-.06,p[1],p[2]),(p[0]+.06,p[1],p[2]),.004,"polymer",4)
-    m.box((-.51,.43,2.37),(.51,.64,2.405),"polymer")
-    m.box((-.8,.42,-2.405),(.8,.49,-2.37),"metal")
-    for side in (-1,1):
-        x=side*.55
-        m.box((x-.19,.64,2.315),(x+.19,.735,2.39),"white_lens")
-        m.box((x-.21,.67,-2.4),(x+.21,.75,-2.345),"red_lens")
-        m.beam((side*.48,.41,-2.37),(side*.48,.41,-2.44),.048,"silver",12 if level<2 else 6)
-    m.box((-.46,.455,2.408),(.46,.615,2.413),"polymer")
-    m.box((-.22,.5,-2.442),(.22,.60,-2.425),"white_lens")
-    if level<2:
-        for i in range(13):
-            x=-.46+i*.076
-            m.box((x,.455,2.408),(x+.012,.615,2.413),"silver")
-        # Interior seat forms are visible through the separate transparent glazing.
-        for x in (-.36,.36):
-            m.box((x-.20,.52,-.15),(x+.20,.69,.24),"polymer")
-            m.box((x-.20,.65,-.22),(x+.20,1.13,-.10),"polymer")
-        m.box((-.66,.82,.53),(.66,.97,.75),"polymer")
-        m.torus((-.36,1.00,.40),.095,.014,"rubber",20,6,2)
-    return m
-
-
 def weapon(rifle, level=0):
     m=Mesh();detail=level<2
     if rifle:
@@ -573,17 +496,12 @@ def generate():
     OUT.mkdir(parents=True,exist_ok=True);SOURCE.mkdir(parents=True,exist_ok=True)
     textures();records=[]
     families=(("coastal-office",lambda level:building(0,level)),
-              ("terrace-apartments",lambda level:building(1,level)),
-              ("aurora-sedan",lambda level:car(False,level)),
-              ("aurora-coupe",lambda level:car(True,level)))
+              ("terrace-apartments",lambda level:building(1,level)))
     for name,build in families:
         meshes=[build(level) for level in range(4)]
         meshes[0].glb(name)
         for level,m in enumerate(meshes):
             suffix="" if level==0 else f"-lod{level}"
-            if name.startswith("aurora"):
-                glass=m.split_glass()
-                if level==0:records.append(glass.save(name+"-glass"))
             records.append(m.save(name+suffix))
         (OUT/f"{name}.lod").write_text("MCLOD1\n"+"\n".join(
             f"modern/{name}{'' if i==0 else '-lod'+str(i)} {threshold}"
@@ -595,11 +513,11 @@ def generate():
     report={"schema":1,"authoring":"Original project procedural geometry and textures; no external source assets",
             "generator":"tools/build_modern_assets.py","units":"metres; Y up; +Z front",
             "runtime":"indexed M3D2 with per-section PBR; static geometry",
-            "limitations":["Car wheels and doors are static in this slice", "Glass uses blended raster approximation",
+            "limitations":["Glass uses blended raster approximation",
                             "No interior-parallax or refractive transmission shader is claimed", "No new gameplay collision shapes for decorative street props"],
             "assets":records}
     (OUT/"manifest.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
-    print(f"Authored {len(records)} cooked meshes and 14 editable GLBs")
+    print(f"Authored {len(records)} cooked meshes and 12 editable GLBs")
     for item in records:
         print(f"{item['name']}: {item['triangles']} triangles, {len(item['materials'])} materials")
 

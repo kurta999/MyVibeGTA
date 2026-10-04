@@ -1,0 +1,136 @@
+{
+  "source": "assets\\models\\source\\expansion\\combine-candidate\\CombineHarvester_v3_L1.123c9ba42abe-3b4a-44e9-8799-e9878b0454bf\\19306_CombineHarvester_v3_new.obj",
+  "sha256": "4377ffe2a75c390a0dc9e20c046d644db1b208d856d00a4e8a543bd156ab9d36",
+  "source_triangles": 92076,
+  "baked_triangles": 92076,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-combine-body-0",
+      "center": [
+        -4.847728729248047,
+        3.808605194091797,
+        -16.469961166381836
+      ],
+      "size": [
+        13.265710830688477,
+        27.226097106933594,
+        27.475990295410156
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-combine-body-1",
+      "center": [
+        7.8448638916015625,
+        3.0183801651000977,
+        -20.460317611694336
+      ],
+      "size": [
+        10.549789428710938,
+        25.645647048950195,
+        68.69015502929688
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-combine-body-2",
+      "center": [
+        -0.7695598602294922,
+        -3.5714893341064453,
+        60.6933479309082
+      ],
+      "size": [
+        105.14863586425781,
+        43.81041717529297,
+        39.00249481201172
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-combine-body-3",
+      "center": [
+        18.383480072021484,
+        -0.17376136779785156,
+        22.4776611328125
+      ],
+      "size": [
+        69.9207992553711,
+        48.252872467041016,
+        115.43388366699219
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-combine-cutting-auger",
+      "center": [
+        -1.0224952697753906,
+        -15.544548034667969,
+        47.748756408691406
+      ],
+      "size": [
+        99.01554107666016,
+        3.6460695266723633,
+        3.4951515197753906
+      ],
+      "spin": 4
+    },
+    {
+      "mesh": "vehicles/expansion-combine-wheel-0",
+      "center": [
+        13.538511276245117,
+        -15.135980606079102,
+        22.13338279724121
+      ],
+      "size": [
+        10.054146766662598,
+        21.728038787841797,
+        21.71884536743164
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-combine-wheel-1",
+      "center": [
+        -13.16856575012207,
+        -15.135980606079102,
+        23.112648010253906
+      ],
+      "size": [
+        10.054134368896484,
+        21.728038787841797,
+        21.718841552734375
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-combine-wheel-2",
+      "center": [
+        14.932222366333008,
+        -16.67398452758789,
+        -18.17287826538086
+      ],
+      "size": [
+        10.179367065429688,
+        18.33793067932129,
+        18.333505630493164
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-combine-wheel-3",
+      "center": [
+        -14.627269744873047,
+        -16.67398452758789,
+        -18.176769256591797
+      ],
+      "size": [
+        10.179353713989258,
+        18.33793067932129,
+        18.333532333374023
+      ],
+      "spin": 1
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

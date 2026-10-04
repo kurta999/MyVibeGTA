@@ -121,11 +121,13 @@ BoundingSphere instanceBounds(const ModelInstance& model){
     const float localX=(mesh.minX+mesh.maxX)*0.5f-model.centerX;
     const float localY=(mesh.minY+mesh.maxY)*0.5f-model.minY;
     const float localZ=(mesh.minZ+mesh.maxZ)*0.5f-model.centerZ;
-    const float pitchedX=localX*model.scaleX;
-    const float pitchedY=model.cosPitch*localY*model.scaleY+
-                         model.sinPitch*localZ*model.scaleZ;
-    const float pitchedZ=-model.sinPitch*localY*model.scaleY+
-                         model.cosPitch*localZ*model.scaleZ;
+    float x=localX*model.scaleX,y=localY*model.scaleY,z=localZ*model.scaleZ;
+    float cx=model.qy*z-model.qz*y,cy=model.qz*x-model.qx*z,cz=model.qx*y-model.qy*x;
+    float dx=model.qy*cz-model.qz*cy,dy=model.qz*cx-model.qx*cz,dz=model.qx*cy-model.qy*cx;
+    x+=2*(model.qw*cx+dx);y+=2*(model.qw*cy+dy);z+=2*(model.qw*cz+dz);
+    const float pitchedX=x;
+    const float pitchedY=model.cosPitch*y+model.sinPitch*z;
+    const float pitchedZ=-model.sinPitch*y+model.cosPitch*z;
     const float halfX=(mesh.maxX-mesh.minX)*0.5f*model.scaleX;
     const float halfY=(mesh.maxY-mesh.minY)*0.5f*model.scaleY;
     const float halfZ=(mesh.maxZ-mesh.minZ)*0.5f*model.scaleZ;
@@ -330,8 +332,6 @@ void loadMeshes(const std::wstring& folder){
         "vehicles/traffic-4","vehicles/traffic-5",
         "weapons/pistol","weapons/ak","weapons/lightning",
         "modern/coastal-office","modern/terrace-apartments",
-        "modern/aurora-sedan","modern/aurora-coupe",
-        "modern/aurora-sedan-glass","modern/aurora-coupe-glass",
         "modern/compact-pistol","modern/carbine","modern/street-lamp",
         "modern/twin-lamp","modern/bench","modern/bin","modern/bollard",
         "modern/bike-rack","modern/planter","modern/hydrant"
@@ -362,6 +362,12 @@ void loadMeshes(const std::wstring& folder){
             names.insert(names.end(),catalog.names.begin()+1,catalog.names.end());
         }else issues.push_back("Rejected invalid LOD catalog: "+std::string(name));
     }
+    const auto vehicleFolder=std::filesystem::path(folder)/L"vehicles";
+    if(std::filesystem::exists(vehicleFolder))
+        for(const auto& entry:std::filesystem::directory_iterator(vehicleFolder))
+            if(entry.is_regular_file()&&entry.path().extension()==L".m3d"&&
+               entry.path().stem().wstring().rfind(L"expansion-",0)==0)
+                names.push_back("vehicles/"+entry.path().stem().string());
     const auto animalFolder=std::filesystem::path(folder)/L"animals";
     if(std::filesystem::exists(animalFolder))
         for(const auto& entry:std::filesystem::directory_iterator(animalFolder))
@@ -515,6 +521,7 @@ void loadMeshes(const std::wstring& folder){
             path.rfind("birds/",0)!=0&&path.rfind("weapons/",0)!=0&&
             path.rfind("effect/",0)!=0&&!result.grassFoliage;
         if(path.rfind("vehicles/",0)==0){
+            if(path.rfind("vehicles/expansion-",0)==0)result.allowTessellation=false;
             std::ifstream windows(folder+L"\\"+wide+L".glass");
             const std::size_t triangleCount=indexed?result.indices.size()/3:
                 result.vertices.size()/3;
@@ -540,21 +547,6 @@ void loadMeshes(const std::wstring& folder){
             }
         }
         meshes.emplace(path,std::move(result));
-    }
-    // Authored car glazing shares the body's transform and bounds. Retain its
-    // PBR sections; the legacy .glass triangle splitter cannot preserve them.
-    for(const char* car:{"aurora-sedan","aurora-coupe"}){
-        auto body=meshes.find(std::string("modern/")+car);
-        auto glass=meshes.find(std::string("modern/")+car+"-glass");
-        if(body==meshes.end()||glass==meshes.end())continue;
-        auto& b=body->second;auto& g=glass->second;
-        g.minX=b.minX;g.maxX=b.maxX;g.minY=b.minY;g.maxY=b.maxY;
-        g.minZ=b.minZ;g.maxZ=b.maxZ;g.transparent=true;g.castsShadow=false;
-        g.temporalStable=false;b.temporalStable=false;
-        for(int level=1;level<4;++level){
-            auto lod=meshes.find(std::string("modern/")+car+"-lod"+std::to_string(level));
-            if(lod!=meshes.end())lod->second.temporalStable=false;
-        }
     }
     for(const char* gun:{"compact-pistol","carbine"}){
         auto found=meshes.find(std::string("modern/")+gun);

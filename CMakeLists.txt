@@ -16,12 +16,12 @@ set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp au
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     src/startup.cpp assets/app/minicity.rc
-    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_hud.cpp
-    src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/wildlife.cpp src/birds.cpp)
+    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
+    src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app)
-target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 d3d11 dxgi d3dcompiler psapi)
+target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
 add_custom_command(TARGET MiniCity3D POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
@@ -41,6 +41,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(radio_live_smoke tests/radio_live_smoke.cpp src/radio.cpp)
+  target_compile_features(radio_live_smoke PRIVATE cxx_std_17)
+  target_compile_definitions(radio_live_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_link_libraries(radio_live_smoke PRIVATE ole32 mfplay mfplat mfuuid)
   add_executable(sky_smoke tests/sky_smoke.cpp src/dx11_sky.cpp)
   target_compile_features(sky_smoke PRIVATE cxx_std_17)
   target_compile_definitions(sky_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -66,20 +70,22 @@ if(BUILD_TESTING)
   set_tests_properties(startup_smoke PROPERTIES TIMEOUT 15)
   set(SIMULATION_SOURCES game.cpp input.cpp ai.cpp content.cpp physics.cpp props.cpp savegame.cpp
       weapons.cpp camera.cpp audio.cpp ui.cpp fire.cpp police.cpp commerce.cpp traversal.cpp
-      weather.cpp regions.cpp grapple.cpp jolt_world.cpp debug_menu.cpp traffic.cpp ped_navigation.cpp wildlife.cpp birds.cpp)
+      weather.cpp regions.cpp destruction.cpp vehicle_systems.cpp radio.cpp grapple.cpp jolt_world.cpp debug_menu.cpp traffic.cpp ped_navigation.cpp wildlife.cpp birds.cpp)
   list(TRANSFORM SIMULATION_SOURCES PREPEND "src/")
-  add_executable(simulation_smoke tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
+  add_executable(simulation_smoke tests/expansion_scenarios.cpp tests/display_stub.cpp tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
       tests/navigation_scenarios.cpp tests/wildlife_scenarios.cpp tests/bird_scenarios.cpp
       tests/equipment_scenarios.cpp tests/driver_scenarios.cpp tests/vehicle_collision_scenarios.cpp tests/ped_scenarios.cpp tests/scene_jobs_scenarios.cpp tests/grass_scenarios.cpp
-      src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_grass.cpp ${SIMULATION_SOURCES})
+      src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_grass.cpp ${SIMULATION_SOURCES})
   target_compile_features(simulation_smoke PRIVATE cxx_std_17)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(simulation_smoke PRIVATE third_party/JoltPhysics)
-  target_link_libraries(simulation_smoke PRIVATE Jolt user32 gdi32 opengl32 ole32 xaudio2)
+  target_link_libraries(simulation_smoke PRIVATE Jolt user32 gdi32 opengl32 ole32 xaudio2 mfplay mfplat mfuuid)
   add_custom_command(TARGET simulation_smoke POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:simulation_smoke>/data")
   add_test(NAME simulation_smoke COMMAND simulation_smoke)
+  add_test(NAME expansion_scenarios COMMAND simulation_smoke --expansion-only)
+  set_tests_properties(expansion_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>" TIMEOUT 90)
   add_test(NAME equipment_scenarios COMMAND simulation_smoke --equipment-only)
   set_tests_properties(equipment_scenarios PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>" TIMEOUT 60)
   add_test(NAME wildlife_scenarios COMMAND simulation_smoke --wildlife-only)
@@ -106,7 +112,7 @@ if(BUILD_TESTING)
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(simulation_smoke PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
-  add_executable(asset_smoke tests/asset_smoke.cpp src/dx11_assets.cpp)
+  add_executable(asset_smoke tests/asset_smoke.cpp src/dx11_assets.cpp src/dx11_damage.cpp)
   target_compile_features(asset_smoke PRIVATE cxx_std_17)
   add_test(NAME asset_smoke COMMAND asset_smoke)
   set_tests_properties(asset_smoke PROPERTIES

@@ -20,6 +20,9 @@
 #include "weather.h"
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
+#include "destruction.h"
+#include "vehicle_systems.h"
+#include "radio.h"
 #include "jolt_world.h"
 #include "traffic.h"
 #include "debug_menu.h"
@@ -140,7 +143,11 @@ void damageVehicle(int index,float amount,bool playerCaused){
         if(vehicle.damage>=80)fire::igniteVehicle(vehicle);
         return;
     }
-    vehicle.exploded=true;vehicle.burnTime=0;vehicle.explosionVisualTime=1.4f;
+    vehicle.exploded=true;
+#ifdef MINI_CITY_JOLT
+    jolt_world::breakVehicle(index);
+#endif
+    vehicle.burnTime=0;vehicle.explosionVisualTime=1.4f;
     blasts.push_back({{vehicle.p.x,vehicle.rideHeight+15.0f*physics::vehicleScale(vehicle.kind),vehicle.p.z},
         0.75f,95.0f});
     fire::ignite(vehicle.p,fire::Material::Metal);
@@ -181,6 +188,7 @@ void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
     audio::playAt(audio::Effect::Explosion,point.x,point.z);
     Vec2 center{point.x,point.z};
 #ifdef MINI_CITY_JOLT
+    destruction::blast(point,radius);
     for(int i=0;i<int(wildlife::animals.size());++i){
         float distance=len(wildlife::animals[i].p-center);
         if(distance<radius)wildlife::hurt(i,int(damage*(1-distance/radius)),center,playerCaused);
@@ -284,12 +292,22 @@ bool inside(const Building& b,Vec2 p,float pad){
 bool solid(Vec2 p,float radius){
     if(p.x<radius||p.x>regions::WIDTH-radius||p.z<radius||
        p.z>regions::DEPTH-radius||regions::waterAt(p))return true;
-    for(const auto& b:buildings)if(inside(b,p,radius))return true;
+    for(const auto& b:buildings)
+#ifdef MINI_CITY_JOLT
+        if(destruction::contains(b,{p.x,17,p.z},radius))return true;
+#else
+        if(inside(b,p,radius))return true;
+#endif
     return false;
 }
 bool bulletSolid(Vec3 p){
     if(p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH||p.y<0)return true;
-    for(const auto& b:buildings)if(p.y<b.h&&inside(b,{p.x,p.z},0))return true;
+    for(const auto& b:buildings)
+#ifdef MINI_CITY_JOLT
+        if(destruction::contains(b,p))return true;
+#else
+        if(p.y<b.h&&inside(b,{p.x,p.z},0))return true;
+#endif
     return false;
 }
 bool bulletSolidSegment(Vec3 start,Vec3 end,Vec3& impact){
@@ -307,6 +325,10 @@ bool bulletSolidSegment(Vec3 start,Vec3 end,Vec3& impact){
     boundary(start.z,delta.z,0,regions::DEPTH);
     if(end.y<0&&delta.y<0)nearest=std::min(nearest,-start.y/delta.y);
     for(const auto& building:buildings){
+#ifdef MINI_CITY_JOLT
+        float damagedEntry=0;if(destruction::segment(building,start,end,damagedEntry))nearest=std::min(nearest,damagedEntry);
+        continue;
+#endif
         float entry=0,exit=1;
         auto slab=[&](float from,float movement,float low,float high){
             if(std::abs(movement)<0.00001f)return from>=low&&from<=high;
@@ -414,7 +436,13 @@ void move(Vec2& p,Vec2 d,float radius,Kind kind){
 }
 bool clearLine(Vec2 a,Vec2 b){
     for(int i=1;i<12;++i){Vec2 point=a+(b-a)*(i/12.0f);
-        for(const auto& building:buildings)if(inside(building,point,1))return false;}
+        for(const auto& building:buildings)
+#ifdef MINI_CITY_JOLT
+            if(destruction::contains(building,{point.x,22,point.z},1))return false;
+#else
+            if(inside(building,point,1))return false;
+#endif
+    }
     return true;
 }
 namespace {
@@ -677,14 +705,14 @@ void enterExit(){
             if(out.x<12||out.z<12||out.x>regions::WIDTH-12||out.z>regions::DEPTH-12)return false;
             for(int step=1;step<=12;++step){
                 Vec2 point=v.p+(out-v.p)*(step/12.0f);
-                for(const auto& b:buildings)if(inside(b,point,12))return false;
+                for(const auto& b:buildings)if(destruction::contains(b,{point.x,v.rideHeight+17,point.z},12))return false;
             }
             for(const auto& other:vehicles)
                 if(&other!=&v&&len(out-other.p)<physics::vehicleRadius(other.kind)+12)return false;
             for(const auto& prop:props)if(prop.alive&&len(out-prop.p)<26)return false;
             player=previousPlayer=out;occupied=-1;
-            playerY=v.kind==Kind::Helicopter?v.rideHeight:0;
-            playerVerticalSpeed=v.kind==Kind::Helicopter?v.verticalSpeed:0;playerVelocity={};airTime=0;
+            playerY=(v.kind==Kind::Helicopter||v.kind==Kind::Airplane)?v.rideHeight:0;
+            playerVerticalSpeed=(v.kind==Kind::Helicopter||v.kind==Kind::Airplane)?v.verticalSpeed:0;playerVelocity={};airTime=0;
             swimming=playerY<4&&regions::waterAt(out);grounded=playerY<4&&!swimming;
             jolt_world::teleportCharacter(out,playerY);
             if(swimming)audio::play(audio::Effect::Splash);
@@ -717,7 +745,7 @@ void enterExit(){
 #ifdef MINI_CITY_JOLT
         if(traffic::canPlayerEnter(i)&&d<best){best=d;index=i;}
 #else
-        if(!vehicles[i].exploded&&std::abs(vehicles[i].speed)<35&&d<best){best=d;index=i;}
+        if(!vehicles[i].exploded&&vehicles[i].kind!=Kind::Trailer&&std::abs(vehicles[i].speed)<35&&d<best){best=d;index=i;}
 #endif
     }
 #ifdef MINI_CITY_JOLT
@@ -756,7 +784,7 @@ void startReload(){
     const auto& stats=weapons::stats(weapon);
     if(stats.melee||stats.grapple)return;
     if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
-        vehicles[occupied].kind==Kind::Bike||!stats.driveByAllowed))return;
+        vehicles[occupied].kind==Kind::Bike||int(vehicles[occupied].kind)>=5||!stats.driveByAllowed))return;
     if(magazine[weapon]>=stats.magazine||ammo[weapon]==0)return;
     reloadingWeapon=weapon;reloadRemaining=stats.reloadSeconds;
     audio::play(audio::Effect::Reload);
@@ -824,7 +852,7 @@ void shoot(){
         return;
     }
     if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
-        vehicles[occupied].kind==Kind::Bike||!stats.driveByAllowed))return;
+        vehicles[occupied].kind==Kind::Bike||int(vehicles[occupied].kind)>=5||!stats.driveByAllowed))return;
     if(reloadRemaining>0&&reloadingWeapon==weapon)return;
 #ifdef MINI_CITY_JOLT
     // Debug ammunition does not mutate the saved magazine or reserve.
@@ -839,7 +867,10 @@ void shoot(){
     }
     int shots=occupied<0&&dualWieldActive(weapon)?(unlimited?2:std::min(2,magazine[weapon])):1;
     if(!unlimited)magazine[weapon]-=shots;
-    audio::play(stats.silenced?audio::Effect::SilencedShot:audio::Effect::Shot,weapon);
+    audio::play(stats.arrow?audio::Effect::Bow:stats.streamType==1?audio::Effect::Flame:
+        stats.streamType==2||stats.streamType==3?audio::Effect::Water:
+        stats.id=="lightning"?audio::Effect::Electric:
+        stats.silenced?audio::Effect::SilencedShot:audio::Effect::Shot,weapon);
     if(!stats.silenced){
 #ifdef MINI_CITY_JOLT
         wildlife::scare(player,260);
@@ -1049,9 +1080,11 @@ void update(float dt){
             }
         }else{
             Vehicle& v=vehicles[occupied];
+            #ifndef MINI_CITY_JOLT
             engineSoundTime-=dt;
             if(engineSoundTime<=0){audio::play(v.kind==Kind::Boat?audio::Effect::Splash:audio::Effect::Engine,
                 int(std::abs(v.speed)/75));engineSoundTime=v.kind==Kind::Boat?0.65f:0.32f;}
+#endif
             float throttle=float(keys[ui::bindings[int(ui::Action::Forward)]])-
                 float(keys[ui::bindings[int(ui::Action::Backward)]]);
             float turn=float(keys[ui::bindings[int(ui::Action::Right)]])-float(keys[ui::bindings[int(ui::Action::Left)]]);
@@ -1064,6 +1097,10 @@ void update(float dt){
             if(v.kind==Kind::Helicopter){
                 float lift=float(keys[VK_SPACE])-float(keys[VK_CONTROL]);
                 jolt_world::flyHelicopter(std::size_t(occupied),throttle,turn,lift,dt);
+            }else if(v.kind==Kind::Airplane){
+                float pitch=float(keys[VK_SPACE])-float(keys[VK_CONTROL]);
+                float rudder=float(keys['R'])-float(keys['Q']);
+                jolt_world::flyAirplane(occupied,throttle,turn,pitch,rudder,dt);
             }else jolt_world::driveVehicle(std::size_t(occupied),throttle,turn,dt);
 #else
             Vec2 delta=physics::stepVehicle(v,throttle,turn,dt);
@@ -1105,11 +1142,23 @@ void update(float dt){
                 if(vehicleLookTime<=0&&!leftMouse)
                     cameraYaw+=difference*std::min(1.0f,dt*5.0f);
 #endif
-                if(leftMouse)shoot();
+                if(leftMouse){
+#ifdef MINI_CITY_JOLT
+                    if(v.kind==Kind::Tank)vehicle_systems::fireTank();else
+#endif
+                    shoot();
+                }
             }
         }
     }
 #ifdef MINI_CITY_JOLT
+    vehicle_systems::update(dt);
+    bool driving=occupied>=0&&occupied<int(vehicles.size())&&health>0;
+    if(driving){const auto& v=vehicles[occupied];
+        audio::updateEngine(int(v.kind),std::abs(v.speed)/physics::tuning(v.kind).maxSpeed,
+            v.kind==Kind::Airplane?v.flightThrottle:float(keys[ui::bindings[int(ui::Action::Forward)]]),dt);
+    }else audio::stopEngine();
+    radio::update(driving&&!vehicle_systems::pedal(vehicles[occupied].kind),ui::paused(),ui::masterVolume);
     traffic::update(dt);
 #endif
     airTime=occupied>=0||grounded||swimming?0:airTime+dt;
@@ -1398,7 +1447,7 @@ void update(float dt){
     if(occupied>=0&&occupied<int(vehicles.size())){
         const Vehicle& driven=vehicles[occupied];
         player=driven.p;
-        if(driven.kind==Kind::Helicopter)playerY=driven.rideHeight;
+        if(vehicle_systems::aircraft(driven.kind))playerY=driven.rideHeight;
         float difference=std::atan2(std::sin(driven.angle-cameraYaw),
             std::cos(driven.angle-cameraYaw));
         if(vehicleLookTime<=0&&!leftMouse)

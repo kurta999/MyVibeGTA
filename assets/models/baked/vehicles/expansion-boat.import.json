@@ -1,0 +1,66 @@
+{
+  "source": "assets\\models\\source\\vehicles\\motorboat.glb",
+  "sha256": "263e5d46f79e8b37afecd0db9056b22dc33c6456074d260589285d1891192335",
+  "source_triangles": 224,
+  "baked_triangles": 224,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-boat-body-0",
+      "center": [
+        -1.4180231094360352,
+        -5.491098880767822,
+        -3.9475927352905273
+      ],
+      "size": [
+        22.034385681152344,
+        9.017802238464355,
+        40.10481262207031
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-boat-body-1",
+      "center": [
+        6.0405497550964355,
+        -5.491098880767822,
+        -14.51331901550293
+      ],
+      "size": [
+        12.789332389831543,
+        9.017802238464355,
+        18.97336196899414
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-boat-body-2",
+      "center": [
+        -1.0961360931396484,
+        -4.647284984588623,
+        4.732187747955322
+      ],
+      "size": [
+        22.678159713745117,
+        10.705430030822754,
+        38.53562545776367
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-boat-body-3",
+      "center": [
+        6.2176079750061035,
+        -4.647284507751465,
+        8.882190704345703
+      ],
+      "size": [
+        12.435215950012207,
+        10.705429077148438,
+        30.235618591308594
+      ],
+      "spin": 0
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

@@ -10,9 +10,6 @@ remain in their own asset records.
 - Coastal Office and Terrace Apartments: recessed glazing, separate concrete,
   metal and glass, storefront doors/handles, canopy, balcony railings, rooftop
   ventilation, and four authored LOD levels.
-- Aurora Sedan and Aurora Coupe: curved bodywork, separate transparent glazing,
-  roof pillars, seats/dashboard/steering wheel, alloy spokes, tyres and tread,
-  grille, lights, mirrors, handles and exhausts. Four body LODs per model.
 - Compact Pistol and Carbine: bevelled metal/polymer surfaces, muzzle and sights,
   grip detail; the carbine has a rail, magazine, stock and optic.
 - Street Lamp and Twin Lamp: tapered poles, arms, LED lenses, cooling ribs,
@@ -20,13 +17,13 @@ remain in their own asset records.
 - Slatted wood bench, fluted street bin, reflective-band bollard, rounded
   bicycle rack, planted stone trough and hydrant.
 
-14 editable GLBs are in `assets/models/source/modern/`. They embed their PBR
+12 editable GLBs are in `assets/models/source/modern/`. They embed their PBR
 maps and preserve material sections. Source coordinates are metres, Y up, with
 +Z forward for cars and weapons. Open them in Blender or a compatible editor.
 Source files are excluded by the existing game package workflow; they are
 included in the separate asset archive.
 
-28 indexed M3D2 meshes and their material sidecars/maps are in
+18 indexed M3D2 meshes and their material sidecars/maps are in
 `assets/models/baked/modern/`. `manifest.json` lists geometry counts, bounds,
 material names and hashes. Every `.pbr` range refers to its own base-colour,
 normal and linear ORM map. The DX11 renderer uses wrap sampling for these
@@ -54,8 +51,9 @@ coat; glazing declares IOR 1.5. The editable GLBs carry corresponding
 ## Integration
 
 The first two city parcels and a deterministic subset of other buildings use
-the new facade meshes. The starter car and one traffic variant use the sedan;
-sports cars use the coupe. Pistol and rifle gameplay IDs use the new weapon
+the new facade meshes. The procedural Aurora vehicle files and generator
+recipes were removed; vehicles now use [downloaded authored models](VEHICLE_EXPANSION.md).
+Pistol and rifle gameplay IDs use the new weapon
 meshes with the existing hand/muzzle alignment. Original assets remain available
 as fallbacks when this collection is absent.
 
@@ -63,10 +61,8 @@ City lamp placements now use the authored single-arm lamp, with LED glow and
 local-light positions aligned at night. Deterministic, distance-limited bench,
 bin, bicycle-rack, bollard, planter and hydrant placements furnish the sidewalks.
 Marina promenade lamps and benches use the twin-arm lamp and wood bench.
-All scene meshes use the existing GPU instance path. Car glazing is sorted in
-the transparent queue, shades through the PBR/probe path, shares body bounds,
-and opts out of temporal history together with moving cars and held weapons.
-Indexed body triangles are supported by the headlight attachment depth lookup.
+All scene meshes use the existing GPU instance path. Moving imported vehicle
+parts and held weapons opt out of temporal history.
 
 ## Reproduce
 

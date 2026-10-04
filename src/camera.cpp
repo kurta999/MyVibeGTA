@@ -1,5 +1,6 @@
 #include "camera.h"
 #ifdef MINI_CITY_JOLT
+#include "destruction.h"
 #include "wildlife.h"
 #include "birds.h"
 #endif
@@ -69,8 +70,12 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
         float t=i/28.0f;
         Vec3 point=anchor+(desired-anchor)*t;
         bool blocked=point.y<5;
-        for(const auto& b:buildings)if(point.x>b.x-5&&point.x<b.x+b.w+5&&
-            point.z>b.z-5&&point.z<b.z+b.d+5&&point.y<b.h+5){blocked=true;break;}
+        for(const auto& b:buildings)
+#ifdef MINI_CITY_JOLT
+            if(destruction::contains(b,point,5)){blocked=true;break;}
+#else
+            if(point.x>b.x-5&&point.x<b.x+b.w+5&&point.z>b.z-5&&point.z<b.z+b.d+5&&point.y<b.h+5){blocked=true;break;}
+#endif
         if(blocked){safe=anchor+(desired-anchor)*std::max(0.08f,(i-2)/28.0f);break;}
     }
     return {safe,{focus.x+f.x*lookDistance,lookHeight,focus.z+f.z*lookDistance}};
@@ -126,9 +131,13 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
     float best=maximumDistance;
     const Ped* aimedPed=nullptr;
     float pedDistance=maximumDistance;
-    for(const auto& building:buildings)
-        best=std::min(best,boxHit(pose.eye,direction,
-            {building.x,0,building.z},{building.x+building.w,building.h,building.z+building.d},best));
+    for(const auto& building:buildings){
+#ifdef MINI_CITY_JOLT
+        for(const auto& box:destruction::boxes(building))best=std::min(best,boxHit(pose.eye,direction,box.low,box.high,best));
+#else
+        best=std::min(best,boxHit(pose.eye,direction,{building.x,0,building.z},{building.x+building.w,building.h,building.z+building.d},best));
+#endif
+    }
     for(int index=0;index<int(vehicles.size());++index){
         const auto& vehicle=vehicles[index];
         if(index==occupied||vehicle.exploded)continue;

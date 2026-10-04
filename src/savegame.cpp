@@ -1,4 +1,5 @@
 #include "savegame.h"
+#include "audio.h"
 #include "game.h"
 #include "weapons.h"
 #include "police.h"
@@ -6,6 +7,8 @@
 #include "weather.h"
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
+#include "ui.h"
+#include "radio.h"
 #include "jolt_world.h"
 #include "traffic.h"
 #include "wildlife.h"
@@ -52,13 +55,13 @@ bool writeDocument(const std::string& file,const std::string& text){
     const auto temporary=file+".tmp";
     HANDLE output=CreateFileA(temporary.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,
         CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
-    if(output==INVALID_HANDLE_VALUE)return false;
+    if(output==INVALID_HANDLE_VALUE){std::fprintf(stderr,"Save creation failed (%lu): %s\n",GetLastError(),temporary.c_str());return false;}
     DWORD written=0;
     bool ok=WriteFile(output,text.data(),DWORD(text.size()),&written,nullptr)&&written==text.size();
     if(ok)ok=FlushFileBuffers(output)!=0;
     CloseHandle(output);
     if(ok)ok=MoveFileExA(temporary.c_str(),file.c_str(),MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)!=0;
-    if(!ok)DeleteFileA(temporary.c_str());return ok;
+    if(!ok){std::fprintf(stderr,"Save replacement failed (%lu): %s\n",GetLastError(),file.c_str());DeleteFileA(temporary.c_str());}return ok;
 }
 std::unique_ptr<Writer> pendingWriter;
 Writer& writer(){if(!pendingWriter)pendingWriter=std::make_unique<Writer>(writeDocument);return *pendingWriter;}
@@ -83,6 +86,11 @@ bool save(){
 #endif
     bool ok=true;
     ok&=write("Save","Version",game::PLAYER_MAX_HEALTH>100?3:2,temporary);
+#ifdef MINI_CITY_JOLT
+    ok&=write("Display","WindowMode",ui::windowMode,temporary);
+    ok&=write("Display","WindowSize",ui::windowChoice,temporary);
+    ok&=writeText("Audio","RadioStation",radio::selectedId(),temporary);
+#endif
     ok&=write("Player","X",int(game::player.x),temporary);
     ok&=write("Player","Z",int(game::player.z),temporary);
     ok&=write("Player","Y",int(game::playerY),temporary);
@@ -176,6 +184,12 @@ bool load(){
     if(GetFileAttributesA(file.c_str())==INVALID_FILE_ATTRIBUTES)return false;
     int version=read("Save","Version",0,file);
     if(version!=1&&version!=2&&version!=3)return false;
+#ifdef MINI_CITY_JOLT
+    radio::shutdown();audio::stopEngine();
+    ui::windowMode=std::clamp(read("Display","WindowMode",ui::windowMode,file),0,2);
+    ui::windowChoice=std::clamp(read("Display","WindowSize",ui::windowChoice,file),0,2);ui::applyWindow();
+    auto savedStation=readText("Audio","RadioStation",file);if(!savedStation.empty())radio::select(savedStation);
+#endif
     game::reset();
     game::Vec2 position{float(read("Player","X",300,file)),float(read("Player","Z",250,file))};
     float height=version>=2?float(std::clamp(read("Player","Y",0,file),0,1000)):0;
@@ -263,7 +277,11 @@ bool load(){
         std::string section="Vehicle."+vehicle.id;
         vehicle.damage=float(std::clamp(read(section,"Damage",0,file),0,100));
         vehicle.exploded=read(section,"Exploded",0,file)!=0;
-        if(vehicle.exploded)vehicle.damage=100;
+        if(vehicle.exploded){vehicle.damage=100;
+#ifdef MINI_CITY_JOLT
+            jolt_world::breakVehicle(&vehicle-game::vehicles.data(),false);
+#endif
+        }
         vehicle.owned=read(section,"Owned",0,file)!=0;
         if(vehicle.owned){
             std::string garage=readText(section,"GarageHouseId",file);

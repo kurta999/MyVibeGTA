@@ -16,6 +16,10 @@
 #include "wildlife.h"
 #include "birds.h"
 #include "jolt_world.h"
+#include "destruction.h"
+#include "dx11_damage.h"
+#include <list>
+#include "vehicle_systems.h"
 #include "cpu_jobs.h"
 #include <algorithm>
 #include <array>
@@ -184,7 +188,7 @@ void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint=
     else if(name.rfind("marina/",0)==0)group=10;
     else if(name.rfind("nature/",0)==0)group=4;
     else if(name.rfind("characters/",0)==0)group=5;
-    else if(name.rfind("vehicles/",0)==0||name.rfind("modern/aurora-",0)==0)group=6;
+    else if(name.rfind("vehicles/",0)==0)group=6;
     if(source->transparent)group=13;
     modelInstances->push_back({source,group,sx,sy,sz,co,si,position.x,position.y,position.z,
         centerX,source->minY,centerZ,tint.r,tint.g,tint.b});
@@ -662,11 +666,47 @@ void marinaScenery(){
                 {2,4,5},0,game::rgb(77,82,80));
     }
 }
+struct DamagedMesh {ModelInstance original{};Mesh mesh;std::uint64_t damageHash=0;};
+std::unordered_map<std::string,std::list<DamagedMesh>> damagedMeshes;
+void applyBuildingDamage(const game::Building& b,std::size_t first){
+    if(!b.damaged||b.cuts.empty())return;
+    std::uint64_t hash=1469598103934665603ull;
+    for(const auto& cut:b.cuts)for(float f:{cut.low.x,cut.low.y,cut.low.z,cut.high.x,cut.high.y,cut.high.z}){
+        std::uint32_t bits;std::memcpy(&bits,&f,sizeof(bits));hash=(hash^bits)*1099511628211ull;}
+    auto& cache=damagedMeshes[b.id];std::size_t write=first,end=modelInstances->size();
+    for(std::size_t n=first;n<end;++n){auto instance=(*modelInstances)[n];
+        auto found=std::find_if(cache.begin(),cache.end(),[&](const auto& c){const auto& i=c.original;
+            return i.source==instance.source&&i.x==instance.x&&i.y==instance.y&&i.z==instance.z&&
+                i.scaleX==instance.scaleX&&i.scaleY==instance.scaleY&&i.scaleZ==instance.scaleZ&&i.sinYaw==instance.sinYaw;});
+        if(found==cache.end()){cache.emplace_back();found=std::prev(cache.end());found->original=instance;}
+        if(found->damageHash!=hash){auto revision=found->mesh.revision+1;
+            found->mesh=clipBuildingMesh(instance,b.cuts);found->mesh.revision=revision;found->damageHash=hash;}
+        if(found->mesh.vertices.empty())continue;
+        instance.source=&found->mesh;instance.scaleX=instance.scaleY=instance.scaleZ=1;
+        instance.x=instance.y=instance.z=instance.centerX=instance.minY=instance.centerZ=instance.sinYaw=0;instance.cosYaw=1;
+        (*modelInstances)[write++]=instance;
+    }
+    modelInstances->resize(write);
+    auto interior=std::find_if(cache.begin(),cache.end(),[](const auto& c){return c.original.source==nullptr;});
+    if(interior==cache.end()){cache.emplace_back();interior=std::prev(cache.end());}
+    if(interior->damageHash!=hash){auto revision=interior->mesh.revision+1;
+        interior->mesh=buildingInteriorFaces(b);interior->mesh.revision=revision;interior->damageHash=hash;}
+    if(!interior->mesh.vertices.empty()){
+        ModelInstance instance{};instance.source=&interior->mesh;instance.material=0;
+        instance.scaleX=instance.scaleY=instance.scaleZ=instance.cosYaw=instance.cosPitch=1;instance.r=instance.g=instance.b=1;
+        modelInstances->push_back(instance);
+    }
+}
+struct BuildingDamageScope {
+    const game::Building& building;std::size_t first;
+    ~BuildingDamageScope(){applyBuildingDamage(building,first);}
+};
 void buildings(){
     float range=ui::graphicsQuality==0?500:ui::graphicsQuality==1?680:850;
     for(size_t index=0;index<game::buildings.size();++index){
         const auto& b=game::buildings[index];
         if(!close({b.x+b.w/2,b.z+b.d/2},range))continue;
+        BuildingDamageScope damageScope{b,modelInstances->size()};
         if(b.id.rfind("outpost-",0)==0){
             model("primitive/box",{b.x+b.w*0.5f,0,b.z+b.d*0.5f},
                 {b.w,b.h,b.d},0,b.c);
@@ -1165,124 +1205,62 @@ float carLampDepth(const Mesh& body,Vec3 size,float x,float y,bool front){
     if(std::abs(depth)>size.z)return front?size.z*0.48f:-size.z*0.48f;
     return depth+(front?0.12f:-0.12f);
 }
+void drawRigidPart(Vec3 position,Vec3 size,Color tint,int shape,const RagdollPart& rotation);
+Vec3 rotateBy(const RagdollPart& body,Vec3 v);
+void rigidVehicleMesh(const std::string& name,Vec3 position,const RagdollPart& rotation){
+    const Mesh* source=mesh(name);if(!source)return;
+    ModelInstance instance{};instance.source=source;instance.material=6;
+    instance.scaleX=instance.scaleY=instance.scaleZ=1;instance.cosYaw=1;instance.cosPitch=1;
+    instance.x=position.x;instance.y=position.y;instance.z=position.z;
+    instance.r=instance.g=instance.b=1;
+    instance.qx=rotation.qx;instance.qy=rotation.qy;instance.qz=rotation.qz;instance.qw=rotation.qw;
+    modelInstances->push_back(instance);
+}
 void vehicles(){
-    static std::unordered_map<const Mesh*,std::array<float,4>> lampDepths;
     for(const auto& v:game::vehicles){
-        if(!close(v.p,650))continue;
-        Color paint=v.exploded?game::rgb(38,39,41):v.c;
-        Vec2 facing=game::forward(v.angle);
-        float yaw=game::PI/2-v.angle;
-        float scale=physics::vehicleScale(v.kind);
+        if(v.exploded||!close(v.p,800))continue;
+        Vec2 facing=game::forward(v.angle);float yaw=game::PI/2-v.angle;
         bool playerDriver=game::occupied==int(&v-game::vehicles.data())&&game::health>0;
         int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
             game::peds[v.driver].style:-1;
-        auto driver=[&](Vec2 seat,float bottom,Vec3 size,bool bike){
-            if(style<0||v.exploded)return;
+        for(const auto& part:vehicle_systems::parts(v)){
+            Vec3 q{v.qx,v.qy,v.qz};
+            Vec3 c{q.y*part.center.z-q.z*part.center.y,q.z*part.center.x-q.x*part.center.z,q.x*part.center.y-q.y*part.center.x};
+            Vec3 d{q.y*c.z-q.z*c.y,q.z*c.x-q.x*c.z,q.x*c.y-q.y*c.x};
+            Vec3 position=Vec3{v.p.x,v.rideHeight+physics::vehicleRestHeight(v.kind),v.p.z}+part.center+(c*v.qw+d)*2;
+            rigidVehicleMesh(part.mesh,position,vehicle_systems::partRotation(v,part));
+        }
+        if(style>=0&&v.kind!=game::Kind::Trailer){
             const char* names[]={"casual-man","hoodie-man","casual-woman","beach-man"};
+            float bottom=v.kind==game::Kind::Skateboard?7:v.kind==game::Kind::Bicycle?11:
+                v.kind==game::Kind::Tractor?20:v.kind==game::Kind::Combine?12:v.kind==game::Kind::Truck?12:
+                v.kind==game::Kind::Airplane?7:v.kind==game::Kind::Helicopter?6:v.kind==game::Kind::Tank?18:v.kind==game::Kind::Bike?3:v.kind==game::Kind::SportCar?-16:0;
+            float longitudinal=v.kind==game::Kind::Truck?20:v.kind==game::Kind::Combine?10:
+                v.kind==game::Kind::Helicopter?42:-5;
+            Vec2 seat=v.p+facing*longitudinal;
+            if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){Vec2 side{-facing.z,facing.x};seat=seat-side*10;}
+            std::size_t first=buckets[5].size();
             skinnedCharacter(std::string("characters/")+names[style%4],
-                {seat.x,v.rideHeight+bottom,seat.z},size,yaw,0,0,nullptr,0,bike?5:4,0);
-        };
-        if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){
-            std::uint32_t key=2166136261u;
-            for(unsigned char ch:v.id)key=(key^ch)*16777619u;
-            int variant=int(key%5)+1;
-            std::string carName=v.kind==game::Kind::SportCar?
-                "vehicles/sports-car":"vehicles/traffic-"+std::to_string(variant);
-            if(!mesh(carName))carName="vehicles/sedan";
-            bool modern=v.kind==game::Kind::SportCar||v.id=="starter-car"||variant==1;
-            if(modern&&mesh("modern/aurora-sedan"))
-                carName=v.kind==game::Kind::SportCar?"modern/aurora-coupe":"modern/aurora-sedan";
-            else modern=false;
-            const float carHeights[]={20,23,23,21,26,22};
-            Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
-            model(carName,{v.p.x,v.rideHeight,v.p.z},
-                {26*scale,carHeights[v.kind==game::Kind::SportCar?0:variant]*scale,48*scale},yaw,tint);
-            float cabinHeight=carHeights[v.kind==game::Kind::SportCar?0:variant];
-            model(carName+"-glass",{v.p.x,v.rideHeight,v.p.z},{26*scale,cabinHeight*scale,48*scale},yaw,tint);
+                {seat.x,v.rideHeight+bottom,seat.z},{14,v.kind==game::Kind::Car||v.kind==game::Kind::SportCar?40.0f:v.kind==game::Kind::Bike?38.0f:v.kind==game::Kind::Airplane?26.0f:34.0f,14},yaw,0,0,nullptr,0,
+                v.kind==game::Kind::Skateboard?-1:(v.kind==game::Kind::Bicycle||v.kind==game::Kind::Bike)?5:4,0);
+            // Attach the seated pose to the aircraft's pitch/roll as well as yaw.
+            float s=-std::sin(yaw*.5f),c=std::cos(yaw*.5f);RagdollPart correction{};
+            correction.qx=v.qx*c-v.qz*s;correction.qy=v.qw*s+v.qy*c;
+            correction.qz=v.qz*c+v.qx*s;correction.qw=v.qw*c-v.qy*s;
+            Vec3 origin{v.p.x,v.rideHeight+physics::vehicleRestHeight(v.kind),v.p.z};
+            for(std::size_t n=first;n<buckets[5].size();++n){auto& vertex=buckets[5][n];
+                auto point=origin+rotateBy(correction,Vec3{vertex.x,vertex.y,vertex.z}-origin);
+                auto normal=rotateBy(correction,{vertex.nx,vertex.ny,vertex.nz});
+                vertex.x=point.x;vertex.y=point.y;vertex.z=point.z;vertex.nx=normal.x;vertex.ny=normal.y;vertex.nz=normal.z;}
+        }
+        if(game::vehicleLightsOn(v)&&v.kind!=game::Kind::Skateboard&&v.kind!=game::Kind::Bicycle&&v.kind!=game::Kind::Trailer){
+            float nose=v.kind==game::Kind::Truck?55:v.kind==game::Kind::Combine?28:v.kind==game::Kind::Tank?40:43;
             Vec2 side{-facing.z,facing.x};
-            driver(v.p-side*(5.5f*scale),-cabinHeight*0.07f*scale,
-                {14,40,14},false);
-            if(game::vehicleLightsOn(v)){
-                Vec2 side{-facing.z,facing.x};
-                const float sideOffsets[]={8.0f,9.2f,7.6f,8.9f,8.4f,8.0f};
-                const float frontHeights[]={10.0f,7.8f,10.1f,8.2f,10.2f,9.6f};
-                int geometry=v.kind==game::Kind::SportCar?0:variant;
-                const Mesh* body=mesh(carName);
-                float lampSide=modern?6.44f:sideOffsets[geometry];
-                float lampHeight=modern?carHeights[geometry]*(geometry==0?0.50f:0.45f):frontHeights[geometry];
-                lampSide*=scale;lampHeight*=scale;
-                float rearHeight=modern?carHeights[geometry]*(geometry==0?0.52f:0.47f):9.7f;
-                rearHeight*=scale;
-                auto found=lampDepths.find(body);
-                if(found==lampDepths.end()){
-                    std::array<float,4> depths{};
-                    Vec3 dimensions{26*scale,carHeights[geometry]*scale,48*scale};
-                    for(int sideIndex=0;sideIndex<2;++sideIndex){
-                        float x=(sideIndex==0?-1.0f:1.0f)*lampSide;
-                        depths[sideIndex]=carLampDepth(*body,dimensions,x,
-                            lampHeight,true);
-                        depths[sideIndex+2]=carLampDepth(*body,dimensions,x,rearHeight,false);
-                    }
-                    found=lampDepths.emplace(body,depths).first;
-                }
-                for(int sideIndex=0;sideIndex<2;++sideIndex){
-                    float sign=sideIndex==0?-1.0f:1.0f;
-                    Vec2 front=v.p+facing*found->second[sideIndex]+
-                        side*(sign*lampSide);
-                    Vec2 rear=v.p+facing*found->second[sideIndex+2]+
-                        side*(sign*lampSide);
-                    carLamp(front,v.rideHeight+lampHeight,facing,side,
-                        3.0f*scale,1.7f*scale,true,{1.0f,0.94f,0.76f});
-                    carLamp(rear,v.rideHeight+rearHeight,facing,side,
-                        3.1f*scale,1.7f*scale,false,{1.0f,0.12f,0.08f});
-                }
+            for(int sign:{-1,1}){
+                Vec2 p=v.p+facing*nose+side*(sign*14.0f);
+                float lampHeight=v.kind==game::Kind::Truck?18:v.kind==game::Kind::Combine?25:v.kind==game::Kind::Tank?22:14;
+                glowBox({p.x,v.rideHeight+lampHeight,p.z},{3,2,1},yaw,game::rgb(255,240,200));
             }
-        }else if(v.kind==game::Kind::Bike){
-            driver(v.p-facing*5,4,{15,35,14},true);
-            for(float offset:{-12.0f,12.0f}){
-                Vec3 wheel{v.p.x+facing.x*offset,v.rideHeight+1,
-                    v.p.z+facing.z*offset};
-                model("primitive/sphere",wheel,{3.4f,15,15},yaw,game::rgb(25,29,32));
-                model("primitive/sphere",{wheel.x,wheel.y+3,wheel.z},
-                    {4,6,6},yaw,game::rgb(150,158,163));
-            }
-            model("primitive/box",{v.p.x,v.rideHeight+11,v.p.z},
-                {5,4,22},yaw,game::rgb(65,69,72));
-            model("primitive/box",{v.p.x-facing.x*5,v.rideHeight+19,
-                v.p.z-facing.z*5},{7,2.5f,10},yaw,game::rgb(37,39,42));
-            model("primitive/box",{v.p.x+facing.x*5,v.rideHeight+16,
-                v.p.z+facing.z*5},{8,5,10},yaw,paint);
-            model("primitive/box",{v.p.x,v.rideHeight+13,v.p.z},
-                {6,6,7},yaw,game::rgb(105,110,111));
-            Vec3 front{v.p.x+facing.x*12,v.rideHeight+9,v.p.z+facing.z*12};
-            Vec3 steering{v.p.x+facing.x*10,v.rideHeight+26,v.p.z+facing.z*10};
-            beam(front,steering,2.2f,2.2f,game::rgb(157,163,166));
-            Vec2 side{-facing.z,facing.x};
-            beam({steering.x-side.x*7,steering.y,steering.z-side.z*7},
-                 {steering.x+side.x*7,steering.y,steering.z+side.z*7},
-                 2.0f,2.0f,game::rgb(45,47,49));
-            sphere({steering.x+facing.x*2,steering.y-3,steering.z+facing.z*2},
-                3.0f,game::rgb(246,224,170));
-            if(game::vehicleLightsOn(v))
-                glowBox({front.x,front.y+8,front.z},{4,4,2},yaw,
-                    game::rgb(255,239,189));
-        }else if(v.kind==game::Kind::Helicopter){
-            model("vehicles/helicopter",{v.p.x,v.rideHeight,v.p.z},{26.5f*scale,30.5f*scale,81.5f*scale},yaw);
-            Vec2 mast=v.p+facing*(18*scale);
-            model("vehicles/helicopter-rotor",{mast.x,v.rideHeight+28.7f*scale,mast.z},
-                {113.5f*scale,0.5f*scale,33.7f*scale},yaw+v.rotorAngle);
-            Vec2 tail=v.p-facing*(36*scale);
-            Vec2 side{-facing.z,facing.x};
-            Vec3 hub{tail.x+side.x*9*scale,v.rideHeight+26*scale,tail.z+side.z*9*scale};
-            for(int blade=0;blade<4;++blade){
-                float angle=v.rotorAngle*1.8f+blade*game::PI/2;
-                beam(hub,hub+Vec3{facing.x*std::cos(angle)*9*scale,std::sin(angle)*9*scale,
-                    facing.z*std::cos(angle)*9*scale},1.2f*scale,1.2f*scale,game::rgb(51,55,59));
-            }
-            driver(v.p+facing*(22*scale),3*scale,{14,32,14},false);
-        }else{
-            model("vehicles/motorboat",{v.p.x,v.rideHeight-2,v.p.z},{24,22,48},yaw);
-            driver(v.p-facing*6,1,{13,30,13},false);
         }
     }
 }
@@ -1366,6 +1344,18 @@ Vec3 rotateBy(const RagdollPart& body,Vec3 v){
     Vec3 nested{q.y*cross.z-q.z*cross.y,q.z*cross.x-q.x*cross.z,
         q.x*cross.y-q.y*cross.x};
     return v+(cross*body.qw+nested)*2.0f;
+}
+void drawRigidPart(Vec3 position,Vec3 size,Color tint,int shape,const RagdollPart& rotation){
+    const Mesh* source=mesh(shape==2?"primitive/sphere":shape==1?"primitive/cylinder":"primitive/box");
+    if(!source)return;
+    Vec3 center{(source->minX+source->maxX)*.5f,(source->minY+source->maxY)*.5f,(source->minZ+source->maxZ)*.5f};
+    Vec3 scale{size.x/(source->maxX-source->minX),size.y/(source->maxY-source->minY),size.z/(source->maxZ-source->minZ)};
+    std::size_t count=source->indices.empty()?source->vertices.size():source->indices.size();
+    for(std::size_t i=0;i<count;++i){auto v=source->vertices[source->indices.empty()?i:source->indices[i]];
+        Vec3 local{(v.x-center.x)*scale.x,(v.y-center.y)*scale.y,(v.z-center.z)*scale.z};
+        Vec3 p=position+rotateBy(rotation,local),n=game::norm(rotateBy(rotation,{v.nx/scale.x,v.ny/scale.y,v.nz/scale.z}));
+        buckets[0].push_back(vertex(p,n,v.u,v.v,tint));
+    }
 }
 void ragdollMesh(const RagdollPart* bodies){
     const char* choices[]={"casual-man","hoodie-man","casual-woman","beach-man"};
@@ -1629,6 +1619,12 @@ void effects(){
     }
     for(const auto& fragment:jolt_world::treeFragments()){
         if(!close({fragment.p.x,fragment.p.z},800))continue;
+        if(fragment.category){
+            RagdollPart rotation{};rotation.qx=fragment.qx;rotation.qy=fragment.qy;rotation.qz=fragment.qz;rotation.qw=fragment.qw;
+            if(!fragment.mesh.empty())rigidVehicleMesh(fragment.mesh,fragment.p,rotation);
+            else drawRigidPart(fragment.p,fragment.size,fragment.color,fragment.shape,rotation);
+            continue;
+        }
         const Mesh* source=mesh(fragment.foliage?"primitive/sphere":"primitive/cylinder");
         if(!source)continue;
         // Fragments use the complete physics rotation, including roll as they

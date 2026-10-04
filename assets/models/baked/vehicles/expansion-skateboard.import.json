@@ -1,0 +1,66 @@
+{
+  "source": "assets\\models\\source\\expansion\\skateboard.glb",
+  "sha256": "ec166678e9c2ecb5a20a547266485f6bc0de27a7bce2cd6697b2fd9d39e1f4f4",
+  "source_triangles": 4128,
+  "baked_triangles": 4128,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-skateboard-body-0",
+      "center": [
+        -0.14342689514160156,
+        0.28058385848999023,
+        -2.468997001647949
+      ],
+      "size": [
+        8.477699279785156,
+        5.716280937194824,
+        25.0620059967041
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-skateboard-body-1",
+      "center": [
+        0.44154489040374756,
+        0.26368236541748047,
+        -2.499410629272461
+      ],
+      "size": [
+        7.307755470275879,
+        5.750083923339844,
+        24.936725616455078
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-skateboard-body-2",
+      "center": [
+        -0.5034184455871582,
+        -1.792740821838379,
+        10.046100616455078
+      ],
+      "size": [
+        7.012882232666016,
+        4.414518356323242,
+        9.84181022644043
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-skateboard-body-3",
+      "center": [
+        0.1615438461303711,
+        -1.7089941501617432,
+        10.06259822845459
+      ],
+      "size": [
+        8.441465377807617,
+        4.324282646179199,
+        9.87480354309082
+      ],
+      "spin": 0
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

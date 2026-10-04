@@ -9,6 +9,8 @@
 #include <gdiplus.h>
 #include "dx11_assets.h"
 #include "game.h"
+#include "vehicle_systems.h"
+#include "radio.h"
 #include "ui.h"
 #include "weapons.h"
 #include "grapple.h"
@@ -318,12 +320,15 @@ void pauseMenu(int width,int height){
             quality[ui::textureQuality],filtering[ui::filteringQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
             "Reflections (SSR)","Anti-aliasing (FXAA)","Ambient occlusion (SSAO)",
-            "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance","Grass LOD"};
-        for(int i=0;i<14;++i){int row=y+105+i*39;
+            "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance","Grass LOD","Display mode"};
+        for(int i=0;i<15;++i){int row=y+105+i*39;
             if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
             if(i<10){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
+            }else if(i==14){
+                const char* modes[]={"Windowed","Borderless","Fullscreen"};
+                std::snprintf(buffer,sizeof(buffer),"Display mode: < %s >",modes[ui::windowMode]);label(x+42,row+5,buffer,RGB(239,241,229));
             }else{
                 int value=i==10?ui::drawDistance:i==11?ui::lodDistance:i==12?ui::grassDistance:ui::grassLodDistance;
                 if(i==10)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
@@ -409,8 +414,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     label(24,19,"MINI CITY 3D",RGB(255,225,151));
     if(ui::showHelp&&game::occupied>=0){
         const auto& vehicle=game::vehicles[game::occupied];
-        const char* name=vehicle.kind==game::Kind::Helicopter?"HELICOPTER":vehicle.kind==game::Kind::Boat?"BOAT":vehicle.kind==game::Kind::Bike?"BIKE":
-            vehicle.kind==game::Kind::SportCar?"SPORT CAR":"CAR";
+        const char* name=vehicle_systems::name(vehicle.kind);
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  SPACE drift  |  H lights  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
     }else if(ui::showHelp)std::snprintf(textBuffer,sizeof(textBuffer),
@@ -425,6 +429,17 @@ void buildHud(unsigned char* pixels,int width,int height){
     }
     if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Helicopter)
         label(24,72,"W/S forward/back  |  A/D turn  |  SPACE rise  |  CTRL descend  |  E exit",RGB(230,223,178));
+    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Airplane){
+        const auto& plane=game::vehicles[game::occupied];
+        std::snprintf(textBuffer,sizeof(textBuffer),"W/S throttle %d%%  |  SPACE/CTRL pitch  |  A/D bank  |  Q/R rudder  |  E exit",int(plane.flightThrottle*100));
+        label(24,72,textBuffer,RGB(230,223,178));
+        std::snprintf(textBuffer,sizeof(textBuffer),"AIRSPEED %.0f  |  ALTITUDE %.0f%s",plane.speed,plane.rideHeight,plane.stalled?"  |  STALL":"");
+        label(24,94,textBuffer,plane.stalled?RGB(255,140,100):RGB(190,224,211));
+    }
+    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Truck)
+        label(24,72,"J attach/detach trailer near the rear hitch  |  MOUSE WHEEL radio",RGB(230,223,178));
+    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Tank)
+        label(24,72,"LMB fire cannon  |  Mouse pitch elevates barrel aim  |  MOUSE WHEEL radio",RGB(230,223,178));
     map(18,height-169,180,140,false);
     int statusX=width-360;
     bool inVehicle=game::occupied>=0&&game::occupied<int(game::vehicles.size());
@@ -461,8 +476,9 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(inVehicle){
         const auto& vehicle=game::vehicles[game::occupied];
         float damage=std::clamp(vehicle.damage,0.0f,100.0f);
-        const char* name=vehicle.kind==game::Kind::Helicopter?"HELICOPTER":vehicle.kind==game::Kind::Bike?"BIKE":vehicle.kind==game::Kind::Boat?"BOAT":"CAR";
+        const char* name=vehicle_systems::name(vehicle.kind);
         COLORREF color=damage>=80?RGB(242,87,75):damage>=45?RGB(244,174,71):RGB(111,209,189);
+        label(22,120,radio::status().c_str(),RGB(245,222,146));
         rect(statusX+14,156,320,1,RGB(96,110,117));
         std::snprintf(textBuffer,sizeof(textBuffer),"%s DAMAGE %d%%",name,int(std::round(damage)));
         label(statusX+15,164,textBuffer,color);

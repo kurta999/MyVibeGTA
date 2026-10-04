@@ -1,0 +1,122 @@
+{
+  "source": "assets\\models\\source\\expansion\\bicycle.glb",
+  "sha256": "196a2ffe5ad91b17417efe8508c1973fa94514c7db992dcde60ca29d2b76cbf1",
+  "source_triangles": 10714,
+  "baked_triangles": 10714,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-bicycle-body-0",
+      "center": [
+        -0.9966229796409607,
+        -4.169934272766113,
+        -7.098047256469727
+      ],
+      "size": [
+        4.812008857727051,
+        14.497323989868164,
+        20.88995361328125
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-body-1",
+      "center": [
+        0.029397010803222656,
+        -2.526021718978882,
+        -8.483894348144531
+      ],
+      "size": [
+        2.71010422706604,
+        18.364612579345703,
+        18.35181427001953
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-body-2",
+      "center": [
+        -0.004974842071533203,
+        5.021749019622803,
+        7.9003801345825195
+      ],
+      "size": [
+        9.46235179901123,
+        6.931059837341309,
+        3.3745484352111816
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-body-3",
+      "center": [
+        0.8912698030471802,
+        -3.6634156703948975,
+        5.794642448425293
+      ],
+      "size": [
+        4.713855743408203,
+        16.089824676513672,
+        23.920461654663086
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-body-6",
+      "center": [
+        -4.878850936889648,
+        8.04633903503418,
+        7.420613765716553
+      ],
+      "size": [
+        1.1473464965820312,
+        0.7977108955383301,
+        2.1640214920043945
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-body-7",
+      "center": [
+        4.860220909118652,
+        8.051376342773438,
+        7.452422142028809
+      ],
+      "size": [
+        1.1846065521240234,
+        0.8667259216308594,
+        2.2179183959960938
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-wheel-0",
+      "center": [
+        0.03932067006826401,
+        -5.266350269317627,
+        -11.266350746154785
+      ],
+      "size": [
+        0.5,
+        13.467299461364746,
+        13.46729850769043
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-bicycle-wheel-1",
+      "center": [
+        0.03931960463523865,
+        -5.266350269317627,
+        11.266349792480469
+      ],
+      "size": [
+        0.5,
+        13.467299461364746,
+        13.467300415039062
+      ],
+      "spin": 1
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

@@ -38,7 +38,9 @@ inline Vec3 norm(Vec3 a){float n=len(a);return n>0.001f?a*(1/n):Vec3{};}
 struct Color{float r,g,b;};
 inline Color rgb(int r,int g,int b){return {r/255.0f,g/255.0f,b/255.0f};}
 inline void color(Color c,float light=1){glColor3f(c.r*light,c.g*light,c.b*light);}
-struct Building{float x,z,w,d,h;Color c;std::string id;};
+struct BuildingPiece{Vec3 low,high;};
+struct Building{float x,z,w,d,h;Color c;std::string id;
+    bool damaged=false;std::vector<BuildingPiece> pieces,cuts;};
 struct Tree{Vec2 p;bool palm=false;int variant=0;float scale=1;
     int health=100;bool burning=false,destroyed=false;std::string id;
     std::string modelId;float crownWidth=54,height=68,climbHeight=0;};
@@ -62,10 +64,13 @@ struct Ped{Vec2 p,target;float speed,angle,respawn=0;bool alive=true;Color shirt
     PedNavigation navigation;
 };
 enum class TrafficState{Parked,Cruise,Yield,React,Pursue,Search};
-enum class Kind{Car,SportCar,Bike,Boat,Helicopter};
+enum class Kind{Car,SportCar,Bike,Boat,Helicopter,Skateboard,Bicycle,Tractor,Combine,Tank,Truck,Trailer,Airplane};
 enum class CameraMode{FirstClose,FirstWide,ThirdNear,ThirdFar,Overview};
 struct Vehicle{Vec2 p;float angle=0,speed=0;Kind kind;Color c;
-    float verticalSpeed=0,rotorSpeed=0,rotorAngle=0,flightPitch=0;
+    float flightThrottle=0,flightRoll=0;bool stalled=false;
+    float qx=0,qy=0,qz=0,qw=1;
+    int trailer=-1,towVehicle=-1;
+    float verticalSpeed=0,rotorSpeed=0,rotorAngle=0,flightPitch=0,wheelAngle=0;
     Vec2 velocity{};float yawRate=0,lean=0,damage=0,rideHeight=0;std::string id;
     int trafficRoute=-1;bool trafficForward=true;
     bool exploded=false;float explosionVisualTime=0,collisionCooldown=0,burnTime=0;
@@ -116,6 +121,8 @@ extern std::string message;
 #ifdef MINI_CITY_JOLT
 extern bool screenshotRequested;
 void requestScreenshot();
+bool setExclusiveFullscreen(bool enabled,int width,int height);
+bool exclusiveFullscreenEnabled();
 #endif
 extern float missionBannerTime;
 extern std::string missionBannerTitle,missionBannerDetail;

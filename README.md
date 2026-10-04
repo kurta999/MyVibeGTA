@@ -26,7 +26,9 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - **Rendering:** imported textured meshes, PBR material ranges, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections, and selectable FXAA/TAA.
 - **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
-- **Vehicles:** cars, sports cars, motorcycles, boats, three flyable helicopters with spinning rotors, visible occupants, headlights, contact-based crash damage, repairs, drifting, and empty-vehicle coasting.
+- **Vehicles:** downloaded authored cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with explosive shells, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
+- **Audio and radio:** continuous recorded engine loops, distinct weapon effects, and ten live SomaFM presets. Mouse-wheel scrolling switches stations while driving; `data/radio.ini` accepts additional direct MP3/AAC stream URLs.
+- **Destruction and display:** RPG/tank explosions cut visible building holes and update collision for the current session. Windowed, borderless and exclusive fullscreen modes are selectable in Graphics and saved with progress/settings.
 - **Wildlife:** 15 animal species, rideable elephants and tigers, and five bird species. Animals wander, play, flee, retaliate, and hunt according to species.
 - **Gameplay:** 20 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
 - **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
@@ -293,9 +295,56 @@ The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted
 ./tools/fetch_city_sources.ps1 -AssetIds island_tree_03,jacaranda_tree
 ```
 
+## Vehicle expansion controls and configuration
+
+Use **E** to enter/exit. **W/S** accelerate/brake ground vehicles; the combine's
+actual corn-header cutting auger turns while moving. In a truck, stop with its
+rear hitch close to the trailer and press **J** to attach/detach. **LMB** fires
+the tank cannon. Trailer coupling and fragments use Jolt rigid bodies.
+
+In an airplane, **W/S** adjust throttle, **Space/Ctrl** pitch, **A/D** bank and
+**Q/R** operate the rudder. Gain airspeed before pulling up; excessive angle of
+attack reduces lift. Helicopter controls remain unchanged. The skateboard and
+bicycle have no engine audio or radio.
+
+Scroll the **mouse wheel** while driving a powered vehicle to choose a station
+or **Off**. `data/radio.ini` ships ten SomaFM stations: Groove Salad, Drone Zone,
+Indie Pop Rocks!, Groove Salad Classic, Deep Space One, Space Station Soma,
+Secret Agent, Lush, Underground 80s and Left Coast 70s. Append `[Station10]`
+with unique `Id`, `Name` and a direct `URL`, and increment `[Radio] Count`.
+Restart to reload the file. Websites, HLS playlists and authentication pages
+are not direct audio streams. Connection errors appear in the HUD; decoding
+is asynchronous. Streaming stops on pause/exit and follows master volume.
+[Recorded engine sound credits](assets/audio/README.md) accompany the clips.
+
+**Esc → Graphics → Display mode** selects Windowed, Borderless or Fullscreen.
+**Alt+Enter** toggles windowed/borderless. Resolution and display mode persist
+in `settings.ini` and `savegame.ini`, along with the radio station. Exclusive
+fullscreen leaves on focus loss and retries on return; unavailable DXGI
+exclusive mode falls back to borderless. The desktop verification confirmed
+windowed/borderless and fallback; this Windows session rejected actual exclusive
+mode with `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE`.
+
+RPG/tank blasts remove building volume and collision, including projectile,
+character, camera and navigation checks. Surviving facade triangles keep their
+UVs/materials. Holes and debris reset on load/new game and are omitted from the
+save. Cuts are bounded axis-aligned volumes with matching compound collision;
+this is not a structural building-collapse simulation. Vehicle debris uses
+imported mesh assemblies with box collision approximations and an 18-second
+lifetime; the active debris count is bounded.
+
+New spawns (`data/world.ini`, X/Z): skateboard 410/250, bicycle 500/250,
+tractor 4200/4500, combine 4400/4500, tank 1500/120, truck 1500/250,
+trailer 1360/250, airplane 4500/4900. New vehicles also appear when loading
+an older save whose vehicle list predates this expansion.
+
+`tools/verify_vehicle_expansion.ps1` captures the vehicle lineup, combine,
+destruction and airborne plane in Direct3D 11. `--smoke --display-preview`
+checks real window styles and DXGI mode/fallback transitions without saving.
+
 ## Current limitations
 
-DX11 weapon pickups and the HUD now share 20 detailed transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. The aircraft currently implemented are helicopters; fixed-wing planes are not present.
+DX11 weapon pickups and the HUD now share 20 detailed transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
 
 - Animal poses and rider seating remain procedural; animal skeletal animation and ragdolls are not implemented.
 - The motorcycle uses a narrow four-wheel physics surrogate. Vehicle and impact behavior remain arcade-oriented.

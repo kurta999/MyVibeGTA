@@ -49,7 +49,7 @@ for item in manifest["assets"]:
     total+=ni//3
 
 sources=list((ROOT/"assets/models/source/modern").glob("*.glb"))
-assert len(sources)==14
+assert len(sources)==12
 for source in sources:
     data=source.read_bytes();magic,version,length=struct.unpack_from("<4sII",data)
     assert magic==b"glTF" and version==2 and length==len(data)

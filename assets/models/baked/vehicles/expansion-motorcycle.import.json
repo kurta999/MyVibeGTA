@@ -1,0 +1,66 @@
+{
+  "source": "assets\\models\\source\\expansion\\motorcycle.glb",
+  "sha256": "19127022f96ae824edab5f0cc616ceb921fd0a6753904ac2c645ef130b01e48c",
+  "source_triangles": 684,
+  "baked_triangles": 684,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-motorcycle-body-0",
+      "center": [
+        -0.6991546154022217,
+        -5.493636608123779,
+        -4.475227355957031
+      ],
+      "size": [
+        5.854372024536133,
+        15.012726783752441,
+        21.049545288085938
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-motorcycle-body-1",
+      "center": [
+        1.1138050556182861,
+        -6.049980640411377,
+        -8.050004959106445
+      ],
+      "size": [
+        2.228452682495117,
+        13.900038719177246,
+        12.786802291870117
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-motorcycle-body-2",
+      "center": [
+        -1.5038987398147583,
+        -4.5196733474731445,
+        4.378294944763184
+      ],
+      "size": [
+        8.417892456054688,
+        16.94341468811035,
+        21.243410110473633
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-motorcycle-body-3",
+      "center": [
+        2.8562116622924805,
+        -4.5196733474731445,
+        4.378294944763184
+      ],
+      "size": [
+        5.713266372680664,
+        16.94341468811035,
+        21.243410110473633
+      ],
+      "spin": 0
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

@@ -1,4 +1,5 @@
 #include "../src/dx11_assets.h"
+#include "../src/dx11_damage.h"
 #include "../src/data_file.h"
 #ifdef NDEBUG
 #undef NDEBUG
@@ -13,6 +14,22 @@
 #include <sstream>
 
 int main(){
+    // Subtract a central hole from a textured facade: area, UV interpolation,
+    // and the source PBR material survive both the first and overlapping blasts.
+    dx11::Mesh facade;
+    auto fv=[](float x,float y){return dx11::Vertex{x,y,0,0,0,1,(x+2)/4,(y+2)/4,1,1,1,1};};
+    facade.vertices={fv(-2,-2),fv(2,-2),fv(2,2),fv(-2,-2),fv(2,2),fv(-2,2)};
+    dx11::MaterialRange material;material.count=6;material.roughness=.19f;material.metallic=.7f;
+    facade.materialRanges={material};
+    dx11::ModelInstance face{};face.source=&facade;face.scaleX=face.scaleY=face.scaleZ=face.cosYaw=1;
+    std::vector<game::BuildingPiece> cuts{{{-1,-1,-1},{1,1,1}}};
+    auto area=[](const dx11::Mesh& m){float a=0;for(std::size_t n=0;n<m.vertices.size();n+=3){
+        auto p=m.vertices[n],q=m.vertices[n+1],r=m.vertices[n+2];
+        a+=std::abs((q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x))*.5f;}return a;};
+    auto cut=dx11::clipBuildingMesh(face,cuts);assert(std::abs(area(cut)-12)<.001f);
+    assert(cut.materialRanges.size()==1&&cut.materialRanges[0].roughness==.19f);
+    for(const auto& v:cut.vertices){assert(std::abs(v.u-(v.x+2)/4)<.001f);assert(std::abs(v.v-(v.y+2)/4)<.001f);}
+    cuts.push_back({{0,-1,-1},{2,1,1}});cut=dx11::clipBuildingMesh(face,cuts);assert(std::abs(area(cut)-10)<.001f);
     static_assert(sizeof(dx11::SkinVertex)==68);
     assert(dx11::chooseDetailedLod(101,80,100,200,false,false));
     assert(dx11::chooseDetailedLod(94,90,100,200,true,true));
@@ -104,6 +121,10 @@ int main(){
         auto bounds=dx11::instanceBounds(transformed);
         assert(bounds.x==12&&bounds.y==2&&bounds.z==0);
         assert(bounds.radius>6&&bounds.radius<7);
+        transformed.qz=std::sqrt(.5f);transformed.qw=std::sqrt(.5f);
+        bounds=dx11::instanceBounds(transformed);
+        assert(std::abs(bounds.x-8)<.001f&&std::abs(bounds.y-2)<.001f);
+        assert(bounds.radius>6&&bounds.radius<7);
     }
     dx11::loadMeshes(L"assets/models/baked");
     for(const char* id:{"pistol","silenced-pistol","smg","shotgun","rifle","sniper","rpg",
@@ -118,8 +139,8 @@ int main(){
     assert(dx11::assetIssues().empty());
     // Original modern meshes must arrive with contiguous indexed material
     // sections, complete maps, valid LOD bounds and safe glass/history routing.
-    for(const char* name:{"coastal-office","terrace-apartments","aurora-sedan",
-            "aurora-coupe","compact-pistol","carbine","street-lamp","twin-lamp",
+    for(const char* name:{"coastal-office","terrace-apartments",
+            "compact-pistol","carbine","street-lamp","twin-lamp",
             "bench","bin","bollard","bike-rack","planter","hydrant"}){
         const auto* asset=dx11::mesh(std::string("modern/")+name);
         assert(asset&&asset->textured&&asset->wrapTextures&&!asset->indices.empty());
@@ -133,25 +154,10 @@ int main(){
             assert(std::filesystem::exists(range.ormFile));
         }
         assert(covered==asset->indices.size());
-        if(std::string(name)=="aurora-sedan"||std::string(name)=="aurora-coupe"){
-            bool hasCoat=false;
-            for(const auto& range:asset->materialRanges)
-                hasCoat|=range.clearcoat==1&&range.clearcoatRoughness>0&&range.clearcoatRoughness<.2f;
-            assert(hasCoat);
-        }
     }
-    for(const char* name:{"coastal-office","terrace-apartments","aurora-sedan","aurora-coupe"}){
+    for(const char* name:{"coastal-office","terrace-apartments"}){
         const auto* chain=dx11::lodChain(std::string("modern/")+name);
         assert(chain&&chain->meshes[0]&&chain->meshes[3]);
-    }
-    for(const char* name:{"aurora-sedan","aurora-coupe"}){
-        const auto* body=dx11::mesh(std::string("modern/")+name);
-        const auto* glass=dx11::mesh(std::string("modern/")+name+"-glass");
-        assert(body&&glass&&glass->transparent&&!glass->castsShadow);
-        assert(glass->textured&&!glass->materialRanges.empty());
-        assert(glass->materialRanges.front().glassIor==1.5f);
-        assert(!glass->temporalStable&&!body->temporalStable);
-        assert(body->minX==glass->minX&&body->maxY==glass->maxY&&body->maxZ==glass->maxZ);
     }
     assert(!dx11::mesh("modern/compact-pistol")->temporalStable);
     assert(!dx11::mesh("modern/carbine")->temporalStable);

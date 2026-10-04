@@ -1,0 +1,49 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+      Start  1: sky_smoke
+ 1/22 Test  #1: sky_smoke ........................   Passed    1.10 sec
+      Start  2: save_jobs_smoke
+ 2/22 Test  #2: save_jobs_smoke ..................   Passed    0.02 sec
+      Start  3: audio_smoke
+ 3/22 Test  #3: audio_smoke ......................   Passed    0.81 sec
+      Start  4: startup_smoke
+ 4/22 Test  #4: startup_smoke ....................   Passed    0.31 sec
+      Start  5: simulation_smoke
+ 5/22 Test  #5: simulation_smoke .................   Passed   28.71 sec
+      Start  6: expansion_scenarios
+ 6/22 Test  #6: expansion_scenarios ..............   Passed    3.62 sec
+      Start  7: equipment_scenarios
+ 7/22 Test  #7: equipment_scenarios ..............   Passed    3.00 sec
+      Start  8: wildlife_scenarios
+ 8/22 Test  #8: wildlife_scenarios ...............   Passed    3.98 sec
+      Start  9: bird_scenarios
+ 9/22 Test  #9: bird_scenarios ...................   Passed    1.84 sec
+      Start 10: driver_scenarios
+10/22 Test #10: driver_scenarios .................   Passed    0.85 sec
+      Start 11: vehicle_collision_scenarios
+11/22 Test #11: vehicle_collision_scenarios ......   Passed    0.64 sec
+      Start 12: ped_scenarios
+12/22 Test #12: ped_scenarios ....................   Passed    0.50 sec
+      Start 13: scene_jobs_scenarios
+13/22 Test #13: scene_jobs_scenarios .............   Passed    1.14 sec
+      Start 14: grass_scenarios
+14/22 Test #14: grass_scenarios ..................   Passed    0.77 sec
+      Start 15: autosave_scenarios
+15/22 Test #15: autosave_scenarios ...............   Passed    8.21 sec
+      Start 16: traffic_scenarios
+16/22 Test #16: traffic_scenarios ................   Passed    3.41 sec
+      Start 17: navigation_scenarios
+17/22 Test #17: navigation_scenarios .............   Passed    0.28 sec
+      Start 18: asset_smoke
+18/22 Test #18: asset_smoke ......................   Passed    0.48 sec
+      Start 19: texture_mips_smoke
+19/22 Test #19: texture_mips_smoke ...............   Passed    0.02 sec
+      Start 20: texture_loading_smoke
+20/22 Test #20: texture_loading_smoke ............   Passed    0.30 sec
+      Start 21: shader_loading_smoke
+21/22 Test #21: shader_loading_smoke .............   Passed    0.04 sec
+      Start 22: probe_smoke
+22/22 Test #22: probe_smoke ......................   Passed    0.15 sec
+
+100% tests passed, 0 tests failed out of 22
+
+Total Test time (real) =  60.20 sec

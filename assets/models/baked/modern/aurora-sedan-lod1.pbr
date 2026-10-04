@@ -1,9 +1,0 @@
-# Original procedural project asset: indexed PBR material sections
-0 3792 0.23 0.45 0 blue_paint-base.dds blue_paint-normal.dds blue_paint-orm.dds blue_paint-orm.dds - OPAQUE 0.5 SURFACE1 1.0 0.09 0
-3792 276 0.31 1 0 metal-base.dds metal-normal.dds metal-orm.dds metal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-4068 3804 0.23 1 0 silver-base.dds silver-normal.dds silver-orm.dds silver-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-7872 5472 0.94 0 0 rubber-base.dds rubber-normal.dds rubber-orm.dds rubber-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-13344 1104 0.33 0.92 0 gunmetal-base.dds gunmetal-normal.dds gunmetal-orm.dds gunmetal-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-14448 252 0.76 0 0 polymer-base.dds polymer-normal.dds polymer-orm.dds polymer-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-14700 108 0.19 0 0 white_lens-base.dds white_lens-normal.dds white_lens-orm.dds white_lens-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0
-14808 72 0.2 0 0 red_lens-base.dds red_lens-normal.dds red_lens-orm.dds red_lens-orm.dds - OPAQUE 0.5 SURFACE1 0 0.1 0

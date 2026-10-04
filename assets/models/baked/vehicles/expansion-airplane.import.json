@@ -1,0 +1,122 @@
+{
+  "source": "assets\\models\\source\\expansion\\cessna.blend",
+  "sha256": "ce456365543f8ef90fb531b8738e0e059b7b960cc9792f1b4c5a04ca40fcd43a",
+  "source_triangles": 13142,
+  "baked_triangles": 13142,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-airplane-body-0",
+      "center": [
+        -0.10637305676937103,
+        -8.657327651977539,
+        -10.524656295776367
+      ],
+      "size": [
+        0.5994523763656616,
+        9.973897933959961,
+        1.810654640197754
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-body-1",
+      "center": [
+        1.1444091796875e-05,
+        -1.1242060661315918,
+        -2.787107467651367
+      ],
+      "size": [
+        41.411136627197266,
+        28.151893615722656,
+        98.42578125
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-body-2",
+      "center": [
+        0.0,
+        -2.362125873565674,
+        12.53044319152832
+      ],
+      "size": [
+        136.71726989746094,
+        26.47629165649414,
+        19.374557495117188
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-body-3",
+      "center": [
+        4.300933837890625,
+        -7.971835136413574,
+        19.999160766601562
+      ],
+      "size": [
+        3.866222381591797,
+        15.217649459838867,
+        3.6076583862304688
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-propeller",
+      "center": [
+        3.166250508002122e-06,
+        2.45741868019104,
+        47.3841438293457
+      ],
+      "size": [
+        35.335487365722656,
+        14.44189453125,
+        6.494831085205078
+      ],
+      "spin": 3
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-wheel-0",
+      "center": [
+        5.46022367477417,
+        -14.235164642333984,
+        20.68860626220703
+      ],
+      "size": [
+        1.6971778869628906,
+        3.529669761657715,
+        3.571413040161133
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-wheel-1",
+      "center": [
+        -5.460610866546631,
+        -14.215548515319824,
+        20.686199188232422
+      ],
+      "size": [
+        1.6971778869628906,
+        3.5296688079833984,
+        3.5714149475097656
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-airplane-wheel-2",
+      "center": [
+        0.7578896880149841,
+        -14.358455657958984,
+        -9.884363174438477
+      ],
+      "size": [
+        0.9473785161972046,
+        2.7753114700317383,
+        2.775310516357422
+      ],
+      "spin": 1
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

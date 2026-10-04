@@ -5,8 +5,13 @@
 #include <cassert>
 #include <cstdio>
 #include <initializer_list>
+#include <set>
 
 int main(){
+    for(int kind:{0,1,2,3,4,7,8,9,10,12})assert(audio::recordedEngineSamples(kind)>48000);
+    for(int kind:{5,6,11})assert(audio::recordedEngineSamples(kind)==0);
+    std::set<unsigned long long> fingerprints;
+    for(int n=0;n<21;++n)assert(fingerprints.insert(audio::effectFingerprint(audio::Effect::Shot,n)).second);
     // CI hosts may have no output device; CPU save jobs have a separate suite.
     if(!audio::init()){std::puts("No audio device; live audio verification skipped");return 0;}
     audio::setVolume(0);
@@ -18,6 +23,9 @@ int main(){
                 audio::playAt(audio::Effect(effect),400,275,variant);
             }
         audio::play(audio::Effect(-1));audio::play(audio::Effect::Count);
+        for(int kind=0;kind<13;++kind)for(int n=0;n<120;++n)
+            audio::updateEngine(kind,float(n)/120,n%2,1.0f/60);
+        audio::stopEngine();audio::stopEngine();
         audio::shutdown();assert(audio::init());audio::setVolume(0);
     }
     audio::shutdown();audio::shutdown();

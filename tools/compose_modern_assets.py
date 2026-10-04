@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--folder',type=Path,default=ROOT/'evidence/modern-assets-20260928')
 folder=parser.parse_args().folder
-names=("coastal-office","terrace-apartments","aurora-sedan","aurora-coupe",
+names=("coastal-office","terrace-apartments",
        "compact-pistol","carbine","street-lamp","twin-lamp","bench","bin",
        "bollard","bike-rack","planter","hydrant")
 sheet=Image.new("RGB",(1800,1615),(21,26,31));draw=ImageDraw.Draw(sheet)

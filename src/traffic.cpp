@@ -88,7 +88,7 @@ bool available(int car,int who){
     if(!validCar(car)||car==occupied||car==enteringVehicle)return false;
     const auto& v=vehicles[car];
     return !v.exploded&&!v.owned&&v.burnTime<=0&&v.damage<75&&
-        v.kind!=Kind::Boat&&v.kind!=Kind::Bike&&v.kind!=Kind::Helicopter&&v.driver<0&&
+        (v.kind==Kind::Car||v.kind==Kind::SportCar)&&v.driver<0&&
         (v.reservedBy<0||v.reservedBy==who)&&std::abs(v.speed)<8;
 }
 bool exitCar(Ped& ped){
@@ -210,6 +210,7 @@ void carjacked(int index){
     jolt_world::stopVehicle(index);
 }
 bool canPlayerEnter(int index){
+    if(index>=0&&index<int(vehicles.size())&&vehicles[index].kind==Kind::Trailer)return false;
     if(!validCar(index)||health<=0||occupied>=0||enteringVehicle>=0)return false;
     const auto& v=vehicles[index];
     if(v.exploded||std::max(std::abs(v.speed),len(v.velocity))>MAX_CARJACK_SPEED||

@@ -1,0 +1,122 @@
+{
+  "source": "assets\\models\\source\\expansion\\trailer-source\\Lowpoly Semi v1.0\\Lowpoly Semi.blend",
+  "sha256": "d05a5435e96917de1982f22d228ad759b46f9dd644698176dffd0e468a16239a",
+  "source_triangles": 13044,
+  "baked_triangles": 13044,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-trailer-body-0",
+      "center": [
+        -0.9454998970031738,
+        -5.952182769775391,
+        -14.135135650634766
+      ],
+      "size": [
+        19.899967193603516,
+        28.510234832763672,
+        26.840633392333984
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-body-1",
+      "center": [
+        6.440858364105225,
+        -5.952182769775391,
+        -14.135135650634766
+      ],
+      "size": [
+        10.110550880432129,
+        28.510234832763672,
+        26.840633392333984
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-body-2",
+      "center": [
+        -0.9452433586120605,
+        -5.479475021362305,
+        26.98225212097168
+      ],
+      "size": [
+        19.899452209472656,
+        27.523426055908203,
+        53.311222076416016
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-body-3",
+      "center": [
+        0.37256431579589844,
+        -4.403722763061523,
+        13.299842834472656
+      ],
+      "size": [
+        22.246110916137695,
+        25.954593658447266,
+        81.40031433105469
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-wheel-0",
+      "center": [
+        10.09994888305664,
+        -17.67950439453125,
+        1.8924777507781982
+      ],
+      "size": [
+        8.137372970581055,
+        8.640990257263184,
+        8.640989303588867
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-wheel-1",
+      "center": [
+        10.09994888305664,
+        -17.67950439453125,
+        -7.1360602378845215
+      ],
+      "size": [
+        8.137372970581055,
+        8.640990257263184,
+        8.640982627868652
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-wheel-2",
+      "center": [
+        -10.09994888305664,
+        -17.67950439453125,
+        1.8924777507781982
+      ],
+      "size": [
+        8.137372970581055,
+        8.640990257263184,
+        8.640989303588867
+      ],
+      "spin": 1
+    },
+    {
+      "mesh": "vehicles/expansion-trailer-wheel-3",
+      "center": [
+        -10.09994888305664,
+        -17.67950439453125,
+        -7.1360602378845215
+      ],
+      "size": [
+        8.137372970581055,
+        8.640990257263184,
+        8.640982627868652
+      ],
+      "spin": 1
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

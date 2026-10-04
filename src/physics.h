@@ -7,6 +7,7 @@ namespace physics {
 float vehicleScale(game::Kind kind);
 float vehicleRestHeight(game::Kind kind);
 float vehicleRadius(game::Kind kind);
+game::Vec3 chassisHalf(game::Kind kind);
 bool vehicleContains(const game::Vehicle& vehicle,game::Vec3 point);
 bool vehicleSegmentHit(const game::Vehicle& vehicle,game::Vec3 start,game::Vec3 end,float& entry);
 struct VehicleTuning {

@@ -89,7 +89,13 @@ void pedScenarios();
 void sceneJobScenarios();
 void grassScenarios();
 void equipmentScenarios();
+void expansionScenarios();
 int main(int argc,char** argv){
+    std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--expansion-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        expansionScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--grass-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());
@@ -1308,6 +1314,10 @@ int main(int argc,char** argv){
     assert(jolt_world::wheelContactCount(drivenCar)>=2);
     game::reset();
     drivenCar=vehicleIndex("starter-car");
+    // Keep the border recovery check about wheel and wall contact. The expanded
+    // vehicle roster changes NPC choices; police gunfire can otherwise destroy
+    // this car while the test waits for re-entry.
+    game::peds.clear();police::setWantedLevel(0);jolt_world::reset();
     jolt_world::teleportVehicle(drivenCar,{90,80},game::PI);
     game::occupied=drivenCar;
     game::keys[ui::bindings[int(ui::Action::Forward)]]=true;

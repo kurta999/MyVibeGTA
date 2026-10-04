@@ -13,6 +13,9 @@
 #include "weapons.h"
 #include "ai.h"
 #ifdef MINI_CITY_JOLT
+#include "radio.h"
+#include "vehicle_systems.h"
+#include "destruction.h"
 #include "debug_menu.h"
 #include "wildlife.h"
 #include "birds.h"
@@ -82,14 +85,24 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
     auto cancelStartup=[&]{
         if(!loading.cancelled())return false;
-        loading.finish();audio::shutdown();shutdownRenderer();DestroyWindow(win);
+        loading.finish();
+#ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
+        audio::shutdown();shutdownRenderer();DestroyWindow(win);
         logging::shutdown();return true;
     };
     if(cancelStartup())return 0;
     startup::report(82,"Starting audio and loading settings");
 #endif
     if(!audio::init())logging::write("XAudio2 initialization failed; continuing without audio");
+#ifdef MINI_CITY_JOLT
+    if(!radio::load())logging::write(radio::lastError().c_str());
+#endif
     ui::load();
+#ifdef MINI_CITY_JOLT
+    if(smoke){ui::windowMode=0;ui::applyWindow();}
+#endif
     if(fullHd){
         RECT bounds{0,0,1920,1080};
         AdjustWindowRect(&bounds,WS_OVERLAPPEDWINDOW,FALSE);
@@ -109,6 +122,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(weapons::lastError().c_str());
         if(!smoke)MessageBoxA(win,weapons::lastError().c_str(),"Invalid weapon data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!physics::load()){
@@ -117,14 +133,33 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(physics::lastError().c_str());
         if(!smoke)MessageBoxA(win,physics::lastError().c_str(),"Invalid vehicle data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
+#ifdef MINI_CITY_JOLT
+    for(int kind=0;kind<13;++kind){
+        Vehicle vehicle{};vehicle.kind=Kind(kind);auto parts=vehicle_systems::parts(vehicle);
+        bool valid=parts.size()>=4;
+        for(const auto& part:parts)valid&=dx11::mesh(part.mesh)!=nullptr;
+        if(!valid){
+            std::string error=std::string("Missing or invalid imported vehicle assets: ")+vehicle_systems::name(vehicle.kind);
+            loading.finish();logging::write(error.c_str());
+            if(!smoke)MessageBoxA(win,error.c_str(),"Invalid vehicle assets",MB_ICONERROR);
+            radio::shutdown();audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
+        }
+    }
+#endif
     if(!fire::load()){
 #ifdef MINI_CITY_JOLT
         loading.finish();
 #endif
         logging::write(fire::lastError().c_str());
         if(!smoke)MessageBoxA(win,fire::lastError().c_str(),"Invalid surface data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!police::load()){
@@ -133,6 +168,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(police::lastError().c_str());
         if(!smoke)MessageBoxA(win,police::lastError().c_str(),"Invalid police data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!commerce::load()){
@@ -141,6 +179,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(commerce::lastError().c_str());
         if(!smoke)MessageBoxA(win,commerce::lastError().c_str(),"Invalid shop data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!traversal::load()){
@@ -149,6 +190,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(traversal::lastError().c_str());
         if(!smoke)MessageBoxA(win,traversal::lastError().c_str(),"Invalid traversal data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!weather::load()){
@@ -157,6 +201,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(weather::lastError().c_str());
         if(!smoke)MessageBoxA(win,weather::lastError().c_str(),"Invalid weather data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!regions::load()){
@@ -165,6 +212,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(regions::lastError().c_str());
         if(!smoke)MessageBoxA(win,regions::lastError().c_str(),"Invalid region data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
 #ifdef MINI_CITY_JOLT
@@ -178,6 +228,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(content::lastError().c_str());
         if(!smoke)MessageBoxA(win,content::lastError().c_str(),"Invalid world data",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
     if(!traversal::lastError().empty()){
@@ -186,6 +239,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
         logging::write(traversal::lastError().c_str());
         if(!smoke)MessageBoxA(win,traversal::lastError().c_str(),"Invalid climb location",MB_ICONERROR);
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
     }
 #ifdef MINI_CITY_JOLT
@@ -602,6 +658,45 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         weapon=weapons::indexOf("minigun");debug_menu::flyMode=true;
         jolt_world::teleportCharacter(player,playerY);
     }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--expansion-preview")){
+        player=previousPlayer={4300,4500};playerY=160;cameraYaw=0;cameraPitch=-.45f;
+        cameraMode=CameraMode::FirstWide;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        const Kind kinds[]={Kind::Skateboard,Kind::Bicycle,Kind::Tractor,Kind::Combine,Kind::Tank,Kind::Truck,Kind::Trailer,Kind::Airplane};
+        for(int n=0;n<8;++n){Vehicle v{};v.kind=kinds[n];v.id="preview-"+std::to_string(n);v.angle=PI/2;
+            v.p={4630+float(n/4)*190,4350+float(n%4)*100};v.c=n%2?rgb(206,168,56):rgb(64,144,172);vehicles.push_back(v);}
+        jolt_world::reset();for(int tick=0;tick<45;++tick)jolt_world::step(1.0f/60);
+        debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--combine-preview")){
+        player=previousPlayer={4400,4680};playerY=35;cameraYaw=-1.06f;cameraPitch=-.17f;
+        cameraMode=CameraMode::FirstWide;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        Vehicle v{};v.kind=Kind::Combine;v.id="combine-preview";v.p={4500,4500};v.angle=PI/2;vehicles.push_back(v);
+        jolt_world::reset();for(int tick=0;tick<45;++tick)jolt_world::step(1.0f/60);
+        debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--destruction-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=.12f;cameraPitch=.03f;
+        cameraMode=CameraMode::FirstWide;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        buildings.push_back({4620,4430,45,155,130,rgb(170,159,140),"damage-preview"});
+        Vehicle v{};v.kind=Kind::Car;v.id="blast-preview";v.p={4580,4540};v.c=rgb(194,70,50);vehicles.push_back(v);
+        jolt_world::reset();destruction::blast({4620,20,4500},100);damageVehicle(0,10000);
+        for(int tick=0;tick<12;++tick)jolt_world::step(1.0f/60);
+        jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--airplane-preview")){
+        player=previousPlayer={4500,4900};playerY=0;cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdFar;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        Vehicle v{};v.kind=Kind::Airplane;v.id="plane-preview";v.p=player;v.c=rgb(221,225,234);vehicles.push_back(v);
+        occupied=0;jolt_world::reset();keys['W']=true;
+        for(int tick=0;tick<120;++tick)update(1.0f/60);keys[VK_SPACE]=true;
+        for(int tick=0;tick<60;++tick)update(1.0f/60);keys[VK_SPACE]=false;
+        for(int tick=0;tick<90;++tick)update(1.0f/60);keys['W']=false;
+        cameraYaw=2.5f;cameraPitch=-.14f;vehicleLookTime=30;previousPlayer=player;
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--vehicle-scale-preview")){
         player=previousPlayer={4500,4500};playerY=0;cameraYaw=0;cameraPitch=0;
         cameraMode=CameraMode::ThirdNear;occupied=-1;rightMouse=false;ui::grassDistance=0;
@@ -656,6 +751,27 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     startup::report(98,"Preparing the first frame");
 #endif
     if(smoke){
+#ifdef MINI_CITY_JOLT
+        if(commandLine&&std::strstr(commandLine,"--display-preview")){
+            loading.finish();ShowWindow(win,SW_SHOWNORMAL);SetForegroundWindow(win);
+            auto pump=[&]{MSG msg{};while(PeekMessageA(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageA(&msg);}};
+            bool ok=true;
+            for(int mode:{0,1,2,0}){
+                ui::windowMode=mode;ui::applyWindow();pump();
+                if(mode==2)ui::setWindowActive(true);
+                render();
+                LONG_PTR style=GetWindowLongPtrA(win,GWL_STYLE);RECT client{};GetClientRect(win,&client);
+                bool exclusive=exclusiveFullscreenEnabled();
+                bool fallback=mode==2&&ui::windowMode==1&&!exclusive;
+                bool valid=(ui::windowMode==mode||fallback)&&((mode==0)==bool(style&WS_CAPTION))&&exclusive==(mode==2&&!fallback);
+                if(mode==2&&exclusive){ui::setWindowActive(false);valid&=!exclusiveFullscreenEnabled();ui::setWindowActive(true);valid&=exclusiveFullscreenEnabled();render();}
+                char result[200];std::snprintf(result,sizeof(result),"Display mode %d: client %ld x %ld, exclusive %d, %s %s",mode,client.right,client.bottom,int(exclusive),fallback?"borderless fallback":"mode/focus restore",valid?"PASS":"FAIL");
+                logging::write(result);ok&=valid;
+            }
+            radio::shutdown();audio::shutdown();shutdownRenderer();DestroyWindow(win);
+            logging::write(ok?"Display validation passed":"Display validation failed");logging::shutdown();return ok?0:1;
+        }
+#endif
         if(benchmark){
             const int frames=benchmarkRoute?3600:120;
             LARGE_INTEGER frequency{},start{},middle{},end{};
@@ -770,7 +886,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
             if(commandLine&&std::strstr(commandLine,"--bake-probes")){
                 bool ok=bakeReflectionProbes();
-                audio::shutdown();shutdownRenderer();DestroyWindow(win);
+                #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
+        audio::shutdown();shutdownRenderer();DestroyWindow(win);
                 logging::write(ok?"HDR probe bake completed":"HDR probe bake failed");
                 logging::shutdown();return ok?0:1;
             }else if(commandLine&&std::strstr(commandLine,"--exposure-preview")){
@@ -801,6 +920,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
         startup::report(100,"Ready");loading.finish();
 #endif
+        #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
         audio::shutdown();shutdownRenderer();DestroyWindow(win);
         logging::write("Smoke render completed");logging::shutdown();return 0;}
 #ifdef MINI_CITY_JOLT
@@ -809,6 +931,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     startup::report(100,"Ready");
 #endif
     ShowWindow(win,show);
+    ui::setWindowActive(GetForegroundWindow()==win);
 #ifdef MINI_CITY_JOLT
     loading.finish();
 #endif
@@ -843,12 +966,20 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         }
         if(steps==5){accumulator=0;if(overloadEvents++%120==0)
             logging::write("Simulation fell behind; accumulated time dropped");}
+#ifdef MINI_CITY_JOLT
+        bool radioDriving=occupied>=0&&occupied<int(vehicles.size())&&health>0&&!vehicle_systems::pedal(vehicles[occupied].kind);
+        radio::update(radioDriving,ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open,ui::masterVolume);
+        if(ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open)audio::stopEngine();
+#endif
         renderAlpha=float(accumulator/fixedStep);
         render();++frames;fpsTimer+=dt;
         if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
         Sleep(1);
     }
     if(!savegame::flush())logging::write("Final autosave failed");
-    audio::shutdown();shutdownRenderer();logging::shutdown();
+    #ifdef MINI_CITY_JOLT
+        radio::shutdown();
+#endif
+        audio::shutdown();shutdownRenderer();logging::shutdown();
     return 0;
 }

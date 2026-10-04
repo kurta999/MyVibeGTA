@@ -1,0 +1,19 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start  3: audio_smoke
+1/4 Test  #3: audio_smoke ......................   Passed    0.88 sec
+    Start  6: expansion_scenarios
+2/4 Test  #6: expansion_scenarios ..............   Passed    3.93 sec
+    Start 10: driver_scenarios
+3/4 Test #10: driver_scenarios .................Exit code 0xc0000409***Exception:   0.76 sec
+Assertion failed: kind==Kind::Bike?top>34&&top<45:top>32&&top<43, file C:\GIT_local\MyVibeGTA\tests\driver_scenarios.cpp, line 47
+
+    Start 18: asset_smoke
+4/4 Test #18: asset_smoke ......................   Passed    0.56 sec
+
+75% tests passed, 1 tests failed out of 4
+
+Total Test time (real) =   6.15 sec
+
+The following tests FAILED:
+	 10 - driver_scenarios (Exit code 0xc0000409)
+Errors while running CTest

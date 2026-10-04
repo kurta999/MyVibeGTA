@@ -1,0 +1,108 @@
+{
+  "source": "assets\\models\\source\\helicopter\\helicopter.glb",
+  "sha256": "98ed6f66bef79b5b3791908236f971da7d7d0cde7f4f60d5b2e858a677d6fb09",
+  "source_triangles": 1041,
+  "baked_triangles": 1041,
+  "excluded_objects": [],
+  "parts": [
+    {
+      "mesh": "vehicles/expansion-helicopter-body-0",
+      "center": [
+        -6.653262138366699,
+        2.2171545028686523,
+        -34.422698974609375
+      ],
+      "size": [
+        20.975427627563477,
+        1.5260355472564697,
+        10.012292861938477
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-body-1",
+      "center": [
+        12.780875205993652,
+        11.333144187927246,
+        -38.07245635986328
+      ],
+      "size": [
+        33.24332046508789,
+        39.9910888671875,
+        86.85508728027344
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-body-2",
+      "center": [
+        -0.0235595703125,
+        6.295316696166992,
+        42.60121154785156
+      ],
+      "size": [
+        50.975521087646484,
+        60.590633392333984,
+        77.79757690429688
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-body-3",
+      "center": [
+        1.0504817962646484,
+        -2.8833398818969727,
+        42.6341667175293
+      ],
+      "size": [
+        44.0361328125,
+        42.23332214355469,
+        77.7316665649414
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-body-6",
+      "center": [
+        -11.575125694274902,
+        34.43163299560547,
+        34.97682571411133
+      ],
+      "size": [
+        27.87238883972168,
+        4.317996978759766,
+        4.940849304199219
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-body-7",
+      "center": [
+        11.536187171936035,
+        34.495758056640625,
+        33.31757736206055
+      ],
+      "size": [
+        27.856027603149414,
+        4.189754486083984,
+        11.080352783203125
+      ],
+      "spin": 0
+    },
+    {
+      "mesh": "vehicles/expansion-helicopter-rotor",
+      "center": [
+        -0.0062599824741482735,
+        33.94144058227539,
+        35.63377380371094
+      ],
+      "size": [
+        227.1056671142578,
+        1.0007743835449219,
+        67.47801971435547
+      ],
+      "spin": 2
+    }
+  ],
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+}

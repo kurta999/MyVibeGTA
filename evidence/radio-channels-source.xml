@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<channels>
+	<channel id="7soul">
+		<title><![CDATA[Seven Inch Soul]]></title>
+		<description><![CDATA[Vintage soul tracks from the original 45 RPM vinyl.]]></description>
+		<dj><![CDATA[Dion Watts Garcia]]></dj>
+		<djmail><![CDATA[dion@somafm.com]]></djmail>
+		<genre>oldies</genre>
+		<image>https://api.somafm.com/logos/120/7soul120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/7soul256.png?v=1396144572</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/7soul512.png?v=1396144489</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/7soul130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/7soul.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/7soul64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/7soul32.pls</slowpls>
+		<listeners>72</listeners>
+		<lastPlaying><![CDATA[E Rodney Jones And Friends - Soul Heaven]]></lastPlaying>  
+	</channel>
+	<channel id="beatblender">
+		<title><![CDATA[Beat Blender]]></title>
+		<description><![CDATA[A late night blend of deep-house and downtempo chill.]]></description>
+		<dj><![CDATA[DJ Shawn]]></dj>
+		<djmail><![CDATA[shawn@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/beatblender120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/beatblender256.png?v=1299122861</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/beatblender512.png?v=1299186119</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/beatblender130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/beatblender.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/beatblender64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/beatblender32.pls</slowpls>
+		<listeners>97</listeners>
+		<lastPlaying><![CDATA[MLT - Sardonia]]></lastPlaying>  
+	</channel>
+	<channel id="bootliquor">
+		<title><![CDATA[Boot Liquor]]></title>
+		<description><![CDATA[Americana Roots music for Cowhands, Cowpokes and Cowtippers]]></description>
+		<dj><![CDATA[Roy]]></dj>
+		<djmail><![CDATA[roy@bootliquor.com]]></djmail>
+		<genre>americana</genre>
+		<image>https://api.somafm.com/logos/120/bootliquor120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/bootliquor256.png?v=1299122827</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/bootliquor512.png?v=1299122797</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/bootliquor130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/bootliquor320.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/bootliquor64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/bootliquor32.pls</slowpls>
+		<listeners>87</listeners>
+		<lastPlaying><![CDATA[Gill Landry - Denver Girls]]></lastPlaying>  
+	</channel>
+	<channel id="brfm">
+		<title><![CDATA[Black Rock FM]]></title>
+		<description><![CDATA[From the Black Rock Desert playa to the world, year round!]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>eclectic</genre>
+		<image>https://api.somafm.com/logos/120/brfm120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/brfm256.jpg?v=1342301643</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/brfm512.jpg?v=1342301053</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/brfm130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/brfm.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/brfm64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/brfm32.pls</slowpls>
+		<listeners>20</listeners>
+		<lastPlaying><![CDATA[Vaski - Release Her]]></lastPlaying>  
+	</channel>
+	<channel id="cliqhop">
+		<title><![CDATA[cliqhop idm]]></title>
+		<description><![CDATA[Blips'n'beeps backed mostly w/beats. Intelligent Dance Music.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/cliqhop120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/cliqhop256.png?v=1491429881</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/cliqhop512.png?v=1491429885</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/cliqhop130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/cliqhop256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/cliqhop64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/cliqhop32.pls</slowpls>
+		<listeners>33</listeners>
+		<lastPlaying><![CDATA[Bitcrusher (Bit Mix) - Check Em Out]]></lastPlaying>  
+	</channel>
+	<channel id="covers">
+		<title><![CDATA[Covers]]></title>
+		<description><![CDATA[Just covers. Songs you know by artists you don't. We've got you covered. ]]></description>
+		<dj><![CDATA[]]></dj>
+		<djmail><![CDATA[]]></djmail>
+		<genre>eclectic</genre>
+		<image>https://api.somafm.com/logos/120/covers120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/covers256.png?v=1299185814</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/covers512.png?v=1299185740</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/covers130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/covers.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/covers64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/covers32.pls</slowpls>
+		<listeners>22</listeners>
+		<lastPlaying><![CDATA[Cat Power - Wild Is The Wind]]></lastPlaying>  
+	</channel>
+	<channel id="deepspaceone">
+		<title><![CDATA[Deep Space One]]></title>
+		<description><![CDATA[Deep ambient electronic, experimental and space music. For inner and outer space exploration.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient</genre>
+		<image>https://api.somafm.com/logos/120/deepspaceone120.gif?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/deepspaceone256.png?v=1378071300</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/deepspaceone512.png?v=1378071297</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/deepspaceone130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/deepspaceone.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/deepspaceone64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/deepspaceone32.pls</slowpls>
+		<listeners>371</listeners>
+		<lastPlaying><![CDATA[Steve Roach - It's All Connected]]></lastPlaying>  
+	</channel>
+	<channel id="defcon">
+		<title><![CDATA[DEF CON Radio]]></title>
+		<description><![CDATA[Music for Hacking. The DEF CON Year-Round Channel.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic|specials</genre>
+		<image>https://api.somafm.com/logos/120/defcon120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/defcon256.png?v=1781243225</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/defcon512.png?v=1781243226</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/defcon130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/defcon256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/defcon64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/defcon32.pls</slowpls>
+		<listeners>135</listeners>
+		<lastPlaying><![CDATA[Skeler - M4 Cruise]]></lastPlaying>  
+	</channel>
+	<channel id="digitalis">
+		<title><![CDATA[Digitalis]]></title>
+		<description><![CDATA[Digitally affected analog rock to calm the agitated heart.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic|alternative</genre>
+		<image>https://api.somafm.com/logos/120/digitalis120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/digitalis256.png?v=1299123280</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/digitalis512.png?v=1299186238</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/digitalis130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/digitalis256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/digitalis64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/digitalis32.pls</slowpls>
+		<listeners>50</listeners>
+		<lastPlaying><![CDATA[Tycho, Paul Banks - Boundary Rider]]></lastPlaying>  
+	</channel>
+	<channel id="doomed">
+		<title><![CDATA[Doomed]]></title>
+		<description><![CDATA[Where every day is Halloween: Dark industrial/ambient music for tortured souls. ]]></description>
+		<dj><![CDATA[Lucretia]]></dj>
+		<djmail><![CDATA[lucretia@somafm.com]]></djmail>
+		<genre>ambient|industrial</genre>
+		<image>https://api.somafm.com/logos/120/doomed120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/doomed256.png?v=1299123314</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/doomed512.png?v=1299186756</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/doomed130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/doomed256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/doomed64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/doomed32.pls</slowpls>
+		<listeners>24</listeners>
+		<lastPlaying><![CDATA[Nurse With Wound - Zero Mix [Ii]]]></lastPlaying>  
+	</channel>
+	<channel id="dronezone">
+		<title><![CDATA[Drone Zone]]></title>
+		<description><![CDATA[Served best chilled, safe with most medications. Atmospheric textures with minimal beats.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient</genre>
+		<image>https://api.somafm.com/logos/120/dronezone120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/dronezone256.png?v=1299123385</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/dronezone512.png?v=1299186962</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/dronezone130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/dronezone256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/dronezone64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/dronezone32.pls</slowpls>
+		<listeners>1055</listeners>
+		<lastPlaying><![CDATA[via dekum - Guided by Fog]]></lastPlaying>  
+	</channel>
+	<channel id="dz2">
+		<title><![CDATA[Drone Zone 2]]></title>
+		<description><![CDATA[A more eclectic alternative mix of atmospheric textures with minimal beats.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient</genre>
+		<image>https://api.somafm.com/logos/120/dz2120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/dz2256.png?v=1776988036</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/dz2512.png?v=1776988037</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/dz2130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/dz2.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/dz264.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/dz232.pls</slowpls>
+		<listeners>65</listeners>
+		<lastPlaying><![CDATA[Transient - Cemetary Sunset]]></lastPlaying>  
+	</channel>
+	<channel id="dubstep">
+		<title><![CDATA[Dub Step Beyond]]></title>
+		<description><![CDATA[Dubstep, Dub and Deep Bass. May damage speakers at high volume.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/dubstep120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/dubstep256.png?v=1338924204</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/dubstep512.png?v=1338923994</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/dubstep130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/dubstep256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/dubstep64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/dubstep32.pls</slowpls>
+		<listeners>32</listeners>
+		<lastPlaying><![CDATA[Desert Dwellers - Spaces Between]]></lastPlaying>  
+	</channel>
+	<channel id="fluid">
+		<title><![CDATA[Fluid]]></title>
+		<description><![CDATA[Drown in the electronic sound of instrumental hiphop, future soul and liquid trap.]]></description>
+		<dj><![CDATA[kampf]]></dj>
+		<djmail><![CDATA[kampf@somafm.com]]></djmail>
+		<genre>electronic|hiphop</genre>
+		<image>https://api.somafm.com/logos/120/fluid120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/fluid256.jpg?v=1436822911</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/fluid512.jpg?v=1436822727</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/fluid130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/fluid.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/fluid64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/fluid32.pls</slowpls>
+		<listeners>76</listeners>
+		<lastPlaying><![CDATA[Bucky - Chamber]]></lastPlaying>  
+	</channel>
+	<channel id="folkfwd">
+		<title><![CDATA[Folk Forward]]></title>
+		<description><![CDATA[Indie Folk, Alt-folk and the occasional folk classics. ]]></description>
+		<dj><![CDATA[Elise]]></dj>
+		<djmail><![CDATA[elise@somafm.com]]></djmail>
+		<genre>folk|alternative</genre>
+		<image>https://api.somafm.com/logos/120/folkfwd120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/folkfwd256.png?v=1358300374</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/folkfwd512.png?v=1359700713</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/folkfwd130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/folkfwd.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/folkfwd64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/folkfwd32.pls</slowpls>
+		<listeners>132</listeners>
+		<lastPlaying><![CDATA[Slow Leaves - Not Your Fault]]></lastPlaying>  
+	</channel>
+	<channel id="groovesalad">
+		<title><![CDATA[Groove Salad]]></title>
+		<description><![CDATA[A nicely chilled plate of ambient/downtempo beats and grooves.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient|electronic</genre>
+		<image>https://api.somafm.com/logos/120/groovesalad120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/groovesalad256.png?v=1780812670</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/groovesalad512.png?v=1780812671</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/groovesalad130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/groovesalad256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/groovesalad64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/groovesalad32.pls</slowpls>
+		<listeners>1483</listeners>
+		<lastPlaying><![CDATA[Zero Cult - Sweet Apathy]]></lastPlaying>  
+	</channel>
+	<channel id="groovesalad2">
+		<title><![CDATA[Groove Salad 2]]></title>
+		<description><![CDATA[A different mix of  nicely chilled ambient/downtempo beats and grooves.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient|electronic</genre>
+		<image>https://api.somafm.com/logos/120/groovesalad2120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/groovesalad2256.png?v=1779933335</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/groovesalad2512.png?v=1779933336</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/groovesalad2130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/groovesalad2256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/groovesalad264.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/groovesalad232.pls</slowpls>
+		<listeners>141</listeners>
+		<lastPlaying><![CDATA[Sine - Nebula]]></lastPlaying>  
+	</channel>
+	<channel id="gsclassic">
+		<title><![CDATA[Groove Salad Classic]]></title>
+		<description><![CDATA[The classic (early 2000s) version of a nicely chilled plate of ambient/downtempo beats and grooves.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient|electronic</genre>
+		<image>https://api.somafm.com/logos/120/gsclassic120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/gsclassic256.jpg?v=1747344773</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/gsclassic512.jpg?v=1747344773</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/gsclassic130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/gsclassic.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/gsclassic64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/gsclassic32.pls</slowpls>
+		<listeners>254</listeners>
+		<lastPlaying><![CDATA[Funki Porcini - Big Sea]]></lastPlaying>  
+	</channel>
+	<channel id="illstreet">
+		<title><![CDATA[Illinois Street Lounge]]></title>
+		<description><![CDATA[Classic bachelor pad, playful exotica and vintage music of tomorrow.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>lounge</genre>
+		<image>https://api.somafm.com/logos/120/illstreet120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/illstreet256.jpg?v=1747344745</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/illstreet512.png?v=1747344746</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/illstreet130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/illstreet.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/illstreet64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/illstreet32.pls</slowpls>
+		<listeners>70</listeners>
+		<lastPlaying><![CDATA[The Brass Ring - Patricia]]></lastPlaying>  
+	</channel>
+	<channel id="indiepop">
+		<title><![CDATA[Indie Pop Rocks!]]></title>
+		<description><![CDATA[New and classic favorite indie pop tracks.]]></description>
+		<dj><![CDATA[Elise]]></dj>
+		<djmail><![CDATA[elise@somafm.com]]></djmail>
+		<genre>alternative|rock</genre>
+		<image>https://api.somafm.com/logos/120/indiepop120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/indiepop256.png?v=1299188003</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/indiepop512.png?v=1299187943</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/indiepop130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/indiepop.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/indiepop64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/indiepop32.pls</slowpls>
+		<listeners>390</listeners>
+		<lastPlaying><![CDATA[Joy Formidable, The - The Last Drop]]></lastPlaying>  
+	</channel>
+	<channel id="live">
+		<title><![CDATA[SomaFM Live]]></title>
+		<description><![CDATA[Special Live Events and rebroadcasts of past live events]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>live|specials</genre>
+		<image>https://api.somafm.com/logos/120/live120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/live256.png?v=1782343535</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/live512.png?v=1782343536</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/live130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/live.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/live64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/live32.pls</slowpls>
+		<listeners>11</listeners>
+		<lastPlaying><![CDATA[Def Con 33 Live - Rusty Hodge Sunday]]></lastPlaying>  
+	</channel>
+	<channel id="lush">
+		<title><![CDATA[Lush]]></title>
+		<description><![CDATA[Sensuous and mellow female vocals, many with an electronic influence.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/lush120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/lush256.png?v=1439940390</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/lush512.png?v=1317866644</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/lush130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/lush.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/lush64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/lush32.pls</slowpls>
+		<listeners>260</listeners>
+		<lastPlaying><![CDATA[Sunburn In Cyprus - In The Sunshine (Big Wheel Rem]]></lastPlaying>  
+	</channel>
+	<channel id="missioncontrol">
+		<title><![CDATA[Mission Control]]></title>
+		<description><![CDATA[Celebrating NASA and Space Explorers everywhere.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient|electronic</genre>
+		<image>https://api.somafm.com/logos/120/missioncontrol120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/missioncontrol256.png?v=1342304313</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/missioncontrol512.jpg?v=1342304239</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/missioncontrol130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/missioncontrol.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/missioncontrol64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/missioncontrol32.pls</slowpls>
+		<listeners>50</listeners>
+		<lastPlaying><![CDATA[Ai Yamamoto - Fitzroy Wildbeast]]></lastPlaying>  
+	</channel>
+	<channel id="poptron">
+		<title><![CDATA[PopTron]]></title>
+		<description><![CDATA[Electropop and indie dance rock with sparkle and pop.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>alternative</genre>
+		<image>https://api.somafm.com/logos/120/poptron120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/poptron256.png?v=1299124081</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/poptron512.png?v=1299124019</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/poptron130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/poptron.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/poptron64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/poptron32.pls</slowpls>
+		<listeners>71</listeners>
+		<lastPlaying><![CDATA[Chairlift - Amanaemonesia]]></lastPlaying>  
+	</channel>
+	<channel id="secretagent">
+		<title><![CDATA[Secret Agent]]></title>
+		<description><![CDATA[The soundtrack for your stylish, mysterious, dangerous life. For Spies and PIs too!]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>lounge</genre>
+		<image>https://api.somafm.com/logos/120/secretagent120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/secretagent256.png?v=1299123636</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/secretagent512.png?v=1299188268</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/secretagent130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/secretagent.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/secretagent64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/secretagent32.pls</slowpls>
+		<listeners>224</listeners>
+		<lastPlaying><![CDATA[Dave Grusin (USA) - The Mata Hari Affair]]></lastPlaying>  
+	</channel>
+	<channel id="seventies">
+		<title><![CDATA[Left Coast 70s]]></title>
+		<description><![CDATA[Mellow album rock from the Seventies. Yacht not required.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>70s|rock</genre>
+		<image>https://api.somafm.com/logos/120/seventies120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/seventies256.jpg?v=1435992064</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/seventies512.jpg?v=1435992015</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/seventies130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/seventies320.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/seventies64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/seventies32.pls</slowpls>
+		<listeners>231</listeners>
+		<lastPlaying><![CDATA[Todd Rundgren - Love Of The Common Man]]></lastPlaying>  
+	</channel>
+	<channel id="sf1033">
+		<title><![CDATA[SF 10-33]]></title>
+		<description><![CDATA[Ambient music mixed with the sounds of San Francisco public safety radio traffic.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient|news</genre>
+		<image>https://api.somafm.com/logos/120/sf1033120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/sf1033256.png?v=1335919756</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/sf1033512.png?v=1335919711</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/sf1033130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/sf1033.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/sf103364.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/sf103332.pls</slowpls>
+		<listeners>20</listeners>
+		<lastPlaying><![CDATA[Mystical Sun - Nebulous Mist]]></lastPlaying>  
+	</channel>
+	<channel id="sonicuniverse">
+		<title><![CDATA[Sonic Universe]]></title>
+		<description><![CDATA[Transcending the world of jazz with eclectic, avant-garde takes on tradition.]]></description>
+		<dj><![CDATA[Nitya]]></dj>
+		<djmail><![CDATA[nitya@somafm.com]]></djmail>
+		<genre>jazz</genre>
+		<image>https://api.somafm.com/logos/120/sonicuniverse120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/sonicuniverse256.png?v=1299123729</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/sonicuniverse512.png?v=1299205522</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/sonicuniverse130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/sonicuniverse256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/sonicuniverse64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/sonicuniverse32.pls</slowpls>
+		<listeners>79</listeners>
+		<lastPlaying><![CDATA[Tuniq - Miles]]></lastPlaying>  
+	</channel>
+	<channel id="spacestation">
+		<title><![CDATA[Space Station Soma]]></title>
+		<description><![CDATA[Tune in, turn on, space out. Spaced-out ambient and mid-tempo electronica.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/spacestation120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/spacestation256.png?v=1299123676</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/spacestation512.png?v=1299205660</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/spacestation130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/spacestation320.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/spacestation64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/spacestation32.pls</slowpls>
+		<listeners>305</listeners>
+		<lastPlaying><![CDATA[Eguana - The Ant]]></lastPlaying>  
+	</channel>
+	<channel id="suburbsofgoa">
+		<title><![CDATA[Suburbs of Goa]]></title>
+		<description><![CDATA[Desi-influenced Asian world beats and beyond.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>world</genre>
+		<image>https://api.somafm.com/logos/120/sog120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/suburbsofgoa256.png?v=1342303770</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/suburbsofgoa512.png?v=1299205961</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/suburbsofgoa130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/suburbsofgoa.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/suburbsofgoa64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/suburbsofgoa32.pls</slowpls>
+		<listeners>74</listeners>
+		<lastPlaying><![CDATA[Tj Rehmi - Tonik]]></lastPlaying>  
+	</channel>
+	<channel id="thetrip">
+		<title><![CDATA[The Trip]]></title>
+		<description><![CDATA[Progressive house / trance. Tip top tunes.]]></description>
+		<dj><![CDATA[Milkman]]></dj>
+		<djmail><![CDATA[milkman@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/thetrip120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/thetrip256.jpg?v=1447535313</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/thetrip512.jpg?v=1447535194</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/thetrip130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/thetrip.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/thetrip64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/thetrip32.pls</slowpls>
+		<listeners>79</listeners>
+		<lastPlaying><![CDATA[Starecase - Vapour Trails (Nick Valerio Remix)]]></lastPlaying>  
+	</channel>
+	<channel id="thistle">
+		<title><![CDATA[ThistleRadio]]></title>
+		<description><![CDATA[Exploring music from Celtic roots and branches]]></description>
+		<dj><![CDATA[Fiona Ritchie]]></dj>
+		<djmail><![CDATA[fiona@somafm.com]]></djmail>
+		<genre>celtic|world</genre>
+		<image>https://api.somafm.com/logos/120/thistle120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/thistle256.jpg?v=1433008752</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/thistle512.jpg?v=1433008752</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/thistle130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/thistle.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/thistle64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/thistle32.pls</slowpls>
+		<listeners>61</listeners>
+		<lastPlaying><![CDATA[The Tannahill Weavers - Samuel The Weaver / The Panda / Thunderhead / Cannongate Twitch]]></lastPlaying>  
+	</channel>
+	<channel id="u80s">
+		<title><![CDATA[Underground 80s]]></title>
+		<description><![CDATA[Early 80s UK Synthpop and a bit of New Wave.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>alternative|electronic</genre>
+		<image>https://api.somafm.com/logos/120/u80s120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/u80s256.png?v=1418528434</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/u80s512.png?v=1418528343</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/u80s130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/u80s256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/u80s64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/u80s32.pls</slowpls>
+		<listeners>216</listeners>
+		<lastPlaying><![CDATA[Book Of Love - Lost Souls]]></lastPlaying>  
+	</channel>
+	<channel id="metal">
+		<title><![CDATA[Metal Detector]]></title>
+		<description><![CDATA[From black to doom, prog to sludge, thrash to post, stoner to crossover, punk to industrial.]]></description>
+		<dj><![CDATA[Mark Luntzel]]></dj>
+		<djmail><![CDATA[mark@somafm.com]]></djmail>
+		<genre>metal</genre>
+		<image>https://api.somafm.com/logos/120/metal120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/metal256.png?v=1438371170</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/metal512.png?v=1438371170</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/metal130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/metal.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/metal64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/metal32.pls</slowpls>
+		<listeners>17</listeners>
+		<lastPlaying><![CDATA[Ukko's Hammer - Altar Of Progress]]></lastPlaying>  
+	</channel>
+	<channel id="reggae">
+		<title><![CDATA[Heavyweight Reggae]]></title>
+		<description><![CDATA[Reggae, Ska, Rocksteady classic and deep tracks.]]></description>
+		<dj><![CDATA[Dion Watts Garcia]]></dj>
+		<djmail><![CDATA[dion@somafm.com]]></djmail>
+		<genre>reggae</genre>
+		<image>https://api.somafm.com/logos/120/reggae120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/reggae256.png?v=1579290261</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/reggae512.png?v=1579290024</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/reggae130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/reggae256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/reggae80.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/reggae32.pls</slowpls>
+		<listeners>63</listeners>
+		<lastPlaying><![CDATA[Bob Marley & The Wailers - Could You Be Loved]]></lastPlaying>  
+	</channel>
+	<channel id="scanner">
+		<title><![CDATA[SF Police Scanner]]></title>
+		<description><![CDATA[San Francisco Public Safety Scanner Feed]]></description>
+		<dj><![CDATA[SomaFM]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>live|news</genre>
+		<image>https://api.somafm.com/logos/120/sf1033120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/scanner256.png?v=1674935912</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/scanner512.png?v=1674976259</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/scanner130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/scanner.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/scanner64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/scanner32.pls</slowpls>
+		<listeners>21</listeners>
+		<lastPlaying><![CDATA[San Francisco Emergency Services - Live Feed]]></lastPlaying>  
+	</channel>
+	<channel id="vaporwaves">
+		<title><![CDATA[Vaporwaves]]></title>
+		<description><![CDATA[All Vaporwave. All the time.]]></description>
+		<dj><![CDATA[kampf]]></dj>
+		<djmail><![CDATA[kampf@somafm.com]]></djmail>
+		<genre>electronic</genre>
+		<image>https://api.somafm.com/logos/120/vaporwaves120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/vaporwaves256.png?v=1601767702</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/vaporwaves512.png?v=1601767635</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/vaporwaves130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/vaporwaves.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/vaporwaves64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/vaporwaves32.pls</slowpls>
+		<listeners>36</listeners>
+		<lastPlaying><![CDATA[Local 86 - Bangkok Nights]]></lastPlaying>  
+	</channel>
+	<channel id="specials">
+		<title><![CDATA[SomaFM Specials]]></title>
+		<description><![CDATA[Now featuring Afternoon Jazz, Wavepool, DubX, The Surf Report & More!]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>specials</genre>
+		<image>https://api.somafm.com/logos/120/SomaFMDJSquare120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/specials256.png?v=1674947103</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/specials512.png?v=1674947103</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/specials130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/specials.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/specials64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/specials32.pls</slowpls>
+		<listeners>8</listeners>
+		<lastPlaying><![CDATA[Grace Jones - Hell Dub [Dub Version]]]></lastPlaying>  
+	</channel>
+	<channel id="n5md">
+		<title><![CDATA[n5MD Radio]]></title>
+		<description><![CDATA[Emotional Experiments in Music: Ambient, modern composition, post-rock, & experimental electronic music]]></description>
+		<dj><![CDATA[]]></dj>
+		<djmail><![CDATA[]]></djmail>
+		<genre>specials</genre>
+		<image>https://api.somafm.com/logos/120/n5md120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/n5md256.png?v=1605058454</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/n5md512.png?v=1605058529</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/n5md130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/n5md.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/n5md64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/n5md32.pls</slowpls>
+		<listeners>13</listeners>
+		<lastPlaying><![CDATA[Vittoria Fleet - Unconcealed]]></lastPlaying>  
+	</channel>
+	<channel id="synphaera">
+		<title><![CDATA[Synphaera Radio]]></title>
+		<description><![CDATA[Featuring the music from an independent record label focused on modern electronic ambient and space music.]]></description>
+		<dj><![CDATA[Synphaera Records]]></dj>
+		<djmail><![CDATA[synphaera@somafm.com]]></djmail>
+		<genre>ambient|electronic</genre>
+		<image>https://api.somafm.com/logos/120/synphaera120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/synphaera256.jpg?v=1611903685</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/synphaera512.jpg?v=1611903618</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/synphaera130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/synphaera256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/synphaera64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/synphaera32.pls</slowpls>
+		<listeners>236</listeners>
+		<lastPlaying><![CDATA[Transponder - Aegis]]></lastPlaying>  
+	</channel>
+	<channel id="darkzone">
+		<title><![CDATA[The Dark Zone]]></title>
+		<description><![CDATA[The darker side of deep ambient. Music for staring into the Abyss. ]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>ambient</genre>
+		<image>https://api.somafm.com/logos/120/darkzone120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/darkzone256.jpg?v=1674958814</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/darkzone512.jpg?v=1674958826</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/darkzone130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/darkzone256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/darkzone64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/darkzone32.pls</slowpls>
+		<listeners>108</listeners>
+		<lastPlaying><![CDATA[Tapio Kotkavuori - Underground Voices]]></lastPlaying>  
+	</channel>
+	<channel id="sfinsf">
+		<title><![CDATA[SF in SF]]></title>
+		<description><![CDATA[Author readings and discussions from the science fiction, fantasy, horror, and genre literary fields.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>spoken</genre>
+		<image>https://api.somafm.com/logos/120/sfinsf120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/sfinsf256.jpg?v=1674967917</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/sfinsf512.jpg?v=1674967929</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/sfinsf130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/sfinsf.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/sfinsf64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/sfinsf32.pls</slowpls>
+		<listeners>2</listeners>
+		<lastPlaying><![CDATA[Cecil Castellucci and Ben Loory - SF in SF August 2016]]></lastPlaying>  
+	</channel>
+	<channel id="tikitime">
+		<title><![CDATA[Tiki Time]]></title>
+		<description><![CDATA[Classic Tiki music and Vintage island rhythms to sip cocktails by.]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>tiki|world</genre>
+		<image>https://api.somafm.com/logos/120/tikitime120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/tikitime256.jpg?v=1695348830</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/tikitime512.jpg?v=1695348831</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/tikitime130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/tikitime256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/tikitime64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/tikitime32.pls</slowpls>
+		<listeners>21</listeners>
+		<lastPlaying><![CDATA[Stanley Black - Babalu]]></lastPlaying>  
+	</channel>
+	<channel id="bossa">
+		<title><![CDATA[Bossa Beyond]]></title>
+		<description><![CDATA[Silky-smooth, laid-back Brazilian-style rhythms of Bossa Nova, Samba and beyond]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>bossanova|world</genre>
+		<image>https://api.somafm.com/logos/120/bossa120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/bossa256.jpg?v=1781039370</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/bossa-512.jpg?v=1695354225</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/bossa130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/bossa256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/bossa64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/bossa32.pls</slowpls>
+		<listeners>89</listeners>
+		<lastPlaying><![CDATA[Leo Cesari - Waiting For An Angel]]></lastPlaying>  
+	</channel>
+	<channel id="insound">
+		<title><![CDATA[The In-Sound]]></title>
+		<description><![CDATA[60s/70s Hipster Euro Pop where psychedelic melodies meets groovy vibes. ]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>oldies</genre>
+		<image>https://api.somafm.com/logos/120/insound120.jpg?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/insound256.jpg?v=1781039370</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/insound-512.jpg?v=1695848542</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/insound130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/insound256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/insound64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/insound32.pls</slowpls>
+		<listeners>9</listeners>
+		<lastPlaying><![CDATA[The John Schroeder Orchestra - Sunny]]></lastPlaying>  
+	</channel>
+	<channel id="chillits">
+		<title><![CDATA[Chillits Radio]]></title>
+		<description><![CDATA[Celebrating 25 years of music, chilling and camping]]></description>
+		<dj><![CDATA[Rusty Hodge]]></dj>
+		<djmail><![CDATA[dj@somafm.com]]></djmail>
+		<genre>chill|live</genre>
+		<image>https://api.somafm.com/logos/120/chillits120.png?v=1789955306</image>
+		<largeimage>https://api.somafm.com/logos/256/chillits256.png?v=1772560615</largeimage>
+		<xlimage>https://api.somafm.com/logos/512/chillits512.png?v=1772560617</xlimage>
+		<updated>1789955306</updated>
+		<highestpls format="aac">https://somafm.com/chillits130.pls</highestpls>
+		<fastpls format="mp3">https://somafm.com/chillits256.pls</fastpls>
+		<fastpls format="aacp">https://somafm.com/chillits64.pls</fastpls>
+		<slowpls format="aacp">https://somafm.com/chillits32.pls</slowpls>
+		<listeners>12</listeners>
+		<lastPlaying><![CDATA[Caliban vs. Brycer vs. Science - Chillits 2001]]></lastPlaying>  
+	</channel>
+</channels>
