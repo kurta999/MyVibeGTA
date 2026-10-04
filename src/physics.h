@@ -3,6 +3,12 @@
 #include <string>
 
 namespace physics {
+// Shared by the DX11 scene, Jolt chassis, camera and gameplay hit volumes.
+float vehicleScale(game::Kind kind);
+float vehicleRestHeight(game::Kind kind);
+float vehicleRadius(game::Kind kind);
+bool vehicleContains(const game::Vehicle& vehicle,game::Vec3 point);
+bool vehicleSegmentHit(const game::Vehicle& vehicle,game::Vec3 start,game::Vec3 end,float& entry);
 struct VehicleTuning {
     float acceleration,maxSpeed,reverseSpeed,grip,drag,turnRate,turnResponse,brake;
     float mass,engineTorque,suspensionFrequency,suspensionDamping;

@@ -11,10 +11,11 @@ namespace debug_menu {
 bool open=false;
 bool godMode=false;
 bool flyMode=false;
+bool infiniteAmmo=false;
 int selection=0;
 
 int entryCount(){return WEAPONS_START+weapons::count();}
-void reset(){open=false;godMode=false;flyMode=false;selection=0;}
+void reset(){open=false;godMode=false;flyMode=false;infiniteAmmo=false;selection=0;}
 void toggle(){open=!open;selection=std::clamp(selection,0,std::max(0,entryCount()-1));}
 
 void handleKey(int key){
@@ -54,6 +55,11 @@ void handleKey(int key){
         int index=current==states.end()?0:int(current-states.begin());
         index=(index+int(states.size())+(key==VK_LEFT?-1:1))%int(states.size());
         weather::set(states[index].id);
+        return;
+    }
+    if(selection==5){
+        infiniteAmmo=!infiniteAmmo;
+        if(infiniteAmmo)game::reloadRemaining=0;
         return;
     }
     int chosen=selection-WEAPONS_START;

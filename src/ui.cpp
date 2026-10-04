@@ -10,7 +10,7 @@ namespace ui {
 Page page=Page::Closed;
 int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
     antiAliasingQuality=1,aoQuality=1,textureQuality=2,filteringQuality=2,
-    vegetationDensity=2,grassDistance=50,
+    vegetationDensity=2,grassDistance=50,grassLodDistance=50,
     effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,
     mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
@@ -30,7 +30,7 @@ void applyWindow(){
     AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
     SetWindowPos(game::win,nullptr,0,0,r.right-r.left,r.bottom-r.top,SWP_NOMOVE|SWP_NOZORDER);
 }
-int count(Page p){return p==Page::Main?7:p==Page::Graphics?13:p==Page::Controls?8:p==Page::Audio?1:0;}
+int count(Page p){return p==Page::Main?7:p==Page::Graphics?14:p==Page::Controls?8:p==Page::Audio?1:0;}
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
     WritePrivateProfileStringA(section,key,text,path.c_str());
@@ -45,6 +45,16 @@ float drawDistanceScale(){
 float lodDistanceScale(){
     return 0.55f+1.95f*std::clamp(lodDistance,0,100)/100.0f;
 }
+float grassDistanceUnits(){
+    float value=float(std::clamp(grassDistance,0,100))/100;
+    return value==0?0:40+760*value*value;
+}
+float grassLodDistanceUnits(){
+    float value=float(std::clamp(grassLodDistance,0,100));
+    if(value<=50)return 40+55*value/50;
+    float extended=(value-50)/50;
+    return 95+705*extended*extended;
+}
 void load(){
     std::string path=configPath();
     graphicsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Quality",2,path.c_str())),0,2);
@@ -56,6 +66,7 @@ void load(){
     filteringQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Filtering",2,path.c_str())),0,2);
     vegetationDensity=std::clamp(int(GetPrivateProfileIntA("Graphics","Vegetation",2,path.c_str())),0,2);
     grassDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","GrassDistance",50,path.c_str())),0,100);
+    grassLodDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","GrassLodDistance",50,path.c_str())),0,100);
     effectsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Effects",2,path.c_str())),0,2);
     int distanceVersion=GetPrivateProfileIntA("Graphics","DistanceVersion",0,path.c_str());
     drawDistance=std::clamp(int(GetPrivateProfileIntA("Graphics","DrawDistance",distanceVersion?21:1,path.c_str())),0,100);
@@ -86,6 +97,7 @@ void save(){
     writeValue("Graphics","Filtering",filteringQuality,path);
     writeValue("Graphics","Vegetation",vegetationDensity,path);
     writeValue("Graphics","GrassDistance",grassDistance,path);
+    writeValue("Graphics","GrassLodDistance",grassLodDistance,path);
     writeValue("Graphics","Effects",effectsQuality,path);
     writeValue("Graphics","DrawDistance",drawDistance,path);
     writeValue("Graphics","LodDistance",lodDistance,path);
@@ -145,6 +157,7 @@ void handleKey(int key){
         if(selection==10&&direction)drawDistance=std::clamp(drawDistance+direction*2,0,100);
         if(selection==11&&direction)lodDistance=std::clamp(lodDistance+direction*2,0,100);
         if(selection==12&&direction)grassDistance=std::clamp(grassDistance+direction*2,0,100);
+        if(selection==13&&direction)grassLodDistance=std::clamp(grassLodDistance+direction*2,0,100);
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);
@@ -159,14 +172,14 @@ void handleMouse(int x,int y,bool dragging){
     if(page!=Page::Graphics)return;
     RECT client{};GetClientRect(game::win,&client);
     int left=(client.right-client.left)/2-280;
-    int top=(client.bottom-client.top)/2-340;
-    for(int row=10;row<=12;++row){
+    int top=((client.bottom-client.top)-GRAPHICS_MENU_HEIGHT)/2;
+    for(int row=10;row<=13;++row){
         int rowY=top+105+row*39;
         if(y<rowY-5||y>rowY+38)continue;
         if(!dragging&&x<left+285)return;
         selection=row;
         int value=std::clamp((x-(left+290))*100/220,0,100);
-        int& setting=row==10?drawDistance:row==11?lodDistance:grassDistance;
+        int& setting=row==10?drawDistance:row==11?lodDistance:row==12?grassDistance:grassLodDistance;
         if(setting!=value){setting=value;save();}
         return;
     }

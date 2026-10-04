@@ -1,0 +1,18 @@
+Direct3D 11 sky and cloud verification, 2026-10-03
+Adapter: AMD Radeon(TM) 680M
+Command: MiniCity3D.exe --smoke --sky-preview --screenshot --day --windy --benchmark --1080p
+Settings: High graphics, shadows, vegetation, effects, reflections, TAA, SSAO and texture filtering;
+          draw distance 100, LOD distance 75, grass distance 83.
+Clouds: native 1920x1080, 48 view samples, 3 sun-shadow samples, 128^3 RGBA noise (8 MiB).
+Scene: forest view, seed 1, 120 frames, 278 nearby trees, 32 active AI.
+
+Frame average: 53.58 ms
+Simulation: 2.02 ms; physics: 1.15 ms; render: 51.56 ms
+p95: 54.95 ms; p99: 55.90 ms; maximum: 61.66 ms
+Draw calls: 466; submitted triangles: 24,964,237/frame; RAM: 680 MiB
+GPU shadows: 32.34 ms; scene: 8.43 ms; post/HUD: 10.67 ms
+CPU scene: 16.105 ms; upload/culling: 4.694 ms; draw/HUD: 29.764 ms; present: 0.998 ms
+
+Post/HUD includes sky/clouds, reflections, AO, bloom, exposure/tone mapping, TAA and HUD;
+it is not an isolated cloud timing. Dense forest shadows dominate this scene.
+This sample does not establish a 60 FPS target or performance on other hardware.

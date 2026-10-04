@@ -3,6 +3,7 @@
 #include "regions.h"
 #include "jolt_world.h"
 #include "content.h"
+#include "physics.h"
 #include "ped_navigation.h"
 #include <limits>
 #include <queue>
@@ -37,7 +38,7 @@ bool roadAssigned(const Vehicle& v){
 }
 Vec2 lanePoint(int from,int to,float progress){
     Vec2 axis=norm(nodes[to].p-nodes[from].p);
-    return nodes[from].p+axis*progress+Vec2{-axis.z,axis.x}*23.0f;
+    return nodes[from].p+axis*progress+Vec2{-axis.z,axis.x}*30.0f;
 }
 void assignRoad(Vehicle& v,bool snap){
     float best=std::numeric_limits<float>::max();int from=-1,to=-1;Vec2 point{};
@@ -50,7 +51,7 @@ void assignRoad(Vehicle& v,bool snap){
         if(score<best){best=score;from=a;to=b;point=candidate;}
     }
     v.roadFrom=from;v.roadTo=to;
-    if(snap&&from>=0&&!solid(point,22)){
+    if(snap&&from>=0&&!solid(point,22*physics::vehicleScale(v.kind))){
         v.p=point;Vec2 axis=nodes[to].p-nodes[from].p;v.angle=std::atan2(axis.z,axis.x);
     }
 }
@@ -95,7 +96,7 @@ bool exitCar(Ped& ped){
     Vehicle& v=vehicles[ped.drivingVehicle];
     Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
     for(float sign:{1.0f,-1.0f}){
-        Vec2 out=v.p+side*(sign*44);
+        Vec2 out=v.p+side*(sign*44*physics::vehicleScale(v.kind));
         if(solid(out,12))continue;
         jolt_world::driveVehicle(ped.drivingVehicle,0,0,0,true);
         v.driver=-1;v.trafficState=TrafficState::Parked;v.desiredSpeed=0;
@@ -151,9 +152,9 @@ void reset(){
         assignRoad(v,true);if(!roadAssigned(v))continue;
         // Lane snapping must not spawn a chassis on the player or another car.
         auto freeSpawn=[&](Vec2 point){
-            if(len(point-player)<110||solid(point,22))return false;
+            if(len(point-player)<110||solid(point,22*physics::vehicleScale(v.kind)))return false;
             for(int other=0;other<int(vehicles.size());++other)
-                if(other!=i&&len(vehicles[other].p-point)<65)return false;
+                if(other!=i&&len(vehicles[other].p-point)<physics::vehicleRadius(v.kind)+physics::vehicleRadius(vehicles[other].kind)+13)return false;
             return true;
         };
         for(int attempt=0;attempt<24&&!freeSpawn(v.p);++attempt){
@@ -298,8 +299,8 @@ bool updatePed(Ped& ped,float dt){
     if(validCar(ped.seekingVehicle)){
         auto& v=vehicles[ped.seekingVehicle];
         Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
-        Vec2 door=v.p+side*38;
-        if(solid(door,10))door=v.p-side*38;
+        Vec2 door=v.p+side*(38*physics::vehicleScale(v.kind));
+        if(solid(door,10))door=v.p-side*(38*physics::vehicleScale(v.kind));
         ped.target=door;ped.angle=std::atan2(v.p.z-ped.p.z,v.p.x-ped.p.x);
         if(len(ped.p-door)<15){
             ped.state=PedState::EnterVehicle;ped.boardingTime+=dt;
@@ -366,39 +367,50 @@ void update(float dt){
         if(toJunction<110&&nodes[v.roadTo].links.size()>2)desired=std::min(desired,55.0f);
         v.trafficState=chasing?(sees?TrafficState::Pursue:TrafficState::Search):TrafficState::Cruise;
         Vec2 facing=forward(v.angle);
-        auto avoid=[&](Vec2 point,Vec2 velocity,float radius){
+        float scale=physics::vehicleScale(v.kind);
+        auto avoid=[&](Vec2 point,Vec2 velocity,float halfWidth,float halfLength){
             Vec2 offset=point-v.p;float ahead=dot(offset,facing);
             if(ahead<=0||ahead>220)return;
             float arrival=std::clamp(ahead/std::max(30.0f,std::abs(v.speed)),0.0f,1.0f);
             Vec2 predicted=offset+velocity*arrival;
-            if(std::min(std::abs(cross(offset,facing)),std::abs(cross(predicted,facing)))>radius)return;
-            float gap=std::max(0.0f,ahead-radius-32);
+            if(std::min(std::abs(cross(offset,facing)),std::abs(cross(predicted,facing)))>13*scale+halfWidth+4)return;
+            float gap=std::max(0.0f,ahead-halfLength-24*scale-16);
             // Comfortable braking envelope plus a standstill gap.
             desired=std::min(desired,std::sqrt(2.0f*95.0f*gap));
         };
-        if(!chasing||!sees||occupied<0)avoid(player,playerVelocity,occupied>=0?32.0f:20.0f);
+        if(!chasing||!sees||occupied<0){
+            float otherScale=occupied>=0?physics::vehicleScale(vehicles[occupied].kind):1;
+            avoid(player,playerVelocity,occupied>=0?13*otherScale:10,occupied>=0?24*otherScale:12);
+        }
         for(int j=0;j<int(vehicles.size());++j)if(j!=i){
             const auto& other=vehicles[j];
             if(chasing&&sees&&j==occupied)continue;
             float theirs=len(other.p-nodes[v.roadTo].p);
-            bool ownPriority=toJunction<170&&nodes[v.roadTo].links.size()>2&&
-                other.driver>=0&&other.roadTo==v.roadTo&&i<j&&theirs>75&&
+            bool ownPriority=toJunction<230&&nodes[v.roadTo].links.size()>2&&
+                other.driver>=0&&other.roadTo==v.roadTo&&i<j&&theirs>125&&
                 dot(facing,forward(other.angle))<0.8f;
-            if(!ownPriority)avoid(other.p,other.velocity,42);
+            if(!ownPriority){
+                float otherScale=physics::vehicleScale(other.kind);
+                Vec2 otherFacing=forward(other.angle);
+                float along=std::abs(dot(facing,otherFacing)),across=std::abs(cross(facing,otherFacing));
+                float width=(other.kind==Kind::Bike?5:13)*otherScale;
+                float length=(other.kind==Kind::Bike?13:24)*otherScale;
+                avoid(other.p,other.velocity,width*along+length*across,length*along+width*across);
+            }
             // One stable winner at each intersection, with occupied junctions
             // taking priority. Queued cars never stop the vehicle clearing it.
-            if(toJunction<170&&nodes[v.roadTo].links.size()>2&&other.driver>=0){
-                if(theirs<65||(j<i&&other.roadTo==v.roadTo&&theirs<170))
-                    if(toJunction>75)desired=0;
+            if(toJunction<230&&nodes[v.roadTo].links.size()>2&&other.driver>=0){
+                if(theirs<100||(j<i&&other.roadTo==v.roadTo&&theirs<230))
+                    if(toJunction>125)desired=0;
             }
         }
         for(const auto& ped:peds)if(ped.alive&&ped.drivingVehicle<0)
-            avoid(ped.p,{},18);
+            avoid(ped.p,{},10,12);
         // Check the route corridor through turns. Extending the current heading
         // past a corner sees the opposite sidewalk and can stop a car forever.
         Vec2 routeDirection=norm(delta);
         for(float ahead=25;ahead<std::min(115.0f,len(delta));ahead+=15)
-            if(solid(v.p+routeDirection*ahead,22)){desired=0;break;}
+            if(solid(v.p+routeDirection*ahead,13*scale+4)){desired=0;break;}
         if(chasing&&occupied<0&&distance<95)desired=0;
         if(v.reactionTime>0){desired=0;v.trafficState=TrafficState::React;}
         else if(desired<5)v.trafficState=TrafficState::Yield;

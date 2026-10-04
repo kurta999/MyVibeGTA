@@ -106,6 +106,14 @@ int main(){
         assert(bounds.radius>6&&bounds.radius<7);
     }
     dx11::loadMeshes(L"assets/models/baked");
+    for(const char* id:{"pistol","silenced-pistol","smg","shotgun","rifle","sniper","rpg",
+        "flamethrower","fire-extinguisher","water-cannon","katana","knife","machete",
+        "novelty-toy","rolling-pin","bat","bow","minigun","shovel","grapple-hook"}){
+        const auto* icon=dx11::mesh(std::string("icons/")+id);
+        assert(icon&&icon->textured&&icon->transparent&&icon->unlit&&!icon->castsShadow);
+        assert(!icon->allowTessellation&&icon->vertices.size()==6&&icon->maxY>0);
+        assert(std::filesystem::exists(icon->textureFile));
+    }
     for(const auto& issue:dx11::assetIssues())std::fprintf(stderr,"%s\n",issue.c_str());
     assert(dx11::assetIssues().empty());
     // Original modern meshes must arrive with contiguous indexed material
@@ -190,9 +198,9 @@ int main(){
             assert(changed);
         }
     }
-    const auto* grass=dx11::mesh("primitive/grass-tuft");
+    const auto* grass=dx11::mesh("nature/grass_meadow");
     const auto* bullet=dx11::mesh("primitive/bullet");
-    assert(grass&&grass->vertices.size()==9&&!grass->castsShadow);
+    assert(grass&&grass->textured&&grass->alphaTest&&grass->grassFoliage);
     assert(bullet&&bullet->vertices.size()>=100&&!bullet->castsShadow);
     for(const char* name:{"effect/flame","effect/smoke","effect/flash",
                           "effect/shockwave","effect/blood","effect/blood-decal"}){

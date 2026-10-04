@@ -30,9 +30,12 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - **Wildlife:** 15 animal species, rideable elephants and tigers, and five bird species. Animals wander, play, flee, retaliate, and hunt according to species.
 - **Gameplay:** 20 weapons and tools, six main missions, four regional missions, wanted levels, police, traffic, driver retaliation, civilian conversations and fights, looting, shops, house ownership, and garages.
 - **Environment:** changing weather, rain and snow, fire spread, burning trees and vehicles, swimming, ladders, and tree climbing.
+- **Grass:** textured 2K foliage with curved blades, wind, and distinct lawn, meadow, savanna, desert, snow, and coastal variants. **Esc → Graphics → Grass distance** controls the radius from **Off** to **800 world units** (default **230**). The separate **Grass LOD** slider extends detailed blades from **40 to 800 units** (default **95**) and pushes the next LOD transition farther out. Its visible extent is capped by Grass distance. Vegetation density selects Off/Medium/High independently; both distance controls are saved automatically. Larger detail radii draw more blade geometry and near grass shadows.
 - **Persistence:** saved progression, inventory, ownership, living wildlife damage and position, tree destruction, and graphics/control/audio settings.
 
 ## Screenshots
+
+Grass source credits and reproducible import steps are in [GRASS.md](assets/models/GRASS.md). Run `./tools/verify_grass.ps1` for 1080p surface/distance/LOD/menu captures, or add `-Benchmark` to compare Off/default/maximum draw distance. Use `-Capture lod-default` or `-Capture lod-max` to compare the detailed grass radius. The `grass_scenarios` test checks 2K PBR assets, transparency, rooted wind weights, surface exclusions, deterministic placement, density, distance disabling, and independently adjustable LOD selection without changing roots. The simulation suite verifies both grass settings survive save/load.
 
 **Waterfront at sunset**
 
@@ -201,6 +204,12 @@ Animal gait, play, attack, and corpse poses are procedural. The roe-deer model i
 
 To repeat the equipment visuals, run `./tools/verify_equipment.ps1` after building. It writes Direct3D captures to `evidence/equipment-20261003/`. The `equipment_scenarios` CTest checks flight at 30/60 Hz, hover/landing/airborne exits, wall collisions, minigun cadence/reload, shovel damage and poses, grapple cover/reeling/release, and corpse-free legacy save loading.
 
+The Direct3D sky renders at the window's native resolution. It replaces the repeating sky pattern and opaque cloud spheres with an analytic atmosphere, wind-driven volumetric cumulus clouds, thin cirrus, and angular stars/moon. Cloud coverage follows weather, lighting follows time of day, and scene depth clips clouds against geometry when flying into or above the layer. Low/Medium/High graphics quality traces 24/36/48 cloud samples with early opacity termination and three sun-shadow samples. This is an approximation with Rayleigh/Mie-inspired sky coloration, not a complete physical atmosphere or cloud shadow system for terrain. The rendering approach follows [Guerrilla's Horizon cloud presentation](https://www.guerrilla-games.com/read/the-real-time-volumetric-cloudscapes-of-horizon-zero-dawn) and [Epic's volumetric cloud overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-clouds?application_version=4.27).
+
+**F4 → Infinite ammo** enables sustained fire without consuming magazines or reserves, including empty weapons. The HUD shows **INFINITE AMMO**; disabling the toggle restores the original inventory. The toggle is session-only and resets when loading/resetting the game. Vehicle destruction and explosive projectiles play a distinct positional blast with a crack, bass impact, and debris tail.
+
+Run `./tools/verify_sky.ps1` for day, zenith, overcast, sunset, night, rain, high-altitude, and F4-menu captures in `evidence/sky-20261003/`, or add `-Benchmark` for a 120-frame 1080p sample. The `sky_smoke` test renders and reads GPU pixels to check periodic noise, coverage, wind, night illumination, altitude transitions, and foreground clipping. The equipment and XAudio2 suites also cover the new ammo mode and cached explosion effect.
+
 ## Tests and visual previews
 
 Run the complete build and CTest suite:
@@ -285,6 +294,8 @@ The large `island_tree_03.bin` and `jacaranda_tree.bin` source files are omitted
 ```
 
 ## Current limitations
+
+DX11 weapon pickups and the HUD now share 20 detailed transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. The aircraft currently implemented are helicopters; fixed-wing planes are not present.
 
 - Animal poses and rider seating remain procedural; animal skeletal animation and ragdolls are not implemented.
 - The motorcycle uses a narrow four-wheel physics surrogate. Vehicle and impact behavior remain arcade-oriented.

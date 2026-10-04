@@ -4,6 +4,7 @@
 #include "audio.h"
 #include "weapons.h"
 #include "content.h"
+#include "physics.h"
 #include "police.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
@@ -126,7 +127,7 @@ bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
        (vehicle.kind==Kind::Helicopter&&vehicle.rideHeight>37)||
        ped.vehicleImpactCooldown>0)return false;
     float speed=std::abs(vehicle.speed);
-    float radius=vehicle.kind==Kind::Bike?17.0f:26.0f;
+    float radius=vehicle.kind==Kind::Bike?17.0f:physics::vehicleRadius(vehicle.kind);
     if(speed<20||len(ped.p-vehicle.p)>=radius)return false;
     Vec2 travel=norm(vehicle.velocity);
     if(len(travel)<0.01f)travel=forward(vehicle.angle)*(vehicle.speed<0?-1.0f:1.0f);

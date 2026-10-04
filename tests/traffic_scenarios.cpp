@@ -90,6 +90,7 @@ void trafficScenarios(){
         assert(len(vehicles[0].p-previous)<8);previous=vehicles[0].p;
     }
     std::printf("junctions: %zu, position %.1f %.1f\n",visited.size(),previous.x,previous.z);
+    std::printf("route: speed %.1f desired %.1f damage %.1f road %d %d\n",vehicles[0].speed,vehicles[0].desiredSpeed,vehicles[0].damage,vehicles[0].roadFrom,vehicles[0].roadTo);
     assert(visited.size()>=4&&!vehicles[0].exploded);
 
     // Perpendicular commuters clear the intersection without colliding or

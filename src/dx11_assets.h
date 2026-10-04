@@ -28,7 +28,9 @@ struct Mesh {
     bool alphaTest=false;
     bool castsShadow=true;
     bool transparent=false;
+    bool unlit=false;
     bool temporalStable=true;
+    bool grassFoliage=false;
     bool wrapTextures=false;
     bool allowTessellation=true;
     const Mesh* shadowProxy=nullptr;

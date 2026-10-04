@@ -1,4 +1,5 @@
 #include "dx11_assets.h"
+#include "dx11_grass.h"
 #include "game.h"
 #include "game_internal.h"
 #include "ui.h"
@@ -463,33 +464,6 @@ void streetlights(){
             game::rgb(72,225,243));
     }
 }
-void nightSky(){
-    float solar=std::sin((game::gameHour-6)*game::PI/12.0f);
-    if(solar>-0.18f||weather::current().clouds>0.72f)return;
-    float phase=(game::gameHour-18.0f)*game::PI/12.0f;
-    Vec3 moon{game::player.x+690*std::cos(phase*0.08f),
-        175+20*std::sin(phase),
-        game::player.z-250+45*std::sin(phase*0.08f)};
-    sphere(moon,18,game::rgb(229,231,209));
-    for(int index=0;index<24;++index){
-        float angle=index*2.399963f;
-        float distance=42.0f+float((index*17)%83);
-        Vec3 star{moon.x+float(index%5)*3,
-            moon.y+std::sin(angle)*distance*0.7f,
-            moon.z+std::cos(angle)*distance};
-        sphere(star,index%7==0?3.0f:1.8f,game::rgb(239,244,244));
-    }
-    for(int index=0;index<72;++index){
-        float bearing=index*2.399963f;
-        float elevation=0.16f+0.30f*float((index*37)%41)/40.0f;
-        float distance=750.0f;
-        Vec3 star{game::player.x+std::cos(bearing)*distance,
-            100+elevation*distance,
-            game::player.z+std::sin(bearing)*distance};
-        float radius=index%9==0?3.2f:1.8f;
-        sphere(star,radius,game::rgb(236,241,243));
-    }
-}
 void regionalTerrain(){
     float radius=1100*drawScale();
     auto emitTiles=[&](float tile,bool distant){
@@ -688,28 +662,6 @@ void marinaScenery(){
                 {2,4,5},0,game::rgb(77,82,80));
     }
 }
-void clouds(){
-    float cover=weather::current().clouds;
-    if(cover<0.15f)return;
-    int count=int(10+cover*30);
-    game::Vec2 wind=weather::current().wind;
-    for(int index=0;index<count;++index){
-        float drift=game::worldTime*wind.x*5.0f;
-        float driftZ=game::worldTime*wind.z*5.0f;
-        float x=game::player.x-440+std::fmod(index*137.0f+drift+4400.0f,880.0f);
-        float z=game::player.z-440+std::fmod(index*233.0f+driftZ+4400.0f,880.0f);
-        float y=390+float(index%4)*20;
-        float solar=std::sin((game::gameHour-6)*game::PI/12.0f);
-        float daylight=std::clamp(solar*2.0f+0.35f,0.0f,1.0f);
-        float twilight=std::max(0.0f,1.0f-std::abs(solar)*4.0f);
-        float shade=cover>0.7f?0.68f:0.90f;
-        Color tint{(0.28f+0.65f*daylight+0.22f*twilight)*shade,
-            (0.34f+0.62f*daylight+0.06f*twilight)*shade,
-            (0.47f+0.50f*daylight-0.08f*twilight)*shade};
-        model("primitive/sphere",{x,y,z},
-            {130.0f+float(index%5)*18,22.0f+float(index%3)*6,90.0f},0,tint);
-    }
-}
 void buildings(){
     float range=ui::graphicsQuality==0?500:ui::graphicsQuality==1?680:850;
     for(size_t index=0;index<game::buildings.size();++index){
@@ -795,112 +747,78 @@ void buildings(){
         }
     }
 }
-bool grassGround(Vec2 point,regions::Biome& biome){
-    if(point.x<2||point.z<2||point.x>regions::WIDTH-2||
-       point.z>regions::DEPTH-2)return false;
-    if(point.x<game::WORLD_W&&point.z<game::WORLD_D){
-        if(point.z>=game::BEACH_START)return false;
-        for(int column=0;column<5;++column)
-            if(std::abs(point.x-(300+column*450.0f))<game::ROAD_W*0.5f+3)
-                return false;
-        for(int row=0;row<4;++row)
-            if(std::abs(point.z-(250+row*390.0f))<game::ROAD_W*0.5f+3)
-                return false;
-        biome=regions::Biome::City;
-    }else{
-        Vec2 tile{std::floor(point.x/100.0f)*100.0f+50.0f,
-                  std::floor(point.z/100.0f)*100.0f+50.0f};
-        if(regions::waterAt(tile)||regions::roadAt(tile)||
-           regions::roadAt(point))return false;
-        biome=regions::biomeAt(tile);
-        if(biome!=regions::Biome::City&&
-           biome!=regions::Biome::Countryside&&
-           biome!=regions::Biome::Savanna)return false;
-        const auto* region=regions::at(point);
-        if(region&&region->id=="marina-part"){
-            if(point.z>=8810&&point.z<=10015&&
-               point.x>=8040&&point.x<=8137)return false;
-            if(point.z>=10035&&point.z<=10710){
-                float q=(point.z-10360.0f)/360.0f;
-                float edge=8010.0f+770.0f*
-                    std::sqrt(std::max(0.0f,1.0f-q*q));
-                if(point.x>=edge+7&&point.x<=edge+54)return false;
-            }
-        }
-    }
-    return !game::solid(point,2.5f);
-}
-struct GrassTuft {Vec2 p;float width,height,yaw;Color tint;};
-std::uint32_t grassHash(int x,int z,int variant){
-    std::uint32_t value=std::uint32_t(x)*0x9e3779b9u ^
-        std::uint32_t(z)*0x85ebca6bu ^std::uint32_t(variant)*0xc2b2ae35u;
-    value^=value>>16;value*=0x7feb352du;
-    value^=value>>15;value*=0x846ca68bu;
-    return value^(value>>16);
-}
-float grassUnit(std::uint32_t value){return float(value&0xffffu)/65535.0f;}
-void proceduralGrass(){
-    if(ui::vegetationDensity==0)return;
-    const float radius=40.0f+2.0f*ui::grassDistance;
-    constexpr float cell=10.0f,recenter=20.0f;
-    static int cacheX=std::numeric_limits<int>::min();
-    static int cacheZ=std::numeric_limits<int>::min();
+struct GrassTuft {Vec2 p;float width,height,yaw;Color tint;grass::Surface surface;int ring;std::uint32_t seed;};
+void texturedGrass(){
+    const float radius=ui::grassDistanceUnits();
+    const float detailRadius=ui::grassLodDistanceUnits();
+    const float midRadius=std::max(260.0f,detailRadius*(260.0f/95.0f));
+    if(ui::vegetationDensity==0||radius==0)return;
+    constexpr float recenter=20;
+    static int cacheX=std::numeric_limits<int>::min(),cacheZ=cacheX;
     static int cacheDistance=-1;
+    static std::size_t cacheBuildings=0;
     static std::vector<GrassTuft> cached;
     int centerX=int(std::floor(game::player.x/recenter));
     int centerZ=int(std::floor(game::player.z/recenter));
-    if(centerX!=cacheX||centerZ!=cacheZ||cacheDistance!=ui::grassDistance){
+    if(centerX!=cacheX||centerZ!=cacheZ||cacheDistance!=ui::grassDistance||
+       cacheBuildings!=game::buildings.size()){
         const auto started=std::chrono::steady_clock::now();
-        cacheX=centerX;cacheZ=centerZ;cached.clear();
-        cacheDistance=ui::grassDistance;
-        Vec2 center{(centerX+0.5f)*recenter,(centerZ+0.5f)*recenter};
-        float covered=radius+recenter;
-        int x0=int(std::floor((center.x-covered)/cell));
-        int x1=int(std::floor((center.x+covered)/cell));
-        int z0=int(std::floor((center.z-covered)/cell));
-        int z1=int(std::floor((center.z+covered)/cell));
-        // Each row has a private result vector. Merge in original z/x/variant
-        // order so density selection, instances, and rendering remain stable.
-        std::vector<std::vector<GrassTuft>> rows(size_t(z1-z0+1));
-        sceneRange(rows.size(),8,[&](size_t row){
-          int z=z0+int(row);auto& tufts=rows[row];
-          for(int x=x0;x<=x1;++x)
-            for(int variant=0;variant<2;++variant){
-                std::uint32_t seed=grassHash(x,z,variant+1);
-                if(grassUnit(grassHash(x/4,z/4,variant+73))<0.26f)continue;
-                Vec2 point{(x+grassUnit(seed))*cell,
-                           (z+grassUnit(seed>>16))*cell};
-                if(game::len(point-center)>covered)continue;
-                regions::Biome biome{};
-                if(!grassGround(point,biome))continue;
-                std::uint32_t shape=grassHash(z,x,variant+17);
-                float width=2.1f+grassUnit(shape)*2.3f;
-                float height=1.9f+grassUnit(shape>>16)*3.2f;
-                float yaw=grassUnit(grassHash(x,z,variant+39))*game::PI*2;
-                int tone=int(shape%29);
-                Color tint=biome==regions::Biome::Savanna?
-                    game::rgb(119+tone,126+tone/2,65+tone/3):
-                    game::rgb(68+tone/2,116+tone,57+tone/3);
-                tufts.push_back({point,width,height,yaw,tint});
-            }
-        });
-        for(const auto& row:rows)cached.insert(cached.end(),row.begin(),row.end());
-        workStats.grassMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();
+        cacheX=centerX;cacheZ=centerZ;cacheDistance=ui::grassDistance;
+        cacheBuildings=game::buildings.size();cached.clear();
+        Vec2 center{(centerX+.5f)*recenter,(centerZ+.5f)*recenter};
+        for(int ring=0;ring<3;++ring){
+            float inner=ring==0?0:ring==1?130.0f:365.0f;
+            if(radius<=inner)break;
+            float cell=ring==0?6.0f:ring==1?12.0f:24.0f;
+            float outer=std::min(radius,ring==0?160.0f:ring==1?400.0f:800.0f);
+            float covered=outer+recenter;
+            int x0=int(std::floor((center.x-covered)/cell));
+            int x1=int(std::floor((center.x+covered)/cell));
+            int z0=int(std::floor((center.z-covered)/cell));
+            int z1=int(std::floor((center.z+covered)/cell));
+            std::vector<std::vector<GrassTuft>> rows(size_t(z1-z0+1));
+            sceneRange(rows.size(),8,[&](size_t row){
+                int z=z0+int(row);auto& tufts=rows[row];
+                for(int x=x0;x<=x1;++x){
+                    auto seed=grass::hash(x,z,ring+1);
+                    Vec2 point{(x+grass::unit(seed))*cell,(z+grass::unit(seed>>16))*cell};
+                    float distance=game::len(point-center);
+                    if(distance>covered||distance<inner-recenter)continue;
+                    auto surface=grass::surfaceAt(point);
+                    const auto& type=grass::profile(surface);
+                    if(surface==grass::Surface::None)continue;
+                    float patch=.60f+.40f*grass::unit(grass::hash(x/5,z/5,ring+81));
+                    if(grass::unit(grass::hash(x,z,ring+71))>type.coverage*patch)continue;
+                    auto shape=grass::hash(z,x,ring+17);
+                    float scale=.78f+grass::unit(shape)*.44f;
+                    float height=type.height*(.72f+grass::unit(shape>>16)*.56f);
+                    float tone=.88f+grass::unit(grass::hash(x,z,ring+47))*.18f;
+                    tufts.push_back({point,type.width*scale,height,
+                        grass::unit(grass::hash(x,z,ring+39))*game::PI*2,
+                        {tone,tone,tone},surface,ring,seed});
+                }
+            });
+            for(const auto& row:rows)cached.insert(cached.end(),row.begin(),row.end());
+        }
+        workStats.grassMs+=std::chrono::duration<double,std::milli>(
+            std::chrono::steady_clock::now()-started).count();
     }
-    for(std::size_t index=0;index<cached.size();++index){
-        if(ui::vegetationDensity==1&&index%2)continue;
-        const auto& tuft=cached[index];
+    for(const auto& tuft:cached){
+        if(ui::vegetationDensity==1&&(tuft.seed&1))continue;
         float distance=game::len(tuft.p-game::player);
-        if(distance>=radius)continue;
-        float fade=std::clamp((radius-distance)/20.0f,0.0f,1.0f);
-        model("primitive/grass-tuft",{tuft.p.x,0.02f,tuft.p.z},
-            {tuft.width*fade,tuft.height*fade,tuft.width*fade},
-            tuft.yaw,tuft.tint);
+        float fade=grass::ringFade(distance,tuft.ring,radius);
+        if(fade<=.01f)continue;
+        std::string name=grass::profile(tuft.surface).mesh;
+        // Detailed curved blades only nearby. Both cutout LODs share the
+        // same root and physical size; distant clumps do not cast tiny shadows.
+        if(distance>detailRadius)name+=distance>midRadius?"-lod2":"-lod1";
+        model(name,{tuft.p.x,.015f,tuft.p.z},
+            {tuft.width*fade,tuft.height*fade,tuft.width*fade},tuft.yaw,tuft.tint);
     }
 }
 void vegetation(){
     if(ui::vegetationDensity==0)return;
-    proceduralGrass();
+    texturedGrass();
     auto bushName=[](int variant){
         variant%=36;
         return "nature/bush_"+std::string(variant<10?"0":"")+
@@ -957,7 +875,7 @@ void vegetation(){
     }
     if(ui::vegetationDensity==2){
         for(int i=0;i<70;++i){float x=35+float((i*137)%2280),z=game::BEACH_START+35+float((i*67)%210);
-            if(close({x,z},400))model(i%4==0?bushName(i*13):"nature/grass_large",
+            if(i%4==0&&close({x,z},400))model(bushName(i*13),
                 {x,0,z},{i%4==0?12.0f:8.0f,i%4==0?12.0f:7.0f,i%4==0?12.0f:8.0f},i*0.76f);}
     }
 }
@@ -1180,8 +1098,8 @@ void people(){
             Vec2 side{-facing.z,facing.x};
             float sideSign=(game::player-vehicle.p).x*side.x+
                 (game::player-vehicle.p).z*side.z>=0?1.0f:-1.0f;
-            Vec2 doorway=vehicle.p+side*(sideSign*(vehicle.kind==game::Kind::Bike?14.0f:21.0f))-
-                facing*(vehicle.kind==game::Kind::Boat?5.0f:3.0f);
+            Vec2 doorway=vehicle.p+side*(sideSign*(vehicle.kind==game::Kind::Bike?14.0f:21.0f)*physics::vehicleScale(vehicle.kind))-
+                facing*((vehicle.kind==game::Kind::Boat?5.0f:3.0f)*physics::vehicleScale(vehicle.kind));
             shown=shown+(doorway-shown)*slide;
             shownY-=slide*3.0f;
             shownAngle=std::atan2(vehicle.p.z-shown.z,vehicle.p.x-shown.x);
@@ -1254,6 +1172,7 @@ void vehicles(){
         Color paint=v.exploded?game::rgb(38,39,41):v.c;
         Vec2 facing=game::forward(v.angle);
         float yaw=game::PI/2-v.angle;
+        float scale=physics::vehicleScale(v.kind);
         bool playerDriver=game::occupied==int(&v-game::vehicles.data())&&game::health>0;
         int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
             game::peds[v.driver].style:-1;
@@ -1277,12 +1196,12 @@ void vehicles(){
             const float carHeights[]={20,23,23,21,26,22};
             Color tint=v.exploded?game::rgb(65,65,65):Color{1,1,1};
             model(carName,{v.p.x,v.rideHeight,v.p.z},
-                {26,carHeights[v.kind==game::Kind::SportCar?0:variant],48},yaw,tint);
+                {26*scale,carHeights[v.kind==game::Kind::SportCar?0:variant]*scale,48*scale},yaw,tint);
             float cabinHeight=carHeights[v.kind==game::Kind::SportCar?0:variant];
-            model(carName+"-glass",{v.p.x,v.rideHeight,v.p.z},{26,cabinHeight,48},yaw,tint);
+            model(carName+"-glass",{v.p.x,v.rideHeight,v.p.z},{26*scale,cabinHeight*scale,48*scale},yaw,tint);
             Vec2 side{-facing.z,facing.x};
-            driver(v.p-side*5.5f,-cabinHeight*0.07f,
-                {10,cabinHeight*0.95f,11},false);
+            driver(v.p-side*(5.5f*scale),-cabinHeight*0.07f*scale,
+                {14,40,14},false);
             if(game::vehicleLightsOn(v)){
                 Vec2 side{-facing.z,facing.x};
                 const float sideOffsets[]={8.0f,9.2f,7.6f,8.9f,8.4f,8.0f};
@@ -1291,11 +1210,13 @@ void vehicles(){
                 const Mesh* body=mesh(carName);
                 float lampSide=modern?6.44f:sideOffsets[geometry];
                 float lampHeight=modern?carHeights[geometry]*(geometry==0?0.50f:0.45f):frontHeights[geometry];
+                lampSide*=scale;lampHeight*=scale;
                 float rearHeight=modern?carHeights[geometry]*(geometry==0?0.52f:0.47f):9.7f;
+                rearHeight*=scale;
                 auto found=lampDepths.find(body);
                 if(found==lampDepths.end()){
                     std::array<float,4> depths{};
-                    Vec3 dimensions{26,carHeights[geometry],48};
+                    Vec3 dimensions{26*scale,carHeights[geometry]*scale,48*scale};
                     for(int sideIndex=0;sideIndex<2;++sideIndex){
                         float x=(sideIndex==0?-1.0f:1.0f)*lampSide;
                         depths[sideIndex]=carLampDepth(*body,dimensions,x,
@@ -1311,9 +1232,9 @@ void vehicles(){
                     Vec2 rear=v.p+facing*found->second[sideIndex+2]+
                         side*(sign*lampSide);
                     carLamp(front,v.rideHeight+lampHeight,facing,side,
-                        3.0f,1.7f,true,{1.0f,0.94f,0.76f});
+                        3.0f*scale,1.7f*scale,true,{1.0f,0.94f,0.76f});
                     carLamp(rear,v.rideHeight+rearHeight,facing,side,
-                        3.1f,1.7f,false,{1.0f,0.12f,0.08f});
+                        3.1f*scale,1.7f*scale,false,{1.0f,0.12f,0.08f});
                 }
             }
         }else if(v.kind==game::Kind::Bike){
@@ -1346,19 +1267,19 @@ void vehicles(){
                 glowBox({front.x,front.y+8,front.z},{4,4,2},yaw,
                     game::rgb(255,239,189));
         }else if(v.kind==game::Kind::Helicopter){
-            model("vehicles/helicopter",{v.p.x,v.rideHeight,v.p.z},{26.5f,30.5f,81.5f},yaw);
-            Vec2 mast=v.p+facing*18;
-            model("vehicles/helicopter-rotor",{mast.x,v.rideHeight+28.7f,mast.z},
-                {113.5f,0.5f,33.7f},yaw+v.rotorAngle);
-            Vec2 tail=v.p-facing*36;
+            model("vehicles/helicopter",{v.p.x,v.rideHeight,v.p.z},{26.5f*scale,30.5f*scale,81.5f*scale},yaw);
+            Vec2 mast=v.p+facing*(18*scale);
+            model("vehicles/helicopter-rotor",{mast.x,v.rideHeight+28.7f*scale,mast.z},
+                {113.5f*scale,0.5f*scale,33.7f*scale},yaw+v.rotorAngle);
+            Vec2 tail=v.p-facing*(36*scale);
             Vec2 side{-facing.z,facing.x};
-            Vec3 hub{tail.x+side.x*9,v.rideHeight+26,tail.z+side.z*9};
+            Vec3 hub{tail.x+side.x*9*scale,v.rideHeight+26*scale,tail.z+side.z*9*scale};
             for(int blade=0;blade<4;++blade){
                 float angle=v.rotorAngle*1.8f+blade*game::PI/2;
-                beam(hub,hub+Vec3{facing.x*std::cos(angle)*9,std::sin(angle)*9,
-                    facing.z*std::cos(angle)*9},1.2f,1.2f,game::rgb(51,55,59));
+                beam(hub,hub+Vec3{facing.x*std::cos(angle)*9*scale,std::sin(angle)*9*scale,
+                    facing.z*std::cos(angle)*9*scale},1.2f*scale,1.2f*scale,game::rgb(51,55,59));
             }
-            driver(v.p+facing*22,3,{10,18,10},false);
+            driver(v.p+facing*(22*scale),3*scale,{14,32,14},false);
         }else{
             model("vehicles/motorboat",{v.p.x,v.rideHeight-2,v.p.z},{24,22,48},yaw);
             driver(v.p-facing*6,1,{13,30,13},false);
@@ -1397,8 +1318,22 @@ void markers(){
            !game::trees[tree.treeIndex].destroyed)
             sphere({tree.bottom.x,7,tree.bottom.z},4,game::rgb(253,211,108));
     }
-    for(const auto& pickup:game::pickups)if(pickup.available&&close(pickup.p,650))
-        sphere({pickup.p.x,13+std::sin(game::worldTime*3)*3,pickup.p.z},5,game::rgb(84,238,235));
+    for(const auto& pickup:game::pickups)if(pickup.available&&close(pickup.p,650)){
+        std::string name="icons/"+weapons::stats(pickup.weapon).id;
+        if(const Mesh* icon=mesh(name)){
+            float width=std::min(32.0f,26.0f/icon->maxY),height=width*icon->maxY;
+            float yaw=std::atan2(lodEye.x-pickup.p.x,lodEye.z-pickup.p.z);
+            model(name,{pickup.p.x,8+std::sin(game::worldTime*3)*2,pickup.p.z},
+                {width,height,1},yaw);
+            auto& card=modelInstances->back();
+            // Tilt about the sprite center so icons also face elevated cameras.
+            float vertical=lodEye.y-(card.y+height*.5f);
+            float horizontal=std::max(1.0f,game::len(Vec2{lodEye.x-pickup.p.x,lodEye.z-pickup.p.z}));
+            float pitch=std::atan2(vertical,horizontal);
+            card.sinPitch=std::sin(pitch);card.cosPitch=std::cos(pitch);
+            card.minY=icon->maxY*.5f;card.y+=height*.5f;
+        }
+    }
     for(const auto& mission:game::missions)if(close(mission.start,650)){
         Color tint=game::rgb(244,174,67);
         marker(mission.start,17,38,tint);
@@ -1615,7 +1550,7 @@ void effects(){
     }
     for(const auto& flame:fire::active())if(close(flame.p,500))
         handler.fireColumn({flame.p.x,0,flame.p.z},flame.intensity,
-            grassHash(int(flame.p.x),int(flame.p.z),41));
+            grass::hash(int(flame.p.x),int(flame.p.z),41));
     for(std::size_t index=0;index<game::peds.size();++index){
         const auto& ped=game::peds[index];
         if(ped.alive&&ped.burnTime>0&&close(ped.p,500)){
@@ -1623,7 +1558,7 @@ void effects(){
             for(float sign:{-1.0f,1.0f})
                 handler.fireColumn({ped.p.x+side.x*sign*7,7,
                     ped.p.z+side.z*sign*7},0.55f,
-                    grassHash(int(index),int(sign*ped.p.z),73));
+                    grass::hash(int(index),int(sign*ped.p.z),73));
         }
     }
     for(std::size_t index=0;index<game::vehicles.size();++index){
@@ -1632,7 +1567,7 @@ void effects(){
             Vec2 facing=game::forward(vehicle.angle);
             handler.fireColumn({vehicle.p.x+facing.x*9,vehicle.rideHeight+11,
                 vehicle.p.z+facing.z*9},0.8f,
-                grassHash(int(index),int(vehicle.p.x),91));
+                grass::hash(int(index),int(vehicle.p.x),91));
         }
     }
     for(const auto& vehicle:game::vehicles)
@@ -1757,7 +1692,7 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     if(authoredLodChoice.size()>30000)authoredLodChoice.clear();
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
     regionalTerrain();marinaScenery();
-    if(!staticOnly){weatherGroundDetails();nightSky();clouds();}
+    if(!staticOnly)weatherGroundDetails();
     buildings();vegetation();streetlights();
     if(staticOnly)return;
     vehicles();people();animals();markers();effects();

@@ -213,6 +213,8 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         police::setWantedLevel(4);
     if(smoke&&commandLine&&std::strstr(commandLine,"--rain"))weather::set("rain");
     if(smoke&&commandLine&&std::strstr(commandLine,"--snow"))weather::set("snow");
+    if(smoke&&commandLine&&std::strstr(commandLine,"--windy"))weather::set("windy");
+    if(smoke&&commandLine&&std::strstr(commandLine,"--overcast"))weather::set("overcast");
     if(smoke&&commandLine&&std::strstr(commandLine,"--east"))
         player=previousPlayer={12000,8500};
     if(smoke&&commandLine&&std::strstr(commandLine,"--marina")){
@@ -555,9 +557,62 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--graphics-menu"))
         ui::page=ui::Page::Graphics;
+#ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--grass-preview")){
+        player=previousPlayer={4550,4500};playerY=0;
+        if(std::strstr(commandLine,"--grass-lawn"))player=previousPlayer={150,1510};
+        if(std::strstr(commandLine,"--grass-savanna"))player=previousPlayer={12550,13350};
+        if(std::strstr(commandLine,"--grass-desert"))player=previousPlayer={12250,3450};
+        if(std::strstr(commandLine,"--grass-snow"))player=previousPlayer={4550,14450};
+        if(std::strstr(commandLine,"--grass-coastal"))player=previousPlayer={1750,1740};
+        if(std::strstr(commandLine,"--grass-off"))ui::grassDistance=0;
+        if(std::strstr(commandLine,"--grass-max"))ui::grassDistance=100;
+        cameraYaw=.25f;cameraPitch=-.24f;cameraMode=CameraMode::FirstWide;
+        if(std::strstr(commandLine,"--grass-lod-preview")){
+            ui::grassLodDistance=50;
+            cameraMode=CameraMode::ThirdFar;cameraPitch=-.35f;
+        }
+        if(std::strstr(commandLine,"--grass-lod-max"))ui::grassLodDistance=100;
+        if(std::strstr(commandLine,"--grass-lod-min"))ui::grassLodDistance=0;
+        rightMouse=false;ui::showHelp=false;
+        jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--sky-preview")){
+        player=previousPlayer={4500,4500};playerY=0;
+        cameraYaw=-.55f;cameraPitch=.48f;cameraMode=CameraMode::FirstWide;
+        rightMouse=false;ui::showHelp=false;
+        if(std::strstr(commandLine,"--sky-zenith"))cameraPitch=1.4f;
+        if(std::strstr(commandLine,"--sky-above")){playerY=3300;cameraPitch=-.38f;}
+        if(std::strstr(commandLine,"--sky-inside")){playerY=2150;cameraPitch=0;}
+        if(std::strstr(commandLine,"--sky-drift"))worldTime+=180;
+        debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--infinite-ammo-preview")){
+        debug_menu::open=true;debug_menu::selection=5;debug_menu::handleKey(VK_RETURN);
+    }
+#endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--crouch-preview"))
         crouched=true;
 #ifdef MINI_CITY_JOLT
+    if(smoke&&commandLine&&std::strstr(commandLine,"--weapon-icons-preview")){
+        player=previousPlayer={4500,4500};playerY=50;cameraYaw=0;cameraPitch=-.4f;
+        cameraMode=CameraMode::FirstWide;pickups.clear();ui::grassDistance=0;
+        for(int i=0;i<weapons::count();++i)
+            pickups.push_back({{4600+float(i/5)*40,4500+float(i%5-2)*36},i,true,0,"icon-preview-"+std::to_string(i)});
+        weapon=weapons::indexOf("minigun");debug_menu::flyMode=true;
+        jolt_world::teleportCharacter(player,playerY);
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--vehicle-scale-preview")){
+        player=previousPlayer={4500,4500};playerY=0;cameraYaw=0;cameraPitch=0;
+        cameraMode=CameraMode::ThirdNear;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();
+        for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Helicopter}){
+            Vehicle v{};v.kind=kind;v.id=kind==Kind::Car?"starter-car":"scale-preview";
+            v.p=kind==Kind::Car?Vec2{4570,4430}:kind==Kind::SportCar?Vec2{4570,4520}:Vec2{4690,4610};
+            v.angle=0;v.c=rgb(190,80,50);vehicles.push_back(v);
+        }
+        jolt_world::reset();
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--helicopter-preview")){
         for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==Kind::Helicopter){
             jolt_world::teleportVehicle(i,{4500,4500},0);occupied=i;

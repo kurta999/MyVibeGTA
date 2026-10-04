@@ -1,5 +1,6 @@
 #include "ped_navigation.h"
 #include "regions.h"
+#include "physics.h"
 #include <queue>
 #include <limits>
 
@@ -166,7 +167,7 @@ Vec2 avoidPeople(const Ped& ped,Vec2 preferred,float speed,float dt,const Obstac
         }
         for(const auto& car:vehicles)if(len(car.velocity)>8&&len(car.p-ped.p)<160){
             Vec2 relativeEnd=end-car.velocity*horizon;
-            if(segmentDistance(car.p,ped.p,relativeEnd)<38){safe=false;break;}
+            if(segmentDistance(car.p,ped.p,relativeEnd)<physics::vehicleRadius(car.kind)+12){safe=false;break;}
         }
         if(!safe)continue;
         if(occupied<0&&health>0&&playerY<35){

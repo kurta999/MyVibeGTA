@@ -87,8 +87,14 @@ void driverScenarios();
 void vehicleCollisionScenarios();
 void pedScenarios();
 void sceneJobScenarios();
+void grassScenarios();
 void equipmentScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&std::string(argv[1])=="--grass-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
+            commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        game::reset();grassScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--equipment-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&
             commerce::load()&&traversal::load()&&weather::load()&&regions::load());
@@ -750,8 +756,12 @@ int main(int argc,char** argv){
         game::meleeVisualAction==10);
     game::reset();game::buildings.clear();game::peds.clear();
     game::Ped hipFireTarget{};hipFireTarget.p={355,250};
+    game::player=game::previousPlayer={300,250};
     hipFireTarget.health=100;hipFireTarget.knockedDown=1;
     game::peds.push_back(hipFireTarget);
+    // Isolate the combat lane from the starter car's now larger body.
+    game::vehicles.clear();game::props.clear();game::trees.clear();
+    jolt_world::reset();
     int hipFireAmmo=game::magazine[0];
     game::rightMouse=false;game::leftMouse=true;
     game::update(1.0f/60.0f);
@@ -1164,6 +1174,14 @@ int main(int argc,char** argv){
     game::reset();
     game::buildings.clear();game::peds.clear();game::props.clear();
     int rocketCar=vehicleIndex("starter-car");
+    // Aim from clear ground toward the actual vehicle, rather than grazing
+    // the old circular hit proxy from beside its bumper.
+    game::player=game::previousPlayer=game::vehicles[rocketCar].p-game::Vec2{160,0};
+    jolt_world::teleportCharacter(game::player,0);
+    // Aim from clear ground toward the actual vehicle, rather than grazing
+    // the old circular hit proxy from beside its bumper.
+    game::player=game::previousPlayer=game::vehicles[rocketCar].p-game::Vec2{160,0};
+    jolt_world::teleportCharacter(game::player,0);
     game::weapon=weapons::indexOf("rpg");game::unlocked[game::weapon]=true;
     game::magazine[game::weapon]=1;
     game::cameraYaw=0;game::cameraPitch=0;
@@ -1563,15 +1581,15 @@ int main(int argc,char** argv){
     ui::shadowQuality=2;ui::reflectionQuality=2;
     ui::antiAliasingQuality=2;ui::aoQuality=2;
     ui::drawDistance=100;ui::lodDistance=75;
-    ui::grassDistance=83;ui::save();
+    ui::grassDistance=83;ui::grassLodDistance=90;ui::save();
     ui::shadowQuality=0;ui::reflectionQuality=0;
     ui::antiAliasingQuality=0;ui::aoQuality=0;
     ui::drawDistance=0;ui::lodDistance=0;
-    ui::grassDistance=0;ui::load();
+    ui::grassDistance=0;ui::grassLodDistance=0;ui::load();
     assert(ui::shadowQuality==2&&ui::reflectionQuality==2&&
         ui::antiAliasingQuality==2&&ui::aoQuality==2&&
         ui::drawDistance==100&&ui::lodDistance==75&&
-        ui::grassDistance==83);
+        ui::grassDistance==83&&ui::grassLodDistance==90);
     assert(std::abs(ui::drawDistanceScale()-7.5f)<0.001f);
     std::puts("simulation smoke passed");
 }

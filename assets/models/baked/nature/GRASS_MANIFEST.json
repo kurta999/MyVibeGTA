@@ -1,0 +1,100 @@
+{
+  "source": "https://polyhaven.com/a/grass_medium_01",
+  "license": "CC0-1.0",
+  "texture_size": [
+    2048,
+    2048
+  ],
+  "meshes": [
+    {
+      "name": "grass_lawn",
+      "vertices": 888,
+      "triangles": 833
+    },
+    {
+      "name": "grass_lawn-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_lawn-lod2",
+      "vertices": 12,
+      "triangles": 8
+    },
+    {
+      "name": "grass_meadow",
+      "vertices": 700,
+      "triangles": 653
+    },
+    {
+      "name": "grass_meadow-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_meadow-lod2",
+      "vertices": 12,
+      "triangles": 8
+    },
+    {
+      "name": "grass_savanna",
+      "vertices": 330,
+      "triangles": 290
+    },
+    {
+      "name": "grass_savanna-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_savanna-lod2",
+      "vertices": 12,
+      "triangles": 8
+    },
+    {
+      "name": "grass_desert",
+      "vertices": 354,
+      "triangles": 310
+    },
+    {
+      "name": "grass_desert-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_desert-lod2",
+      "vertices": 12,
+      "triangles": 8
+    },
+    {
+      "name": "grass_snow",
+      "vertices": 394,
+      "triangles": 340
+    },
+    {
+      "name": "grass_snow-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_snow-lod2",
+      "vertices": 12,
+      "triangles": 8
+    },
+    {
+      "name": "grass_coastal",
+      "vertices": 700,
+      "triangles": 653
+    },
+    {
+      "name": "grass_coastal-lod1",
+      "vertices": 18,
+      "triangles": 12
+    },
+    {
+      "name": "grass_coastal-lod2",
+      "vertices": 12,
+      "triangles": 8
+    }
+  ]
+}

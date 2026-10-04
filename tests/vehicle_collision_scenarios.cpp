@@ -4,6 +4,7 @@
 #include "../src/traffic.h"
 #include "../src/wildlife.h"
 #include "../src/dx11_assets.h"
+#include "../src/physics.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -12,6 +13,18 @@
 
 void vehicleCollisionScenarios(){
     using namespace game;
+    assert(physics::vehicleScale(Kind::Car)==2&&physics::vehicleScale(Kind::SportCar)==2);
+    assert(physics::vehicleScale(Kind::Helicopter)==2&&physics::vehicleScale(Kind::Bike)==1);
+    assert(physics::vehicleScale(Kind::Boat)==1&&physics::vehicleRestHeight(Kind::Car)==28);
+    // Hit volumes rotate with the doubled body and do not block clear lanes
+    // beside it as an oversized circular approximation would.
+    Vehicle hitCar{};hitCar.kind=Kind::Car;float entry=0;
+    assert(!physics::vehicleSegmentHit(hitCar,{-100,20,30},{100,20,30},entry));
+    assert(physics::vehicleSegmentHit(hitCar,{-100,20,24},{100,20,24},entry));
+    assert(std::abs(entry-.26f)<.001f&&physics::vehicleContains(hitCar,{40,20,24}));
+    hitCar.angle=PI/2;
+    assert(physics::vehicleSegmentHit(hitCar,{-100,20,0},{100,20,0},entry));
+    assert(std::abs(entry-.37f)<.001f);
     buildings.clear();peds.clear();props.clear();trees.clear();wildlife::animals.clear();
     constexpr float dt=1.0f/60;
     for(Kind kind:{Kind::Car,Kind::SportCar,Kind::Bike}){
@@ -52,7 +65,8 @@ void vehicleCollisionScenarios(){
         vehicles[0].collisionCooldown=std::max(0.0f,vehicles[0].collisionCooldown-dt);
         jolt_world::driveVehicle(0,1,0,dt);jolt_world::step(dt);
     }
-    assert(vehicles[0].damage>0&&vehicles[0].p.x<5320);
+    // The doubled 48-unit front chassis extent must stop before the wall.
+    assert(vehicles[0].damage>0&&vehicles[0].p.x<5320-43);
     // Trunks stop walkers and low-speed cars. High closing speed breaks the
     // tree once and replaces the trunk with falling physical fragments.
     buildings.clear();occupied=-1;vehicles.clear();

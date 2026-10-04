@@ -1,0 +1,5 @@
+2026-10-3 20:59:52  CPU scene workers: 4
+2026-10-3 20:59:59  Benchmark 1920x1080: avg 57.09 ms (sim 1.65, physics 0.98, render 55.44), p95 58.52 ms, p99 62.55 ms, max 65.21 ms, draws 529, active AI 30 over 120 frames, 0 flames, RAM 679 MiB, nearby trees 293/8483, decorations 185/6574
+2026-10-3 20:59:59  GPU timing: shadow 36.32 ms, scene 9.75 ms, post/HUD 9.35 ms (120 nonblocking samples); submitted triangles 27376650/frame
+2026-10-3 20:59:59  CPU scene work: deformation 7.406 ms (170304 vertices/frame), grass rebuild 0.000 ms, 12.00 parallel batches/frame
+2026-10-3 20:59:59  CPU rendering: scene 10.848 ms, upload/cull 3.699 ms, draw/HUD 40.123 ms, present 0.764 ms (seed 1)

@@ -1,10 +1,11 @@
 #pragma once
 
 namespace debug_menu {
-constexpr int WEAPONS_START=5;
+constexpr int WEAPONS_START=6;
 extern bool open;
 extern bool godMode;
 extern bool flyMode;
+extern bool infiniteAmmo;
 extern int selection;
 
 void reset();

@@ -26,6 +26,8 @@ The original city models listed below are CC0. The newer animal and bird models 
 The [nature manifest](NATURE_MANIFEST.csv) lists each runtime nature model, its source, and its license. Thirty tree variants now use 20 distinct CC0 source trees with individual geometry and color atlases; 36 undergrowth variants combine 11 Poly Haven plant sources with individual geometry and texture atlases. The six desert cacti and rocks still use Kenney Nature Kit. The [city manifest](CITY_MANIFEST.csv) lists 30 original modular building meshes, each with a separate atlas made from Poly Haven facade textures. These are variants generated from shared source assets, not 96 independently authored downloads. The official CC0 1.0 legal text is included at `source/CC0-1.0.txt`. `tools/fetch_city_sources.ps1` checks source file hashes; `tools/build_city_models.py` reproduces the baked geometry and atlases.
 # Forest wildlife
 
+High-resolution Direct3D grass uses Poly Haven's CC0 Grass Medium 01 model and shared 2K PBR textures. [GRASS.md](GRASS.md) records credits, download verification, and the six surface adaptations.
+
 The fifteen textured wildlife meshes use **CC BY 3.0** assets by **Poly by Google**, obtained from Poly Pizza. See [ANIMALS.md](ANIMALS.md) for each source link, attribution, and modification notes, including the fawn-derived roe-deer stand-in. Source GLBs, checksums, and the complete license are in `source/animals/`. These assets are not CC0.
 
 Five bird models also use **CC BY 3.0** assets by **Poly by Google** via Poly Pizza. [BIRDS.md](BIRDS.md) records the original models and procedural flight-wing modifications; source GLBs, textures, checksums, and the full license ship in `source/birds/`.

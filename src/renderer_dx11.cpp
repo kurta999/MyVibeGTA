@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <objidl.h>
 #include <gdiplus.h>
+#include "physics.h"
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
@@ -17,6 +18,7 @@
 #include "cpu_jobs.h"
 #include "dx11_probes.h"
 #include "dx11_tonemapping.h"
+#include "dx11_sky.h"
 #include "ui.h"
 #include "weather.h"
 #include "regions.h"
@@ -105,6 +107,8 @@ bool exposureValid=false;
 unsigned exposureFrame=0;
 std::chrono::steady_clock::time_point exposureClock{};
 ID3D11Buffer* postBuffer=nullptr;
+ID3D11ShaderResourceView* cloudNoiseView=nullptr;
+ID3D11SamplerState* cloudSampler=nullptr;
 ID3D11Buffer* bloomBuffer=nullptr;
 ID3D11Texture2D* bloomTexture[3]{};
 ID3D11RenderTargetView* bloomTarget[3]{};
@@ -243,7 +247,7 @@ struct SceneConstants {
 struct PostConstants {XMFLOAT4X4 viewProjection,inverseViewProjection;
     XMFLOAT4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
     XMFLOAT4X4 previousViewProjection;
-    XMFLOAT4 temporal,sunDirection,sunScreen;};
+    XMFLOAT4 temporal,sunDirection,sunScreen,skyWeather;};
 template<class T> void release(T*& object){if(object){object->Release();object=nullptr;}}
 void releaseGpuQueries(){
     for(auto& frame:gpuQueries){
@@ -808,6 +812,12 @@ Output VSInstanced(InstancedInput input){
         -input.c.w*local.y+input.tint.w*local.z);
     float3 world=float3(input.b.y+input.a.w*pitched.x+input.b.x*pitched.z,
         input.b.z+pitched.y,input.b.w-input.b.x*pitched.x+input.a.w*pitched.z);
+    if(materialSurface.w>0.5){
+        float phase=weatherAndTime.w*1.6+input.b.y*.047+input.b.w*.063;
+        float wave=sin(phase)+.35*sin(phase*2.13);
+        float bend=input.color.a*min(3.0,input.a.y*.12)*wave;
+        world.x+=bend;world.z+=bend*.48;
+    }
     float3 scaledNormal=input.normal/max(input.a.xyz,float3(0.0001,0.0001,0.0001));
     float3 pitchedNormal=float3(scaledNormal.x,
         input.tint.w*scaledNormal.y+input.c.w*scaledNormal.z,
@@ -820,6 +830,7 @@ Output VSInstanced(InstancedInput input){
         result.shadowPosition[i]=mul(float4(world,1),shadowViewProjection[i]);
     result.world=world;result.normal=normal;result.uv=input.uv;
     result.color=float4(input.color.rgb*input.tint.rgb,input.color.a);
+    if(materialSurface.w>0.5)result.color.a=1;
     result.previousPosition=0;result.previousValid=0;
     return result;
 }
@@ -989,7 +1000,7 @@ const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
     if(modelTexture&&(mapFlags&16)!=0){
         clip(base.a-materialOptions.x);
     }
-    if(material==4&&modelTexture&&(mapFlags&16)!=0&&base.g>base.r*1.18){
+    if(material==4&&materialSurface.w<0.5&&modelTexture&&(mapFlags&16)!=0&&base.g>base.r*1.18){
         float nearCamera=distance(input.world,eye.xyz);
         float keep=smoothstep(11.0,34.0,nearCamera);
         float stableNoise=frac(sin(dot(floor(input.world.xz*0.72),
@@ -1010,7 +1021,7 @@ const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
         output.surface=float4(normalize(input.normal)*0.5+0.5,1);
         return output;
     }
-    if(material==13&&!modelTexture){
+    if((material==13&&!modelTexture)||materialPbr.z<0){
         float distanceToEye=distance(input.world,eye.xyz);
         float fog=saturate((distanceToEye-params.y)/max(1,params.z-params.y));
         output.color=float4(lerp(base.rgb,fogColor.rgb,fog),base.a*(1-fog));
@@ -1027,6 +1038,7 @@ const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
         return output;
     }
     float3 normal=normalize(input.normal);
+    if(materialSurface.w>0.5&&dot(normal,eye.xyz-input.world)<0)normal=-normal;
     float3 coatNormal=normal;
     float normalCoherence=1.0;
     if(material==10){
@@ -1176,6 +1188,9 @@ const char* sceneShaderPixel=R"HLSL(SceneOutput PS(Output input){
         saturate(abs(sun.y-0.18)*2.5));
     if(sun.w>0)lit+=coatedDirect(normal,coatNormal,viewDirection,
         lightDirection,roughness,f0,base.rgb,metallic)*sunTint*sun.w*visibility*2.5;
+    if(materialSurface.w>0.5)
+        lit+=base.rgb*sunTint*sun.w*visibility*.18*
+            saturate(dot(-lightDirection,viewDirection));
     [unroll] for(int i=0;i<12;++i){
         float3 delta=localLightPosition[i].xyz-input.world;
         float radius=localLightPosition[i].w;
@@ -1247,14 +1262,14 @@ Output VS(uint id:SV_VertexID){
 }
 float4 PS(Output input):SV_TARGET{return image.Sample(linearSampler,input.uv);}
 )HLSL";
-const char* postShader=R"HLSL(
+const std::string postShader=std::string(R"HLSL(
 cbuffer Post : register(b0){
     row_major float4x4 viewProjection;
     row_major float4x4 inverseViewProjection;
     float4 cameraEye;float4 pixelSize;float4 grade;float4 effects;
     float4 skyTop;float4 skyHorizon;float4 debug;
     row_major float4x4 previousViewProjection;
-    float4 temporal;float4 sunDirection;float4 sunScreen;
+    float4 temporal;float4 sunDirection;float4 sunScreen;float4 skyWeather;
 };
 Texture2D sceneColor : register(t0);
 Texture2D sceneDepth : register(t1);
@@ -1265,6 +1280,7 @@ Texture2D bloomEighth : register(t5);
 Texture2D reflectionDelta : register(t6);
 Texture2D sceneIndirect : register(t7);
 SamplerState linearSampler : register(s0);
+)HLSL")+dx11::sky::shader+R"HLSL(
 struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
 float luminance(float3 c){return dot(c,float3(0.2126,0.7152,0.0722));}
 float solarVisibility(){
@@ -1374,28 +1390,18 @@ float4 PS(Input input):SV_TARGET{
             }
         if(total>0.001)center+=delta/total;
     }
+    if(d<.9999&&cameraEye.y>1600){
+        float4 world=mul(float4(uv.x*2-1,1-uv.y*2,d,1),inverseViewProjection);
+        float sceneDistance=length(world.xyz/world.w-cameraEye.xyz);
+        center=volumetricSky(skyRay,input.position.xy,sceneDistance,center,false).rgb;
+    }
     if(d>=0.9999){
-        float3 ray=skyRay;
-        float gradient=saturate(0.34+ray.y*1.8);
-        center=lerp(skyHorizon.rgb,skyTop.rgb,gradient);
-        float drift=skyHorizon.w*0.018;
-        float2 cloudUv=ray.xz/max(0.14,ray.y+0.12);
-        float vapor=0.5+0.24*sin(cloudUv.x*8+cloudUv.y*3+drift)+
-            0.16*sin(cloudUv.x*17-cloudUv.y*11-drift*0.6)+
-            0.10*sin(cloudUv.x*29+cloudUv.y*19+drift*1.3);
-        float cloud=smoothstep(0.57,0.77,vapor)*
-            saturate((ray.y+0.03)*5.0)*(0.16+skyTop.w*0.46);
-        float cloudDay=saturate((skyTop.b-0.09)/0.55);
-        center=lerp(center,lerp(float3(0.12,0.15,0.21),
-            float3(0.82,0.86,0.88),cloudDay),cloud);
-        float ridge=0.006+0.013*sin(ray.x*19+ray.z*7)+
-            0.008*sin(ray.x*41-ray.z*23);
-        center=lerp(center,skyHorizon.rgb*0.66,
-            1-smoothstep(ridge,ridge+0.014,ray.y));
+        float4 sky=volumetricSky(skyRay,input.position.xy);
+        center=sky.rgb;
         if(sunDirection.w>0){
             float disk=1-smoothstep(.00465-sunFootprint,.00465+sunFootprint,sunSeparation);
             float haze=exp(-sunSeparation*sunSeparation/.002)*.18;
-            center+=float3(1,.80,.52)*(disk*30+haze)*sunDirection.w;
+            center+=float3(1,.80,.52)*(disk*30+haze)*sunDirection.w*sky.a;
         }
     }
     if(effects.x>0.5&&d<0.9999){
@@ -2211,7 +2217,8 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
             constants.temporalInfo.y=0;
             constants.materialPbr=pbrForGroup(batch.material);
             constants.materialSurface={range?range->clearcoat:0,
-                range?range->clearcoatRoughness:0.1f,range?range->glassIor:0,0};
+                range?range->clearcoatRoughness:0.1f,range?range->glassIor:0,
+                drawn->grassFoliage?1.0f:0.0f};
             if(std::strstr(GetCommandLineA(),"--no-clearcoat"))constants.materialSurface.x=0;
             constants.materialOptions.x=range?range->alphaCutoff:
                 batch.material==4?0.42f:0.35f;
@@ -2229,6 +2236,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
                 constants.materialPbr.y=drawn->metallic;
             }
             if(!range&&masked)constants.materialPbr.w=16;
+            if(drawn->unlit)constants.materialPbr.z=-1;
             context->UpdateSubresource(sceneBuffer,0,nullptr,&constants,0,0);
             if(shadow){
                 bool alpha=masked&&hasModelTexture;
@@ -2260,6 +2268,22 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
     context->PSSetSamplers(2,1,&modelSampler);
 }
 bool createStates(){
+    auto noise=dx11::sky::noiseVolume();
+    D3D11_TEXTURE3D_DESC volume{};
+    volume.Width=volume.Height=volume.Depth=dx11::sky::noiseSize;
+    volume.MipLevels=1;volume.Format=DXGI_FORMAT_R8G8B8A8_UNORM;
+    volume.Usage=D3D11_USAGE_IMMUTABLE;volume.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+    D3D11_SUBRESOURCE_DATA noiseData{noise.data(),dx11::sky::noiseSize*4,
+        dx11::sky::noiseSize*dx11::sky::noiseSize*4};
+    ID3D11Texture3D* noiseTexture=nullptr;
+    HRESULT noiseResult=device->CreateTexture3D(&volume,&noiseData,&noiseTexture);
+    if(SUCCEEDED(noiseResult))noiseResult=device->CreateShaderResourceView(noiseTexture,nullptr,&cloudNoiseView);
+    release(noiseTexture);if(FAILED(noiseResult))return false;
+    D3D11_SAMPLER_DESC noiseSampling{};
+    noiseSampling.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    noiseSampling.AddressU=noiseSampling.AddressV=noiseSampling.AddressW=D3D11_TEXTURE_ADDRESS_WRAP;
+    noiseSampling.MaxLOD=D3D11_FLOAT32_MAX;
+    if(FAILED(device->CreateSamplerState(&noiseSampling,&cloudSampler)))return false;
     D3D11_BUFFER_DESC constant{};constant.ByteWidth=sizeof(SceneConstants);
     constant.Usage=D3D11_USAGE_DEFAULT;constant.BindFlags=D3D11_BIND_CONSTANT_BUFFER;
     if(FAILED(device->CreateBuffer(&constant,nullptr,&sceneBuffer)))return false;
@@ -2562,19 +2586,20 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
            std::hypot(vehicle.p.x-player.x,vehicle.p.z-player.z)>390)continue;
         Vec2 facing=forward(vehicle.angle);
         Vec2 side{-facing.z,facing.x};
-        float front=vehicle.kind==Kind::Bike?13.0f:24.05f;
-        float width=vehicle.kind==Kind::Bike?0.0f:8.0f;
+        float scale=physics::vehicleScale(vehicle.kind);
+        float front=(vehicle.kind==Kind::Bike?13.0f:24.05f)*scale;
+        float width=(vehicle.kind==Kind::Bike?0.0f:8.0f)*scale;
         for(float sign:{-1.0f,1.0f}){
             if(width==0&&sign>0)continue;
             addLight(vehicle.p.x+facing.x*front+side.x*width*sign,
-                vehicle.rideHeight+(width==0?17.0f:9.5f),
+                vehicle.rideHeight+(width==0?17.0f:9.5f)*scale,
                 vehicle.p.z+facing.z*front+side.z*width*sign,
                 125,1.0f,0.94f,0.72f,1.7f,
                 occupied>=0&&occupied<int(vehicles.size())&&
                     &vehicle==&vehicles[occupied]);
             if(width>0)
                 addLight(vehicle.p.x-facing.x*front+side.x*width*sign,
-                    vehicle.rideHeight+9.7f,
+                    vehicle.rideHeight+9.7f*scale,
                     vehicle.p.z-facing.z*front+side.z*width*sign,
                     45,1.0f,0.09f,0.04f,0.75f);
         }
@@ -2610,9 +2635,10 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
        occupied<int(vehicles.size())){
         const Vehicle& vehicle=vehicles[occupied];
         Vec2 facing=forward(vehicle.angle);
-        float front=vehicle.kind==Kind::Bike?17.0f:28.0f;
+        float scale=physics::vehicleScale(vehicle.kind);
+        float front=(vehicle.kind==Kind::Bike?17.0f:28.0f)*scale;
         XMVECTOR lamp=XMVectorSet(vehicle.p.x+facing.x*front,
-            vehicle.rideHeight+(vehicle.kind==Kind::Bike?17.0f:10.0f),
+            vehicle.rideHeight+(vehicle.kind==Kind::Bike?17.0f:10.0f)*scale,
             vehicle.p.z+facing.z*front,1);
         XMVECTOR target=XMVectorAdd(lamp,XMVectorSet(
             facing.x*100,-14,facing.z*100,0));
@@ -3179,6 +3205,9 @@ void render(){
         ui::effectsQuality>0&&solarClip.w>0&&!probeDebug&&!post.debug.x&&
             !std::strstr(commandLine,"--no-lens-flare")?1.0f:0.0f};
     post.debug.w=std::strstr(commandLine,"--flare-view")?1.0f:0.0f;
+    post.skyWeather={worldTime*weather::current().wind.x*18,
+        worldTime*weather::current().wind.z*18,
+        ui::graphicsQuality==0?24.0f:ui::graphicsQuality==1?36.0f:48.0f,daylight};
     context->UpdateSubresource(postBuffer,0,nullptr,&post,0,0);
     if(post.effects.w>0.5f){
         D3D11_VIEWPORT reflectionViewport{};
@@ -3213,7 +3242,11 @@ void render(){
     ID3D11ShaderResourceView* postInputs[8]={sceneView,depthViewSRV,surfaceView,
         bloomView[0],bloomView[1],bloomView[2],reflectionView,indirectView};
     context->PSSetShaderResources(0,8,postInputs);
+    context->PSSetShaderResources(8,1,&cloudNoiseView);
+    context->PSSetSamplers(1,1,&cloudSampler);
     context->Draw(4,0);++drawCalls;
+    ID3D11ShaderResourceView* emptyCloud=nullptr;
+    context->PSSetShaderResources(8,1,&emptyCloud);
     ID3D11ShaderResourceView* emptyInputs[8]{};
     context->PSSetShaderResources(0,8,emptyInputs);
     dx11::tone::Constants tone;
@@ -3384,6 +3417,7 @@ void shutdownRenderer(){
     scenePool.reset();
     dx11::shutdownHud();
     if(context)context->ClearState();
+    release(cloudNoiseView);release(cloudSampler);
     releaseGpuQueries();
     releaseTargets();
     release(shadowView);

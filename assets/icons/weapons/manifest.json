@@ -1,0 +1,226 @@
+{
+  "mode": "built-in image_gen",
+  "source": "source-atlas.png",
+  "icons": [
+    {
+      "id": "pistol",
+      "width": 258,
+      "height": 192,
+      "crop": [
+        28,
+        97,
+        262,
+        265
+      ]
+    },
+    {
+      "id": "silenced-pistol",
+      "width": 296,
+      "height": 158,
+      "crop": [
+        292,
+        106,
+        564,
+        240
+      ]
+    },
+    {
+      "id": "smg",
+      "width": 275,
+      "height": 186,
+      "crop": [
+        578,
+        94,
+        829,
+        256
+      ]
+    },
+    {
+      "id": "shotgun",
+      "width": 297,
+      "height": 113,
+      "crop": [
+        841,
+        125,
+        1114,
+        214
+      ]
+    },
+    {
+      "id": "rifle",
+      "width": 295,
+      "height": 157,
+      "crop": [
+        1121,
+        112,
+        1392,
+        245
+      ]
+    },
+    {
+      "id": "sniper",
+      "width": 296,
+      "height": 122,
+      "crop": [
+        11,
+        387,
+        283,
+        485
+      ]
+    },
+    {
+      "id": "rpg",
+      "width": 304,
+      "height": 117,
+      "crop": [
+        286,
+        389,
+        566,
+        482
+      ]
+    },
+    {
+      "id": "flamethrower",
+      "width": 306,
+      "height": 181,
+      "crop": [
+        574,
+        371,
+        856,
+        528
+      ]
+    },
+    {
+      "id": "fire-extinguisher",
+      "width": 173,
+      "height": 270,
+      "crop": [
+        915,
+        306,
+        1064,
+        552
+      ]
+    },
+    {
+      "id": "water-cannon",
+      "width": 291,
+      "height": 174,
+      "crop": [
+        1121,
+        366,
+        1388,
+        516
+      ]
+    },
+    {
+      "id": "katana",
+      "width": 299,
+      "height": 85,
+      "crop": [
+        13,
+        664,
+        288,
+        725
+      ]
+    },
+    {
+      "id": "knife",
+      "width": 294,
+      "height": 105,
+      "crop": [
+        291,
+        660,
+        561,
+        741
+      ]
+    },
+    {
+      "id": "machete",
+      "width": 303,
+      "height": 103,
+      "crop": [
+        567,
+        650,
+        846,
+        729
+      ]
+    },
+    {
+      "id": "novelty-toy",
+      "width": 214,
+      "height": 248,
+      "crop": [
+        912,
+        588,
+        1102,
+        812
+      ]
+    },
+    {
+      "id": "rolling-pin",
+      "width": 292,
+      "height": 85,
+      "crop": [
+        1121,
+        664,
+        1389,
+        725
+      ]
+    },
+    {
+      "id": "bat",
+      "width": 297,
+      "height": 130,
+      "crop": [
+        12,
+        908,
+        285,
+        1014
+      ]
+    },
+    {
+      "id": "bow",
+      "width": 248,
+      "height": 262,
+      "crop": [
+        287,
+        824,
+        511,
+        1062
+      ]
+    },
+    {
+      "id": "minigun",
+      "width": 300,
+      "height": 177,
+      "crop": [
+        563,
+        876,
+        839,
+        1029
+      ]
+    },
+    {
+      "id": "shovel",
+      "width": 288,
+      "height": 109,
+      "crop": [
+        850,
+        919,
+        1114,
+        1004
+      ]
+    },
+    {
+      "id": "grapple-hook",
+      "width": 295,
+      "height": 164,
+      "crop": [
+        1119,
+        894,
+        1390,
+        1034
+      ]
+    }
+  ]
+}

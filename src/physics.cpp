@@ -8,6 +8,59 @@
 
 namespace physics {
 using namespace game;
+float vehicleScale(Kind kind){
+#ifdef MINI_CITY_JOLT
+    return kind==Kind::Car||kind==Kind::SportCar||kind==Kind::Helicopter?2.0f:1.0f;
+#else
+    return 1.0f;
+#endif
+}
+float vehicleRestHeight(Kind kind){
+    return (kind==Kind::Helicopter?12.0f:kind==Kind::Boat?10.0f:
+        kind==Kind::Bike?13.0f:14.0f)*vehicleScale(kind);
+}
+float vehicleRadius(Kind kind){
+#ifndef MINI_CITY_JOLT
+    return kind==Kind::Bike?14.0f:kind==Kind::Boat?25.0f:26.0f;
+#else
+    return (kind==Kind::Bike?14.0f:kind==Kind::Boat?25.0f:
+        kind==Kind::Helicopter?34.0f:26.0f)*vehicleScale(kind);
+#endif
+}
+namespace {
+Vec3 hitSize(Kind kind){
+    Vec3 size=kind==Kind::Helicopter?Vec3{13.25f,30.5f,40.75f}:
+        kind==Kind::Bike?Vec3{7,42,15}:kind==Kind::Boat?Vec3{12,42,24}:
+        Vec3{13,kind==Kind::SportCar?20.0f:26.0f,24};
+    return size*vehicleScale(kind);
+}
+Vec3 vehicleLocal(const Vehicle& v,Vec3 point){
+    Vec2 f=forward(v.angle),side{-f.z,f.x};
+    Vec2 offset{point.x-v.p.x,point.z-v.p.z};
+    return {offset.x*side.x+offset.z*side.z,point.y-v.rideHeight,
+        offset.x*f.x+offset.z*f.z};
+}
+}
+bool vehicleContains(const Vehicle& vehicle,Vec3 point){
+    Vec3 p=vehicleLocal(vehicle,point),size=hitSize(vehicle.kind);
+    return std::abs(p.x)<=size.x&&std::abs(p.z)<=size.z&&p.y>=2&&p.y<=size.y;
+}
+bool vehicleSegmentHit(const Vehicle& vehicle,Vec3 start,Vec3 end,float& entry){
+    Vec3 p=vehicleLocal(vehicle,start),d=vehicleLocal(vehicle,end)-p,size=hitSize(vehicle.kind);
+    float first=0,last=1;
+    const float origins[]={p.x,p.y,p.z},directions[]={d.x,d.y,d.z};
+    const float lows[]={-size.x,2,-size.z},highs[]={size.x,size.y,size.z};
+    for(int axis=0;axis<3;++axis){
+        if(std::abs(directions[axis])<.000001f){
+            if(origins[axis]<lows[axis]||origins[axis]>highs[axis])return false;
+        }else{
+            float a=(lows[axis]-origins[axis])/directions[axis],b=(highs[axis]-origins[axis])/directions[axis];
+            if(a>b)std::swap(a,b);first=std::max(first,a);last=std::min(last,b);
+            if(first>last)return false;
+        }
+    }
+    entry=first;return true;
+}
 namespace {
 const std::array<VehicleTuning,5> defaults{{
     {245,315,115,7.0f,0.95f,2.05f,5.5f,430,1100,70000,3.0f,0.78f,5.0f,0.43f,250000,180000,250,45,1,1,75,125,12,42,0.8f,120,7,45},

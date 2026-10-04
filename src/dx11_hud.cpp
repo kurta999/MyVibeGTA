@@ -5,6 +5,8 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <objidl.h>
+#include <gdiplus.h>
 #include "dx11_assets.h"
 #include "game.h"
 #include "ui.h"
@@ -24,6 +26,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <memory>
+#include <unordered_map>
 
 namespace dx11 {
 namespace {
@@ -35,6 +39,20 @@ HFONT bannerFont=nullptr;
 HGDIOBJ oldFont=nullptr;
 unsigned char* dib=nullptr;
 int canvasW=0,canvasH=0;
+std::unordered_map<std::string,std::unique_ptr<Gdiplus::Bitmap>> weaponIcons;
+void weaponIcon(int x,int y,const std::string& id){
+    auto& bitmap=weaponIcons[id];
+    if(!bitmap){
+        const Mesh* source=mesh("icons/"+id);if(!source)return;
+        bitmap=std::make_unique<Gdiplus::Bitmap>(source->textureFile.c_str());
+    }
+    if(bitmap->GetLastStatus()!=Gdiplus::Ok)return;
+    float scale=std::min(108.0f/bitmap->GetWidth(),52.0f/bitmap->GetHeight());
+    float w=bitmap->GetWidth()*scale,h=bitmap->GetHeight()*scale;
+    Gdiplus::Graphics graphics(memoryDC);
+    graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+    graphics.DrawImage(bitmap.get(),Gdiplus::RectF(x+(108-w)/2,y+(52-h)/2,w,h));
+}
 void resize(int width,int height){
     if(width==canvasW&&height==canvasH)return;
     shutdownHud();canvasW=width;canvasH=height;
@@ -277,7 +295,7 @@ void map(int x,int y,int width,int height,bool large){
 void pauseMenu(int width,int height){
     if(!ui::paused())return;
     rect(0,0,width,height,RGB(20,29,38));
-    int menuHeight=ui::page==ui::Page::Graphics?680:500;
+    int menuHeight=ui::page==ui::Page::Graphics?ui::GRAPHICS_MENU_HEIGHT:500;
     int x=width/2-280,y=(height-menuHeight)/2;
     rect(x,y,560,menuHeight,RGB(34,45,56));
     label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 11",RGB(255,225,151));
@@ -300,17 +318,21 @@ void pauseMenu(int width,int height){
             quality[ui::textureQuality],filtering[ui::filteringQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
             "Reflections (SSR)","Anti-aliasing (FXAA)","Ambient occlusion (SSAO)",
-            "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance"};
-        for(int i=0;i<13;++i){int row=y+105+i*39;
+            "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance","Grass LOD"};
+        for(int i=0;i<14;++i){int row=y+105+i*39;
             if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
             if(i<10){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
             }else{
-                int value=i==10?ui::drawDistance:i==11?ui::lodDistance:ui::grassDistance;
+                int value=i==10?ui::drawDistance:i==11?ui::lodDistance:i==12?ui::grassDistance:ui::grassLodDistance;
                 if(i==10)std::snprintf(buffer,sizeof(buffer),"%s: %.0f m",
                     names[i],1250.0f*ui::drawDistanceScale());
-                else if(i==12)std::snprintf(buffer,sizeof(buffer),"%s: %d m",names[i],40+value*2);
+                else if(i==12){
+                    if(value==0)std::snprintf(buffer,sizeof(buffer),"%s: Off",names[i]);
+                    else std::snprintf(buffer,sizeof(buffer),"%s: %.0f units",names[i],ui::grassDistanceUnits());
+                }
+                else if(i==13)std::snprintf(buffer,sizeof(buffer),"%s: %.0f units",names[i],ui::grassLodDistanceUnits());
                 else std::snprintf(buffer,sizeof(buffer),"%s: %d%%",names[i],value);
                 label(x+42,row+5,buffer,RGB(239,241,229));
                 rect(x+290,row+12,220,8,RGB(58,72,82));
@@ -359,6 +381,8 @@ void debugMenu(int width,int height){
         }
         else if(index==4)std::snprintf(entry,sizeof(entry),"Weather: < %s >",
             weather::current().name.c_str());
+        else if(index==5)std::snprintf(entry,sizeof(entry),"Infinite ammo: %s",
+            debug_menu::infiniteAmmo?"ON":"OFF");
         else{
             int weaponIndex=index-debug_menu::WEAPONS_START;
             std::snprintf(entry,sizeof(entry),"%2d. %s%s",weaponIndex+1,
@@ -414,80 +438,14 @@ void buildHud(unsigned char* pixels,int width,int height){
     label(statusX+15,53,weapons::stats(game::weapon).name.c_str(),RGB(244,245,234));
     if(weapons::stats(game::weapon).grapple)std::snprintf(textBuffer,sizeof(textBuffer),grapple::active()?"HOLD LMB / RELEASE":grapple::cooldown()>0?"GRAPPLE RECHARGING":"AIM + HOLD LMB");
     else if(weapons::stats(game::weapon).melee)std::snprintf(textBuffer,sizeof(textBuffer),"MELEE");
+    else if(debug_menu::infiniteAmmo)std::snprintf(textBuffer,sizeof(textBuffer),"INFINITE AMMO");
     else if(game::reloadRemaining>0)std::snprintf(textBuffer,sizeof(textBuffer),"RELOADING");
     else if(game::ammo[game::weapon]<0)std::snprintf(textBuffer,sizeof(textBuffer),"%d / --",game::magazine[game::weapon]);
     else std::snprintf(textBuffer,sizeof(textBuffer),"%d / %d",game::magazine[game::weapon],game::ammo[game::weapon]);
     label(statusX+15,77,textBuffer,RGB(255,221,137));
     if(game::dualWieldActive(game::weapon))
         label(statusX+116,77,"DUAL",RGB(255,221,137));
-    int gunX=statusX+225,gunY=64;
-    const std::string& icon=weapons::stats(game::weapon).id;
-    COLORREF steel=RGB(199,211,211),dark=RGB(92,111,117),wood=RGB(159,111,72);
-    if(icon=="pistol"){
-        rect(gunX+20,gunY,43,7,steel);rect(gunX+14,gunY+7,35,8,dark);
-        rect(gunX+17,gunY+15,12,19,dark);rect(gunX+9,gunY+2,7,5,steel);
-    }else if(icon=="silenced-pistol"){
-        rect(gunX+21,gunY+4,41,7,steel);rect(gunX+9,gunY+5,16,6,dark);
-        rect(gunX+19,gunY+11,30,8,dark);rect(gunX+24,gunY+19,11,18,dark);
-    }else if(icon=="smg"){
-        rect(gunX+7,gunY+4,72,7,steel);rect(gunX+16,gunY+11,47,7,dark);
-        rect(gunX+32,gunY+18,10,17,dark);rect(gunX+5,gunY+13,15,5,steel);
-    }else if(icon=="shotgun"){
-        rect(gunX+5,gunY+4,82,5,steel);rect(gunX+5,gunY+10,82,4,wood);
-        rect(gunX+19,gunY+14,29,7,wood);rect(gunX+14,gunY+21,12,12,wood);
-    }else if(icon=="rifle"){
-        rect(gunX+3,gunY+5,86,6,steel);rect(gunX+24,gunY+11,41,8,dark);
-        rect(gunX+43,gunY+19,9,16,dark);rect(gunX+3,gunY+15,20,5,wood);
-    }else if(icon=="sniper"){
-        rect(gunX+2,gunY+6,88,5,steel);rect(gunX+23,gunY+11,47,7,wood);
-        rect(gunX+33,gunY,28,5,dark);rect(gunX+37,gunY-3,17,3,steel);
-        rect(gunX+45,gunY+18,8,16,dark);
-    }else if(icon=="rpg"){
-        rect(gunX+4,gunY+3,72,12,dark);rect(gunX+67,gunY,19,18,steel);
-        rect(gunX+30,gunY+15,10,21,wood);rect(gunX+6,gunY+16,22,5,wood);
-    }else if(icon=="flamethrower"){
-        rect(gunX+5,gunY+9,80,8,steel);rect(gunX+23,gunY+17,30,16,dark);
-        rect(gunX+65,gunY+5,20,4,RGB(239,121,51));
-    }else if(icon=="fire-extinguisher"){
-        rect(gunX+27,gunY+2,27,31,RGB(203,48,43));
-        rect(gunX+33,gunY-3,18,5,steel);rect(gunX+55,gunY+1,28,4,dark);
-    }else if(icon=="water-cannon"){
-        rect(gunX+9,gunY+8,70,10,RGB(49,124,170));
-        rect(gunX+27,gunY+18,35,14,dark);rect(gunX+66,gunY+4,16,5,steel);
-    }else if(icon=="katana"){
-        rect(gunX+8,gunY+10,22,6,dark);rect(gunX+29,gunY+8,9,10,wood);
-        rect(gunX+38,gunY+10,54,4,steel);
-    }else if(icon=="knife"){
-        rect(gunX+20,gunY+12,29,9,wood);rect(gunX+47,gunY+10,7,13,dark);
-        rect(gunX+54,gunY+12,33,6,steel);
-    }else if(icon=="machete"){
-        rect(gunX+10,gunY+12,23,8,wood);rect(gunX+32,gunY+10,8,12,dark);
-        rect(gunX+40,gunY+8,49,12,steel);
-    }else if(icon=="novelty-toy"){
-        rect(gunX+24,gunY+12,49,13,RGB(222,104,166));
-        rect(gunX+16,gunY+15,12,7,RGB(185,73,130));
-    }else if(icon=="rolling-pin"){
-        rect(gunX+14,gunY+11,15,7,wood);rect(gunX+29,gunY+7,48,15,RGB(197,153,101));
-        rect(gunX+77,gunY+11,15,7,wood);
-    }else if(icon=="bat"){
-        rect(gunX+12,gunY+12,29,7,wood);rect(gunX+39,gunY+8,53,15,RGB(185,127,72));
-    }else if(icon=="minigun"){
-        rect(gunX+12,gunY+6,28,20,dark);
-        for(int i=0;i<3;++i)rect(gunX+35,gunY+5+i*8,52,4,steel);
-        rect(gunX+16,gunY+26,10,9,dark);
-    }else if(icon=="shovel"){
-        line(gunX+12,gunY+25,gunX+63,gunY+10,wood,4);
-        rect(gunX+61,gunY+4,24,16,steel);
-    }else if(icon=="grapple-hook"){
-        mapIcon(gunX+47,gunY+16,"grapple-hook",steel);
-    }else if(icon=="bow"){
-        line(gunX+48,gunY-2,gunX+74,gunY+17,wood,4);
-        line(gunX+74,gunY+17,gunX+48,gunY+36,wood,4);
-        line(gunX+48,gunY-2,gunX+48,gunY+36,steel,1);
-        line(gunX+28,gunY+17,gunX+79,gunY+17,steel,2);
-    }else{
-        rect(gunX+8,gunY+6,78,8,steel);rect(gunX+24,gunY+14,12,19,dark);
-    }
+    weaponIcon(statusX+225,49,weapons::stats(game::weapon).id);
     std::snprintf(textBuffer,sizeof(textBuffer),"HP %d/%d",
         int(game::health),int(game::PLAYER_MAX_HEALTH));
     label(statusX+15,105,textBuffer,RGB(243,233,215));
@@ -628,6 +586,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     std::memcpy(pixels,dib,size_t(width)*height*4);
 }
 void shutdownHud(){
+    weaponIcons.clear();
     if(memoryDC){if(oldFont)SelectObject(memoryDC,oldFont);if(font)DeleteObject(font);
         if(bannerFont)DeleteObject(bannerFont);
         if(oldBitmap)SelectObject(memoryDC,oldBitmap);if(bitmap)DeleteObject(bitmap);

@@ -10,6 +10,7 @@
 #include "../src/dx11_assets.h"
 #include "../src/ui.h"
 #include "../src/ai.h"
+#include "../src/debug_menu.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -86,6 +87,23 @@ void equipmentScenarios(){
     int rounds=300-magazine[weapon];std::printf("Minigun rounds in 2s: %d\n",rounds);
     assert(rounds>=49&&rounds<=51);assert(casings.size()==size_t(rounds));
     magazine[weapon]=0;startReload();ticks(210);assert(magazine[weapon]==300&&ammo[weapon]==300);
+    // F4 unlimited ammo fires an empty weapon, preserves inventory, and restores depletion when disabled.
+    stage();jolt_world::reset();weapon=weapons::indexOf("minigun");unlocked[weapon]=true;
+    magazine[weapon]=ammo[weapon]=0;debug_menu::toggle();debug_menu::selection=5;
+    debug_menu::handleKey(VK_RETURN);assert(debug_menu::infiniteAmmo);
+    debug_menu::toggle();leftMouse=true;ticks(120);leftMouse=false;
+    assert(casings.size()>=49&&magazine[weapon]==0&&ammo[weapon]==0&&reloadRemaining==0);
+    startReload();assert(reloadRemaining==0);
+    for(int gun=0;gun<weapons::count();++gun){
+        if(weapons::stats(gun).melee||weapons::stats(gun).grapple)continue;
+        weapon=gun;magazine[gun]=ammo[gun]=0;fireCooldown=0;
+        auto before=bullets.size();shoot();assert(bullets.size()>before&&magazine[gun]==0&&ammo[gun]==0);
+    }
+    weapon=weapons::indexOf("minigun");
+    debug_menu::toggle();debug_menu::handleKey(VK_RETURN);assert(!debug_menu::infiniteAmmo);
+    debug_menu::toggle();ticks(30);auto spent=casings.size();shoot();assert(casings.size()==spent);
+    magazine[weapon]=3;ammo[weapon]=5;fireCooldown=0;shoot();assert(magazine[weapon]==2);
+    debug_menu::reset();assert(!debug_menu::infiniteAmmo);
     // Shovel shares actual melee damage and a visible swing pose, with no ammunition cost.
     stage();Ped p{};p.id="shovel-target";p.p=player+Vec2{40,0};p.health=100;
     peds.push_back(p);jolt_world::reset();weapon=weapons::indexOf("shovel");unlocked[weapon]=true;
@@ -98,6 +116,21 @@ void equipmentScenarios(){
     bool changed=false;for(size_t i=0;i<start[5].size();++i)
         if(std::abs(start[5][i].x-middle[5][i].x)>.02f||std::abs(start[5][i].y-middle[5][i].y)>.02f||std::abs(start[5][i].z-middle[5][i].z)>.02f)changed=true;
     assert(changed);assert(dx11::mesh("vehicles/helicopter"));assert(dx11::mesh("vehicles/helicopter-rotor"));
+    // Every world pickup uses its own detailed texture; inactive pickups vanish.
+    stage();int savedGrassDistance=ui::grassDistance;ui::grassDistance=0;
+    for(int i=0;i<weapons::count();++i)
+        pickups.push_back({player+Vec2{80+float(i)*15,0},i,true,0,"icon-test-"+std::to_string(i)});
+    dx11::buildScene(start,instances,player.x,80,player.z-80);
+    for(int i=0;i<weapons::count();++i){
+        const auto* icon=dx11::mesh("icons/"+weapons::stats(i).id);assert(icon);
+        int matches=0;for(const auto& instance:instances)if(instance.source==icon){
+            ++matches;assert(instance.material==13&&instance.scaleX<=32.01f);
+            assert(instance.scaleY*icon->maxY<=26.01f&&instance.sinPitch>0);
+        }
+        assert(matches==1);pickups[i].available=false;
+    }
+    dx11::buildScene(start,instances);for(const auto& instance:instances)assert(!instance.source->unlit);
+    ui::grassDistance=savedGrassDistance;
     // Grapple hook launches toward reticle-picked static cover, reels in, and releases momentum.
     stage();buildings.push_back({4700,4400,40,200,500,rgb(140,140,140),"grapple-wall"});
     jolt_world::reset();weapon=weapons::indexOf("grapple-hook");unlocked[weapon]=true;

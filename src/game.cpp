@@ -141,13 +141,13 @@ void damageVehicle(int index,float amount,bool playerCaused){
         return;
     }
     vehicle.exploded=true;vehicle.burnTime=0;vehicle.explosionVisualTime=1.4f;
-    blasts.push_back({{vehicle.p.x,vehicle.rideHeight+15.0f,vehicle.p.z},
+    blasts.push_back({{vehicle.p.x,vehicle.rideHeight+15.0f*physics::vehicleScale(vehicle.kind),vehicle.p.z},
         0.75f,95.0f});
     fire::ignite(vehicle.p,fire::Material::Metal);
     vehicle.velocity={};vehicle.speed=0;
-    audio::playAt(audio::Effect::Hit,vehicle.p.x,vehicle.p.z);
+    audio::playAt(audio::Effect::Explosion,vehicle.p.x,vehicle.p.z);
     if(occupied==index){
-        player=vehicle.p+Vec2{65,0};occupied=-1;applyDamage(110);
+        player=vehicle.p+Vec2{65*physics::vehicleScale(vehicle.kind),0};occupied=-1;applyDamage(110);
     }else if(health>0){
         float distance=len(player-vehicle.p);
         if(distance<100)applyDamage((1-distance/100)*80);
@@ -178,7 +178,7 @@ void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
     if(radius<=0||damage<=0)return;
     blasts.push_back({point,0.75f,radius});
     fire::ignite({point.x,point.z},fire::surfaceAt(point));
-    audio::playAt(audio::Effect::Hit,point.x,point.z);
+    audio::playAt(audio::Effect::Explosion,point.x,point.z);
     Vec2 center{point.x,point.z};
 #ifdef MINI_CITY_JOLT
     for(int i=0;i<int(wildlife::animals.size());++i){
@@ -368,6 +368,10 @@ void reset(){
 #endif
     buildings.clear();trees.clear();peds.clear();vehicles.clear();bullets.clear();impacts.clear();hitFlashes.clear();blasts.clear();casings.clear();debris.clear();ragdollParts.clear();corpseSnapshots.clear();pickups.clear();missions.clear();
     player={300,250};previousPlayer=player;playerVelocity={};playerY=0;playerVerticalSpeed=0;grounded=true;swimming=false;crouched=false;
+#ifdef MINI_CITY_JOLT
+    // Keep the new-game capsule clear of the doubled starter car's rear corner.
+    player.z=235;previousPlayer=player;
+#endif
     health=PLAYER_MAX_HEALTH;armor=0;repairKits=1;weapon=0;occupied=-1;enteringVehicle=-1;vehicleEntryTime=0;airTime=0;
     carriedPed=-1;
     interactionSelection=0;
@@ -676,7 +680,7 @@ void enterExit(){
                 for(const auto& b:buildings)if(inside(b,point,12))return false;
             }
             for(const auto& other:vehicles)
-                if(&other!=&v&&len(out-other.p)<38)return false;
+                if(&other!=&v&&len(out-other.p)<physics::vehicleRadius(other.kind)+12)return false;
             for(const auto& prop:props)if(prop.alive&&len(out-prop.p)<26)return false;
             player=previousPlayer=out;occupied=-1;
             playerY=v.kind==Kind::Helicopter?v.rideHeight:0;
@@ -689,8 +693,8 @@ void enterExit(){
         if(v.kind==Kind::Boat&&v.p.x<WORLD_W&&v.p.z>SHORE-40&&
            v.p.z<SHORE+105&&exitAt({v.p.x,SHORE-22}))return;
         for(int sign:{1,-1})
-            if(exitAt(v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f))))return;
-        for(int sign:{-1,1})if(exitAt(v.p+forward(v.angle)*(sign*50.0f)))return;
+            if(exitAt(v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f)*physics::vehicleScale(v.kind))))return;
+        for(int sign:{-1,1})if(exitAt(v.p+forward(v.angle)*(sign*50.0f*physics::vehicleScale(v.kind))))return;
         announce("No clear space to exit.",2);return;
 #else
         if(v.kind==Kind::Boat){
@@ -702,7 +706,7 @@ void enterExit(){
             audio::play(audio::Effect::Splash);
             return;
         }
-        for(int sign:{1,-1}){Vec2 out=v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f));
+        for(int sign:{1,-1}){Vec2 out=v.p+side*(sign*(v.kind==Kind::Bike?27.0f:38.0f)*physics::vehicleScale(v.kind));
             if(!solid(out,12)){player=out;occupied=-1;return;}}
         return;
 #endif
@@ -746,6 +750,9 @@ void enterExit(){
 }
 void startReload(){
     if(health<=0||carryingBody()||reloadRemaining>0)return;
+#ifdef MINI_CITY_JOLT
+    if(debug_menu::infiniteAmmo)return;
+#endif
     const auto& stats=weapons::stats(weapon);
     if(stats.melee||stats.grapple)return;
     if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
@@ -819,13 +826,19 @@ void shoot(){
     if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
         vehicles[occupied].kind==Kind::Bike||!stats.driveByAllowed))return;
     if(reloadRemaining>0&&reloadingWeapon==weapon)return;
-    if(magazine[weapon]==0){
+#ifdef MINI_CITY_JOLT
+    // Debug ammunition does not mutate the saved magazine or reserve.
+    const bool unlimited=debug_menu::infiniteAmmo;
+#else
+    const bool unlimited=false;
+#endif
+    if(magazine[weapon]==0&&!unlimited){
         if(ammo[weapon]!=0)startReload();
         else announce("Out of ammo. Find a weapon pickup or switch guns.",2);
         fireCooldown=0.35f;return;
     }
-    int shots=occupied<0&&dualWieldActive(weapon)?std::min(2,magazine[weapon]):1;
-    magazine[weapon]-=shots;
+    int shots=occupied<0&&dualWieldActive(weapon)?(unlimited?2:std::min(2,magazine[weapon])):1;
+    if(!unlimited)magazine[weapon]-=shots;
     audio::play(stats.silenced?audio::Effect::SilencedShot:audio::Effect::Shot,weapon);
     if(!stats.silenced){
 #ifdef MINI_CITY_JOLT
@@ -851,9 +864,9 @@ void shoot(){
         Vec2 carFront=forward(car.angle),carSide{-carFront.z,carFront.x};
         Vec2 toward=norm(Vec2{target.x-car.p.x,target.z-car.p.z});
         float sideSign=toward.x*carSide.x+toward.z*carSide.z>=0?1.0f:-1.0f;
-        muzzle={car.p.x+carFront.x*8+carSide.x*sideSign*20,
-            24+car.rideHeight,
-            car.p.z+carFront.z*8+carSide.z*sideSign*20};
+        muzzle={car.p.x+carFront.x*8*physics::vehicleScale(car.kind)+carSide.x*sideSign*20*physics::vehicleScale(car.kind),
+            24*physics::vehicleScale(car.kind)+car.rideHeight,
+            car.p.z+carFront.z*8*physics::vehicleScale(car.kind)+carSide.z*sideSign*20*physics::vehicleScale(car.kind)};
     }
     lastMuzzle=muzzle;
     lastMuzzleLeft=muzzle+Vec3{-r.x*14,0,-r.z*14};
@@ -1160,9 +1173,15 @@ void update(float dt){
             for(int index=0;index<int(vehicles.size());++index){
                 const auto& car=vehicles[index];
                 if(car.exploded||(!bullet.hostile&&index==occupied))continue;
-                consider(car.p,car.kind==Kind::Bike?14.0f:
-                    car.kind==Kind::Boat?25.0f:26.0f,
-                    car.rideHeight+2,car.rideHeight+42);
+#ifdef MINI_CITY_JOLT
+                float entry=0;
+                if(physics::vehicleSegmentHit(car,bullet.p,next,entry)&&entry<nearest){
+                    nearest=entry;dynamicHit=true;hitBird=-1;
+                }
+#else
+                consider(car.p,physics::vehicleRadius(car.kind),
+                    car.rideHeight+2,car.rideHeight+42*physics::vehicleScale(car.kind));
+#endif
             }
             for(int index:treeCandidates){
                 if(index<0||std::size_t(index)>=trees.size())continue;
@@ -1220,9 +1239,13 @@ void update(float dt){
             for(int vehicleIndex=0;vehicleIndex<int(vehicles.size());++vehicleIndex){
                 const Vehicle& car=vehicles[vehicleIndex];
                 if(car.exploded||(!bullet.hostile&&vehicleIndex==occupied))continue;
-                float radius=car.kind==Kind::Bike?14.0f:car.kind==Kind::Boat?25.0f:26.0f;
-                if(point.y<car.rideHeight+2||point.y>car.rideHeight+42||
+#ifdef MINI_CITY_JOLT
+                if(!physics::vehicleContains(car,point))continue;
+#else
+                float radius=physics::vehicleRadius(car.kind);
+                if(point.y<car.rideHeight+2||point.y>car.rideHeight+42*physics::vehicleScale(car.kind)||
                    len(Vec2{point.x-car.p.x,point.z-car.p.z})>=radius)continue;
+#endif
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point);
                 if(bullet.streamType==1)fire::igniteVehicle(vehicles[vehicleIndex]);
@@ -1408,7 +1431,7 @@ void update(float dt){
     casings.erase(std::remove_if(casings.begin(),casings.end(),
         [](const ShellCasing& casing){return casing.life<=0;}),casings.end());
     if(occupied<0&&health>0&&invulnerable<=0)for(const auto& v:vehicles){
-        if(std::abs(v.speed)>70&&std::abs(v.rideHeight-playerY)<37&&len(v.p-player)<25){applyDamage(30);invulnerable=1;
+        if(std::abs(v.speed)>70&&std::abs(v.rideHeight-playerY)<37*physics::vehicleScale(v.kind)&&len(v.p-player)<(physics::vehicleScale(v.kind)>1?physics::vehicleRadius(v.kind):25.0f)){applyDamage(30);invulnerable=1;
             audio::play(audio::Effect::Hit);break;}
     }
     if(activeMission>=0){

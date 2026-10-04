@@ -65,3 +65,17 @@ URL, license, credit and hash; keep restricted sources outside public packages.
 Renderpeople's extractability restriction also applies when evaluating cooked
 files. Conversion to M3D/M3S alone does not establish license compliance. Named
 asset access and provenance status is recorded in `assets/models/SHOWCASE_SOURCES.md`.
+
+For DX11 textured grass, run `fetch_grass.ps1`, then `build_grass.py` with Python,
+NumPy and Pillow. The downloader checks publisher MD5 hashes. The cooker keeps
+the authored curved blade meshes and 2K PBR maps, scales the 16-bit alpha mask
+to eight bits, adds a frost color variant, and creates two inexpensive cutout
+LODs. Credits and modification details are in `assets/models/GRASS.md`.
+
+The DX11 weapon icon textures live in `assets/icons/weapons/`. The built-in
+image-generation prompt and original RGBA atlas are retained there. Run
+`python tools/build_weapon_icons.py assets/icons/weapons/source-atlas.png` to
+reproduce the reviewed crops with transparent padding. The runtime loads each
+PNG separately for clean mipmaps; world pickups and HUD inventory share them.
+`tools/verify_weapon_icons.ps1` captures day/night pickups, the larger vehicles,
+a seated driver, and helicopter flight at 1080p.

@@ -37,7 +37,7 @@ int normalizedVariant(Effect effect,int variant){
 int takes(Effect effect){
     return effect==Effect::Shot||effect==Effect::SilencedShot||effect==Effect::Step||
         effect==Effect::Splash||effect==Effect::Hit||effect==Effect::Reload||
-        effect==Effect::Surf||effect==Effect::Skid?4:1;
+        effect==Effect::Surf||effect==Effect::Skid||effect==Effect::Explosion?4:1;
 }
 #endif
 int voiceCursor=0;
@@ -63,9 +63,11 @@ void synthesize(Channel& channel,Effect effect,int variant){
     case Effect::Surf:duration=2.2f;break;
     case Effect::Skid:duration=0.34f;break;
     case Effect::Traffic:duration=0.85f;break;
+    case Effect::Explosion:duration=1.6f;break;
     default:break;
     }
     channel.samples.resize(int(duration*RATE));
+    float rumble=0;
     for(int i=0;i<int(channel.samples.size());++i){
         float t=float(i)/RATE,u=t/duration,signal=0;
         switch(effect){
@@ -89,6 +91,14 @@ void synthesize(Channel& channel,Effect effect,int variant){
         case Effect::Surf:signal=noise()*(0.08f+0.09f*std::sin(PI*u))*std::sin(PI*u);break;
         case Effect::Skid:signal=noise()*0.24f*std::exp(-u*2.3f)+wave(t,175-90*u)*0.06f;break;
         case Effect::Traffic:signal=(wave(t,88+15*u)+wave(t,177+21*u)*0.25f)*0.12f*std::sin(PI*u);break;
+        case Effect::Explosion:{
+            // Sharp crack, low-frequency blast and a longer decaying debris tail.
+            float n=noise();rumble+=0.055f*(n-rumble);
+            float attack=std::min(1.0f,t*900);
+            signal=attack*(n*0.55f*std::exp(-t*32)+
+                (rumble*1.6f+wave(t,48-18*u)*0.42f)*std::exp(-t*3.8f)+
+                n*0.14f*std::exp(-t*2.8f))*(1-u);break;
+        }
         default:break;
         }
         channel.samples[i]=short(std::clamp(signal,-1.0f,1.0f)*27000);

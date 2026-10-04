@@ -31,6 +31,16 @@ void driverScenarios(){
         for(float angle:{0.0f,1.7f}){
             vehicle.angle=angle;
             dx11::buildScene(groups,instances);
+            if(kind!=Kind::Bike){
+                int bodies=0;
+                for(const auto& instance:instances)if(instance.material==6&&
+                    std::abs(instance.x-vehicle.p.x)<.01f&&std::abs(instance.z-vehicle.p.z)<.01f){
+                    assert(std::abs((instance.source->maxX-instance.source->minX)*instance.scaleX-52)<.01f);
+                    assert(std::abs((instance.source->maxZ-instance.source->minZ)*instance.scaleZ-96)<.01f);
+                    ++bodies;
+                }
+                assert(bodies>0);
+            }
             // This fails if people() hides the player and vehicles() omits it.
             assert(groups[5].size()==dx11::skinMesh("characters/hoodie-man")->vertices.size());
             float top=0;
@@ -39,7 +49,8 @@ void driverScenarios(){
                 assert(len(Vec2{vertex.x,vertex.z}-vehicle.p)<40);
                 top=std::max(top,vertex.y-vehicle.rideHeight);
             }
-            assert(kind==Kind::Bike?top>34&&top<45:top>15&&top<27);
+            // Seated car occupants now have human proportions in the doubled cabin.
+            assert(kind==Kind::Bike?top>34&&top<45:top>32&&top<43);
             std::vector<dx11::SkinInstance> skins;
             dx11::buildScene(groups,instances,vehicle.p.x,60,vehicle.p.z-60,&skins);
             assert(skins.empty());

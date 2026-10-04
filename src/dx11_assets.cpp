@@ -132,7 +132,7 @@ BoundingSphere instanceBounds(const ModelInstance& model){
     return {model.x+model.cosYaw*pitchedX+model.sinYaw*pitchedZ,
             model.y+pitchedY,
             model.z-model.sinYaw*pitchedX+model.cosYaw*pitchedZ,
-            std::sqrt(halfX*halfX+halfY*halfY+halfZ*halfZ)+2.0f};
+            std::sqrt(halfX*halfX+halfY*halfY+halfZ*halfZ)+(mesh.grassFoliage?5.0f:2.0f)};
 }
 void sortInstancesForRendering(std::vector<ModelInstance>& instances,
                                float eyeX,float eyeY,float eyeZ){
@@ -157,27 +157,6 @@ void loadMeshes(const std::wstring& folder){
     boxBase.minX=boxBase.minZ=-0.5f;boxBase.maxX=boxBase.maxZ=0.5f;
     boxBase.minY=0;boxBase.maxY=1;
     meshes.emplace("primitive/box",distantBox(boxBase,1,1,1));
-    Mesh grassTuft;
-    grassTuft.minX=grassTuft.minZ=-0.5f;
-    grassTuft.maxX=grassTuft.maxZ=0.5f;
-    grassTuft.minY=0;grassTuft.maxY=1;
-    grassTuft.castsShadow=false;
-    for(int blade=0;blade<3;++blade){
-        float angle=float(blade)*2.0943951f;
-        float forwardX=std::cos(angle),forwardZ=std::sin(angle);
-        float sideX=-forwardZ,sideZ=forwardX;
-        float rootX=forwardX*0.07f,rootZ=forwardZ*0.07f;
-        float tipX=forwardX*(0.28f+0.06f*blade);
-        float tipZ=forwardZ*(0.28f+0.06f*blade);
-        float height=0.76f+0.12f*blade;
-        grassTuft.vertices.push_back({rootX-sideX*0.16f,0,rootZ-sideZ*0.16f,
-            forwardX,0.4f,forwardZ,0,1,0.72f,0.82f,0.66f,1});
-        grassTuft.vertices.push_back({rootX+sideX*0.16f,0,rootZ+sideZ*0.16f,
-            forwardX,0.4f,forwardZ,1,1,0.72f,0.82f,0.66f,1});
-        grassTuft.vertices.push_back({tipX,height,tipZ,
-            forwardX,0.4f,forwardZ,0.5f,0,0.96f,1.0f,0.86f,1});
-    }
-    meshes.emplace("primitive/grass-tuft",std::move(grassTuft));
     auto effectSprite=[&](const char* name,const wchar_t* texture){
         Mesh sprite;
         sprite.minX=sprite.minZ=-0.5f;sprite.maxX=sprite.maxZ=0.5f;
@@ -201,6 +180,25 @@ void loadMeshes(const std::wstring& folder){
     effectSprite("effect/smoke",L"smoke.png");
     effectSprite("effect/flash",L"flash.png");
     effectSprite("effect/blood",L"blood_splat.png");
+    // An individual alpha sprite per weapon keeps mipmaps and silhouettes from
+    // bleeding into neighboring atlas cells. PNG IHDR supplies its aspect ratio.
+    const auto icons=std::filesystem::path(folder).parent_path().parent_path()/"icons"/"weapons";
+    if(std::filesystem::exists(icons))for(const auto& entry:std::filesystem::directory_iterator(icons)){
+        if(entry.path().extension()!=L".png"||entry.path().stem()==L"source-atlas")continue;
+        unsigned char header[24]{};std::ifstream png(entry.path(),std::ios::binary);
+        if(!png.read(reinterpret_cast<char*>(header),sizeof(header)))continue;
+        auto dimension=[&](int offset){return (unsigned(header[offset])<<24)|
+            (unsigned(header[offset+1])<<16)|(unsigned(header[offset+2])<<8)|header[offset+3];};
+        unsigned width=dimension(16),height=dimension(20);if(!width||!height)continue;
+        Mesh sprite;sprite.minX=-0.5f;sprite.maxX=0.5f;
+        sprite.maxY=float(height)/width;sprite.textured=true;sprite.transparent=true;
+        sprite.unlit=true;sprite.castsShadow=false;sprite.allowTessellation=false;
+        sprite.textureFile=entry.path().wstring();
+        Vertex a{-0.5f,0,0,0,0,1,0,1,1,1,1,1},b{0.5f,0,0,0,0,1,1,1,1,1,1,1};
+        Vertex c{0.5f,sprite.maxY,0,0,0,1,1,0,1,1,1,1},d{-0.5f,sprite.maxY,0,0,0,1,0,0,1,1,1,1};
+        sprite.vertices={a,b,c,a,c,d};
+        meshes.emplace("icons/"+entry.path().stem().string(),std::move(sprite));
+    }
     Mesh shockwave;
     shockwave.minX=shockwave.minZ=-0.5f;
     shockwave.maxX=shockwave.maxZ=0.5f;
@@ -387,7 +385,7 @@ void loadMeshes(const std::wstring& folder){
             if(!entry.is_regular_file()||entry.path().extension()!=L".m3d")continue;
             std::string stem=entry.path().stem().string();
             if(stem.rfind("tree_",0)==0||stem.rfind("bush_",0)==0||
-               stem.rfind("cactus_",0)==0||
+               stem.rfind("cactus_",0)==0||stem.rfind("grass_",0)==0||
                stem.rfind("rock_",0)==0)names.push_back("nature/"+stem);
         }
     for(const std::string& path:names){
@@ -504,12 +502,18 @@ void loadMeshes(const std::wstring& folder){
         }
         result.wrapTextures=path.rfind("modern/",0)==0;
         result.allowTessellation=!result.wrapTextures;
+        result.grassFoliage=path.rfind("nature/grass_",0)==0&&
+            !result.materialRanges.empty();
+        if(result.grassFoliage){
+            result.allowTessellation=false;
+            result.castsShadow=path.find("-lod")==std::string::npos;
+        }
         result.alphaTest=(path.rfind("nature/tree_",0)==0||
-                          path.rfind("nature/bush_",0)==0)&&result.textured;
+                          path.rfind("nature/bush_",0)==0||result.grassFoliage)&&result.textured;
         result.temporalStable=path.rfind("characters/",0)!=0&&
             path.rfind("vehicles/",0)!=0&&path.rfind("animals/",0)!=0&&
             path.rfind("birds/",0)!=0&&path.rfind("weapons/",0)!=0&&
-            path.rfind("effect/",0)!=0;
+            path.rfind("effect/",0)!=0&&!result.grassFoliage;
         if(path.rfind("vehicles/",0)==0){
             std::ifstream windows(folder+L"\\"+wide+L".glass");
             const std::size_t triangleCount=indexed?result.indices.size()/3:
@@ -626,7 +630,7 @@ void loadMeshes(const std::wstring& folder){
         }
     }
     for(const std::string& key:names){
-        if(key.rfind("nature/",0)!=0)continue;
+        if(key.rfind("nature/",0)!=0||key.rfind("nature/grass_",0)==0)continue;
         if(key.size()>=4&&key.compare(key.size()-4,4,"-lod")==0)continue;
         auto source=meshes.find(key);
         if(source!=meshes.end()&&meshes.find(key+"-lod")==meshes.end()&&

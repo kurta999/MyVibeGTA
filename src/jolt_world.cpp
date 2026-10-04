@@ -313,12 +313,14 @@ void reset(){
         bool boat=vehicle.kind==game::Kind::Boat;
         bool helicopter=vehicle.kind==game::Kind::Helicopter;
         bool bike=vehicle.kind==game::Kind::Bike;
+        float scale=physics::vehicleScale(vehicle.kind);
         float halfW=helicopter?16.0f:bike?5.0f:boat?12.0f:13.0f;
         float halfL=helicopter?30.0f:vehicle.kind==game::Kind::Bike?13.0f:24.0f;
         float halfH=helicopter?12.0f:boat?10.0f:bike?4.0f:5.0f;
+        halfW*=scale;halfL*=scale;halfH*=scale;
         float mass=tuning.mass;
         JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(halfW,halfH,halfL)),
-            JPH::RVec3(vehicle.p.x,helicopter?12.0f:boat?halfH:bike?13.0f:14.0f,vehicle.p.z),
+            JPH::RVec3(vehicle.p.x,physics::vehicleRestHeight(vehicle.kind),vehicle.p.z),
             JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-vehicle.angle),
             JPH::EMotionType::Dynamic,Layer::moving);
         // Wheels provide ground contact; the chassis should not drag on the road.
@@ -335,8 +337,8 @@ void reset(){
         if(body&&!boat&&!helicopter){
             JPH::VehicleConstraintSettings wheels;
             wheels.mMaxPitchRollAngle=bike?0.48f:0.62f;
-            float radius=tuning.wheelRadius;
-            float width=bike?2.5f:3.5f;
+            float radius=tuning.wheelRadius*scale;
+            float width=(bike?2.5f:3.5f)*scale;
             float wheelX=bike?2.7f:halfW*0.78f;
             float wheelZ=bike?halfL*0.72f:halfL*0.76f;
             for(int axle=0;axle<2;++axle)for(int side=0;side<2;++side){
@@ -344,19 +346,20 @@ void reset(){
                 wheel->mPosition=JPH::Vec3(side==0?wheelX:-wheelX,
                     -halfH*0.85f,axle==0?wheelZ:-wheelZ);
                 wheel->mRadius=radius;wheel->mWidth=width;
-                wheel->mSuspensionMinLength=1.5f;
-                wheel->mSuspensionMaxLength=bike?5.0f:5.5f;
+                wheel->mSuspensionMinLength=1.5f*scale;
+                wheel->mSuspensionMaxLength=(bike?5.0f:5.5f)*scale;
                 wheel->mSuspensionSpring.mFrequency=tuning.suspensionFrequency;
                 wheel->mSuspensionSpring.mDamping=tuning.suspensionDamping;
-                wheel->mMaxSteerAngle=axle==0?tuning.steerAngle:0.0f;
-                wheel->mMaxHandBrakeTorque=axle==0?0.0f:tuning.handbrakeTorque;
-                wheel->mMaxBrakeTorque=tuning.brakeTorque;
-                wheel->mInertia=bike?65.0f:220.0f;
+                // Preserve the turning radius with the longer wheelbase.
+                wheel->mMaxSteerAngle=axle==0?std::atan(std::tan(tuning.steerAngle)*scale):0.0f;
+                wheel->mMaxHandBrakeTorque=axle==0?0.0f:tuning.handbrakeTorque*scale;
+                wheel->mMaxBrakeTorque=tuning.brakeTorque*scale;
+                wheel->mInertia=(bike?65.0f:220.0f)*scale*scale;
                 wheels.mWheels.push_back(wheel);
             }
             JPH::WheeledVehicleControllerSettings* controller=
                 new JPH::WheeledVehicleControllerSettings();
-            controller->mEngine.mMaxTorque=tuning.engineTorque;
+            controller->mEngine.mMaxTorque=tuning.engineTorque*scale;
             controller->mEngine.mInertia=bike?15.0f:60.0f;
             controller->mTransmission.mClutchStrength=bike?1200.0f:3500.0f;
             controller->mTransmission.mSwitchTime=0.16f;
@@ -752,7 +755,7 @@ void driveVehicle(std::size_t index,float throttle,float steering,float,bool bra
             vehicleConstraints[index]->GetController());
         float power=std::max(0.35f,1.0f-vehicle.damage/145.0f);
         float torque=physics::tuning(vehicle.kind).engineTorque;
-        controller->GetEngine().mMaxTorque=torque*power;
+        controller->GetEngine().mMaxTorque=torque*power*physics::vehicleScale(vehicle.kind);
         bool braking=brake||throttle*vehicle.speed<-5.0f;
         controller->SetDriverInput(braking?0.0f:throttle,steering,
             braking?1.0f:std::abs(throttle)<0.01f?0.03f:0.0f,
@@ -768,8 +771,7 @@ void teleportVehicle(std::size_t index,game::Vec2 position,float angle){
     vehicle.rideHeight=0;vehicle.verticalSpeed=0;
     if(!world||index>=vehicleBodies.size()||vehicleBodies[index].IsInvalid())return;
     auto& bodies=world->GetBodyInterface();
-    float height=vehicle.kind==game::Kind::Helicopter?12.0f:vehicle.kind==game::Kind::Boat?10.0f:
-        vehicle.kind==game::Kind::Bike?13.0f:14.0f;
+    float height=physics::vehicleRestHeight(vehicle.kind);
     bodies.SetPosition(vehicleBodies[index],
         JPH::RVec3(position.x,height,position.z),JPH::EActivation::Activate);
     bodies.SetRotation(vehicleBodies[index],
@@ -1013,11 +1015,10 @@ void step(float dt){
         vehicle.p={position.GetX(),position.GetZ()};
         vehicleSynced[i]=vehicle.p;
         vehicle.velocity=resolved;
-        float restHeight=vehicle.kind==game::Kind::Helicopter?12.0f:vehicle.kind==game::Kind::Boat?10.0f:
-            vehicle.kind==game::Kind::Bike?13.0f:14.0f;
+        float restHeight=physics::vehicleRestHeight(vehicle.kind);
         vehicle.rideHeight=vehicle.kind==game::Kind::Helicopter?
             std::max(0.0f,float(position.GetY())-restHeight):
-            std::clamp(float(position.GetY())-restHeight,-6.0f,12.0f);
+            std::clamp(float(position.GetY())-restHeight,-6.0f*physics::vehicleScale(vehicle.kind),12.0f*physics::vehicleScale(vehicle.kind));
         vehicle.verticalSpeed=velocity.GetY();
         if(vehicle.kind!=game::Kind::Boat){
             JPH::Vec3 forward=bodies.GetRotation(vehicleBodies[i])*JPH::Vec3::sAxisZ();
