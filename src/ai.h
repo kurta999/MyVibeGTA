@@ -3,7 +3,9 @@
 #include "game.h"
 
 namespace ai {
-void update(float dt);
+// The game tick opens a shared navigation frame before dispatch and AI. Direct
+// AI callers retain the convenience of opening their own frame by default.
+void update(float dt,bool beginNavigationFrame=true);
 int activeCount();
 void notifyGunshot(game::Vec2 origin);
 int notifyThreat(game::Vec2 origin,float facing);

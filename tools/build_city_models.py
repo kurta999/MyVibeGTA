@@ -254,13 +254,14 @@ def palm_fronds(variant, lod=False):
     return np.asarray(vertices, dtype=np.float32)
 
 
-def bake_tree(name, variant, source_override=None):
+def bake_tree(name, variant, source_override=None, solid_only=False):
     path = source_override if source_override else tree_source(name)[0]
     bush = name.startswith("bush_")
     doc, binary = read_scene(path)
     atlas, cols, rows = material_atlas(doc, binary, path, variant)
-    destination = BAKED / "nature" / name
-    atlas.save(destination.with_suffix(".png"), optimize=True)
+    destination = BAKED / "nature" / (name + "-mining-solid" if solid_only else name)
+    if not solid_only:
+        atlas.save(destination.with_suffix(".png"), optimize=True)
     meshes = doc["meshes"]
     nodes = doc["nodes"]
     scene = doc["scenes"][doc.get("scene", 0)]
@@ -297,6 +298,8 @@ def bake_tree(name, variant, source_override=None):
                 tri = indices.reshape((-1, 3))
                 name_lower = material.get("name", "").lower()
                 foliage = any(word in name_lower for word in ("leaf", "leav", "twig", "foliage", "flower", "blossom"))
+                if solid_only and foliage:
+                    continue
                 if path.suffix == ".glb" and "date-palm" in path.name and "foliage" in name_lower:
                     continue
                 cap = (35000 if path.name == "tree_small_02.gltf" else
@@ -304,6 +307,8 @@ def bake_tree(name, variant, source_override=None):
                            6000 if "branch" in name_lower else 10000)
                 if bush:
                     cap = 20000
+                if solid_only:
+                    cap = len(tri)  # Preserve bark topology; random triangle samples leave open cuts.
                 if len(tri) > cap:
                     if foliage and (path.name in ("tree_small_02.gltf", "fir_sapling.gltf", "pine_sapling_small.gltf") or
                                     path.name.startswith("island_tree_")) and len(tri) % 2 == 0:
@@ -370,10 +375,19 @@ def bake_tree(name, variant, source_override=None):
 
     for index in scene["nodes"]:
         visit(index, np.eye(4))
-    if "date-palm" in path.name:
+    if "date-palm" in path.name and not solid_only:
         full_parts.append(palm_fronds(variant))
         lod_parts.append(palm_fronds(variant, lod=True))
     full = np.concatenate(full_parts)
+    if solid_only:
+        # Indexed export bounds disk/memory while retaining all connected solid faces.
+        vertices, indices = np.unique(full, axis=0, return_inverse=True)
+        with destination.with_suffix(".m3d").open("wb") as file:
+            file.write(struct.pack("<4sII", b"M3D2", len(vertices), len(indices)))
+            file.write(vertices.astype("<f4").tobytes())
+            file.write(indices.astype("<u4").tobytes())
+        print(f"{name}: mining solid {len(indices)//3} triangles, {len(vertices)} vertices", flush=True)
+        return
     lod = np.concatenate(lod_parts)
     if bush and len(lod) > 4200 * 3:
         triangles = lod.reshape((-1, 3, 12))
@@ -604,6 +618,23 @@ def write_manifests():
 if __name__ == "__main__":
     if "--manifest-only" in sys.argv:
         write_manifests()
+        sys.exit(0)
+    if "--mining-solids" in sys.argv:
+        import hashlib
+        records = []
+        for index, name in enumerate(TREE_IDS):
+            bake_tree(name, index, solid_only=True)
+            path = BAKED / "nature" / (name + "-mining-solid.m3d")
+            source = tree_source(name)[0]
+            source_files = [source]
+            if source.suffix == ".gltf":
+                source_files += [source.parent / buffer["uri"] for buffer in json.loads(source.read_text())["buffers"]]
+            records.append({"model": name, "solid": str(path.relative_to(ROOT)),
+                            "source": str(source.relative_to(ROOT)),
+                            "source_sha256": {str(file.relative_to(ROOT)): hashlib.sha256(file.read_bytes()).hexdigest() for file in source_files},
+                            "license": "CC0-1.0 (see existing tree manifests)",
+                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+        (BAKED / "nature/mining-solids.json").write_text(json.dumps(records, indent=2)+"\n", encoding="utf-8")
         sys.exit(0)
     if "--sample-tree" in sys.argv:
         bake_tree(TREE_IDS[0], 0)

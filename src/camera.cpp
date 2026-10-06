@@ -1,6 +1,8 @@
 #include "camera.h"
 #ifdef MINI_CITY_JOLT
 #include "destruction.h"
+#include "builder.h"
+#include "scenery_edits.h"
 #include "terrain.h"
 #include "wildlife.h"
 #include "birds.h"
@@ -13,7 +15,11 @@
 
 namespace camera {
 using namespace game;
-bool isScoped(){return occupied<0&&!swimming&&rightMouse&&weapon==weapons::indexOf("sniper");}
+bool isScoped(){return occupied<0&&!swimming&&rightMouse&&weapon==weapons::indexOf("sniper")
+#ifdef MINI_CITY_JOLT
+    &&!builder::active()
+#endif
+    ;}
 bool zoomActive(){return occupied<0&&!swimming&&(isScoped()||telescopeActive);}
 bool firstPersonActive(){
     return occupied<0&&(zoomActive()||scopeBlend>0||
@@ -61,6 +67,11 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     if(wildlife::riding()&&!aiming&&!overview){distance=std::max(distance,175.0f);height+=10;}
 #endif
     float shoulder=aiming?23.0f:0.0f;
+#ifdef MINI_CITY_JOLT
+    // The builder inspection view must show the model in the right hand;
+    // a centered rear view hides forward-pointing tool heads behind the body.
+    if(builder::active()&&occupied<0&&!aiming&&!overview){distance=95;shoulder=35;height=playerHeight+52-stance;}
+#endif
     float lookDistance=overview?15.0f:aiming?240.0f:55.0f;
     float lookHeight=(overview?18.0f:aiming?16.0f+std::tan(cameraPitch)*240.0f:
         (occupied>=0?12.0f*scale:17.0f)+std::sin(cameraPitch)*55.0f)+playerHeight-stance;
@@ -68,15 +79,26 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     Vec3 desired{focus.x-f.x*distance+right.x*shoulder,height,
         focus.z-f.z*distance+right.z*shoulder};
     Vec3 safe=desired;
+#ifdef MINI_CITY_JOLT
+    float sceneryEntry=0;if(scenery_edits::segment(anchor,desired,sceneryEntry)){
+        float length=game::len(desired-anchor);desired=anchor+(desired-anchor)*std::max(.08f,sceneryEntry-5/std::max(1.0f,length));safe=desired;
+    }
+#endif
     for(int i=1;i<=28;++i){
         float t=i/28.0f;
         Vec3 point=anchor+(desired-anchor)*t;
         bool blocked=point.y<game::groundHeight({point.x,point.z})+5&&!swimming;
+#ifdef MINI_CITY_JOLT
+        blocked=!swimming&&terrain::contains(point-game::Vec3{0,5,0});
+#endif
         for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
             if(destruction::contains(b,point,5)){blocked=true;break;}
 #else
             if(point.x>b.x-5&&point.x<b.x+b.w+5&&point.z>b.z-5&&point.z<b.z+b.d+5&&point.y<b.h+5){blocked=true;break;}
+#endif
+#ifdef MINI_CITY_JOLT
+        blocked=blocked||builder::contains(point,5);
 #endif
         if(blocked){safe=anchor+(desired-anchor)*std::max(0.08f,(i-2)/28.0f);break;}
     }
@@ -131,6 +153,10 @@ float vehicleHit(Vec3 origin,Vec3 direction,const Vehicle& vehicle,float limit){
 Vec3 traceReticle(const Pose& pose,float maximumDistance){
     Vec3 direction=norm(pose.target-pose.eye);
     float best=maximumDistance;
+#ifdef MINI_CITY_JOLT
+    float builderEntry=0;if(builder::segment(pose.eye,pose.eye+direction*best,builderEntry))best*=builderEntry;
+    float sceneryEntry=0;if(scenery_edits::segment(pose.eye,pose.eye+direction*best,sceneryEntry))best*=sceneryEntry;
+#endif
     const Ped* aimedPed=nullptr;
     float pedDistance=maximumDistance;
     for(const auto& building:buildings){
@@ -146,8 +172,9 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
         best=std::min(best,vehicleHit(pose.eye,direction,vehicle,best));
     }
     for(const auto& ped:peds)if(ped.alive){
+        float height=game::pedGroundHeight(ped);
         float hit=boxHit(pose.eye,direction,
-            {ped.p.x-10,game::groundHeight(ped.p)+2,ped.p.z-10},{ped.p.x+10,game::groundHeight(ped.p)+37,ped.p.z+10},best);
+            {ped.p.x-10,height+2,ped.p.z-10},{ped.p.x+10,height+37,ped.p.z+10},best);
         if(hit<best){best=hit;pedDistance=hit;aimedPed=&ped;}
     }
     for(const auto& prop:props)if(prop.alive){
@@ -167,7 +194,7 @@ Vec3 traceReticle(const Pose& pose,float maximumDistance){
     for(const auto& animal:wildlife::animals)if(animal.health>0){
         float r=wildlife::radius(animal),h=wildlife::species()[animal.species].height;
         best=std::min(best,boxHit(pose.eye,direction,
-            {animal.p.x-r,game::groundHeight(animal.p),animal.p.z-r},{animal.p.x+r,game::groundHeight(animal.p)+h,animal.p.z+r},best));
+            {animal.p.x-r,wildlife::originHeight(animal),animal.p.z-r},{animal.p.x+r,wildlife::originHeight(animal)+h,animal.p.z+r},best));
     }
     for(const auto& bird:birds::flock)if(bird.health>0){
         float entry=0;

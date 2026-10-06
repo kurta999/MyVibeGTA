@@ -92,8 +92,85 @@ void equipmentScenarios();
 void ordnanceScenarios();
 void expansionScenarios();
 void terrainScenarios();
+void builderScenarios();
+void excavationScenarios();
+void sceneryScenarios();
+void toolWorkScenarios();
+void builderFeedbackScenarios();
+void builderRecoveryScenarios();
+void builderTransitionScenarios();
+void builderProgressionScenarios();
+void builderNavigationScenarios();
+void builderDestinationScenarios();
+void builderWildlifeScenarios();
+void builderInteractionScenarios();
+void builderPoliceScenarios(bool before);
+void builderNavigationRestartSave();
+void builderNavigationRestartLoad();
 int main(int argc,char** argv){
+    if(argc>1&&(std::string(argv[1])=="--builder-police-only"||std::string(argv[1])=="--builder-police-before")){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderPoliceScenarios(std::string(argv[1])=="--builder-police-before");return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-interaction-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderInteractionScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-wildlife-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderWildlifeScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-destination-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderDestinationScenarios();return 0;
+    }
+    if(argc>1&&(std::string(argv[1])=="--builder-navigation-restart-save"||std::string(argv[1])=="--builder-navigation-restart-load")){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        if(std::string(argv[1])=="--builder-navigation-restart-save")builderNavigationRestartSave();else builderNavigationRestartLoad();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-navigation-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderNavigationScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-progression-only"){
+        std::setvbuf(stdout,nullptr,_IONBF,0);
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderProgressionScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-transition-only"){
+        std::setvbuf(stdout,nullptr,_IONBF,0);
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderTransitionScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-recovery-only"){
+        std::setvbuf(stdout,nullptr,_IONBF,0);
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderRecoveryScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--builder-feedback-only"){
+        std::setvbuf(stdout,nullptr,_IONBF,0);
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderFeedbackScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--tool-work-only"){
+        std::setvbuf(stdout,nullptr,_IONBF,0);
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        toolWorkScenarios();return 0;
+    }
     std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--scenery-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        sceneryScenarios();return 0;
+    }
+    if(argc>1&&std::string(argv[1])=="--excavation-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        excavationScenarios();return 0;
+    }
+    std::setvbuf(stdout,nullptr,_IONBF,0);
+    if(argc>1&&std::string(argv[1])=="--builder-only"){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        builderScenarios();return 0;
+    }
     if(argc>1&&std::string(argv[1])=="--terrain-only"){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
         terrainScenarios();return 0;

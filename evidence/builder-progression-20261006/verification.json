@@ -1,0 +1,11 @@
+{
+  "executable_sha256": "E0E80AF77C78C3AE16AC69D16BF13997DC2073A176319B896731512C17FCD184",
+  "root_save_sha256": "5A4C87DB5DC9E23148622694D21056E0B18EC4FE45FE7B294C59826B289FC539",
+  "ctest_suites": 32,
+  "ctest_seconds": 283.26,
+  "progression_seconds": 89.21,
+  "earned_tools": 22,
+  "native_captures": 67,
+  "visually_reviewed": "66 tool views via labeled crops plus storage capture",
+  "full_plan_complete": false
+}

@@ -6,16 +6,21 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include "excavation.h"
 #include "terrain.h"
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include "masonry.h"
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Constraints/DistanceConstraint.h>
@@ -26,6 +31,10 @@
 #include <Jolt/Physics/Vehicle/VehicleConstraint.h>
 #include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 #include "jolt_world.h"
+#include "builder.h"
+#include "scenery_edits.h"
+#include <map>
+#include <set>
 #include "regions.h"
 #include "physics.h"
 #include "ai.h"
@@ -72,6 +81,9 @@ std::unique_ptr<JPH::JobSystemSingleThreaded> jobs;
 std::vector<JPH::BodyID> propBodies;
 std::vector<JPH::BodyID> vehicleBodies;
 std::vector<JPH::BodyID> treeBodies,animalBodies;
+std::vector<std::uint64_t> treeRevisions;
+struct RockBody {JPH::BodyID id;std::uint64_t revision=0;};
+std::map<std::string,RockBody> rockBodies;
 std::vector<int> animalBodySpecies;
 constexpr JPH::uint64 treeTag=JPH::uint64(1)<<32,animalTag=JPH::uint64(2)<<32;
 struct SceneryImpact {float speed=0;int vehicle=-1;game::Vec2 direction{};};
@@ -134,8 +146,45 @@ JPH::Ref<JPH::CapsuleShape> standingShape,crouchingShape;
 bool playerCrouched=false;
 JPH::Ref<JPH::CharacterVirtualSettings> pedestrianSettings;
 std::vector<JPH::Ref<JPH::CharacterVirtual>> pedCharacters;
+std::vector<std::string> pedCharacterIds;
+bool currentPedCharacter(std::size_t index){
+    return index<game::peds.size()&&index<pedCharacters.size()&&pedCharacters[index]&&
+        index<pedCharacterIds.size()&&pedCharacterIds[index]==game::peds[index].id&&game::peds[index].elevationKnown;
+}
+void rememberPed(std::size_t index){
+    if(!currentPedCharacter(index))return;auto& ped=game::peds[index];auto p=pedCharacters[index]->GetPosition();
+    if(game::len(game::Vec2{float(p.GetX()),float(p.GetZ())}-ped.p)>=25)return;
+    ped.elevation=float(p.GetY());ped.elevationVelocity=pedCharacters[index]->GetLinearVelocity().GetY();ped.elevationAt=ped.p;
+}
 std::vector<JPH::BodyID> staticBodies;
+std::vector<JPH::BodyID> terrainBodies;
+struct TerrainChunk {JPH::BodyID id;std::uint64_t revision=0;};
+std::map<std::pair<int,int>,TerrainChunk> terrainChunks;
+std::uint64_t terrainMaskRevision=~std::uint64_t(0),terrainBaseRevision=~std::uint64_t(0);
+void syncTerrainColliders();
 std::vector<JPH::BodyID> buildingBodies;
+std::vector<JPH::BodyID> builderBodies;
+std::uint64_t builderRevision=~std::uint64_t(0);
+int builderCellX=-1,builderCellZ=-1;
+void syncBuilderColliders(game::Vec2 focus){
+    if(!world)return;int cx=int(std::floor(focus.x/400)),cz=int(std::floor(focus.z/400));
+    if(builderRevision==builder::revision()&&cx==builderCellX&&cz==builderCellZ)return;
+    for(auto& id:builderBodies)destroyBody(id);builderBodies.clear();
+    builderRevision=builder::revision();builderCellX=cx;builderCellZ=cz;
+    if(!builder::active())return;
+    // One compound per local chunk keeps body counts bounded as structures grow.
+    std::map<std::pair<int,int>,JPH::StaticCompoundShapeSettings> chunks;
+    for(const auto& block:builder::blocks()){
+        // Cached focus can move across a 400-unit cell on both axes. Include
+        // that diagonal drift plus a block/capsule margin around builder AI.
+        auto low=builder::cellLow(block.first);if(game::len(game::Vec2{low.x,low.z}-focus)>1900)continue;
+        auto center=low+game::Vec3{20,20,20};
+        chunks[{block.first.x/16,block.first.z/16}].AddShape(JPH::Vec3(center.x,center.y,center.z),JPH::Quat::sIdentity(),new JPH::BoxShape(JPH::Vec3(20,20,20),.05f));
+    }
+    for(auto& chunk:chunks){auto shape=chunk.second.Create();if(shape.HasError())continue;
+        JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
+        settings.mFriction=.9f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);if(!id.IsInvalid())builderBodies.push_back(id);}
+}
 int streamedCellX=-1,streamedCellZ=-1;
 struct Ragdoll {
     std::string pedId;
@@ -145,8 +194,82 @@ struct Ragdoll {
     int style=0;
     game::Vec3 origin{},rest[6]{};
     float yaw=0;
+    JPH::Ref<JPH::TwoBodyConstraint> pin;
+    game::Vec3 pinPoint{};
 };
 std::vector<Ragdoll> ragdolls;
+SceneryRecovery recoveryStats{};
+struct RagdollGeometry {float x,y,z,w,h,d;};
+constexpr RagdollGeometry ragdollGeometry[]={
+    {0,25,0,10,16,7},{0,37,0,8,8,8},{-8,24,0,4,13,4},
+    {8,24,0,4,13,4},{-3,10,0,5,16,5},{3,10,0,5,16,5}};
+struct RecoveryProbe {JPH::RefConst<JPH::Shape> shape;JPH::RMat44 transform;};
+std::vector<RecoveryProbe> bodyProbes(const std::vector<JPH::BodyID>& ids){
+    std::vector<RecoveryProbe> result;for(auto id:ids){JPH::BodyLockRead lock(world->GetBodyLockInterface(),id);
+        if(lock.Succeeded())result.push_back({lock.GetBody().GetShape(),lock.GetBody().GetCenterOfMassTransform()});}return result;
+}
+JPH::AABox recoveryBounds(const std::vector<RecoveryProbe>& probes){
+    JPH::AABox bounds;for(const auto& probe:probes)bounds.Encapsulate(probe.shape->GetWorldSpaceBounds(probe.transform,JPH::Vec3::sOne()));return bounds;
+}
+bool recoveryClear(const std::vector<RecoveryProbe>& probes,game::Vec3 delta){
+    JPH::CollideShapeSettings settings;settings.mBackFaceMode=JPH::EBackFaceMode::CollideWithBackFaces;
+    for(const auto& probe:probes){auto transform=probe.transform.PostTranslated(JPH::RVec3(delta.x,delta.y,delta.z));auto p=transform.GetTranslation();
+        // A one-sided heightfield cannot report a shape wholly buried below it.
+        if(!regions::waterAt({p.GetX(),p.GetZ()})&&terrain::contains({p.GetX(),p.GetY(),p.GetZ()}))return false;
+        JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+        world->GetNarrowPhaseQuery().CollideShape(probe.shape,JPH::Vec3::sOne(),transform,settings,p,hits,
+            JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+        if(hits.HadHit()&&hits.mHit.mPenetrationDepth>.35f)return false;
+    }return true;
+}
+bool recoveryOffset(const std::vector<RecoveryProbe>& probes,game::Vec3& result,bool groundOnly=false){
+    result={};if(probes.empty())return true;auto bounds=recoveryBounds(probes);auto center=bounds.GetCenter();float lift=0;
+    auto clear=[&](game::Vec3 delta){
+        if(groundOnly){JPH::AABox candidate(bounds.mMin+JPH::Vec3(delta.x,delta.y,delta.z),bounds.mMax+JPH::Vec3(delta.x,delta.y,delta.z));
+            // Legacy corpse animations have no saved altitude. Their escape
+            // search may cross streaming boundaries, so include global edits.
+            auto intersects=[&](game::Vec3 low,game::Vec3 high){return candidate.Overlaps(JPH::AABox(JPH::Vec3(low.x,low.y,low.z),JPH::Vec3(high.x,high.y,high.z)));};
+            for(const auto& building:game::buildings)for(const auto& box:destruction::boxes(building))if(intersects(box.low,box.high))return false;
+            if(builder::active())for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);if(intersects(low,low+game::Vec3{40,40,40}))return false;}}
+        return recoveryClear(probes,delta);
+    };
+    if(clear({}))return true;
+    for(const auto& probe:probes){auto p=probe.transform.GetTranslation();if(!regions::waterAt({p.GetX(),p.GetZ()})&&terrain::contains({p.GetX(),p.GetY(),p.GetZ()}))
+        lift=std::max(lift,terrain::baseHeight({p.GetX(),p.GetZ()})-bounds.mMin.GetY()+.5f);}
+    if(!groundOnly&&lift>0&&clear({0,lift,0})){result={0,lift,0};return true;}
+    // Bounded local search keeps the actor near its current position. Query all
+    // parts together so a ragdoll keeps its pose and internal joint anchors.
+    for(int ring=1;ring<=(groundOnly?100:8);++ring)for(int side=0;side<16;++side){float angle=side*game::PI/8;
+        float dx=std::cos(angle)*ring*40,dz=std::sin(angle)*ring*40;
+        if(bounds.mMin.GetX()+dx<1||bounds.mMin.GetZ()+dz<1||bounds.mMax.GetX()+dx>regions::WIDTH-1||bounds.mMax.GetZ()+dz>regions::DEPTH-1||
+            regions::waterAt({center.GetX()+dx,center.GetZ()+dz}))continue;
+        float floor=-10000;for(float x:{bounds.mMin.GetX(),center.GetX(),bounds.mMax.GetX()})for(float z:{bounds.mMin.GetZ(),center.GetZ(),bounds.mMax.GetZ()})
+            floor=std::max(floor,terrain::height({x+dx,z+dz}));
+        game::Vec3 delta{dx,floor+.5f-bounds.mMin.GetY(),dz};if(clear(delta)){result=delta;return true;}
+    }
+    // An enclosed actor can be lifted onto the structure rather than deleted.
+    if(!groundOnly)for(int step=1;step<=96;++step){game::Vec3 delta{0,lift+step*40,0};if(clear(delta)){result=delta;return true;}}
+    return false;
+}
+float corpseDrop(const std::vector<RecoveryProbe>& probes,game::Vec3 delta){
+    constexpr float distance=4000;float fraction=1;bool found=false;
+    for(const auto& probe:probes){auto transform=probe.transform.PostTranslated(JPH::RVec3(delta.x,delta.y,delta.z));
+        JPH::RShapeCast cast(probe.shape,JPH::Vec3::sOne(),transform,JPH::Vec3(0,-distance,0));JPH::ShapeCastSettings settings;
+        JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> hits;
+        // A settled corpse can also rest on an ordinary crate or vehicle.
+        // Include their dynamic bodies rather than dropping through them.
+        world->GetNarrowPhaseQuery().CastShape(cast,settings,transform.GetTranslation(),hits);
+        if(hits.HadHit()){found=true;fraction=std::min(fraction,hits.mHit.mFraction);}}
+    return found?std::max(0.0f,fraction*distance-.35f):0;
+}
+void publishRagdollPoses(){
+    game::ragdollParts.clear();auto& bodies=world->GetBodyInterface();
+    for(const auto& ragdoll:ragdolls){if(!ragdoll.bodies.empty())for(auto& ped:game::peds)if(ped.id==ragdoll.pedId&&!ped.alive){
+            auto p=bodies.GetCenterOfMassPosition(ragdoll.bodies[0]);ped.p={p.GetX(),p.GetZ()};break;}
+        for(std::size_t i=0;i<ragdoll.bodies.size();++i){auto p=bodies.GetCenterOfMassPosition(ragdoll.bodies[i]);auto q=bodies.GetRotation(ragdoll.bodies[i]);
+            game::ragdollParts.push_back({{p.GetX(),p.GetY(),p.GetZ()},ragdoll.rest[i],ragdoll.origin,q.GetX(),q.GetY(),q.GetZ(),q.GetW(),ragdoll.yaw,ragdoll.style,int(i)});}}
+    for(const auto& snapshot:game::corpseSnapshots)game::ragdollParts.insert(game::ragdollParts.end(),snapshot.parts.begin(),snapshot.parts.end());
+}
 bool registered=false;
 void captureCorpsePose(const Ragdoll& ragdoll){
     if(ragdoll.bodies.size()!=6)return;
@@ -190,6 +313,59 @@ void addStatic(game::Vec3 center,game::Vec3 half){
     auto id=createStatic(center,half);
     if(!id.IsInvalid())staticBodies.push_back(id);
 }
+void syncTerrainColliders(){
+    if(!world)return;
+    bool baseChanged=terrainMaskRevision!=excavation::maskRevision()||terrainBaseRevision!=terrain::revision();
+    if(baseChanged){
+        std::vector<JPH::BodyID> fresh;
+        try{
+            auto box=[&](game::Vec3 center,game::Vec3 half){auto id=createStatic(center,half);
+                if(id.IsInvalid())throw std::runtime_error("No body available for editable terrain");fresh.push_back(id);};
+            if(builder::active()&&!excavation::patches().empty()){
+                for(float z=0;z<game::SHORE;z+=200)for(float x=0;x<game::WORLD_W;x+=200){
+                    if(excavation::converted({int(x/200),int(z/200)}))continue;
+                    float w=std::min(200.0f,game::WORLD_W-x),d=std::min(200.0f,game::SHORE-z);
+                    box({x+w*.5f,-5,z+d*.5f},{w*.5f,5,d*.5f});
+                }
+            }else box({game::WORLD_W*.5f,-5,game::SHORE*.5f},{game::WORLD_W*.5f,5,game::SHORE*.5f});
+            box({game::WORLD_W*.5f,-20,(game::SHORE+game::WORLD_D)*.5f},{game::WORLD_W*.5f,5,(game::WORLD_D-game::SHORE)*.5f});
+            box({1200,-5,(game::SHORE+game::WORLD_D)*.5f},{60,5,(game::WORLD_D-game::SHORE)*.5f});
+            auto samples=terrain::heights();
+            for(unsigned z=0;z<terrain::samples;++z)for(unsigned x=0;x<terrain::samples;++x)
+                if(regions::waterAt({x*50.0f,z*50.0f}))samples[z*terrain::samples+x]=-15;
+            if(builder::active())for(const auto& patch:excavation::patches())
+                for(int z=patch.first.z*4;z<=patch.first.z*4+4;++z)for(int x=patch.first.x*4;x<=patch.first.x*4+4;++x)
+                    samples[z*terrain::samples+x]=JPH::HeightFieldShapeConstants::cNoCollisionValue;
+            JPH::HeightFieldShapeSettings surface(samples.data(),JPH::Vec3::sZero(),JPH::Vec3(50,1,50),terrain::samples);
+            surface.mBlockSize=4;surface.mBitsPerSample=16;auto shape=surface.Create();
+            if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
+            JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
+            settings.mFriction=.85f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+            if(id.IsInvalid())throw std::runtime_error("No heightfield body available");fresh.push_back(id);
+        }catch(...){for(auto& id:fresh)destroyBody(id);throw;}
+        for(auto& id:terrainBodies)destroyBody(id);terrainBodies=std::move(fresh);
+        terrainMaskRevision=excavation::maskRevision();terrainBaseRevision=terrain::revision();
+    }
+    std::map<std::pair<int,int>,std::vector<excavation::Patch>> groups;
+    if(builder::active())for(const auto& patch:excavation::patches())groups[{patch.first.x/4,patch.first.z/4}].push_back(patch.first);
+    auto wake=[&](std::pair<int,int> key){world->GetBodyInterface().ActivateBodiesInAABox(
+        JPH::AABox(JPH::Vec3(key.first*800.0f-50,-450,key.second*800.0f-50),JPH::Vec3((key.first+1)*800.0f+50,1500,(key.second+1)*800.0f+50)),
+        world->GetDefaultBroadPhaseLayerFilter(Layer::moving),world->GetDefaultLayerFilter(Layer::moving));};
+    for(auto it=terrainChunks.begin();it!=terrainChunks.end();)if(!groups.count(it->first)){destroyBody(it->second.id);wake(it->first);it=terrainChunks.erase(it);}else ++it;
+    for(const auto& group:groups){std::uint64_t revision=0;for(auto patch:group.second)revision=std::max(revision,excavation::patches().at(patch));
+        auto& chunk=terrainChunks[group.first];if(!baseChanged&&chunk.revision==revision)continue;
+        JPH::TriangleList triangles;
+        for(auto patch:group.second){auto vertices=excavation::collisionTriangles(patch);
+            for(std::size_t i=0;i<vertices.size();i+=3){auto a=vertices[i],b=vertices[i+1],c=vertices[i+2];
+                triangles.emplace_back(JPH::Float3(a.x,a.y,a.z),JPH::Float3(b.x,b.y,b.z),JPH::Float3(c.x,c.y,c.z));}}
+        JPH::MeshShapeSettings surface(triangles);surface.mBuildQuality=JPH::MeshShapeSettings::EBuildQuality::FavorBuildSpeed;auto shape=surface.Create();
+        if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
+        JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
+        settings.mFriction=.9f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+        if(id.IsInvalid())throw std::runtime_error("No excavation chunk body available");
+        destroyBody(chunk.id);chunk.id=id;chunk.revision=revision;wake(group.first);
+    }
+}
 JPH::BodyID createBuilding(const game::Building& b){
     if(!b.damaged)return createStatic({b.x+b.w*.5f,b.h*.5f,b.z+b.d*.5f},{b.w*.5f,b.h*.5f,b.d*.5f});
     JPH::StaticCompoundShapeSettings compound;
@@ -218,9 +394,9 @@ void syncBuildingColliders(game::Vec2 focus){
     if(cellX==streamedCellX&&cellZ==streamedCellZ)return;
     streamedCellX=cellX;streamedCellZ=cellZ;
     for(std::size_t index=0;index<pedCharacters.size()&&index<game::peds.size();++index)
-        if(!game::peds[index].alive||game::len(game::peds[index].p-focus)>650)
-            pedCharacters[index]=nullptr;
-    constexpr float radius=1200;
+        if(!game::peds[index].alive||game::len(game::peds[index].p-focus)>(builder::active()?1200.0f:650.0f)){
+            rememberPed(index);pedCharacters[index]=nullptr;}
+    const float radius=builder::active()?1900.0f:1200.0f;
     for(std::size_t index=0;index<game::buildings.size();++index){
         const auto& building=game::buildings[index];
         float dx=std::max({building.x-focus.x,0.0f,
@@ -236,18 +412,48 @@ void syncBuildingColliders(game::Vec2 focus){
         }
     }
 }
-JPH::Ref<JPH::CharacterVirtual> makePedCharacter(game::Vec2 point){
+JPH::Ref<JPH::CharacterVirtual> makePedCharacter(game::Ped& ped){
     if(!world||!pedestrianSettings)return nullptr;
-    return new JPH::CharacterVirtual(pedestrianSettings,
-        JPH::RVec3(point.x,terrain::height(point),point.z),JPH::Quat::sIdentity(),
+    auto point=ped.p;bool known=ped.elevationKnown&&game::len(point-ped.elevationAt)<25;
+    float height=known?ped.elevation:terrain::height(point),vertical=known?ped.elevationVelocity:0;
+    // An offscreen actor may return after its old layer has disappeared. Repair
+    // a buried/overlapping pose against the currently streamed world, while
+    // retaining a valid underground floor and in-progress fall.
+    if(!pedestrianClear({point.x,height,point.z})){
+        auto floors=pedestrianFloors(point);float nearest=1e30f,requested=height;
+        for(float floor:floors)if(std::abs(floor-requested)<nearest){nearest=std::abs(floor-requested);height=floor;vertical=0;}
+        if(nearest==1e30f&&terrain::contains({point.x,height+1,point.z})){height=terrain::height(point);vertical=0;}
+    }
+    auto character=new JPH::CharacterVirtual(pedestrianSettings,
+        JPH::RVec3(point.x,height,point.z),JPH::Quat::sIdentity(),
         Layer::moving,world.get());
+    character->SetLinearVelocity(JPH::Vec3(0,vertical,0));
+    ped.elevation=height;ped.elevationVelocity=vertical;ped.elevationAt=point;ped.elevationKnown=true;
+    return character;
+}
+void restorePedCharacters(game::Vec2 focus){
+    if(!world||!pedestrianSettings)return;
+    pedCharacters.resize(game::peds.size());pedCharacterIds.resize(game::peds.size());
+    float radius=builder::active()?1200.0f:500.0f;
+    for(std::size_t index=0;index<game::peds.size();++index){
+        auto& ped=game::peds[index];
+        if(!ped.alive||ped.drivingVehicle>=0||game::len(ped.p-focus)>radius)continue;
+        if(currentPedCharacter(index))continue;
+        // All incoming static collision must exist before restoring a pose.
+        // Recreate before rendering, even if this actor has not moved yet.
+        pedCharacters[index]=makePedCharacter(ped);pedCharacterIds[index]=ped.id;
+    }
 }
 }
 void shutdown(){
     if(world){
+        for(auto& id:terrainBodies)destroyBody(id);
+        for(auto& chunk:terrainChunks)destroyBody(chunk.second.id);
+        for(auto& id:builderBodies)destroyBody(id);
         auto& bodies=world->GetBodyInterface();
         playerCharacter=nullptr;
         pedCharacters.clear();
+        pedCharacterIds.clear();
         pedestrianSettings=nullptr;
         for(auto& hitch:hitches)world->RemoveConstraint(hitch.joint.GetPtr());
         hitches.clear();
@@ -268,15 +474,19 @@ void shutdown(){
     }
     if(world){
         for(auto& id:treeBodies)destroyBody(id);
+        for(auto& rock:rockBodies)destroyBody(rock.second.id);
         for(auto& id:animalBodies)destroyBody(id);
         for(auto& fragment:fragmentBodies)destroyBody(fragment.id);
     }
     ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
     propBodies.clear();vehicleBodies.clear();vehicleConstraints.clear();vehicleSynced.clear();
     staticBodies.clear();buildingBodies.clear();streamedCellX=streamedCellZ=-1;
-    treeBodies.clear();animalBodies.clear();animalBodySpecies.clear();
+    terrainBodies.clear();terrainChunks.clear();terrainMaskRevision=terrainBaseRevision=~std::uint64_t(0);
+    builderBodies.clear();builderRevision=~std::uint64_t(0);builderCellX=builderCellZ=-1;
+    treeBodies.clear();treeRevisions.clear();rockBodies.clear();animalBodies.clear();animalBodySpecies.clear();
     treeImpacts.clear();animalImpacts.clear();fragmentBodies.clear();fragmentVisuals.clear();
     world.reset();jobs.reset();allocator.reset();
+    recoveryStats={};
     standingShape=nullptr;crouchingShape=nullptr;playerCrouched=false;
 }
 void reset(){
@@ -292,26 +502,7 @@ void reset(){
     world->Init(4096,0,8192,4096,broadPhase,broadFilter,pairFilter);
     world->SetContactListener(&trafficContacts);
     world->SetGravity(JPH::Vec3(0,-700,0));
-    addStatic({game::WORLD_W*0.5f,-5,game::SHORE*0.5f},
-        {game::WORLD_W*0.5f,5,game::SHORE*0.5f});
-    addStatic({game::WORLD_W*0.5f,-20,(game::SHORE+game::WORLD_D)*0.5f},
-        {game::WORLD_W*0.5f,5,(game::WORLD_D-game::SHORE)*0.5f});
-    addStatic({1200,-5,(game::SHORE+game::WORLD_D)*0.5f},
-        {60,5,(game::WORLD_D-game::SHORE)*0.5f});
-    // A compressed surface replaces the regional flat boxes, allowing dry
-    // valleys below sea level as well as wheel/capsule contact on mountains.
-    auto terrainSamples=terrain::heights();
-    for(unsigned z=0;z<terrain::samples;++z)for(unsigned x=0;x<terrain::samples;++x)
-        if(regions::waterAt({x*terrain::spacing,z*terrain::spacing}))terrainSamples[z*terrain::samples+x]=-15;
-    JPH::HeightFieldShapeSettings surface(terrainSamples.data(),JPH::Vec3::sZero(),
-        JPH::Vec3(terrain::spacing,1,terrain::spacing),terrain::samples);
-    surface.mBlockSize=4;surface.mBitsPerSample=16;
-    auto surfaceResult=surface.Create();
-    if(surfaceResult.HasError())throw std::runtime_error(surfaceResult.GetError().c_str());
-    JPH::BodyCreationSettings terrainBody(surfaceResult.Get(),JPH::RVec3::sZero(),
-        JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
-    terrainBody.mFriction=.85f;
-    staticBodies.push_back(world->GetBodyInterface().CreateAndAddBody(terrainBody,JPH::EActivation::DontActivate));
+    syncTerrainColliders();
     addStatic({7800,-20,regions::DEPTH*0.5f},{200,5,regions::DEPTH*0.5f});
     addStatic({7800,-5,8500},{200,5,100});
     // Vehicles need the same world limit as the character. Without a collider
@@ -455,21 +646,25 @@ void reset(){
     // Virtual pedestrians should not push back on a much heavier chassis.
     pedestrianSettings->mMaxStrength=0.0f;
     pedCharacters.resize(game::peds.size());
+    pedCharacterIds.resize(game::peds.size());
     for(std::size_t index=0;index<game::peds.size();++index)
-        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<500)
-            pedCharacters[index]=makePedCharacter(game::peds[index].p);
+        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<(builder::active()?1200.0f:500.0f)){
+            pedCharacters[index]=makePedCharacter(game::peds[index]);pedCharacterIds[index]=game::peds[index].id;}
     world->OptimizeBroadPhase();
 }
 void addPed(){
     if(!world||pedCharacters.size()>=game::peds.size())return;
     std::size_t previous=pedCharacters.size();
     pedCharacters.resize(game::peds.size());
+    pedCharacterIds.resize(game::peds.size());
     for(std::size_t index=previous;index<game::peds.size();++index)
-        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<500)
-            pedCharacters[index]=makePedCharacter(game::peds[index].p);
+        if(game::peds[index].alive&&game::peds[index].drivingVehicle<0&&game::len(game::peds[index].p-game::player)<(builder::active()?1200.0f:500.0f)){
+            pedCharacters[index]=makePedCharacter(game::peds[index]);pedCharacterIds[index]=game::peds[index].id;}
 }
 void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     if(!playerCharacter||!world)return;
+    syncTerrainColliders();
+    syncBuilderColliders(game::player);
     syncSceneryColliders(game::player);
     game::Vec2 before=game::player;
     if(game::crouched!=playerCrouched){
@@ -527,7 +722,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
     }
     else{
         if(supported&&vertical<0)vertical=0;
-        if(jump&&supported)vertical=230;
+        if(jump&&supported)vertical=builder::active()?260.0f:230.0f;
         vertical+=world->GetGravity().GetY()*dt;
     }
     playerCharacter->SetLinearVelocity(JPH::Vec3(horizontal.x,vertical,horizontal.z));
@@ -544,10 +739,11 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
         playerCharacter->SetPosition(JPH::RVec3(safeX,float(position.GetY()),safeZ));
         position=playerCharacter->GetPosition();
     }
-    if(game::playerY<terrain::height(game::player)+25&&!swimming&&game::occupied<0){
+    if(!swimming&&game::occupied<0){
         game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
         for(auto& ped:game::peds){
             if(!ped.alive||ped.drivingVehicle>=0||
+               std::abs(float(position.GetY())-pedHeight(ped))>=25||
                std::abs(ped.p.x-candidate.x)>19||
                std::abs(ped.p.z-candidate.z)>19||
                game::len(candidate-ped.p)>=18.0f)continue;
@@ -577,6 +773,7 @@ void moveCharacter(game::Vec2 horizontal,bool jump,float dt){
 }
 bool staticAnchor(game::Vec3 origin,game::Vec3 direction,float range,game::Vec3& point){
     if(!world||range<=0)return false;
+    syncTerrainColliders();syncBuilderColliders({origin.x,origin.z});
     syncBuildingColliders({origin.x,origin.z});syncSceneryColliders({origin.x,origin.z});
     JPH::RRayCast ray(JPH::RVec3(origin.x,origin.y,origin.z),
         JPH::Vec3(direction.x*range,direction.y*range,direction.z*range));
@@ -586,10 +783,11 @@ bool staticAnchor(game::Vec3 origin,game::Vec3 direction,float range,game::Vec3&
     if(!lock.Succeeded()||!lock.GetBody().IsStatic())return false;
     auto position=ray.GetPointOnRay(hit.mFraction);
     point={float(position.GetX()),float(position.GetY()),float(position.GetZ())};
-    return point.y>5; // Ground and water do not provide traversal anchors.
+    return point.y>5||(builder::active()&&!excavation::cells().empty()&&point.y<terrain::baseHeight({point.x,point.z})-.1f);
 }
 void moveGrappleCharacter(game::Vec3 velocity,float dt){
     if(!world||!playerCharacter)return;
+    syncTerrainColliders();syncBuilderColliders(game::player);
     syncBuildingColliders(game::player);syncSceneryColliders(game::player);
     playerCharacter->SetLinearVelocity(JPH::Vec3(velocity.x,velocity.y,velocity.z));
     JPH::CharacterVirtual::ExtendedUpdateSettings settings;
@@ -606,21 +804,113 @@ void moveGrappleCharacter(game::Vec3 velocity,float dt){
 }
 void teleportCharacter(game::Vec2 position,float height){
     if(!playerCharacter)return;
+    syncTerrainColliders();syncBuilderColliders(position);
     syncBuildingColliders(position);
     syncSceneryColliders(position);
-    height=regions::waterAt(position)?height:std::max(height,terrain::height(position));
+    restorePedCharacters(position);
+    height=regions::waterAt(position)?height:std::max(height,excavation::floorBelow({position.x,height+.1f,position.z}));
     playerCharacter->SetPosition(JPH::RVec3(position.x,height,position.z));
     playerCharacter->SetLinearVelocity(JPH::Vec3::sZero());
 }
+float pedHeight(std::size_t index){
+    if(index>=game::peds.size())return 0;
+    const auto& ped=game::peds[index];
+    if(ped.drivingVehicle>=0&&std::size_t(ped.drivingVehicle)<game::vehicles.size())return game::vehicles[ped.drivingVehicle].rideHeight;
+    if(currentPedCharacter(index)&&ped.drivingVehicle<0){
+        auto position=pedCharacters[index]->GetPosition();
+        if(game::len(game::Vec2{float(position.GetX()),float(position.GetZ())}-ped.p)<25)return float(position.GetY());
+    }
+    if(ped.elevationKnown&&game::len(ped.p-ped.elevationAt)<25)return ped.elevation;
+    return terrain::height(ped.p);
+}
+float pedHeight(const game::Ped& ped){
+    for(std::size_t n=0;n<game::peds.size();++n)if(&game::peds[n]==&ped)return pedHeight(n);
+    if(ped.elevationKnown&&game::len(ped.p-ped.elevationAt)<25)return ped.elevation;
+    return terrain::height(ped.p);
+}
+void teleportPed(std::size_t index,game::Vec2 position,float height){
+    if(index>=game::peds.size())return;
+    auto& ped=game::peds[index];ped.p=position;ped.elevation=height;ped.elevationVelocity=0;ped.elevationAt=position;ped.elevationKnown=true;
+    if(currentPedCharacter(index)){
+        pedCharacters[index]->SetPosition(JPH::RVec3(position.x,height,position.z));
+        pedCharacters[index]->SetLinearVelocity(JPH::Vec3::sZero());
+    }
+}
+void preparePedNavigation(){
+    if(!world)return;
+    syncTerrainColliders();syncBuilderColliders(game::player);
+    syncBuildingColliders(game::player);syncSceneryColliders(game::player);
+    restorePedCharacters(game::player);
+}
+bool pedestrianClear(game::Vec3 feet,bool includeDynamic){
+    if(!world||!pedestrianSettings)return false;
+    // The capsule's bottom is one unit above its origin. A settled character
+    // can land exactly on the voxel boundary; allow the same small contact
+    // tolerance as the shape query rather than classifying roundoff as burial.
+    if(terrain::contains(feet+game::Vec3{0,1.05f,0}))return false;
+    auto center=JPH::RVec3(feet.x,feet.y+16,feet.z);
+    JPH::CollideShapeSettings settings;settings.mBackFaceMode=JPH::EBackFaceMode::CollideWithBackFaces;
+    JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+    if(includeDynamic)world->GetNarrowPhaseQuery().CollideShape(pedestrianSettings->mShape,JPH::Vec3::sOne(),
+        JPH::RMat44::sTranslation(center),settings,center,hits);
+    else world->GetNarrowPhaseQuery().CollideShape(pedestrianSettings->mShape,JPH::Vec3::sOne(),
+        JPH::RMat44::sTranslation(center),settings,center,hits,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+    return !hits.HadHit()||hits.mHit.mPenetrationDepth<.2f;
+}
+bool standingCharacterClear(game::Vec3 feet){
+    if(!world||!standingShape||terrain::contains(feet+game::Vec3{0,.3f,0}))return false;
+    auto center=JPH::RVec3(feet.x,feet.y+18,feet.z);JPH::CollideShapeSettings settings;
+    settings.mBackFaceMode=JPH::EBackFaceMode::CollideWithBackFaces;
+    JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+    world->GetNarrowPhaseQuery().CollideShape(standingShape,JPH::Vec3::sOne(),JPH::RMat44::sTranslation(center),settings,center,hits,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+    return !hits.HadHit()||hits.mHit.mPenetrationDepth<.2f;
+}
+std::vector<float> pedestrianFloors(game::Vec2 point,unsigned* queryCount,unsigned queryLimit){
+    std::vector<float> floors;if(!world||regions::waterAt(point))return floors;
+    auto takeQuery=[&](){if(queryCount){if(*queryCount>=queryLimit)return false;++*queryCount;}return true;};
+    std::vector<float> tested;
+    // Exact voxel seams can fall between both triangles' ray edge tests.
+    // Sample both sides by a tiny amount, project onto the original column,
+    // then validate the full capsule there. Footprint checks still reject gaps.
+    auto seam=[](float value){return std::abs(value-40*std::round(value/40))<.001f;};
+    int samples=seam(point.x)||seam(point.z)?3:1;
+    for(int sample=0;sample<samples;++sample){
+    if(!takeQuery())break;float offset=sample==0?0:sample==1?.02f:-.02f;
+    JPH::RRayCast ray(JPH::RVec3(point.x+offset,3500,point.z+offset*.65f),JPH::Vec3(0,-3950,0));
+    JPH::AllHitCollisionCollector<JPH::CastRayCollector> hits;JPH::RayCastSettings settings;
+    world->GetNarrowPhaseQuery().CastRay(ray,settings,hits,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+    for(const auto& hit:hits.mHits){
+        auto p=ray.GetPointOnRay(hit.mFraction);JPH::Vec3 normal;
+        {JPH::BodyLockRead lock(world->GetBodyLockInterface(),hit.mBodyID);
+            if(!lock.Succeeded())continue;normal=lock.GetBody().GetWorldSpaceSurfaceNormal(hit.mSubShapeID2,p);}
+        if(normal.GetY()<std::cos(game::PI*.28f))continue;
+        // On slopes a vertical capsule's bottom sphere sits above the center
+        // ray's plane. Match its radius/half-height/offset rather than treating
+        // every otherwise-walkable incline as a penetrating capsule.
+        float plane=float(p.GetY())+(normal.GetX()*offset+normal.GetZ()*offset*.65f)/normal.GetY();
+        float feet=plane+std::max(0.0f,8/normal.GetY()-9)+.05f;
+        bool duplicate=false;for(float floor:tested)duplicate|=std::abs(floor-feet)<.3f;
+        if(duplicate)continue;tested.push_back(feet);if(!takeQuery())break;
+        if(pedestrianClear({point.x,feet,point.z}))floors.push_back(feet);
+    }
+    }
+    std::sort(floors.begin(),floors.end());return floors;
+}
 void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     if(!world||index>=pedCharacters.size()||index>=game::peds.size())return;
+    if(builder::active()&&game::len(game::peds[index].p-game::player)>1200)return;
+    syncTerrainColliders();syncBuilderColliders(game::player);
     auto& character=pedCharacters[index];
     auto& ped=game::peds[index];
-    if(!character)character=makePedCharacter(ped.p);
+    if(!currentPedCharacter(index)){character=makePedCharacter(ped);pedCharacterIds[index]=ped.id;}
     if(!character)return;
     auto position=character->GetPosition();
     bool teleported=game::len(game::Vec2{float(position.GetX()),float(position.GetZ())}-ped.p)>25;
-    if(teleported)character->SetPosition(JPH::RVec3(ped.p.x,terrain::height(ped.p),ped.p.z));
+    if(teleported){float height=ped.elevationKnown&&game::len(ped.p-ped.elevationAt)<25?ped.elevation:terrain::height(ped.p);
+        character->SetPosition(JPH::RVec3(ped.p.x,height,ped.p.z));}
     float vertical=teleported?0.0f:character->GetLinearVelocity().GetY();
     if(character->IsSupported()&&vertical<0)vertical=0;
     vertical+=world->GetGravity().GetY()*dt;
@@ -633,7 +923,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
         world->GetDefaultLayerFilter(Layer::moving),{}, {},*allocator);
     position=character->GetPosition();
     game::Vec2 candidate{float(position.GetX()),float(position.GetZ())};
-    if(game::health>0&&game::occupied<0&&game::playerY<terrain::height(game::player)+25&&
+    if(game::health>0&&game::occupied<0&&std::abs(game::playerY-float(position.GetY()))<25&&
        game::len(candidate-game::player)<18.0f){
         float previousDistance=game::len(ped.p-game::player);
         if(previousDistance>=18.0f||
@@ -647,6 +937,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     for(std::size_t other=0;other<game::peds.size();++other){
         if(other==index||!game::peds[other].alive||
            game::peds[other].drivingVehicle>=0||
+           std::abs(float(position.GetY())-pedHeight(other))>=25||
            std::abs(game::peds[other].p.x-candidate.x)>17||
            std::abs(game::peds[other].p.z-candidate.z)>17||
            game::len(candidate-game::peds[other].p)>=16.0f)continue;
@@ -661,6 +952,7 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
     if(game::len(candidate-game::Vec2{float(position.GetX()),float(position.GetZ())})>0.001f)
         character->SetPosition(JPH::RVec3(candidate.x,position.GetY(),candidate.z));
     ped.p=candidate;
+    rememberPed(index);
 }
 namespace {
 void destroyBody(JPH::BodyID& id){
@@ -671,24 +963,63 @@ void destroyBody(JPH::BodyID& id){
 void syncSceneryColliders(game::Vec2 focus,float dt){
     if(!world)return;
     auto& bodies=world->GetBodyInterface();
+    const float sceneryRadius=builder::active()?1400.0f:1100.0f;
     if(treeBodies.size()!=game::trees.size()){
         for(auto& id:treeBodies)destroyBody(id);
         treeBodies.assign(game::trees.size(),JPH::BodyID());
+        treeRevisions.assign(game::trees.size(),0);
     }
     // Streaming bounds both the broad phase and physics body count in groves.
     for(std::size_t i=0;i<treeBodies.size();++i){
         const auto& tree=game::trees[i];auto& id=treeBodies[i];
-        bool nearby=!tree.destroyed&&game::len(tree.p-focus)<1100;
-        if(!nearby){destroyBody(id);continue;}
+        bool nearby=!tree.destroyed&&game::len(tree.p-focus)<sceneryRadius;
+        if(!nearby){destroyBody(id);treeRevisions[i]=0;continue;}
         float radius=treeRadius(tree),halfHeight=std::max(8.0f,tree.height*tree.scale*0.3f);
-        if(id.IsInvalid()){
-            JPH::BodyCreationSettings settings(new JPH::CylinderShape(halfHeight,radius),
-                JPH::RVec3(tree.p.x,terrain::height(tree.p)+halfHeight,tree.p.z),JPH::Quat::sIdentity(),
+        auto revision=scenery_edits::revision(scenery_edits::treeId(i));
+        if(treeRevisions[i]!=revision){
+            JPH::RefConst<JPH::Shape> shape=new JPH::CylinderShape(halfHeight,radius);
+            if(scenery_edits::edited(scenery_edits::treeId(i))){
+                JPH::StaticCompoundShapeSettings compound;unsigned count=0;
+                for(auto box:scenery_edits::trunkPieces(i)){
+                    // Clip the original circular trunk, rather than replacing it with box corners.
+                    std::vector<game::Vec2> polygon;for(int n=0;n<24;++n){float angle=n*game::PI/12;polygon.push_back({tree.p.x+std::cos(angle)*radius,tree.p.z+std::sin(angle)*radius});}
+                    auto clip=[&](int axis,float plane,bool lower){std::vector<game::Vec2> output;if(polygon.empty())return;
+                        auto distance=[&](game::Vec2 p){return lower?(axis?p.z:p.x)-plane:plane-(axis?p.z:p.x);};
+                        auto previous=polygon.back();float before=distance(previous);for(auto current:polygon){float after=distance(current);
+                            if((before>=0)!=(after>=0))output.push_back(previous+(current-previous)*(before/(before-after)));
+                            if(after>=0)output.push_back(current);previous=current;before=after;}polygon=std::move(output);};
+                    clip(0,box.low.x,true);clip(0,box.high.x,false);clip(1,box.low.z,true);clip(1,box.high.z,false);if(polygon.size()<3)continue;
+                    auto center=(box.low+box.high)*.5f;JPH::Array<JPH::Vec3> points;
+                    for(auto p:polygon)for(float y:{box.low.y,box.high.y})points.push_back(JPH::Vec3(p.x-center.x,y-center.y,p.z-center.z));
+                    JPH::ConvexHullShapeSettings hull(points,.01f);auto result=hull.Create();if(result.HasError())throw std::runtime_error(result.GetError().c_str());
+                    compound.AddShape(JPH::Vec3(center.x-tree.p.x,center.y-terrain::baseHeight(tree.p)-halfHeight,center.z-tree.p.z),JPH::Quat::sIdentity(),result.Get());++count;
+                }
+                if(!count){destroyBody(id);treeRevisions[i]=revision;continue;}
+                auto result=compound.Create();if(result.HasError())throw std::runtime_error(result.GetError().c_str());shape=result.Get();
+            }
+            JPH::BodyCreationSettings settings(shape,
+                JPH::RVec3(tree.p.x,terrain::baseHeight(tree.p)+halfHeight,tree.p.z),JPH::Quat::sIdentity(),
                 JPH::EMotionType::Static,Layer::staticBody);
             settings.mFriction=0.8f;settings.mUserData=treeTag|i;
-            id=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+            auto fresh=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+            if(fresh.IsInvalid())throw std::runtime_error("No edited tree body available");
+            destroyBody(id);id=fresh;treeRevisions[i]=revision;
         }
     }
+    std::set<std::string> nearbyRocks;
+    if(builder::active())for(const auto& object:scenery_edits::nearby(focus,sceneryRadius))if(object.kind==scenery_edits::Kind::Rock){
+        if(game::len(game::Vec2{object.position.x,object.position.z}-focus)>sceneryRadius+object.size.x)continue;
+        nearbyRocks.insert(object.id);auto& body=rockBodies[object.id];auto revision=scenery_edits::revision(object.id);if(body.revision==revision)continue;
+        auto vertices=scenery_edits::collisionTriangles(object);JPH::TriangleList triangles;
+        for(std::size_t n=0;n+2<vertices.size();n+=3){auto a=vertices[n],b=vertices[n+1],c=vertices[n+2];triangles.emplace_back(JPH::Float3(a.x,a.y,a.z),JPH::Float3(b.x,b.y,b.z),JPH::Float3(c.x,c.y,c.z));}
+        if(triangles.empty()){destroyBody(body.id);body.revision=revision;continue;}
+        JPH::MeshShapeSettings surface(triangles);surface.mBuildQuality=JPH::MeshShapeSettings::EBuildQuality::FavorBuildSpeed;auto shape=surface.Create();
+        if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
+        JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);settings.mFriction=.85f;
+        auto fresh=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);if(fresh.IsInvalid())throw std::runtime_error("No scanned rock body available");
+        destroyBody(body.id);body.id=fresh;body.revision=revision;
+    }
+    for(auto it=rockBodies.begin();it!=rockBodies.end();)if(!nearbyRocks.count(it->first)){destroyBody(it->second.id);it=rockBodies.erase(it);}else ++it;
     if(animalBodies.size()!=wildlife::animals.size()){
         for(auto& id:animalBodies)destroyBody(id);
         animalBodies.assign(wildlife::animals.size(),JPH::BodyID());
@@ -698,7 +1029,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
         const auto& a=wildlife::animals[i];auto& id=animalBodies[i];
         if(a.health<=0||a.carried||game::len(a.p-focus)>1000){destroyBody(id);continue;}
         const auto& species=wildlife::species()[a.species];
-        JPH::RVec3 target(a.p.x,terrain::height(a.p)+species.height*0.5f,a.p.z);
+        JPH::RVec3 target(a.p.x,wildlife::originHeight(a)+species.height*0.5f,a.p.z);
         JPH::Quat rotation=JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-a.angle);
         if(!id.IsInvalid()&&animalBodySpecies[i]!=a.species)destroyBody(id);
         if(id.IsInvalid()){
@@ -730,8 +1061,9 @@ void breakTree(std::size_t index,const SceneryImpact& impact){
             piece<4?game::Vec3{radius*1.8f,height*0.23f,radius*1.8f}:
                     game::Vec3{radius*0.6f,height*0.16f,radius*0.6f};
         game::Vec3 position{tree.p.x+(piece<4?0:std::cos(angle)*radius*2),
-            terrain::height(tree.p)+(piece<4?2+height*(fraction+0.125f):height*(0.65f+fraction*0.3f)),
+            terrain::baseHeight(tree.p)+(piece<4?2+height*(fraction+0.125f):height*(0.65f+fraction*0.3f)),
             tree.p.z+(piece<4?0:std::sin(angle)*radius*2)};
+        if(scenery_edits::removed(scenery_edits::treeId(index),builder::cellAt(position)))continue;
         JPH::Quat rotation=piece<4?JPH::Quat::sIdentity():
             JPH::Quat::sRotation(JPH::Vec3(std::cos(angle),0,std::sin(angle)),0.9f);
         JPH::BodyCreationSettings settings(new JPH::BoxShape(
@@ -1030,9 +1362,9 @@ void remove(std::size_t index){
     bodies.RemoveBody(propBodies[index]);bodies.DestroyBody(propBodies[index]);
     propBodies[index]=JPH::BodyID();
 }
-void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
-    const game::Vec2* pinAnchor){
-    if(!world)return;
+bool spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
+    const game::Vec2* pinAnchor,bool fallen){
+    if(!world)return false;
     game::corpseSnapshots.erase(std::remove_if(game::corpseSnapshots.begin(),
         game::corpseSnapshots.end(),[&](const game::CorpseSnapshot& old){
             return old.pedId==ped.id;
@@ -1044,30 +1376,33 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
         for(auto id:old.bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}
         ragdolls.erase(ragdolls.begin());
     }
-    struct Part {float x,y,z,w,h,d;};
-    const Part parts[]={
-        {0,25,0,10,16,7}, {0,37,0,8,8,8},
-        {-8,24,0,4,13,4}, {8,24,0,4,13,4},
-        {-3,10,0,5,16,5}, {3,10,0,5,16,5}};
     Ragdoll ragdoll;ragdoll.style=ped.style;ragdoll.pedId=ped.id;
     if(pinAnchor)ragdoll.life=std::min(15.0f,ped.respawn);
-    ragdoll.origin={ped.p.x,terrain::height(ped.p),ped.p.z};ragdoll.yaw=game::PI/2-ped.angle;
+    ragdoll.origin={ped.p.x,pedHeight(ped),ped.p.z};ragdoll.yaw=game::PI/2-ped.angle;
     float co=std::cos(ragdoll.yaw),si=std::sin(ragdoll.yaw);
     auto rotated=[&](float x,float z){return game::Vec2{co*x+si*z,-si*x+co*z};};
+    auto facing=game::forward(ped.angle);
+    JPH::Quat fallRotation=JPH::Quat::sRotation(JPH::Vec3(-facing.z,0,facing.x),-game::PI*.5f);
+    auto posePoint=[&](game::Vec3 point){
+        if(!fallen)return point;
+        auto offset=fallRotation*JPH::Vec3(point.x-ragdoll.origin.x,point.y-ragdoll.origin.y-20,point.z-ragdoll.origin.z);
+        return ragdoll.origin+game::Vec3{offset.GetX(),6+offset.GetY(),offset.GetZ()};
+    };
     auto& bodies=world->GetBodyInterface();
     JPH::Body* created[6]{};
     for(int i=0;i<6;++i){
-        const auto& part=parts[i];
+        const auto& part=ragdollGeometry[i];
         game::Vec2 offset=rotated(part.x,part.z);
         ragdoll.rest[i]={ped.p.x+offset.x,ragdoll.origin.y+part.y,ped.p.z+offset.z};
+        auto point=posePoint(ragdoll.rest[i]);
         JPH::BodyCreationSettings settings(new JPH::BoxShape(JPH::Vec3(part.w/2,part.h/2,part.d/2)),
-            JPH::RVec3(ragdoll.rest[i].x,ragdoll.rest[i].y,ragdoll.rest[i].z),JPH::Quat::sIdentity(),
+            JPH::RVec3(point.x,point.y,point.z),fallen?fallRotation:JPH::Quat::sIdentity(),
             JPH::EMotionType::Dynamic,Layer::moving);
         settings.mFriction=0.75f;settings.mRestitution=0.08f;
         settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
         settings.mMassPropertiesOverride.mMass=i==0?18.0f:4.0f;
         created[i]=bodies.CreateBody(settings);
-        if(!created[i])return;
+        if(!created[i]){for(auto id:ragdoll.bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}return false;}
         bodies.AddBody(created[i]->GetID(),JPH::EActivation::Activate);
         ragdoll.bodies.push_back(created[i]->GetID());
         float scale=i==0?1.15f:0.12f;
@@ -1081,22 +1416,46 @@ void spawnRagdoll(const game::Ped& ped,game::Vec3 impulse,
     for(int i=0;i<5;++i){
         JPH::DistanceConstraintSettings settings;
         game::Vec2 anchor=rotated(anchors[i].x,anchors[i].z);
-        settings.mPoint1=settings.mPoint2=JPH::RVec3(ped.p.x+anchor.x,
-            ragdoll.origin.y+anchors[i].y,ped.p.z+anchor.z);
+        auto point=posePoint({ped.p.x+anchor.x,ragdoll.origin.y+anchors[i].y,ped.p.z+anchor.z});
+        settings.mPoint1=settings.mPoint2=JPH::RVec3(point.x,point.y,point.z);
         settings.mMinDistance=0;settings.mMaxDistance=0.5f;
         JPH::Ref<JPH::TwoBodyConstraint> joint=settings.Create(*created[parent[i]],*created[child[i]]);
         world->AddConstraint(joint.GetPtr());ragdoll.joints.push_back(joint);
     }
     if(pinAnchor){
         JPH::DistanceConstraintSettings settings;
-        settings.mPoint1=JPH::RVec3(pinAnchor->x,terrain::height(ped.p)+25,pinAnchor->z);
-        settings.mPoint2=JPH::RVec3(ped.p.x,terrain::height(ped.p)+25,ped.p.z);
+        settings.mPoint1=JPH::RVec3(pinAnchor->x,ragdoll.origin.y+25,pinAnchor->z);
+        settings.mPoint2=JPH::RVec3(ped.p.x,ragdoll.origin.y+25,ped.p.z);
         settings.mMinDistance=0;settings.mMaxDistance=2;
         JPH::Ref<JPH::TwoBodyConstraint> joint=
             settings.Create(JPH::Body::sFixedToWorld,*created[0]);
         world->AddConstraint(joint.GetPtr());ragdoll.joints.push_back(joint);
+        ragdoll.pin=joint;ragdoll.pinPoint={pinAnchor->x,ragdoll.origin.y+25,pinAnchor->z};
     }
     ragdolls.push_back(std::move(ragdoll));
+    publishRagdollPoses();return true;
+}
+bool corpsePose(const game::Ped& ped,game::Vec3& low,game::Vec3& high,game::Vec3& contact){
+    if(ped.carried){contact={ped.p.x,game::playerY+15,ped.p.z};low=contact-game::Vec3{12,5,18};high=contact+game::Vec3{12,5,18};return false;}
+    if(world)for(const auto& ragdoll:ragdolls)if(ragdoll.pedId==ped.id&&!ragdoll.bodies.empty()){
+        auto probes=bodyProbes(ragdoll.bodies);auto bounds=recoveryBounds(probes);
+        low={bounds.mMin.GetX(),bounds.mMin.GetY(),bounds.mMin.GetZ()};high={bounds.mMax.GetX(),bounds.mMax.GetY(),bounds.mMax.GetZ()};
+        auto point=world->GetBodyInterface().GetCenterOfMassPosition(ragdoll.bodies[0]);contact={point.GetX(),point.GetY(),point.GetZ()};return true;
+    }
+    for(const auto& snapshot:game::corpseSnapshots)if(snapshot.pedId==ped.id){
+        JPH::AABox bounds;for(const auto& part:snapshot.parts){const auto& geometry=ragdollGeometry[part.part];JPH::BoxShape box(JPH::Vec3(geometry.w/2,geometry.h/2,geometry.d/2));
+            bounds.Encapsulate(box.GetWorldSpaceBounds(JPH::RMat44::sRotationTranslation(JPH::Quat(part.qx,part.qy,part.qz,part.qw),JPH::RVec3(part.p.x,part.p.y,part.p.z)),JPH::Vec3::sOne()));}
+        low={bounds.mMin.GetX(),bounds.mMin.GetY(),bounds.mMin.GetZ()};high={bounds.mMax.GetX(),bounds.mMax.GetY(),bounds.mMax.GetZ()};contact=snapshot.parts[0].p;return true;
+    }
+    float y=terrain::height(ped.p);contact={ped.p.x,y+5,ped.p.z};low={ped.p.x-12,y,ped.p.z-18};high={ped.p.x+12,y+10,ped.p.z+18};return false;
+}
+bool corpseDropClear(game::Vec3 feet,float angle){
+    if(!world||terrain::contains(feet+game::Vec3{0,.3f,0}))return false;
+    JPH::BoxShape shape(JPH::Vec3(12,7,23),.1f);auto center=JPH::RVec3(feet.x,feet.y+7.3f,feet.z);
+    JPH::CollideShapeSettings settings;settings.mBackFaceMode=JPH::EBackFaceMode::CollideWithBackFaces;
+    JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+    world->GetNarrowPhaseQuery().CollideShape(&shape,JPH::Vec3::sOne(),JPH::RMat44::sRotationTranslation(JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-angle),center),settings,center,hits);
+    return !hits.HadHit()||hits.mHit.mPenetrationDepth<.2f;
 }
 void removeRagdoll(const std::string& pedId){
     if(!world)return;
@@ -1122,14 +1481,153 @@ void clearRagdolls(){
     }
     ragdolls.clear();game::ragdollParts.clear();game::corpseSnapshots.clear();
 }
+namespace {
+JPH::RefConst<JPH::Shape> animalShape(const wildlife::Animal& animal){
+    const auto& s=wildlife::species()[animal.species];
+    float h=animal.health>0?s.height:s.width,w=animal.health>0?s.width:s.height;
+    JPH::RefConst<JPH::Shape> body=new JPH::BoxShape(JPH::Vec3(w*.5f,h*.5f,s.length*.45f),.2f);
+    if(wildlife::riding()&& &animal==&wildlife::animals[wildlife::mountedIndex()]){
+        JPH::StaticCompoundShapeSettings mounted;
+        mounted.AddShape(JPH::Vec3::sZero(),JPH::Quat::sIdentity(),body);
+        float riderY=s.height*(animal.species==1?1.0f:.94f)+1-18.5f;
+        mounted.AddShape(JPH::Vec3(0,riderY+18-h*.5f-.3f,0),JPH::Quat::sIdentity(),standingShape);
+        auto result=mounted.Create();if(result.HasError())throw std::runtime_error(result.GetError().c_str());return result.Get();
+    }
+    return body;
+}
+JPH::Quat animalRotation(float angle){return JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-angle);}
+}
+bool animalClear(const wildlife::Animal& animal,game::Vec3 feet,float angle){
+    if(!world)return false;
+    const auto& s=wildlife::species()[animal.species];
+    if(terrain::contains(feet+game::Vec3{0,.4f,0}))return false;
+    float h=animal.health>0?s.height:s.width;
+    auto center=JPH::RVec3(feet.x,feet.y+h*.5f+.3f,feet.z);
+    JPH::CollideShapeSettings settings;settings.mBackFaceMode=JPH::EBackFaceMode::CollideWithBackFaces;
+    JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+    auto shape=animalShape(animal);
+    center+=animalRotation(angle)*shape->GetCenterOfMass();
+    world->GetNarrowPhaseQuery().CollideShape(shape,JPH::Vec3::sOne(),
+        JPH::RMat44::sRotationTranslation(animalRotation(angle),center),settings,center,hits,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+    return !hits.HadHit()||hits.mHit.mPenetrationDepth<.2f;
+}
+std::vector<float> animalFloors(const wildlife::Animal& animal,game::Vec2 point,float angle){
+    std::vector<float> floors;if(!world)return floors;
+    JPH::RRayCast ray(JPH::RVec3(point.x,3500,point.z),JPH::Vec3(0,-3950,0));
+    JPH::AllHitCollisionCollector<JPH::CastRayCollector> hits;JPH::RayCastSettings settings;
+    world->GetNarrowPhaseQuery().CastRay(ray,settings,hits,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+    for(const auto& hit:hits.mHits){auto p=ray.GetPointOnRay(hit.mFraction);JPH::Vec3 normal;
+        {JPH::BodyLockRead lock(world->GetBodyLockInterface(),hit.mBodyID);
+            if(!lock.Succeeded())continue;normal=lock.GetBody().GetWorldSpaceSurfaceNormal(hit.mSubShapeID2,p);}
+        if(normal.GetY()<.7f)continue;
+        float feet=float(p.GetY())+.05f;
+        // A box on a slope needs its downhill corners above the surface.
+        const auto& s=wildlife::species()[animal.species];auto f=game::forward(angle);game::Vec2 side{-f.z,f.x};
+        feet+=(std::abs(normal.GetX()*f.x+normal.GetZ()*f.z)*s.length*.45f+
+            std::abs(normal.GetX()*side.x+normal.GetZ()*side.z)*(animal.health>0?s.width:s.height)*.5f)/normal.GetY();
+        if(animalClear(animal,{point.x,feet,point.z},angle))floors.push_back(feet);
+    }
+    std::sort(floors.begin(),floors.end());return floors;
+}
+void moveAnimal(wildlife::Animal& animal,game::Vec2 velocity,float dt){
+    if(!world||!builder::active()||dt<=0)return;
+    const auto& s=wildlife::species()[animal.species];
+    float y=wildlife::originHeight(animal);
+    JPH::CharacterVirtualSettings shape;shape.mShape=animalShape(animal);
+    shape.mShapeOffset=JPH::Vec3(0,(animal.health>0?s.height:s.width)*.5f+.3f,0);shape.mMaxSlopeAngle=game::PI*.25f;
+    JPH::CharacterVirtual character(&shape,JPH::RVec3(animal.p.x,y,animal.p.z),animalRotation(animal.angle),Layer::moving,world.get());
+    float vertical=animal.supported&&animal.verticalVelocity<0?0:animal.verticalVelocity;
+    vertical+=world->GetGravity().GetY()*dt;
+    character.SetLinearVelocity(JPH::Vec3(velocity.x,vertical,velocity.z));
+    JPH::CharacterVirtual::ExtendedUpdateSettings settings;settings.mWalkStairsStepUp=JPH::Vec3(0,5,0);
+    settings.mStickToFloorStepDown=JPH::Vec3(0,-5,0);
+    // Animal bodies continue receiving vehicle contacts. Their own movement
+    // sweeps static geometry; wildlife handles vertical-aware actor avoidance.
+    character.ExtendedUpdate(dt,world->GetGravity(),settings,
+        JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody),{}, {},*allocator);
+    auto p=character.GetPosition();animal.p={float(p.GetX()),float(p.GetZ())};
+    animal.elevation=float(p.GetY());animal.verticalVelocity=character.GetLinearVelocity().GetY();
+    animal.elevationAt=animal.p;animal.elevationKnown=animal.elevationMode=true;animal.supported=character.IsSupported();
+}
+const SceneryRecovery& lastSceneryRecovery(){return recoveryStats;}
+SceneryRecovery reconcileLooseActors(){
+    recoveryStats={};if(!world)return recoveryStats;auto& bodies=world->GetBodyInterface();
+    // The player may have moved during capsule recovery. Match that new focus
+    // before testing nearby loose actors against streamed scenery.
+    syncTerrainColliders();syncBuildingColliders(game::player);syncSceneryColliders(game::player);syncBuilderColliders(game::player);
+    auto nearby=[](JPH::Vec3Arg p){return game::len(game::Vec2{p.GetX(),p.GetZ()}-game::player)<=1400;};
+    auto translate=[&](const std::vector<JPH::BodyID>& ids,game::Vec3 delta){for(auto id:ids){auto p=bodies.GetPosition(id);
+        bodies.SetPosition(id,p+JPH::RVec3(delta.x,delta.y,delta.z),JPH::EActivation::Activate);
+        bodies.SetLinearAndAngularVelocity(id,JPH::Vec3::sZero(),JPH::Vec3::sZero());}};
+    for(std::size_t n=0;n<propBodies.size()&&n<game::props.size();++n){auto id=propBodies[n];if(id.IsInvalid()||!game::props[n].alive)continue;
+        auto probes=bodyProbes({id});if(probes.empty()||!nearby(recoveryBounds(probes).GetCenter()))continue;game::Vec3 delta;
+        if(!recoveryOffset(probes,delta)){++recoveryStats.unresolved;continue;}
+        if(game::len(delta)>.001f){translate({id},delta);++recoveryStats.props;
+            auto p=bodies.GetCenterOfMassPosition(id);auto& prop=game::props[n];prop.p={p.GetX(),p.GetZ()};prop.y=p.GetY()-(prop.barrel?11.5f:11);prop.v={};prop.vy=prop.spin=0;}
+        // A formerly supported sleeping prop must fall when builder support is removed.
+        bodies.ActivateBody(id);
+    }
+    std::set<std::string> represented;
+    for(auto& ragdoll:ragdolls){represented.insert(ragdoll.pedId);auto probes=bodyProbes(ragdoll.bodies);
+        if(probes.empty()||!nearby(recoveryBounds(probes).GetCenter()))continue;game::Vec3 delta;
+        if(!recoveryOffset(probes,delta)){++recoveryStats.unresolved;continue;}bool moved=game::len(delta)>.001f;
+        if(ragdoll.pin){JPH::SphereShape support(4);JPH::ClosestHitCollisionCollector<JPH::CollideShapeCollector> hits;
+            auto point=ragdoll.pinPoint;auto p=JPH::RVec3(point.x,point.y,point.z);JPH::CollideShapeSettings settings;
+            world->GetNarrowPhaseQuery().CollideShape(&support,JPH::Vec3::sOne(),JPH::RMat44::sTranslation(p),settings,p,hits,
+                JPH::SpecifiedBroadPhaseLayerFilter(JPH::BroadPhaseLayer(0)),JPH::SpecifiedObjectLayerFilter(Layer::staticBody));
+            if(moved||!hits.HadHit()){world->RemoveConstraint(ragdoll.pin.GetPtr());
+                ragdoll.joints.erase(std::remove_if(ragdoll.joints.begin(),ragdoll.joints.end(),[&](const auto& joint){return joint.GetPtr()==ragdoll.pin.GetPtr();}),ragdoll.joints.end());
+                ragdoll.pin=nullptr;++recoveryStats.releasedPins;for(auto& ped:game::peds)if(ped.id==ragdoll.pedId)ped.pinned=false;}}
+        if(moved){translate(ragdoll.bodies,delta);ragdoll.origin=ragdoll.origin+delta;for(auto& rest:ragdoll.rest)rest=rest+delta;++recoveryStats.ragdolls;}
+        for(auto id:ragdoll.bodies)bodies.ActivateBody(id);
+    }
+    for(auto& snapshot:game::corpseSnapshots){represented.insert(snapshot.pedId);std::vector<RecoveryProbe> probes;
+        auto ped=std::find_if(game::peds.begin(),game::peds.end(),[&](const game::Ped& p){return p.id==snapshot.pedId;});
+        if(ped!=game::peds.end()&&ped->carried)continue;
+        for(const auto& part:snapshot.parts){const auto& geometry=ragdollGeometry[part.part];
+            probes.push_back({new JPH::BoxShape(JPH::Vec3(geometry.w/2,geometry.h/2,geometry.d/2)),
+                JPH::RMat44::sRotationTranslation(JPH::Quat(part.qx,part.qy,part.qz,part.qw),JPH::RVec3(part.p.x,part.p.y,part.p.z))});}
+        if(!nearby(recoveryBounds(probes).GetCenter()))continue;game::Vec3 delta;
+        if(!recoveryOffset(probes,delta)){++recoveryStats.unresolved;continue;}
+        delta.y-=corpseDrop(probes,delta);
+        if(game::len(delta)>.001f){for(auto& part:snapshot.parts){part.p=part.p+delta;part.rest=part.rest+delta;part.origin=part.origin+delta;}++recoveryStats.corpses;
+            if(ped!=game::peds.end()){ped->p={snapshot.parts[0].p.x,snapshot.parts[0].p.z};ped->pinned=false;}}
+    }
+    // Corpses without an active or captured pose still use the existing ground
+    // animation. Move their horizontal origin out of restored structures.
+    for(auto& ped:game::peds)if(!ped.alive&&!ped.carried&&!represented.count(ped.id)&&game::len(ped.p-game::player)<=1400){
+        std::vector<RecoveryProbe> probes{{new JPH::BoxShape(JPH::Vec3(12,5,18)),
+            JPH::RMat44::sRotationTranslation(JPH::Quat::sRotation(JPH::Vec3::sAxisY(),game::PI/2-ped.angle),JPH::RVec3(ped.p.x,terrain::height(ped.p)+5,ped.p.z))}};
+        game::Vec3 delta;if(!recoveryOffset(probes,delta,true)){++recoveryStats.unresolved;continue;}
+        if(game::len(delta)>.001f){ped.p=ped.p+game::Vec2{delta.x,delta.z};ped.pinned=false;++recoveryStats.corpses;}
+    }
+    publishRagdollPoses();return recoveryStats;
+}
+void refreshScenery(){
+    if(!world)return;
+    syncTerrainColliders();
+    for(auto& id:buildingBodies)destroyBody(id);buildingBodies.clear();streamedCellX=streamedCellZ=-1;
+    for(auto& id:treeBodies)destroyBody(id);treeBodies.clear();treeRevisions.clear();
+    for(auto& rock:rockBodies)destroyBody(rock.second.id);rockBodies.clear();
+    for(auto& f:fragmentBodies)destroyBody(f.id);fragmentBodies.clear();fragmentVisuals.clear();
+    builderRevision=~std::uint64_t(0);
+    syncBuildingColliders(game::player);syncSceneryColliders(game::player);syncBuilderColliders(game::player);
+    restorePedCharacters(game::player);
+}
+std::size_t activeBuilderColliderCount(){return builderBodies.size();}
 void step(float dt){
     if(!world||dt<=0)return;
+    syncTerrainColliders();
+    syncBuilderColliders(game::player);
     syncBuildingColliders(game::occupied>=0&&
         std::size_t(game::occupied)<game::vehicles.size()?
         game::vehicles[game::occupied].p:game::player);
     syncSceneryColliders(game::player,dt);
+    restorePedCharacters(game::player);
     for(std::size_t index=0;index<pedCharacters.size()&&index<game::peds.size();++index)
-        if(!game::peds[index].alive||game::peds[index].drivingVehicle>=0)pedCharacters[index]=nullptr;
+        if(!game::peds[index].alive||game::peds[index].drivingVehicle>=0){rememberPed(index);pedCharacters[index]=nullptr;}
     auto& bodies=world->GetBodyInterface();
     for(std::size_t i=0;i<vehicleBodies.size()&&i<game::vehicles.size();++i){
         if(vehicleBodies[i].IsInvalid()||game::vehicles[i].kind!=game::Kind::Boat)continue;
@@ -1222,7 +1720,6 @@ void step(float dt){
         prop.y=position.GetY()-(prop.barrel?11.5f:11.0f);
         prop.v={velocity.GetX(),velocity.GetZ()};prop.vy=velocity.GetY();
     }
-    game::ragdollParts.clear();
     for(auto it=ragdolls.begin();it!=ragdolls.end();){
         it->life-=dt;
         if(it->life<=0){
@@ -1231,22 +1728,9 @@ void step(float dt){
             for(auto id:it->bodies){bodies.RemoveBody(id);bodies.DestroyBody(id);}
             it=ragdolls.erase(it);continue;
         }
-        if(!it->bodies.empty())for(auto& ped:game::peds)if(ped.id==it->pedId&&!ped.alive){
-            auto p=bodies.GetCenterOfMassPosition(it->bodies[0]);
-            ped.p={float(p.GetX()),float(p.GetZ())};
-            break;
-        }
-        for(std::size_t i=0;i<it->bodies.size();++i){
-            auto p=bodies.GetCenterOfMassPosition(it->bodies[i]);
-            auto q=bodies.GetRotation(it->bodies[i]);
-            game::ragdollParts.push_back({{p.GetX(),p.GetY(),p.GetZ()},it->rest[i],
-                it->origin,q.GetX(),q.GetY(),q.GetZ(),q.GetW(),it->yaw,it->style,int(i)});
-        }
         ++it;
     }
-    for(const auto& snapshot:game::corpseSnapshots)
-        game::ragdollParts.insert(game::ragdollParts.end(),
-            snapshot.parts.begin(),snapshot.parts.end());
+    publishRagdollPoses();
     fragmentVisuals.clear();
     for(auto it=fragmentBodies.begin();it!=fragmentBodies.end();){
         it->life-=dt;

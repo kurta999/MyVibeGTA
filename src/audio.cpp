@@ -36,12 +36,13 @@ int normalizedVariant(Effect effect,int variant){
     if(effect==Effect::Engine)return std::clamp(variant,0,5);
     if(effect==Effect::Shot||effect==Effect::SilencedShot)return std::clamp(variant,0,VARIANTS-1);
     if(effect==Effect::Step)return variant==1?1:0;
+    if(effect==Effect::BuilderContact)return std::clamp(variant,0,7);
     return 0;
 }
 int takes(Effect effect){
     return effect==Effect::Shot||effect==Effect::SilencedShot||effect==Effect::Step||
         effect==Effect::Splash||effect==Effect::Hit||effect==Effect::Reload||
-        effect==Effect::Surf||effect==Effect::Skid||effect==Effect::Explosion?4:1;
+        effect==Effect::Surf||effect==Effect::Skid||effect==Effect::Explosion||effect==Effect::BuilderContact?4:1;
 }
 #endif
 int voiceCursor=0;
@@ -101,6 +102,9 @@ void synthesize(Channel& channel,Effect effect,int variant){
     case Effect::Flame:duration=.18f;break;
     case Effect::Water:duration=.18f;break;
     case Effect::Electric:duration=.2f;break;
+#ifdef MINI_CITY_JOLT
+    case Effect::BuilderContact:duration=variant==7?.24f:variant==5?.12f:variant==6?.3f:.18f;break;
+#endif
     default:break;
     }
     channel.samples.resize(int(duration*RATE));
@@ -143,6 +147,21 @@ void synthesize(Channel& channel,Effect effect,int variant){
         case Effect::Flame:{float n=noise();rumble+=.08f*(n-rumble);signal=(rumble*.8f+wave(t,58)*.12f)*std::sin(PI*u);break;}
         case Effect::Water:{float n=noise();rumble+=.35f*(n-rumble);signal=rumble*.35f*std::sin(PI*u);break;}
         case Effect::Electric:signal=(wave(t,740)+wave(t,1480)*.3f+noise()*.35f)*.18f*std::exp(-u*5);break;
+#ifdef MINI_CITY_JOLT
+        case Effect::BuilderContact:{
+            float n=noise();rumble+=.16f*(n-rumble);
+            switch(std::clamp(variant,0,7)){
+            case 0:signal=(n*.27f*std::exp(-t*42)+wave(t,820)*.1f+wave(t,1360)*.045f)*std::exp(-u*7);break; // stone chips
+            case 1:signal=(rumble*.5f+wave(t,165-55*u)*.3f+wave(t,340)*.06f)*std::exp(-u*9);break; // wood chop
+            case 2:signal=(rumble*.32f+wave(t,72)*.15f)*std::exp(-u*5);break; // soil
+            case 3:signal=(n*.2f+rumble*.08f)*std::sin(PI*u)*std::exp(-u*2);break; // sand/gravel
+            case 4:signal=(rumble*.24f+n*.09f)*std::sin(PI*u)*std::exp(-u*3);break; // snow crunch
+            case 5:signal=(n*.14f+wave(t,1900)*.055f)*std::exp(-u*12)+n*.045f*std::sin(PI*u);break; // foliage/shears
+            case 6:signal=(wave(t,1480)*.16f+wave(t,2470)*.09f+n*.15f*std::exp(-t*65))*std::exp(-u*5);break; // ore/metal
+            case 7:signal=(n*.095f+rumble*.12f)*std::sin(PI*u);break; // brushing dust
+            }break;
+        }
+#endif
         default:break;
         }
         channel.samples[i]=short(std::clamp(signal,-1.0f,1.0f)*27000);
@@ -226,10 +245,27 @@ void setVolume(int percent){if(master)master->SetVolume(std::clamp(percent,0,100
 unsigned long long effectFingerprint(Effect effect,int variant){
     if(int(effect)<0||int(effect)>=int(Effect::Count))return 0;
     Channel reference;auto saved=noiseState;noiseState=0x4a3b2c1du;
-    synthesize(reference,effect,std::clamp(variant,0,VARIANTS-1));noiseState=saved;
+#ifdef MINI_CITY_JOLT
+    synthesize(reference,effect,normalizedVariant(effect,variant));
+#else
+    synthesize(reference,effect,std::clamp(variant,0,VARIANTS-1));
+#endif
+    noiseState=saved;
     unsigned long long hash=1469598103934665603ULL;
     for(auto sample:reference.samples){hash^=static_cast<unsigned short>(sample);hash*=1099511628211ULL;}return hash;
 }
+#ifdef MINI_CITY_JOLT
+bool exportEffectWav(Effect effect,int variant,const wchar_t* path){
+    if(effect!=Effect::BuilderContact||!path)return false;
+    Channel reference;auto saved=noiseState;noiseState=0x4a3b2c1du;synthesize(reference,effect,normalizedVariant(effect,variant));noiseState=saved;
+    std::ofstream file(std::filesystem::path(path),std::ios::binary);if(!file)return false;
+    auto word=[&](std::uint16_t value){file.write(reinterpret_cast<const char*>(&value),2);};
+    auto dword=[&](std::uint32_t value){file.write(reinterpret_cast<const char*>(&value),4);};
+    auto bytes=std::uint32_t(reference.samples.size()*sizeof(short));file.write("RIFF",4);dword(bytes+36);file.write("WAVEfmt ",8);dword(16);
+    word(1);word(1);dword(RATE);dword(RATE*2);word(2);word(16);file.write("data",4);dword(bytes);
+    file.write(reinterpret_cast<const char*>(reference.samples.data()),bytes);return bool(file);
+}
+#endif
 unsigned recordedEngineSamples(int kind){
     if(kind<0||kind>=13)return 0;
     if(motorClips[0].empty())prepareMotors();return unsigned(motorClips[kind].size());

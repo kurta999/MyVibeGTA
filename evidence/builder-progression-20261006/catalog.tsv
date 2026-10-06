@@ -1,0 +1,23 @@
+item	model	texture	icon	recipe	speed	tier	max_durability	remaining_durability	target	drop	action_seconds	crafted_used_dropped_stored_reloaded
+wood-pickaxe	assets/models/baked/builder/wood-pickaxe.m3d	assets/models/baked/builder/wood-pickaxe.png	assets/models/baked/builder/wood-pickaxe.icon.png	wood-pickaxe	2	1	60	55	basalt	basalt	3.2	PASS
+stone-pickaxe	assets/models/baked/builder/stone-pickaxe.m3d	assets/models/baked/builder/stone-pickaxe.png	assets/models/baked/builder/stone-pickaxe.icon.png	stone-pickaxe	4	2	132	86	basalt	basalt	1.6	PASS
+iron-pickaxe	assets/models/baked/builder/iron-pickaxe.m3d	assets/models/baked/builder/iron-pickaxe.png	assets/models/baked/builder/iron-pickaxe.icon.png	iron-pickaxe	6	3	250	177	basalt	basalt	1.1	PASS
+gold-pickaxe	assets/models/baked/builder/gold-pickaxe.m3d	assets/models/baked/builder/gold-pickaxe.png	assets/models/baked/builder/gold-pickaxe.icon.png	gold-pickaxe	9	2	32	31	basalt	basalt	0.75	PASS
+diamond-pickaxe	assets/models/baked/builder/diamond-pickaxe.m3d	assets/models/baked/builder/diamond-pickaxe.png	assets/models/baked/builder/diamond-pickaxe.icon.png	diamond-pickaxe	8	4	1562	1561	basalt	basalt	0.8	PASS
+wood-axe	assets/models/baked/builder/wood-axe.m3d	assets/models/baked/builder/wood-axe.png	assets/models/baked/builder/wood-axe.icon.png	wood-axe	2	1	60	41	log	log	1.25	PASS
+stone-axe	assets/models/baked/builder/stone-axe.m3d	assets/models/baked/builder/stone-axe.png	assets/models/baked/builder/stone-axe.icon.png	stone-axe	4	2	132	131	log	log	0.65	PASS
+iron-axe	assets/models/baked/builder/iron-axe.m3d	assets/models/baked/builder/iron-axe.png	assets/models/baked/builder/iron-axe.icon.png	iron-axe	6	3	250	249	log	log	0.45	PASS
+gold-axe	assets/models/baked/builder/gold-axe.m3d	assets/models/baked/builder/gold-axe.png	assets/models/baked/builder/gold-axe.icon.png	gold-axe	9	2	32	31	log	log	0.3	PASS
+diamond-axe	assets/models/baked/builder/diamond-axe.m3d	assets/models/baked/builder/diamond-axe.png	assets/models/baked/builder/diamond-axe.icon.png	diamond-axe	8	4	1562	1561	log	log	0.35	PASS
+wood-shovel	assets/models/baked/builder/wood-shovel.m3d	assets/models/baked/builder/wood-shovel.png	assets/models/baked/builder/wood-shovel.icon.png	wood-shovel	2	1	60	55	soil	soil	0.4	PASS
+stone-shovel	assets/models/baked/builder/stone-shovel.m3d	assets/models/baked/builder/stone-shovel.png	assets/models/baked/builder/stone-shovel.icon.png	stone-shovel	4	2	132	63	soil	soil	0.2	PASS
+iron-shovel	assets/models/baked/builder/iron-shovel.m3d	assets/models/baked/builder/iron-shovel.png	assets/models/baked/builder/iron-shovel.icon.png	iron-shovel	6	3	250	249	soil	soil	0.15	PASS
+gold-shovel	assets/models/baked/builder/gold-shovel.m3d	assets/models/baked/builder/gold-shovel.png	assets/models/baked/builder/gold-shovel.icon.png	gold-shovel	9	2	32	31	soil	soil	0.1	PASS
+diamond-shovel	assets/models/baked/builder/diamond-shovel.m3d	assets/models/baked/builder/diamond-shovel.png	assets/models/baked/builder/diamond-shovel.icon.png	diamond-shovel	8	4	1562	1561	soil	soil	0.1	PASS
+wood-hoe	assets/models/baked/builder/wood-hoe.m3d	assets/models/baked/builder/wood-hoe.png	assets/models/baked/builder/wood-hoe.icon.png	wood-hoe	2	1	60	59	soil	tilled-soil surface	0	PASS
+stone-hoe	assets/models/baked/builder/stone-hoe.m3d	assets/models/baked/builder/stone-hoe.png	assets/models/baked/builder/stone-hoe.icon.png	stone-hoe	4	2	132	131	soil	tilled-soil surface	0	PASS
+iron-hoe	assets/models/baked/builder/iron-hoe.m3d	assets/models/baked/builder/iron-hoe.png	assets/models/baked/builder/iron-hoe.icon.png	iron-hoe	6	3	250	249	soil	tilled-soil surface	0	PASS
+gold-hoe	assets/models/baked/builder/gold-hoe.m3d	assets/models/baked/builder/gold-hoe.png	assets/models/baked/builder/gold-hoe.icon.png	gold-hoe	9	2	32	31	soil	tilled-soil surface	0	PASS
+diamond-hoe	assets/models/baked/builder/diamond-hoe.m3d	assets/models/baked/builder/diamond-hoe.png	assets/models/baked/builder/diamond-hoe.icon.png	diamond-hoe	8	4	1562	1561	soil	tilled-soil surface	0	PASS
+shears	assets/models/baked/builder/shears.m3d	assets/models/baked/builder/shears.png	assets/models/baked/builder/shears.icon.png	shears	5	2	238	237	leaves	leaves	0.1	PASS
+brush	assets/models/baked/builder/brush.m3d	assets/models/baked/builder/brush.png	assets/models/baked/builder/brush.icon.png	brush	5	2	238	237	surface-deposit	coal	2.05	PASS

@@ -48,11 +48,21 @@ enum class PedState{Wander,Investigate,Flee,TakeCover,Defend,Attack,SeekVehicle,
 struct PedNavigation {
     std::vector<Vec2> path;std::size_t next=0;
     Vec2 goal{},previous{};float repath=0,stuck=0;bool planned=false;
+#ifdef MINI_CITY_JOLT
+    std::vector<Vec3> surfacePath;float goalHeight=0,previousHeight=0;
+    std::uint64_t surfaceRevision=0;bool surfaceMode=false,destinationSelected=false;
+#endif
 };
 struct Ped{Vec2 p,target;float speed,angle,respawn=0;bool alive=true;Color shirt;int health=100;float panic=0;int style=0;bool armed=false,hostile=false;float fireCooldown=0,hitFlash=0;
     float attackVisualTime=0;
     PedState state=PedState::Wander;float alertTime=0;int armor=0,maxArmor=0;Vec2 knockback{};
     Vec2 lastKnown{};float sightMemory=0,tacticTimer=0;int burstShots=0;bool strafeRight=false;
+#ifdef MINI_CITY_JOLT
+    float lastKnownHeight=0;
+    // Runtime pose survives virtual-character streaming; generated/save-loaded
+    // pedestrians start without a pose and acquire one at their actual floor.
+    float elevation=0,elevationVelocity=0;Vec2 elevationAt{};bool elevationKnown=false;
+#endif
     std::string id;int cash=0;bool looted=false,carried=false;float corpseVisualDelay=0,knockedDown=0;
     float impactAnimationTotal=0,vehicleImpactCooldown=0;
     float contactVisualTime=0,socialTime=0,socialCooldown=0;
@@ -165,6 +175,7 @@ extern std::vector<MissionDef> missions;
 extern std::array<bool,10> missionDone;
 
 float groundHeight(Vec2 point);
+float pedGroundHeight(const Ped& ped);
 void reset();
 void update(float dt);
 void enterExit();

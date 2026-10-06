@@ -1,6 +1,9 @@
 #include "dx11_terrain.h"
 #include "terrain.h"
 #include "regions.h"
+#include "excavation.h"
+#include "scenery_edits.h"
+#include "surface_work.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -10,12 +13,12 @@ namespace dx11 {
 namespace {
 constexpr unsigned columns=21;
 constexpr float chunkWidth=800;
-struct Chunk {std::array<Mesh,5> meshes;std::uint64_t revision=0;};
+struct Chunk {std::array<Mesh,5> meshes;std::uint64_t revision=0,editRevision=0;};
 // Stable addresses retain the renderer's immutable GPU buffers across travel.
 std::array<Chunk,columns*columns> chunks;
 void prepare(Chunk& chunk,unsigned cx,unsigned cz){
-    if(chunk.revision==terrain::revision())return;
-    for(auto& source:chunk.meshes){source.vertices.clear();source.revision=terrain::revision();
+    if(chunk.revision==terrain::revision()&&chunk.editRevision==excavation::revision())return;
+    for(auto& source:chunk.meshes){source.vertices.clear();++source.revision;
         source.minX=cx*chunkWidth;source.maxX=(cx+1)*chunkWidth;
         source.minZ=cz*chunkWidth;source.maxZ=(cz+1)*chunkWidth;
         source.minY=1000;source.maxY=-1000;source.allowTessellation=false;source.wrapTextures=true;}
@@ -25,7 +28,7 @@ void prepare(Chunk& chunk,unsigned cx,unsigned cz){
         game::Vec2 center{left+25,top+25};
         if(regions::waterAt(center))continue;
         auto biome=regions::biomeAt(center);auto n=terrain::normal(center);
-        float elevation=terrain::height(center);
+        float elevation=terrain::baseHeight(center);
         int group=regions::roadAt(center)?4:biome==regions::Biome::Snow?3:
             (n.y<.93f||elevation>150)?2:biome==regions::Biome::Desert?1:0;
         auto& source=chunk.meshes[group];
@@ -33,13 +36,13 @@ void prepare(Chunk& chunk,unsigned cx,unsigned cz){
         if(group==4)tint=game::rgb(112,114,116);
         if(group==2&&biome==regions::Biome::Desert)tint=game::rgb(233,192,145);
         auto vertexAt=[&](float px,float pz){
-            float y=terrain::height({px,pz})+(group==4?.11f:0);
+            float y=terrain::baseHeight({px,pz})+(group==4?.11f:0);
             auto normal=terrain::normal({px,pz});
             source.minY=std::min(source.minY,y);source.maxY=std::max(source.maxY,y);
             return Vertex{px,y,pz,normal.x,normal.y,normal.z,px/70,pz/70,tint.r,tint.g,tint.b,1};
         };
         auto a=vertexAt(left,top),b=vertexAt(left+50,top),c=vertexAt(left+50,top+50),d=vertexAt(left,top+50);
-        for(const auto& v:{a,d,c,a,c,b})source.vertices.push_back(v);
+        excavation::clipTriangle({a,d,c},source.vertices);excavation::clipTriangle({a,c,b},source.vertices);
     }
     const auto* rock=mesh("nature/rock_namaqualand_boulder_02");
     if(rock){
@@ -52,10 +55,34 @@ void prepare(Chunk& chunk,unsigned cx,unsigned cz){
             rocky.materialRanges.push_back(range);rocky.textured=true;
         }
     }
-    chunk.revision=terrain::revision();
+    chunk.revision=terrain::revision();chunk.editRevision=excavation::revision();
+}
+struct EditedChunk {std::map<int,Mesh> materials;std::uint64_t revision=0,baseRevision=0;};
+std::map<excavation::Patch,EditedChunk> edited;
+void appendExcavations(std::vector<ModelInstance>& instances,float radius){
+    if(!builder::active())return;
+    for(const auto& patch:excavation::patches()){
+        game::Vec2 center{(patch.first.x+.5f)*200,(patch.first.z+.5f)*200};
+        if(game::len(center-game::player)>radius+150)continue;
+        auto& chunk=edited[patch.first];
+        if(chunk.revision!=patch.second||chunk.baseRevision!=terrain::revision()){
+            for(auto& group:chunk.materials){group.second.vertices.clear();++group.second.revision;}
+            for(const auto& face:excavation::faces(patch.first))if(face.item>=0){
+                auto& source=chunk.materials[face.item];auto* material=mesh("builder/"+builder::items()[face.item].id);
+                source.textured=true;source.allowTessellation=false;source.wrapTextures=true;source.roughness=.95f;
+                if(material)source.textureFile=material->textureFile;
+                source.minX=patch.first.x*200.0f;source.maxX=source.minX+200;source.minZ=patch.first.z*200.0f;source.maxZ=source.minZ+200;
+                source.minY=-400;source.maxY=3000;
+                source.vertices.insert(source.vertices.end(),face.vertices.begin(),face.vertices.end());
+            }chunk.revision=patch.second;chunk.baseRevision=terrain::revision();
+        }
+        for(const auto& group:chunk.materials)if(!group.second.vertices.empty())instances.push_back({&group.second,2,1,1,1,1,0,0,0,0,0,0,0,1,1,1});
+    }
 }
 }
 void appendRegionalTerrain(std::vector<ModelInstance>& instances,float radius){
+    surface_work::append(instances,radius);
+    appendExcavations(instances,radius);
     // Mountain silhouettes remain visible with a short local draw radius.
     radius=std::max(radius,3800.0f);
     const int materials[]={9,8,0,0,7};
@@ -74,7 +101,8 @@ void appendRegionalTerrain(std::vector<ModelInstance>& instances,float radius){
         if(hash%3)continue;
         game::Vec2 p{(x+.2f+float(hash%50)/100)*400,(z+.2f+float((hash>>8)%50)/100)*400};
         if(game::len(p-game::player)>std::min(radius,1900.0f)||regions::waterAt(p)||regions::roadAt(p))continue;
-        float h=terrain::height(p);if(h<90||terrain::normal(p).y>.995f)continue;
+        float h=terrain::baseHeight(p);if(h<90||terrain::normal(p).y>.995f)continue;
+        if(scenery_edits::appendIfEdited("outcrop:"+std::to_string(x)+":"+std::to_string(z),instances))continue;
         bool cliff=hash%4==0;
         std::string name=cliff?"nature/rock_coastal_cliff_02":"nature/rock_namaqualand_boulder_02";
         if(game::len(p-game::player)>800)name+="-lod";

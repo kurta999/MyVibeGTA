@@ -14,6 +14,8 @@
 #include "wildlife.h"
 #include "birds.h"
 #include "save_jobs.h"
+#include "builder.h"
+#include "data_file.h"
 #include <map>
 #include <memory>
 #endif
@@ -135,7 +137,13 @@ bool save(){
             ok&=write(section,"Angle",int(vehicle.angle*1000),temporary);
         }
     }
-    for(const auto& tree:game::trees)if(tree.health<100||tree.destroyed){
+    for(const auto& tree:
+#ifdef MINI_CITY_JOLT
+        builder::normalTrees()
+#else
+        game::trees
+#endif
+        )if(tree.health<100||tree.destroyed){
         std::string section="Tree."+tree.id;
         ok&=write(section,"Health",tree.health,temporary);
         ok&=write(section,"Destroyed",tree.destroyed?1:0,temporary);
@@ -158,10 +166,12 @@ bool save(){
     }
 #endif
 #ifdef MINI_CITY_JOLT
+    temporary.sections["BuilderState"]=builder::capture();
     return temporary;
 }
 bool save(){writer().submit(path(),capture().text());return flush();}
 void request(){writer().submit(path(),capture().text());}
+WriteReceipt requestCheckpoint(){return writer().submit(path(),capture().text());}
 bool flush(){return !pendingWriter||pendingWriter->flush();}
 bool takeFailure(){return pendingWriter&&pendingWriter->takeFailure();}
 #else
@@ -341,6 +351,14 @@ bool load(){
         animal.state=animal.health>0?wildlife::State::Idle:wildlife::State::Dead;
         animal.target=animal.p;
     }
+#endif
+#ifdef MINI_CITY_JOLT
+    std::ifstream builderFile(file);std::string line,records;bool reading=false;
+    while(std::getline(builderFile,line)){
+        if(!line.empty()&&line.front()=='['){reading=data_file::trim(line)=="[BuilderState]";continue;}
+        if(reading)records+=line+'\n';
+    }
+    if(!builder::restore(records))return false;
 #endif
     return true;
 }

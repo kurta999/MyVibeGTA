@@ -1,6 +1,7 @@
 #include "dx11_assets.h"
 #include "dx11_terrain.h"
 #include "terrain.h"
+#include "builder.h"
 #include "dx11_grass.h"
 #include "game.h"
 #include "game_internal.h"
@@ -20,6 +21,10 @@
 #include "jolt_world.h"
 #include "destruction.h"
 #include "dx11_damage.h"
+#include "excavation.h"
+#include "scenery_edits.h"
+#include "surface_work.h"
+#include "builder_feedback.h"
 #include "ordnance.h"
 #include "police.h"
 #include <list>
@@ -90,6 +95,18 @@ void quad(int group,Vec3 a,Vec3 b,Vec3 c,Vec3 d,Vec3 normal,Color tint,int tile=
     triangle(group,vertex(a,normal,u0,v1,tint),vertex(c,normal,u1,v0,tint),vertex(d,normal,u0,v0,tint));
 }
 void ground(float x0,float z0,float x1,float z1,float y,Color tint,int tile=-1,int material=0){
+    if(builder::active()&&!excavation::cells().empty()){
+        int group=tile<0?material:1;float u0=tile<0?0:(tile%4)/4.0f,v0=tile<0?0:(tile/4)/4.0f;
+        float span=tile<0?1:.25f;
+        auto point=[&](float x,float z){return vertex({x,y,z},{0,1,0},u0+span*(x-x0)/(x1-x0),v0+span*(1-(z-z0)/(z1-z0)),tint);};
+        for(float z=z0;z<z1;z=std::min(z1,(std::floor(z/200)+1)*200))
+            for(float x=x0;x<x1;x=std::min(x1,(std::floor(x/200)+1)*200)){
+                float right=std::min(x1,(std::floor(x/200)+1)*200),bottom=std::min(z1,(std::floor(z/200)+1)*200);
+                auto a=point(x,z),b=point(right,z),c=point(right,bottom),d=point(x,bottom);
+                excavation::clipTriangle({a,b,c},buckets[group]);excavation::clipTriangle({a,c,d},buckets[group]);
+            }
+        return;
+    }
     quad(tile<0?material:1,{x0,y,z0},{x1,y,z0},{x1,y,z1},{x0,y,z1},{0,1,0},tint,tile);
 }
 bool primitive(const char* name,Vec3 bottom,Vec3 size,Color tint){
@@ -144,7 +161,8 @@ void sphere(Vec3 center,float radius,Color tint){
         }
     }
 }
-void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint={1,1,1}){
+void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint={1,1,1},const std::string& sceneryId={}){
+    if(modelInstances&&!sceneryId.empty()&&scenery_edits::appendIfEdited(sceneryId,*modelInstances))return;
     const Mesh* source=mesh(name);if(!source)return;
     bool nature=name.rfind("nature/",0)==0;
     bool buildings=name.rfind("buildings/",0)==0||name.rfind("marina/",0)==0;
@@ -431,6 +449,38 @@ bool heldWeapon(const char* name,Vec3 hand,Vec3 muzzle,float width,float height)
         (source->minZ+source->maxZ)*0.5f,
         1,1,1,delta.y/length,horizontal/length});
     return true;
+}
+void heldBuilderItem(int item,Vec3 hand,float yaw,float size,bool firstPerson=false){
+    if(item<0||!modelInstances)return;
+    const auto& definition=builder::items()[item];const auto* source=mesh("builder/"+definition.id);if(!source)return;
+    bool tool=definition.tool!=builder::Tool::None;
+    float scale=size/std::max({source->maxX-source->minX,source->maxY-source->minY,source->maxZ-source->minZ,.01f});
+    float grip=tool?(definition.tool==builder::Tool::Shovel?.4f:.2f):.5f;
+    float swing=std::sin(builder::miningPhase()*game::PI);
+    float pitch=tool?(firstPerson?.25f-swing*1.6f:-2.1f+swing*1.8f):0;
+    if(definition.tool==builder::Tool::Pickaxe)pitch=firstPerson?.5f-swing*1.35f:-2.1f+swing*1.5f;
+    if(definition.tool==builder::Tool::Axe)pitch=firstPerson?.15f-swing*1.75f:-2.1f+swing*1.8f;
+    if(definition.tool==builder::Tool::Shovel){pitch=firstPerson?.65f-swing*.75f:-1.7f+swing*.7f;hand.y+=(firstPerson?9.0f:0)-swing*2;}
+    if(definition.tool==builder::Tool::Hoe)pitch=firstPerson?.35f-swing*.9f:-1.8f+swing*.9f;
+    if(definition.tool==builder::Tool::Brush){
+        float stroke=builder::miningProgress()>0?std::sin(builder::miningPhase()*game::PI*2):0;
+        pitch=(firstPerson?-.9f:-1.6f)+stroke*.12f;
+        hand.x+=std::cos(yaw)*stroke*2;hand.z-=std::sin(yaw)*stroke*2;
+    }
+    if(definition.tool==builder::Tool::Shears)pitch=firstPerson?-.3f:-1.8f;
+    if(definition.tool==builder::Tool::Shears){
+        float opening=(1-swing)*.38f+.025f,pivot=.52f;
+        Vec3 offset{0,(pivot-(source->minY+(source->maxY-source->minY)*grip))*scale,0};
+        offset={0,offset.y*std::cos(pitch),-offset.y*std::sin(pitch)};
+        Vec3 pivotPosition=hand+Vec3{std::sin(yaw)*offset.z,offset.y,std::cos(yaw)*offset.z};
+        for(int part=0;part<3;++part){auto* component=mesh(part==0?"builder/shears-half-left":part==1?"builder/shears-half-right":"builder/shears-pivot");if(!component)continue;
+            float rotation=part==0?opening:part==1?-opening:0;
+            modelInstances->push_back({component,2,scale,scale,scale,std::cos(yaw),std::sin(yaw),pivotPosition.x,pivotPosition.y,pivotPosition.z,
+                0,pivot,0,1,1,1,std::sin(pitch),std::cos(pitch),0,0,std::sin(rotation*.5f),std::cos(rotation*.5f)});
+        }return;
+    }
+    modelInstances->push_back({source,2,scale,scale,scale,std::cos(yaw),std::sin(yaw),hand.x,hand.y,hand.z,
+        0,source->minY+(source->maxY-source->minY)*grip,0,1,1,1,std::sin(pitch),std::cos(pitch)});
 }
 // Keep asymmetric authored props anchored to their pole or floor origin.
 void authoredProp(const std::string& name,Vec3 anchor,float yaw=0,float scale=10){
@@ -846,6 +896,9 @@ void texturedGrass(){
     }
     for(const auto& tuft:cached){
         if(ui::vegetationDensity==1&&(tuft.seed&1))continue;
+        const float root=terrain::baseHeight(tuft.p);
+        if(excavation::removed(builder::cellAt({tuft.p.x,root-.01f,tuft.p.z})))continue;
+        if(surface_work::tilled(builder::cellAt({tuft.p.x,root-.01f,tuft.p.z})))continue;
         float distance=game::len(tuft.p-game::player);
         float fade=grass::ringFade(distance,tuft.ring,radius);
         if(fade<=.01f)continue;
@@ -853,7 +906,7 @@ void texturedGrass(){
         // Detailed curved blades only nearby. Both cutout LODs share the
         // same root and physical size; distant clumps do not cast tiny shadows.
         if(distance>detailRadius)name+=distance>midRadius?"-lod2":"-lod1";
-        model(name,{tuft.p.x,terrain::height(tuft.p)+.015f,tuft.p.z},
+        model(name,{tuft.p.x,root+.015f,tuft.p.z},
             {tuft.width*fade,tuft.height*fade,tuft.width*fade},tuft.yaw,tuft.tint);
     }
 }
@@ -874,8 +927,8 @@ void vegetation(){
         float distance=game::len(prop.p-game::player);
         if(distance>1400&&index%4!=0)continue;
         if(distance>2900&&index%12!=0)continue;
-        model("nature/"+prop.modelId,{prop.p.x,terrain::height(prop.p),prop.p.z},
-            {prop.width,prop.height,prop.depth},float(index)*0.73f);
+        model("nature/"+prop.modelId,{prop.p.x,terrain::baseHeight(prop.p),prop.p.z},
+            {prop.width,prop.height,prop.depth},float(index)*0.73f,{1,1,1},"decoration:"+prop.id);
     }
     for(int index:regions::nearbyTreeIndices(game::player,850*drawScale()+10)){
         if(index<0||index>=int(game::trees.size()))continue;
@@ -886,7 +939,7 @@ void vegetation(){
         if(tree.scale<5&&distance>1800&&index%3!=0)continue;
         if(tree.scale<5&&distance>3300&&index%8!=0)continue;
         if(tree.destroyed){
-            model("primitive/cylinder",{tree.p.x,terrain::height(tree.p),tree.p.z},{8,13,8},0,
+            model("primitive/cylinder",{tree.p.x,terrain::baseHeight(tree.p),tree.p.z},{8,13,8},0,
                 game::rgb(44,40,37));continue;
         }
         float wear=std::clamp(tree.health/100.0f,0.25f,1.0f);
@@ -895,29 +948,29 @@ void vegetation(){
         float sway=std::sin(game::worldTime*(0.7f+wind)+tree.p.x*0.02f)*
             (0.025f+wind*0.035f);
         if(!tree.modelId.empty()){
-            model("nature/"+tree.modelId,{tree.p.x,terrain::height(tree.p),tree.p.z},
+            model("nature/"+tree.modelId,{tree.p.x,terrain::baseHeight(tree.p),tree.p.z},
                 {tree.crownWidth*tree.scale,tree.height*tree.scale,
-                 tree.crownWidth*tree.scale},float(index)*0.43f+sway,shade);
+                 tree.crownWidth*tree.scale},float(index)*0.43f+sway,shade,scenery_edits::treeId(index));
         }
         else if(tree.palm)
             model(tree.variant==0?"nature/tree_palmDetailedShort":"nature/tree_palmDetailedTall",
-                {tree.p.x,terrain::height(tree.p),tree.p.z},
+                {tree.p.x,terrain::baseHeight(tree.p),tree.p.z},
                 {72*tree.scale,(tree.variant==0?70.0f:86.0f)*tree.scale,72*tree.scale},
-                float(index)*0.43f+sway,shade);
+                float(index)*0.43f+sway,shade,scenery_edits::treeId(index));
         else{
             model(tree.variant==0?"nature/tree_detailed":"nature/tree_oak",
-                {tree.p.x,terrain::height(tree.p),tree.p.z},{54*tree.scale,68*tree.scale,54*tree.scale},
-                float(index)*0.9f+sway,shade);
+                {tree.p.x,terrain::baseHeight(tree.p),tree.p.z},{54*tree.scale,68*tree.scale,54*tree.scale},
+                float(index)*0.9f+sway,shade,scenery_edits::treeId(index));
             if(ui::vegetationDensity==2&&close(tree.p,420)&&
                regions::biomeAt(tree.p)==regions::Biome::Countryside)
-                model(bushName(index),{tree.p.x+18,terrain::height({tree.p.x+18,tree.p.z-15}),tree.p.z-15},
-                    {11,10,11},float(index)*0.9f+0.5f,game::rgb(185,217,176));
+                model(bushName(index),{tree.p.x+18,terrain::baseHeight({tree.p.x+18,tree.p.z-15}),tree.p.z-15},
+                    {11,10,11},float(index)*0.9f+0.5f,game::rgb(185,217,176),scenery_edits::treeBushId(index));
         }
     }
     if(ui::vegetationDensity==2){
         for(int i=0;i<70;++i){float x=35+float((i*137)%2280),z=game::BEACH_START+35+float((i*67)%210);
             if(i%4==0&&close({x,z},400))model(bushName(i*13),
-                {x,0,z},{i%4==0?12.0f:8.0f,i%4==0?12.0f:7.0f,i%4==0?12.0f:8.0f},i*0.76f);}
+                {x,0,z},{i%4==0?12.0f:8.0f,i%4==0?12.0f:7.0f,i%4==0?12.0f:8.0f},i*0.76f,{1,1,1},"beach-bush-"+std::to_string(i));}
     }
 }
 void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,float height=0,
@@ -933,7 +986,7 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     Vec3 hand{p.x+f.x*6+r.x*6,height+(playerControlled&&game::crouched?15.0f:20.0f),p.z+f.z*6+r.z*6};
     Vec3 target{};
     float aimPitch=0;
-    bool playerWeapon=playerControlled&&!game::telescopeActive&&
+    bool playerWeapon=playerControlled&&!builder::active()&&!game::telescopeActive&&
         game::playerTalkTime<=0&&
         !game::swimming&&!traversal::active()&&game::enteringVehicle<0&&
         !weapons::stats(game::weapon).melee&&
@@ -962,6 +1015,10 @@ void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,
     }
     bool meleeHeld=playerControlled&&game::playerTalkTime<=0&&
         weapons::stats(game::weapon).melee;
+    if(playerControlled&&builder::active()){
+        if(!builder::modal()&&!game::carryingBody())heldBuilderItem(builder::inventory()[builder::selected()].item,hand,game::PI/2-angle,23);
+        return;
+    }
     if(armed||meleeHeld||playerWeapon){
         if(playerControlled&&weapons::stats(game::weapon).payload!=weapons::Payload::None){
             const auto& stats=weapons::stats(game::weapon);
@@ -1065,7 +1122,7 @@ void animals(){
         const auto& kind=wildlife::species()[animal.species];
         std::string name=std::string("animals/")+kind.id;
         Vec3 size{kind.width,kind.height,kind.length};
-        float height=animal.carried?game::playerY+23.0f:terrain::height(animal.p);
+        float height=wildlife::originHeight(animal);
         if(animal.health<=0){name+="-dead";size={kind.height,kind.width,kind.length};}
         else if(animal.state==wildlife::State::Wander||animal.state==wildlife::State::Flee||
                 animal.state==wildlife::State::Play||animal.state==wildlife::State::Attack){
@@ -1092,8 +1149,10 @@ void people(){
                 if(ped.corpseVisualDelay<=0)
                     character(ped.p,ped.angle,ped.style,false,false,false,
                         terrain::height(ped.p),5,1.0f,false,1.0f);
-                beam({ped.p.x,21,ped.p.z},
-                    {ped.pinAnchor.x,21,ped.pinAnchor.z},1.3f,1.3f,
+                float pinHeight=21;
+                if(builder::active()){game::Vec3 low{},high{},contact{};jolt_world::corpsePose(ped,low,high,contact);pinHeight=contact.y;}
+                beam({ped.p.x,pinHeight,ped.p.z},
+                    {ped.pinAnchor.x,pinHeight,ped.pinAnchor.z},1.3f,1.3f,
                     game::rgb(129,85,48));
             }else if(ped.corpseVisualDelay<=0||ped.carried)
                 character(ped.p,ped.angle,ped.style,false,false,false,
@@ -1103,7 +1162,7 @@ void people(){
         if(ped.knockedDown>0){
             float phase=ped.impactAnimationTotal>0?
                 std::clamp(1.0f-ped.knockedDown/ped.impactAnimationTotal,0.0f,1.0f):1.0f;
-            character(ped.p,ped.angle,ped.style,false,false,false,terrain::height(ped.p),8,1.0f,false,phase);
+            character(ped.p,ped.angle,ped.style,false,false,false,jolt_world::pedHeight(ped),8,1.0f,false,phase);
             continue;
         }
         bool hit=ped.hitFlash>0;
@@ -1118,7 +1177,7 @@ void people(){
             entering?std::clamp(ped.boardingTime/0.75f,0.0f,1.0f):-1.0f;
         character(ped.p,ped.angle,ped.style,ped.armed,
             ped.panic>0||game::len(ped.target-ped.p)>10,
-            ped.panic>0,terrain::height(ped.p),action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
+            ped.panic>0,jolt_world::pedHeight(ped),action,hit?std::min(1.0f,ped.hitFlash*8):1.0f,
             false,phase,ped.state==game::PedState::Talk?8:0,
             std::uint64_t(std::hash<std::string>{}(ped.id))|2);
     }
@@ -1166,6 +1225,13 @@ void people(){
             falling?std::min(1.0f,game::airTime*6):
             game::shotVisualTime>0||game::meleeVisualTime>0?1.0f:
             game::reloadRemaining>0?0.75f:1.0f;
+        if(builder::active()&&builder::miningPhase()>0&&!entering&&!falling&&!climbing&&!game::swimming){
+            action=10;weight=1;actionPhase=builder::miningPhase();
+            const auto& stack=builder::inventory()[builder::selected()];if(stack.item>=0){auto tool=builder::items()[stack.item].tool;
+                if(tool==builder::Tool::Brush||tool==builder::Tool::Shears)actionPhase=.42f+.08f*std::sin(actionPhase*game::PI*2);
+                else if(tool==builder::Tool::Hoe||tool==builder::Tool::Shovel)actionPhase=.25f+actionPhase*.5f;
+            }
+        }
         character(shown,shownAngle,1,game::rightMouse&&!entering&&
             !weapons::stats(game::weapon).melee&&game::meleeVisualTime<=0,moving,
             !game::crouched&&game::len(game::playerVelocity)>205,
@@ -1306,7 +1372,7 @@ void markers(){
         if(const Mesh* icon=mesh(name)){
             float width=std::min(32.0f,26.0f/icon->maxY),height=width*icon->maxY;
             float yaw=std::atan2(lodEye.x-pickup.p.x,lodEye.z-pickup.p.z);
-            model(name,{pickup.p.x,8+std::sin(game::worldTime*3)*2,pickup.p.z},
+            model(name,{pickup.p.x,game::pickupOriginHeight(pickup)+8+std::sin(game::worldTime*3)*2,pickup.p.z},
                 {width,height,1},yaw);
             auto& card=modelInstances->back();
             // Tilt about the sprite center so icons also face elevated cameras.
@@ -1733,6 +1799,62 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buildings();vegetation();streetlights();
     if(staticOnly)return;
     vehicles();people();animals();markers();effects();
+    if(builder::active()){
+        for(const auto& crack:builder_feedback::cracks())beam(crack.a,crack.b,crack.width,crack.width,game::rgb(23,19,16));
+        for(const auto& particle:builder_feedback::particles())if(close({particle.p.x,particle.p.z},400)){
+            float fade=std::clamp(particle.life/.15f,0.0f,1.0f),size=particle.size*fade;
+            if(particle.dust){size*=.75f+.65f*(1-particle.life/particle.total);
+                model("effect/builder-dust",particle.p,{size,size,size},game::cameraYaw,game::rgb(207,184,145));continue;}
+            if(particle.item<0||particle.item>=int(builder::items().size()))continue;
+            auto name="builder/"+builder::items()[particle.item].id;Vec3 dimensions{size,size,size};
+            if(particle.cue==builder_feedback::Cue::Wood)dimensions={size*.4f,size*.3f,size*1.7f};
+            if(particle.cue==builder_feedback::Cue::Foliage)dimensions={size,size*.12f,size};
+            auto before=modelInstances->size();model(name,particle.p,dimensions,particle.life*3);
+            if(modelInstances->size()>before){auto& instance=modelInstances->back();instance.sinPitch=std::sin(particle.life*8);instance.cosPitch=std::cos(particle.life*8);
+                instance.qz=std::sin(particle.life*1.5f);instance.qw=std::cos(particle.life*1.5f);}
+        }
+        auto add=[&](int item,Vec3 low,float size){
+            if(item<0||item>=int(builder::items().size()))return;
+            auto* source=mesh("builder/"+builder::items()[item].id);if(!source)return;
+            float sx=size/std::max(.01f,source->maxX-source->minX),sy=size/std::max(.01f,source->maxY-source->minY),sz=size/std::max(.01f,source->maxZ-source->minZ);
+            if(builder::items()[item].tool!=builder::Tool::None||!builder::items()[item].block){
+                sx=sy=sz=size/std::max({source->maxX-source->minX,source->maxY-source->minY,source->maxZ-source->minZ,.01f});
+            }else if(builder::items()[item].id=="torch")sx=sz=sy;
+            instances.push_back({source,0,sx,sy,sz,1,0,low.x+size*.5f,low.y,low.z+size*.5f,(source->minX+source->maxX)*.5f,source->minY,(source->minZ+source->maxZ)*.5f,1,1,1});
+        };
+        for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);if(close({low.x,low.z},2000))add(block.second.item,low,builder::BLOCK_SIZE);}
+        for(const auto& drop:builder::drops())if(close({drop.p.x,drop.p.z},500))add(drop.stack.item,drop.p,10);
+        const auto& target=builder::target();if(target.source!=builder::Source::None&&!builder::modal()){
+            auto low=builder::cellLow(target.cell);auto high=low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE};
+            if(target.source==builder::Source::Deposit){surface_work::Deposit deposit;if(surface_work::deposit(target.cell,deposit)){low=deposit.position-Vec3{9,0,9};high=deposit.position+Vec3{9,4,9};}}
+            Color tint=game::rgb(245,224,126);
+            if(target.source==builder::Source::Ground&&target.normal.y>.5f){
+                bool originalSurface=std::abs(target.point.y-terrain::baseHeight({target.point.x,target.point.z}))<1;
+                auto corner=[&](float x,float z){return Vec3{x,(originalSurface?terrain::baseHeight({x,z}):target.point.y)+.12f,z};};
+                Vec3 corners[]{corner(low.x,low.z),corner(high.x,low.z),corner(high.x,high.z),corner(low.x,high.z)};
+                for(int n=0;n<4;++n)beam(corners[n],corners[(n+1)%4],.5f,.5f,tint);
+            }else for(int axis=0;axis<3;++axis)for(int a=0;a<2;++a)for(int b=0;b<2;++b){
+                float p[3]{low.x,low.y,low.z},q[3]{low.x,low.y,low.z};int u=(axis+1)%3,v=(axis+2)%3;
+                float maximum[3]{high.x,high.y,high.z};p[u]=q[u]=a?maximum[u]:p[u];p[v]=q[v]=b?maximum[v]:p[v];q[axis]=maximum[axis];
+                beam({p[0],p[1],p[2]},{q[0],q[1],q[2]},.5f,.5f,tint);}
+            const auto& selected=builder::inventory()[builder::selected()];
+            if(selected.item>=0&&builder::items()[selected.item].block){
+                auto* preview=mesh("builder/"+builder::items()[selected.item].id+"-preview");auto bottom=builder::cellLow(target.adjacent);
+                bool valid=builder::canPlace(target.adjacent,selected.item);
+                if(preview){float sx=builder::BLOCK_SIZE/std::max(.01f,preview->maxX-preview->minX),sy=builder::BLOCK_SIZE/std::max(.01f,preview->maxY-preview->minY),sz=builder::BLOCK_SIZE/std::max(.01f,preview->maxZ-preview->minZ);
+                    instances.push_back({preview,0,sx,sy,sz,1,0,bottom.x+20,bottom.y,bottom.z+20,(preview->minX+preview->maxX)*.5f,preview->minY,(preview->minZ+preview->maxZ)*.5f,valid?.45f:1.0f,valid?1.0f:.3f,.45f});}
+            }
+        }
+        // Held textured model in the first-person view; animation follows mining.
+        const auto& held=builder::inventory()[builder::selected()];
+        if(held.item>=0&&!builder::modal()&&!game::carryingBody()&&camera::firstPersonActive()){
+                auto pose=camera::compute(game::player,game::playerY,false,-1);auto direction=game::norm(pose.target-pose.eye);Vec2 side{-std::sin(game::cameraYaw),std::cos(game::cameraYaw)};
+                float swing=std::sin(builder::miningPhase()*game::PI);
+                bool tool=builder::items()[held.item].tool!=builder::Tool::None;
+                Vec3 hand=pose.eye+direction*32+Vec3{side.x*12,-10-swing*3,side.z*12};
+                heldBuilderItem(held.item,hand,game::PI/2-game::cameraYaw,tool?18:10,true);
+        }
+    }
     // The sky pass draws the solar disk using the actual directional light.
 }
 const SceneWorkStats& sceneWorkStats(){return workStats;}

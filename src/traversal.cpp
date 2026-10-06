@@ -4,6 +4,8 @@
 #include "ui.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "scenery_edits.h"
+#include "terrain.h"
 #endif
 #include <algorithm>
 #include <set>
@@ -135,6 +137,10 @@ bool startTree(int index){
     int sourceIndex=trees[index].treeIndex;
     if(sourceIndex<0||sourceIndex>=int(game::trees.size())||
        game::trees[sourceIndex].destroyed)return false;
+#ifdef MINI_CITY_JOLT
+    const auto& source=game::trees[sourceIndex];
+    if(scenery_edits::removed(scenery_edits::treeId(sourceIndex),builder::cellAt({source.p.x,terrain::baseHeight(source.p)+12,source.p.z})))return false;
+#endif
     state=State::Tree;activeIndex=index;climbHeight=0;
     setPose(trees[index].bottom,game::groundHeight(trees[index].bottom));return true;
 }
@@ -157,6 +163,10 @@ void update(float dt){
         const ClimbTree& tree=trees[activeIndex];
         if(tree.treeIndex<0||tree.treeIndex>=int(game::trees.size())||
            game::trees[tree.treeIndex].destroyed){detach();return;}
+#ifdef MINI_CITY_JOLT
+        const auto& source=game::trees[tree.treeIndex];
+        if(scenery_edits::removed(scenery_edits::treeId(tree.treeIndex),builder::cellAt({source.p.x,terrain::baseHeight(source.p)+climbHeight+12,source.p.z}))){detach();return;}
+#endif
         setPose(tree.bottom,game::groundHeight(tree.bottom)+climbHeight);
         if(game::keys[VK_SPACE]){
             game::Vec2 exit=tree.bottom+game::forward(game::cameraYaw)*19;

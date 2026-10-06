@@ -5,6 +5,8 @@
 #include "regions.h"
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
+#include "builder.h"
+#include "ped_navigation_surface.h"
 #endif
 #include <algorithm>
 #include <array>
@@ -25,6 +27,14 @@ float witnessSight=180,witnessHearing=260;
 float quietTime=0,spawnTimer=0;
 int wanted=0,serial=0;
 game::Vec2 lastReport{};
+#ifdef MINI_CITY_JOLT
+float lastReportHeight=0;
+float reportHeight(game::Vec2 place){
+    if(game::len(place-game::player)<.1f)return game::playerY;
+    for(const auto& ped:game::peds)if(game::len(ped.p-place)<.1f)return jolt_world::pedHeight(ped);
+    return game::groundHeight(place);
+}
+#endif
 std::vector<game::Vec2> hideoutPoints;
 float hidingSeconds=0;
 bool inHideout=false;
@@ -38,7 +48,13 @@ bool witnessed(game::Vec2 place,bool silent,bool directWitness){
     if(directWitness)return true;
     for(const auto& ped:game::peds)if(ped.alive){
         float distance=game::len(ped.p-place);
+#ifdef MINI_CITY_JOLT
+        float height=reportHeight(place),pedHeight=jolt_world::pedHeight(ped);
+        distance=game::len(game::Vec3{ped.p.x-place.x,pedHeight-height,ped.p.z-place.z});
+        if(distance<witnessSight&&game::clearLineAtHeight({ped.p.x,pedHeight+22,ped.p.z},{place.x,height+22,place.z}))return true;
+#else
         if(distance<witnessSight&&game::clearLine(ped.p,place))return true;
+#endif
         if(!silent&&distance<witnessHearing&&distance<90)return true;
     }
     return false;
@@ -73,9 +89,53 @@ game::Vec2 chooseSpawn(){
         if(game::len(point-game::player)>85&&!game::solid(point,12))return point;
     return {};
 }
+#ifdef MINI_CITY_JOLT
+bool chooseBuilderSpawn(game::Vec3& result){
+    using namespace game;
+    // Start at a real pedestrian-sized approach to the player (including
+    // vehicle doors), never a nominal surface height beneath retained terrain.
+    Vec3 origin{};bool originFound=false;
+    for(float distance:{0.0f,32.0f,64.0f,96.0f}){
+        for(int side=0;side<(distance==0?1:8);++side){float angle=side*PI/4;
+            Vec2 point=player+forward(angle)*distance;
+            if(ped_navigation_surface::supported(point,playerY,origin)){originFound=true;break;}}
+        if(originFound)break;
+    }
+    if(!originFound)return false;
+    struct Candidate {Vec3 feet;float score;};std::vector<Candidate> candidates;
+    auto consider=[&](Vec2 point){
+        if(point.x<20||point.z<20||point.x>regions::WIDTH-20||point.z>regions::DEPTH-20)return;
+        Vec3 feet{};if(!ped_navigation_surface::supported(point,origin.y,feet))return;
+        float distance=len(feet-Vec3{player.x,playerY,player.z});if(distance<130||distance>900)return;
+        for(const auto& ped:peds)if(len(ped.p-point)<30){
+            if(ped.alive&&std::abs(jolt_world::pedHeight(ped)-feet.y)<32)return;
+            if(!ped.alive){Vec3 low{},high{},contact{};jolt_world::corpsePose(ped,low,high,contact);
+                if(feet.y+31>low.y&&feet.y<high.y)return;}}
+        auto toward=norm(point-player);float facing=toward.x*std::cos(cameraYaw)+toward.z*std::sin(cameraYaw);
+        bool visible=facing>.1f&&distance<450&&clearLineAtHeight({player.x,playerY+22,player.z},feet+Vec3{0,22,0});
+        float score=500-std::abs(distance-350)-(visible?500:0)-std::abs(feet.y-origin.y)*3;
+        if(score<0)return;
+        for(const auto& previous:candidates)if(len(previous.feet-feet)<1)return;
+        candidates.push_back({feet,score});
+    };
+    for(auto point:spawnPoints)consider(point);
+    for(int ring=0;ring<3;++ring)for(int side=0;side<8;++side){float angle=(side+ring*.31f)*PI/4;
+        consider(player+forward(angle)*(340+ring*110.0f));}
+    std::sort(candidates.begin(),candidates.end(),[](const Candidate& a,const Candidate& b){return a.score>b.score;});
+    for(const auto& candidate:candidates)if(ped_navigation_surface::reachable(origin,candidate.feet)){
+        result=candidate.feet;return true;}
+    // No reachable concealed support (or no frame budget): wait and retry.
+    return false;
+}
+#endif
 void summon(const Tier& tier){
-    game::Vec2 place=chooseSpawn();
-    if(place.x==0&&place.z==0)return;
+    game::Vec2 place{};
+#ifdef MINI_CITY_JOLT
+    game::Vec3 spawn{};
+    if(builder::active()){if(!chooseBuilderSpawn(spawn))return;place={spawn.x,spawn.z};}
+    else
+#endif
+    {place=chooseSpawn();if(place.x==0&&place.z==0)return;}
     game::Ped officer{};
     officer.p=place;officer.target=game::player;
     officer.speed=57;officer.angle=std::atan2(game::player.z-place.z,game::player.x-place.x);
@@ -84,12 +144,16 @@ void summon(const Tier& tier){
     officer.armed=true;officer.police=true;officer.hostile=true;
     officer.state=game::PedState::Attack;officer.alertTime=999;
     officer.lastKnown=lastReport;officer.sightMemory=8;
+#ifdef MINI_CITY_JOLT
+    officer.lastKnownHeight=lastReportHeight;
+    if(builder::active()){officer.elevation=spawn.y;officer.elevationAt=place;officer.elevationKnown=true;}
+#endif
     officer.weaponIndex=tier.weapon;officer.accuracy=tier.spread;
     officer.cash=0;
     int reuse=-1,total=0;
     for(int index=0;index<int(game::peds.size());++index)if(game::peds[index].police){
         ++total;
-        if(!game::peds[index].alive&&reuse<0)reuse=index;
+        if(!game::peds[index].alive&&!game::peds[index].carried&&reuse<0)reuse=index;
     }
     if(total>=8&&reuse>=0){
         officer.id=game::peds[reuse].id;
@@ -97,11 +161,15 @@ void summon(const Tier& tier){
         jolt_world::removeRagdoll(officer.id);
 #endif
         game::peds[reuse]=officer;
+#ifdef MINI_CITY_JOLT
+        if(builder::active())jolt_world::teleportPed(reuse,place,spawn.y);
+#endif
     }else if(total<8){
         officer.id="police-"+std::to_string(serial++);
         game::peds.push_back(officer);
 #ifdef MINI_CITY_JOLT
         jolt_world::addPed();
+        if(builder::active())jolt_world::teleportPed(game::peds.size()-1,place,spawn.y);
 #endif
     }
 }
@@ -154,6 +222,7 @@ const std::string& lastError(){return error;}
 void reset(){wanted=0;serial=0;quietTime=0;spawnTimer=0;lastReport={};
     pending.clear();cooldowns.fill(0);hideoutPoints.clear();hidingSeconds=0;inHideout=false;
 #ifdef MINI_CITY_JOLT
+    lastReportHeight=0;
     // Random reachable corners across both cities; generated after world population.
     for(int attempt=0;attempt<600&&hideoutPoints.size()<16&&!game::buildings.empty();++attempt){
         const auto& b=game::buildings[game::randi(int(game::buildings.size()))];
@@ -169,7 +238,11 @@ const std::vector<game::Vec2>& hideouts(){return hideoutPoints;}
 bool hiding(){return inHideout;}
 float hideProgress(){return std::clamp(hidingSeconds/15.0f,0.0f,1.0f);}
 void setWantedLevel(int level){wanted=std::clamp(level,0,4);quietTime=0;
-    lastReport=game::player;pending.clear();hidingSeconds=0;inHideout=false;}
+    lastReport=game::player;pending.clear();hidingSeconds=0;inHideout=false;
+#ifdef MINI_CITY_JOLT
+    lastReportHeight=game::playerY;
+#endif
+}
 int wantedLevel(){return wanted;}
 bool report(Crime crime,game::Vec2 place,bool silent,bool directWitness,bool witnessesChecked){
     int index=int(crime);
@@ -177,6 +250,9 @@ bool report(Crime crime,game::Vec2 place,bool silent,bool directWitness,bool wit
     cooldowns[index]=0.7f;
     pending.push_back({reportDelay,severity(crime)});
     lastReport=place;
+#ifdef MINI_CITY_JOLT
+    lastReportHeight=reportHeight(place);
+#endif
     quietTime=0;hidingSeconds=0;return true;
 }
 void update(float dt){
@@ -195,7 +271,8 @@ void update(float dt){
 #ifdef MINI_CITY_JOLT
     bool officerSees=false;
     for(const auto& ped:game::peds)if(ped.alive&&ped.police&&ped.stunRemaining<=0&&
-        game::playerY>-20&&game::len(ped.p-game::player)<220&&game::clearLine(ped.p,game::player))officerSees=true;
+        game::len(game::Vec3{ped.p.x-game::player.x,jolt_world::pedHeight(ped)-game::playerY,ped.p.z-game::player.z})<220&&
+        game::clearLineAtHeight({ped.p.x,jolt_world::pedHeight(ped)+22,ped.p.z},{game::player.x,game::playerY+22,game::player.z}))officerSees=true;
     if(wanted>0&&pending.empty()&&game::health>0&&game::occupied<0&&game::playerY<5&&
         game::playerY>=0&&!officerSees&&game::len(game::playerVelocity)<15){
         for(auto point:hideoutPoints)if(game::len(point-game::player)<32){inHideout=true;break;}
@@ -221,7 +298,11 @@ void update(float dt){
     for(auto& ped:game::peds)if(ped.police&&ped.alive){
         ++active;ped.weaponIndex=tier.weapon;ped.accuracy=tier.spread;
         if(!ped.hostile){ped.hostile=true;ped.state=game::PedState::Attack;
-            ped.lastKnown=lastReport;ped.sightMemory=5;}
+            ped.lastKnown=lastReport;ped.sightMemory=5;
+#ifdef MINI_CITY_JOLT
+            ped.lastKnownHeight=lastReportHeight;
+#endif
+        }
         ped.alertTime=999;
     }
     if(game::health>0&&active<tier.officers&&spawnTimer<=0){

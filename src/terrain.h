@@ -15,6 +15,8 @@ const std::vector<Landform>& landforms();
 const std::vector<float>& heights();
 std::uint64_t revision();
 float height(game::Vec2 point);
+float baseHeight(game::Vec2 point);
+bool contains(game::Vec3 point);
 game::Vec3 normal(game::Vec2 point);
 bool segmentHit(game::Vec3 start,game::Vec3 end,float& fraction);
 }

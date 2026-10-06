@@ -5,6 +5,7 @@
 #include "content.h"
 #include "physics.h"
 #include "ped_navigation.h"
+#include "builder.h"
 #include <limits>
 #include <queue>
 
@@ -91,16 +92,23 @@ bool available(int car,int who){
         (v.kind==Kind::Car||v.kind==Kind::SportCar)&&v.driver<0&&
         (v.reservedBy<0||v.reservedBy==who)&&std::abs(v.speed)<8;
 }
+bool doorFloor(Vec2 point,float vehicleHeight,float radius,float& height){
+    if(!builder::active()){height=groundHeight(point);return !solid(point,radius);}
+    float nearest=8;bool found=false;
+    for(float floor:jolt_world::pedestrianFloors(point)){float difference=std::abs(floor-vehicleHeight);
+        if(difference<nearest){nearest=difference;height=floor;found=true;}}
+    return found;
+}
 bool exitCar(Ped& ped){
     if(!validCar(ped.drivingVehicle)){ped.drivingVehicle=-1;return true;}
     Vehicle& v=vehicles[ped.drivingVehicle];
     Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
     for(float sign:{1.0f,-1.0f}){
         Vec2 out=v.p+side*(sign*44*physics::vehicleScale(v.kind));
-        if(solid(out,12))continue;
+        float height=0;if(!doorFloor(out,v.rideHeight,12,height))continue;
         jolt_world::driveVehicle(ped.drivingVehicle,0,0,0,true);
         v.driver=-1;v.trafficState=TrafficState::Parked;v.desiredSpeed=0;
-        ped.drivingVehicle=-1;ped.p=out;ped.target=ped.lastKnown;
+        ped.drivingVehicle=-1;jolt_world::teleportPed(std::size_t(pedIndex(ped)),out,height);ped.target=ped.lastKnown;
         ped.state=ped.hostile?PedState::Attack:PedState::Wander;
         ped.carSearchCooldown=6;return true;
     }
@@ -181,6 +189,7 @@ void provoke(Ped& ped,Vec2 origin){
     if(!ped.alive||ped.police)return;
     ped.hostile=true;ped.grievance=60;ped.pursuitMemory=12;
     ped.lastKnown=origin;ped.alertTime=12;ped.sightMemory=4;
+    ped.lastKnownHeight=len(origin-player)<.1f?playerY:groundHeight(origin);
 }
 void damaged(int index,float amount){
     if(!validCar(index)||amount<=0||index==occupied)return;
@@ -214,7 +223,9 @@ bool canPlayerEnter(int index){
     if(!validCar(index)||health<=0||occupied>=0||enteringVehicle>=0)return false;
     const auto& v=vehicles[index];
     if(v.exploded||std::max(std::abs(v.speed),len(v.velocity))>MAX_CARJACK_SPEED||
-       len(v.p-player)>=85||std::abs(playerY-v.rideHeight)>18||!clearLine(player,v.p))return false;
+       len(v.p-player)>=85||std::abs(playerY-v.rideHeight)>18)return false;
+    if(builder::active())return clearLineAtHeight({player.x,playerY+22,player.z},{v.p.x,v.rideHeight+22,v.p.z});
+    if(!clearLine(player,v.p))return false;
     // Do not allow reaching through thin walls that the coarse visibility probe misses.
     Vec2 delta=v.p-player;int steps=std::max(1,int(std::ceil(len(delta)/3)));
     for(int n=1;n<steps;++n){Vec2 p=player+delta*(float(n)/steps);
@@ -259,9 +270,11 @@ bool updatePed(Ped& ped,float dt){
     ped.carSearchCooldown=std::max(0.0f,ped.carSearchCooldown-dt);
     if(ped.grievance>0){
         ped.grievance=std::max(0.0f,ped.grievance-dt);
-        bool sees=health>0&&len(player-ped.p)<650&&visible(ped.p,player);
+        float eyeHeight=validCar(ped.drivingVehicle)?vehicles[ped.drivingVehicle].rideHeight:jolt_world::pedHeight(ped);
+        bool sees=health>0&&len(Vec3{player.x-ped.p.x,playerY-eyeHeight,player.z-ped.p.z})<650&&
+            (builder::active()?clearLineAtHeight({ped.p.x,eyeHeight+22,ped.p.z},{player.x,playerY+22,player.z}):visible(ped.p,player));
         ped.pursuitMemory=sees?12.0f:std::max(0.0f,ped.pursuitMemory-dt);
-        if(sees){ped.lastKnown=player;ped.sightMemory=4;}
+        if(sees){ped.lastKnown=player;ped.lastKnownHeight=playerY;ped.sightMemory=4;}
         if(ped.grievance<=0||ped.pursuitMemory<=0||health<=0){
             ped.grievance=0;ped.hostile=false;ped.alertTime=0;
             if(validCar(ped.seekingVehicle))vehicles[ped.seekingVehicle].reservedBy=-1;
@@ -291,8 +304,10 @@ bool updatePed(Ped& ped,float dt){
        (occupied>=0||len(ped.lastKnown-ped.p)>65)){
         float best=360;int car=-1;
         for(int i=0;i<int(vehicles.size());++i)if(available(i,who)){
-            float d=len(vehicles[i].p-ped.p);
-            if(d<best&&visible(ped.p,vehicles[i].p)){best=d;car=i;}}
+            const auto& v=vehicles[i];float height=jolt_world::pedHeight(ped);
+            float d=builder::active()?len(Vec3{v.p.x-ped.p.x,v.rideHeight-height,v.p.z-ped.p.z}):len(v.p-ped.p);
+            bool seen=builder::active()?clearLineAtHeight({ped.p.x,height+22,ped.p.z},{v.p.x,v.rideHeight+22,v.p.z}):visible(ped.p,v.p);
+            if(d<best&&seen){best=d;car=i;}}
         ped.carSearchCooldown=2;
         if(car>=0){ped.seekingVehicle=car;vehicles[car].reservedBy=who;
             ped.state=PedState::SeekVehicle;ped.boardingTime=0;ped.tacticTimer=10;}
@@ -301,9 +316,13 @@ bool updatePed(Ped& ped,float dt){
         auto& v=vehicles[ped.seekingVehicle];
         Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
         Vec2 door=v.p+side*(38*physics::vehicleScale(v.kind));
-        if(solid(door,10))door=v.p-side*(38*physics::vehicleScale(v.kind));
+        float doorHeight=v.rideHeight;
+        if(!doorFloor(door,v.rideHeight,10,doorHeight)){
+            door=v.p-side*(38*physics::vehicleScale(v.kind));
+            if(!doorFloor(door,v.rideHeight,10,doorHeight)&&builder::active()){
+                v.reservedBy=-1;ped.seekingVehicle=-1;ped.state=PedState::Attack;ped.carSearchCooldown=2;return false;}}
         ped.target=door;ped.angle=std::atan2(v.p.z-ped.p.z,v.p.x-ped.p.x);
-        if(len(ped.p-door)<15){
+        if(len(ped.p-door)<15&&std::abs(jolt_world::pedHeight(ped)-v.rideHeight)<12){
             ped.state=PedState::EnterVehicle;ped.boardingTime+=dt;
             if(ped.boardingTime>=0.75f){
                 ped.drivingVehicle=ped.seekingVehicle;ped.seekingVehicle=-1;
@@ -314,7 +333,7 @@ bool updatePed(Ped& ped,float dt){
         }else{
             ped.state=PedState::SeekVehicle;ped.boardingTime=0;
             jolt_world::movePed(std::size_t(who),
-                ped_navigation::velocity(ped,door,ped.speed*1.7f,dt),dt);
+                ped_navigation::velocityAtHeight(ped,{door.x,doorHeight,door.z},ped.speed*1.7f,dt),dt);
             ped.tacticTimer-=dt;
             if(ped.tacticTimer<=0){v.reservedBy=-1;ped.seekingVehicle=-1;
                 ped.state=PedState::Attack;ped.carSearchCooldown=5;}

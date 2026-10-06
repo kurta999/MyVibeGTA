@@ -190,6 +190,17 @@ void loadMeshes(const std::wstring& folder){
     };
     effectSprite("effect/flame",L"flame.png");
     effectSprite("effect/smoke",L"smoke.png");
+    // Soft radial opacity makes small brush puffs readable over both grass
+    // and stone. Keep this cosmetic mesh separate from ordinary smoke.
+    Mesh dust;dust.minX=dust.minZ=-.5f;dust.maxX=dust.maxZ=.5f;dust.minY=0;dust.maxY=1;
+    dust.transparent=true;dust.castsShadow=false;dust.unlit=true;dust.allowTessellation=false;
+    for(int plane=0;plane<2;++plane){float angle=plane*1.57079633f;
+        auto v=[&](float radius,float theta,float alpha){float x=std::cos(theta)*radius;
+            return Vertex{x*std::cos(angle),.5f+std::sin(theta)*radius,x*std::sin(angle),0,0,1,0,0,1,1,1,alpha};};
+        for(int n=0;n<12;++n){float a=n*6.28318531f/12,b=(n+1)*6.28318531f/12;
+            auto center=v(0,0,.65f),innerA=v(.22f,a,.38f),innerB=v(.22f,b,.38f),outerA=v(.5f,a,0),outerB=v(.5f,b,0);
+            dust.vertices.insert(dust.vertices.end(),{center,innerA,innerB,innerA,outerA,outerB,innerA,outerB,innerB});}}
+    meshes.emplace("effect/builder-dust",std::move(dust));
     effectSprite("effect/flash",L"flash.png");
     effectSprite("effect/blood",L"blood_splat.png");
     // An individual alpha sprite per weapon keeps mipmaps and silhouettes from
@@ -406,6 +417,10 @@ void loadMeshes(const std::wstring& folder){
                stem.rfind("cactus_",0)==0||stem.rfind("grass_",0)==0||
                stem.rfind("rock_",0)==0)names.push_back("nature/"+stem);
         }
+    const auto builderFolder=std::filesystem::path(folder)/L"builder";
+    if(std::filesystem::exists(builderFolder))
+        for(const auto& entry:std::filesystem::directory_iterator(builderFolder))
+            if(entry.is_regular_file()&&entry.path().extension()==L".m3d")names.push_back("builder/"+entry.path().stem().string());
     for(const std::string& path:names){
         std::wstring wide(path.begin(),path.end());
         std::ifstream file(folder+L"\\"+wide+L".m3d",std::ios::binary);
@@ -419,6 +434,7 @@ void loadMeshes(const std::wstring& folder){
         if(count==0||count>3000000||
            (indexed&&(indexCount==0||indexCount>9000000||indexCount%3)))continue;
         Mesh result;result.vertices.resize(count);
+        if(path.rfind("builder/",0)==0)result.allowTessellation=false;
         file.read(reinterpret_cast<char*>(result.vertices.data()),count*sizeof(Vertex));
         if(indexed){
             result.indices.resize(indexCount);
@@ -558,6 +574,11 @@ void loadMeshes(const std::wstring& folder){
                 result.indices.clear();
                 meshes.emplace(path+"-glass",std::move(glass));
             }
+        }
+        if(path.rfind("builder/",0)==0){
+            Mesh preview=result;preview.transparent=true;preview.castsShadow=false;preview.unlit=true;
+            for(auto& vertex:preview.vertices)vertex.a=.24f;
+            meshes.emplace(path+"-preview",std::move(preview));
         }
         meshes.emplace(path,std::move(result));
     }

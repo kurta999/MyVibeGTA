@@ -1,4 +1,5 @@
 #pragma once
+#include "save_status.h"
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -20,9 +21,13 @@ public:
     }
     Writer(const Writer&)=delete;
     Writer& operator=(const Writer&)=delete;
-    void submit(std::string path,std::string text){
-        {std::lock_guard<std::mutex> lock(mutex);pending=std::make_pair(std::move(path),std::move(text));}
+    WriteReceipt submit(std::string path,std::string text){
+        WriteReceipt receipt{std::make_shared<std::atomic<WriteStatus>>(WriteStatus::Pending)};
+        {std::lock_guard<std::mutex> lock(mutex);
+            if(pending)pending->receipt.complete(WriteStatus::Superseded);
+            pending=Snapshot{std::move(path),std::move(text),receipt};}
         changed.notify_all();
+        return receipt;
     }
     bool flush(){
         std::unique_lock<std::mutex> lock(mutex);
@@ -32,22 +37,24 @@ public:
 private:
     void run(){
         for(;;){
-            std::pair<std::string,std::string> snapshot;
+            Snapshot snapshot;
             {
                 std::unique_lock<std::mutex> lock(mutex);
                 changed.wait(lock,[this]{return stopping||pending.has_value();});
                 if(!pending)return;
                 snapshot=std::move(*pending);pending.reset();busy=true;
             }
-            bool ok=false;try{ok=write(snapshot.first,snapshot.second);}catch(...){ok=false;}
-            {std::lock_guard<std::mutex> lock(mutex);lastResult=ok;failed|=!ok;busy=false;}
+            bool ok=false;try{ok=write(snapshot.path,snapshot.text);}catch(...){ok=false;}
+            {std::lock_guard<std::mutex> lock(mutex);lastResult=ok;failed|=!ok;busy=false;
+                snapshot.receipt.complete(ok?WriteStatus::Succeeded:WriteStatus::Failed);}
             changed.notify_all();
         }
     }
     Write write;
+    struct Snapshot {std::string path,text;WriteReceipt receipt;};
     std::mutex mutex;
     std::condition_variable changed;
-    std::optional<std::pair<std::string,std::string>> pending;
+    std::optional<Snapshot> pending;
     bool busy=false,stopping=false,lastResult=true,failed=false;
     // Last member: all state exists before the thread starts.
     std::thread worker;

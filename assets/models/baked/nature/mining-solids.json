@@ -1,0 +1,321 @@
+[
+  {
+    "model": "tree_blocks",
+    "solid": "assets\\models\\baked\\nature\\tree_blocks-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-olive-tree-b7baf3c7.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "c2f636cc1c6fd93243f5e300f16db2357ea33cc034f68211dc220e4397fe4457",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-olive-tree-b7baf3c7.glb": "98e313be40c11e2b419845cd4a1ddd2b6708fae2ab8108c17a3b049d03111d76"
+    }
+  },
+  {
+    "model": "tree_default",
+    "solid": "assets\\models\\baked\\nature\\tree_default-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\tree_small_02\\tree_small_02.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "60817581365db9149bc473f20bcd75186c9b6c9a0a9c0553dfef2f73d7c034ca",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\tree_small_02\\tree_small_02.gltf": "3062a709614c05b80fdc1e56583998bc3cb1027b0d52f956c8ecfb882ff8ca6d",
+      "assets\\models\\source\\polyhaven\\tree_small_02\\tree_small_02.bin": "8da6c3c389ad8748286d1b7488cd827f75ebdad9d8f59ef7dfb0916df5edc634"
+    }
+  },
+  {
+    "model": "tree_detailed",
+    "solid": "assets\\models\\baked\\nature\\tree_detailed-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_03\\island_tree_03.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "c4a5378a97433e2d904e33118d995b6a23d9f35b5a39e2a692a390155fde728f",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\island_tree_03\\island_tree_03.gltf": "da487ff6b6f49ac84afe99674aae05f3192af0f6e4e696f7ef9096b30daaf27f",
+      "assets\\models\\source\\polyhaven\\island_tree_03\\island_tree_03.bin": "ac0631f236502155307ac0320b53201a0d3bab6348699ad9edd3172322aaf08b"
+    }
+  },
+  {
+    "model": "tree_fat",
+    "solid": "assets\\models\\baked\\nature\\tree_fat-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-buttress-root-tree-44607ba7.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "79c635d389b38a45f14df522db617f7223607e1c96bd81dd1f8cbf90abed0686",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-buttress-root-tree-44607ba7.glb": "5de1330263c8d437555d56aaaf554ffa8f81cca273981e652abf83d04a47467f"
+    }
+  },
+  {
+    "model": "tree_oak",
+    "solid": "assets\\models\\baked\\nature\\tree_oak-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_01\\island_tree_01.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "90fef0a76e87aeb464f33c65af2dfad6f2ee8e9ed5c9e30be22ea4f0c81b0cc8",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\island_tree_01\\island_tree_01.gltf": "78e905a40670bfabb2760601d4d9a6c17193a50d68e6271c66893eb7bd75906d",
+      "assets\\models\\source\\polyhaven\\island_tree_01\\island_tree_01.bin": "1faa817b46e24ed6fc90d3ec72188a0dc5ac75e82c89b3dd3c5fdaecf7cc005c"
+    }
+  },
+  {
+    "model": "tree_simple",
+    "solid": "assets\\models\\baked\\nature\\tree_simple-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\korean-hanok-village-and-street-persimmon-tree-ec7be2f6.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "ebcc3259f78b5657387323e46cedb2c0007f16c29a88597b4b06d2dd8f70d3d4",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\korean-hanok-village-and-street-persimmon-tree-ec7be2f6.glb": "bf181836980e631e1372fe80ceb8e3961811f20b24dfca142eb3087c6371e518"
+    }
+  },
+  {
+    "model": "tree_tall",
+    "solid": "assets\\models\\baked\\nature\\tree_tall-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_02\\island_tree_02.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "70a422db0492b4b7b5481098637e0ff3d0081ac30c33579d33df9b4b0985e772",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\island_tree_02\\island_tree_02.gltf": "d8c5d9ead41cdbef91a648f40ff60470faa19eb3a7010e59e44cb1a01250f75d",
+      "assets\\models\\source\\polyhaven\\island_tree_02\\island_tree_02.bin": "427d69ccc1ea12d1fb9c6af89691563b4a097f39a6f34c15be6e45ef5e5fd4ce"
+    }
+  },
+  {
+    "model": "tree_thin",
+    "solid": "assets\\models\\baked\\nature\\tree_thin-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\jacaranda_tree\\jacaranda_tree.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "3cc0f54adabc9d3c0d07114049cb4ad9464aa8aa8bccb3210459ac95ab2f4db9",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\jacaranda_tree\\jacaranda_tree.gltf": "f946991efd4d3bc3c10404245c4603ed7091ca38cef279dff75bfb5f44241375",
+      "assets\\models\\source\\polyhaven\\jacaranda_tree\\jacaranda_tree.bin": "4310d1e25db8ac63d6d345afc8154a1df7e85b301dfad228be66d85d6c52bbfc"
+    }
+  },
+  {
+    "model": "tree_cone",
+    "solid": "assets\\models\\baked\\nature\\tree_cone-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "c78cb87b0699021bcdb2ac5674fa3b24fe825498365e0178490512f96f10dd77",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf": "a9466ca9d8c5b9b2eeeeafd3ce426f8912dcbd98a7281bad8c734833eb35b186",
+      "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.bin": "efdebfae6ee4b3ea20c7a85eb9f798ff4953259a3616bcff0b7e580b00f34f40"
+    }
+  },
+  {
+    "model": "tree_pineDefaultA",
+    "solid": "assets\\models\\baked\\nature\\tree_pineDefaultA-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "aff04d42d2562add01b97c21eb73a330e67fc70a6938ddee9c586dda68867b3d",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineDefaultB",
+    "solid": "assets\\models\\baked\\nature\\tree_pineDefaultB-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "7cc0ec1485cda9cf7016caf68e9974d36fff6c473d4f763dd8d63529fcccd4fc",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf": "a9466ca9d8c5b9b2eeeeafd3ce426f8912dcbd98a7281bad8c734833eb35b186",
+      "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.bin": "efdebfae6ee4b3ea20c7a85eb9f798ff4953259a3616bcff0b7e580b00f34f40"
+    }
+  },
+  {
+    "model": "tree_pineGroundA",
+    "solid": "assets\\models\\baked\\nature\\tree_pineGroundA-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "b1e8980359052d194b26fbcdf433ecabefa31298101e3bdeb57c3f526635d299",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineGroundB",
+    "solid": "assets\\models\\baked\\nature\\tree_pineGroundB-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\alpine-and-arctic-biomes-timberline-tree-4975b730.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "93320cf7c475d02156151a0bfd9805faba21d762c7cf2e320a196ee6045a18e4",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\alpine-and-arctic-biomes-timberline-tree-4975b730.glb": "5ef4b07e36e576705a9a1f55321f023553b90d2ff4c7dcd037e811c59167da8f"
+    }
+  },
+  {
+    "model": "tree_pineRoundA",
+    "solid": "assets\\models\\baked\\nature\\tree_pineRoundA-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "bd401054692d0826c7589df4b0748de192405885c9b698b5cfd3c859558db6b6",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundB",
+    "solid": "assets\\models\\baked\\nature\\tree_pineRoundB-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "38badc30d9b6500a7f0368a227892159b5e3d3b7781b523fc07e084ed0e131d8",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundC",
+    "solid": "assets\\models\\baked\\nature\\tree_pineRoundC-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "18de5d8c53d1180a7834397de6865f12dc652bfb2cc314eb8c1e2372ea2498fa",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundD",
+    "solid": "assets\\models\\baked\\nature\\tree_pineRoundD-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "c082be650d13f20f8ca13ebde9ec9690e8d24a290d34be1a9dfcc93fb298425b",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineSmallA",
+    "solid": "assets\\models\\baked\\nature\\tree_pineSmallA-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "ceb0c0794c186e08f5d47ea0108b6a050b3f45da23a8cc903319569a47ea42fb",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineSmallB",
+    "solid": "assets\\models\\baked\\nature\\tree_pineSmallB-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "d8c8ee29f8e864d83a3c8c4918d0eaf079f7f4762eb7f68e1353c64bd10dec14",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineTallA",
+    "solid": "assets\\models\\baked\\nature\\tree_pineTallA-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "c3071ae1fa747e2b7ea64e47569d8a948ee85db2c6ddc1e8d9e125ef9972e26d",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineTallB",
+    "solid": "assets\\models\\baked\\nature\\tree_pineTallB-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "1db3eb139e444c9b49d9e9ef486f18afd7272d2e4fd9cd9cb37c4c202628e9ec",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+      "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_palmDetailedShort",
+    "solid": "assets\\models\\baked\\nature\\tree_palmDetailedShort-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-fig-tree-15e48fe1.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "afc51d53e40db36f3cd016a8c5150177d306f0038e197c1b1000cb4fc45f529b",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-fig-tree-15e48fe1.glb": "054c6922106287be47ee8ec653704c2895b6a81c4b5eff0d384c049e70fc575d"
+    }
+  },
+  {
+    "model": "tree_palmDetailedTall",
+    "solid": "assets\\models\\baked\\nature\\tree_palmDetailedTall-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "3c6ffa9dc33544fa43af5f889e41cec3b3d3cdbba06c6df05cc7548d0f9b3bcb",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb": "0e1a03139703a37ffb709a5064baf00aa0e4bb8cfc4070493b7022875f03b575"
+    }
+  },
+  {
+    "model": "tree_palmShort",
+    "solid": "assets\\models\\baked\\nature\\tree_palmShort-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-palm-sapling-6702b25c.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "b800eef2343a87e53ae6ef27a882326830004df009576c7f736081a31ecb0c50",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-palm-sapling-6702b25c.glb": "4663f39641fb11586fae611b968a40c5b010c8710fede5af3678c56ad8373628"
+    }
+  },
+  {
+    "model": "tree_palmTall",
+    "solid": "assets\\models\\baked\\nature\\tree_palmTall-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "ee83dfbc3d4644d615ad11d8f66db223fca9fea9ed846bc60897be7c2152a739",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41.glb": "189a1718e5b372e55d7becec6115d0bcfdd3e513adb3d9056cebf6271838965a"
+    }
+  },
+  {
+    "model": "tree_palm",
+    "solid": "assets\\models\\baked\\nature\\tree_palm-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\quiver_tree_01\\quiver_tree_01.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "e6a55102e3bafac322fa9e4b100eeecda7e6400309d0864c3c8242891f28a9e2",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\quiver_tree_01\\quiver_tree_01.gltf": "aa6885a0fe43b274584851b0947e2209dc64afce1d20a75a1567e790a12d0722",
+      "assets\\models\\source\\polyhaven\\quiver_tree_01\\quiver_tree_01.bin": "20efdf4aa14825ffd01abb21535afd485a00022c96ad04c1269bb01c137bbe08"
+    }
+  },
+  {
+    "model": "tree_palmBend",
+    "solid": "assets\\models\\baked\\nature\\tree_palmBend-mining-solid.m3d",
+    "source": "assets\\models\\source\\polyhaven\\quiver_tree_02\\quiver_tree_02.gltf",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "a15e32088166d68d19e05083f39e54e8c7925950c46bb4fdf0d7a841c0e5e797",
+    "source_sha256": {
+      "assets\\models\\source\\polyhaven\\quiver_tree_02\\quiver_tree_02.gltf": "abdd8c2031a12905783ef2dabed11e5bc87123d322e057c138aeb9b67e400e91",
+      "assets\\models\\source\\polyhaven\\quiver_tree_02\\quiver_tree_02.bin": "fd3598b4aea34bc6864452d2dbb37a04e4bfa7ad1ab6062a3b97c485fae258f3"
+    }
+  },
+  {
+    "model": "tree_plateau",
+    "solid": "assets\\models\\baked\\nature\\tree_plateau-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\exotic-wildlife-hd-umbrella-acacia-850a62bb.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "31b38b57c6f10510815e5e53cb33d2831117849cf2624a144be23e5aca935851",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\exotic-wildlife-hd-umbrella-acacia-850a62bb.glb": "c9d999ac23bc5cb1f647fe0a7614af2086e4d15eed45779ec8e63553a74dc83b"
+    }
+  },
+  {
+    "model": "tree_small",
+    "solid": "assets\\models\\baked\\nature\\tree_small-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\exotic-wildlife-hd-baobab-tree-fb196805.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "fa45355cbd8956d9f373c38f7d436dffbe1d0a8dc57698671f21c0aea4ea3c16",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\exotic-wildlife-hd-baobab-tree-fb196805.glb": "c88abe11cf252d211934a78255ed9707f4b197929acd933b2771c27628576bd0"
+    }
+  },
+  {
+    "model": "tree_urbanCherry",
+    "solid": "assets\\models\\baked\\nature\\tree_urbanCherry-mining-solid.m3d",
+    "source": "assets\\models\\source\\3dassets\\japanese-school-and-city-street-cherry-tree-blossom-618a9f6d.glb",
+    "license": "CC0-1.0 (see existing tree manifests)",
+    "sha256": "059cc58c70e294d2ca22d2b68dc55bf84f6720f411176ecc39a38994d68d545a",
+    "source_sha256": {
+      "assets\\models\\source\\3dassets\\japanese-school-and-city-street-cherry-tree-blossom-618a9f6d.glb": "6849354119783e02cee85b585efe9fdf0ceca6c6791a502896f20f595de7aa0f"
+    }
+  }
+]

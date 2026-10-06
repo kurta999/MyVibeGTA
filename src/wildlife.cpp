@@ -6,6 +6,8 @@
 #include "traversal.h"
 #include "debug_menu.h"
 #include "ui.h"
+#include "builder.h"
+#include "terrain.h"
 #include <random>
 
 namespace wildlife {
@@ -32,6 +34,14 @@ const std::vector<Species> catalog={
     {"mouse","Mouse",3,4,10,52,12,1,3,false,false,0}
 };
 bool living(int i){return i>=0&&i<int(animals.size())&&animals[i].health>0;}
+bool verticalOverlap(float first,float firstHeight,float second,float secondHeight){
+    return first<second+secondHeight&&second<first+firstHeight;
+}
+bool visible(const Animal& a,Vec2 target,float targetY,float targetHeight){
+    if(!builder::active())return clearLine(a.p,target);
+    return clearLineAtHeight({a.p.x,originHeight(a)+catalog[a.species].height*.6f,a.p.z},
+        {target.x,targetY+targetHeight*.5f,target.z});
+}
 float randomUnit(Animal& a){
     // No global rand() calls: wildlife must not change traffic/mission randomness.
     float v=std::sin(a.phase*12.9898f+a.p.x*0.078f+a.p.z*0.123f)*43758.5453f;
@@ -41,6 +51,18 @@ void drop(){
     if(carried<0)return;
     auto& a=animals[carried];a.carried=false;
     Vec2 candidate=player+forward(cameraYaw)*(radius(a)+20);
+    if(builder::active()){
+        jolt_world::preparePedNavigation();
+        bool placed=false;
+        for(int side=0;side<16&&!placed;++side){auto p=player+forward(cameraYaw+side*PI/8)*(radius(a)+20);
+            float best=1e30f,y=0;
+            for(float floor:jolt_world::animalFloors(a,p,a.angle))if(std::abs(floor-playerY)<best){best=std::abs(floor-playerY);y=floor;}
+            if(best>8||!clearLineAtHeight({player.x,playerY+18,player.z},{p.x,y+10,p.z}))continue;
+            a.p=p;a.elevation=y;a.verticalVelocity=0;a.supported=false;a.elevationAt=p;a.elevationKnown=a.elevationMode=true;placed=true;
+        }
+        if(!placed){a.carried=true;announce("No clear space to drop this animal.",2);return;}
+        carried=-1;return;
+    }
     if(walkable(candidate,radius(a)))a.p=candidate;
     else if(walkable(player,radius(a)))a.p=player;
     else a.p=a.home;
@@ -53,7 +75,8 @@ void steer(Animal& a,Vec2 destination,float speed,float dt){
     for(const auto& other:animals){
         if(&a==&other||other.carried)continue;
         float gap=len(a.p-other.p),desired=(radius(a)+radius(other))*0.75f;
-        if(gap>0.1f&&gap<desired)separation=separation+norm(a.p-other.p)*((desired-gap)/desired);
+        if(gap>0.1f&&gap<desired&&(!builder::active()||verticalOverlap(originHeight(a),catalog[a.species].height,originHeight(other),catalog[other.species].height)))
+            separation=separation+norm(a.p-other.p)*((desired-gap)/desired);
     }
     direction=norm(direction+separation*1.5f);
     float step=std::min(distance,speed*dt),base=std::atan2(direction.z,direction.x);
@@ -67,6 +90,35 @@ void steer(Animal& a,Vec2 destination,float speed,float dt){
 }
 const std::vector<Species>& species(){return catalog;}
 float radius(const Animal& a){return std::max(2.0f,catalog[a.species].width*0.55f);}
+float originHeight(const Animal& a){
+    if(a.carried)return playerY+23;
+    if(builder::active()&&a.elevationKnown&&a.elevationMode&&len(a.p-a.elevationAt)<25)return a.elevation;
+    return builder::active()?terrain::baseHeight(a.p):groundHeight(a.p);
+}
+void reconcileScenery(){
+    jolt_world::preparePedNavigation();
+    for(auto& a:animals){
+        if(a.carried||len(a.p-player)>1000)continue;
+        bool known=a.elevationKnown&&a.elevationMode==builder::active()&&len(a.p-a.elevationAt)<25;
+        float y=known?a.elevation:terrain::baseHeight(a.p);
+        if(!known||!jolt_world::animalClear(a,{a.p.x,y,a.p.z},a.angle)){
+            float nearest=1e30f;Vec2 destination=a.p;float selected=y;
+            auto consider=[&](Vec2 p){
+                if(p.x<radius(a)||p.z<radius(a)||p.x>regions::WIDTH-radius(a)||p.z>regions::DEPTH-radius(a)||regions::waterAt(p))return;
+                for(float floor:jolt_world::animalFloors(a,p,a.angle)){
+                    float cost=len(p-a.p)+std::abs(floor-y);
+                    if(cost<nearest){nearest=cost;destination=p;selected=floor;}}
+            };
+            // A valid pose need not be supported: removed ground must let it fall.
+            if(jolt_world::animalClear(a,{a.p.x,y,a.p.z},a.angle))nearest=0;
+            else {consider(a.p);for(int ring=1;ring<=10&&nearest==1e30f;++ring)
+                for(int side=0;side<16;++side)consider(a.p+forward(side*PI/8)*(ring*40.0f));}
+            if(nearest==1e30f)continue;
+            a.p=destination;a.elevation=selected;a.verticalVelocity=0;a.supported=false;
+        }
+        a.elevationAt=a.p;a.elevationKnown=true;a.elevationMode=builder::active();
+    }
+}
 bool walkable(Vec2 p,float r,bool allowRoad){
     if(p.x<r||p.z<r||p.x>regions::WIDTH-r||p.z>regions::DEPTH-r||
        solid(p,r)||regions::waterAt(p)||(!allowRoad&&regions::roadAt(p)))return false;
@@ -89,6 +141,33 @@ bool walkable(Vec2 p,float r,bool allowRoad){
     return true;
 }
 bool bodyWalkable(const Animal& a,Vec2 p,float angle,bool allowRoad){
+    if(builder::active()){
+        float y=originHeight(a);const auto& s=catalog[a.species];
+        if(p.x<radius(a)||p.z<radius(a)||p.x>regions::WIDTH-radius(a)||p.z>regions::DEPTH-radius(a)||
+           regions::waterAt(p)||(!allowRoad&&regions::roadAt(p)))return false;
+        if(!jolt_world::animalClear(a,{p.x,y,p.z},angle)&&!jolt_world::animalClear(a,{p.x,y+5,p.z},angle))return false;
+        if(riding()&& &a==&animals[mounted]){
+            float riderY=y+s.height*(a.species==1?1.0f:.94f)+1-18.5f;
+            if(!jolt_world::standingCharacterClear({p.x,riderY,p.z}))return false;
+        }
+        Vec2 f=forward(angle);float segment=std::max(0.0f,s.length*.5f-radius(a));
+        for(int sample=0;sample<=4;++sample){auto point=p+f*(-segment+segment*.5f*sample);
+            for(const auto& other:animals){if(&a==&other||other.carried||other.health<=0||
+                    !verticalOverlap(y,s.height,originHeight(other),catalog[other.species].height))continue;
+                float otherR=radius(other),otherSegment=std::max(0.0f,catalog[other.species].length*.5f-otherR);
+                auto axis=forward(other.angle),offset=point-other.p;
+                float along=std::clamp(offset.x*axis.x+offset.z*axis.z,-otherSegment,otherSegment);
+                if(len(offset-axis*along)<radius(a)+otherR)return false;}
+            if(!riding()&&health>0&&occupied<0&&verticalOverlap(y,s.height,playerY,37)&&len(point-player)<radius(a)+10)return false;
+            for(const auto& prop:props)if(prop.alive&&verticalOverlap(y,s.height,prop.y,24)&&len(point-prop.p)<radius(a)+14)return false;
+            for(const auto& car:vehicles){if(!verticalOverlap(y,s.height,car.rideHeight-10,55))continue;
+                auto axis=forward(car.angle);Vec2 side{-axis.z,axis.x},offset=point-car.p;
+                Vec2 outside{std::max(0.0f,std::abs(offset.x*axis.x+offset.z*axis.z)-(car.kind==Kind::Bike?13:24)),
+                    std::max(0.0f,std::abs(offset.x*side.x+offset.z*side.z)-(car.kind==Kind::Bike?5:13))};
+                if(len(outside)<radius(a))return false;}
+        }
+        return true;
+    }
     float r=radius(a),halfSegment=std::max(0.0f,catalog[a.species].length*0.5f-r);
     Vec2 facing=forward(angle);
     int samples=std::max(1,int(std::ceil(2*halfSegment/r)));
@@ -113,16 +192,20 @@ int mountedIndex(){return riding()?mounted:-1;}
 namespace {
 bool canMount(int i){
     if(!living(i)||riding()||health<=0||occupied>=0||enteringVehicle>=0||
-       carryingBody()||traversal::active()||debug_menu::flyMode||swimming||std::abs(playerY-game::groundHeight(player))>8)return false;
+        carryingBody()||traversal::active()||debug_menu::flyMode||swimming)return false;
     const auto& a=animals[i];
-    return (a.species==0||a.species==1)&&
-        len(player-a.p)<std::max(radius(a),catalog[a.species].length*0.5f)+30&&clearLine(player,a.p);
+    if((a.species!=0&&a.species!=1)||
+       len(player-a.p)>=std::max(radius(a),catalog[a.species].length*0.5f)+30)return false;
+    if(builder::active()){
+        if(std::abs(playerY-originHeight(a))>8||!visible(a,player,playerY,37))return false;
+    }else if(std::abs(playerY-game::groundHeight(player))>8)return false;
+    return builder::active()||clearLine(player,a.p);
 }
 void riderPose(){
     const auto& a=animals[mounted];
     // These meshes' backs reach almost to their full height. Align the rider's
     // hip (half of the 37-unit skin) to the back, rather than burying the torso.
-    player=a.p;playerY=game::groundHeight(a.p)+catalog[a.species].height*(a.species==1?1.0f:0.94f)+1-18.5f;
+    player=a.p;playerY=originHeight(a)+catalog[a.species].height*(a.species==1?1.0f:0.94f)+1-18.5f;
     playerVelocity={};playerVerticalSpeed=0;airTime=0;
     swimming=false;grounded=true;crouched=false;
     jolt_world::teleportCharacter(player,playerY);
@@ -136,8 +219,14 @@ int nearbyMount(){
     return best;
 }
 bool mount(int i){
+    if(builder::active())reconcileScenery();
     if(!canMount(i))return false;
-    mounted=i;auto& a=animals[i];
+    auto& a=animals[i];
+    if(builder::active()){
+        float riderY=originHeight(a)+catalog[a.species].height*(a.species==1?1.0f:.94f)+1-18.5f;
+        if(!jolt_world::standingCharacterClear({a.p.x,riderY,a.p.z})){announce("Not enough room above this animal.",2);return false;}
+    }
+    mounted=i;
     // Old saves placed wildlife using width-only clearance. Recover a mount
     // whose head/tail overlaps a trunk before enabling its movement controls.
     if(!bodyWalkable(a,a.p,a.angle,true)){
@@ -151,6 +240,10 @@ bool mount(int i){
         if(!placed){mounted=-1;announce("No clear space to ride this animal.",2);return false;}
     }
     a.state=State::Idle;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
+    if(builder::active()){
+        float riderY=originHeight(a)+catalog[a.species].height*(a.species==1?1.0f:.94f)+1-18.5f;
+        if(!jolt_world::standingCharacterClear({a.p.x,riderY,a.p.z})){mounted=-1;announce("Not enough room above this animal.",2);return false;}
+    }
     telescopeActive=false;cameraYaw=a.angle;riderPose();previousPlayer=player;
     announce(std::string("Riding ")+catalog[a.species].name+". WASD move, Shift run, E dismount.",4);
     return true;
@@ -161,6 +254,14 @@ bool dismount(bool force){
     float clearance=std::max(radius(a),catalog[a.species].length*0.5f)+18;
     for(float turn:{PI/2,-PI/2,PI,-PI/4,PI/4,0.0f}){
         Vec2 out=a.p+forward(a.angle+turn)*clearance;
+        if(builder::active()){
+            float y=originHeight(a),best=1e30f,selected=0;
+            for(float floor:jolt_world::pedestrianFloors(out))if(std::abs(floor-y)<best){best=std::abs(floor-y);selected=floor;}
+            if(best>8||!jolt_world::standingCharacterClear({out.x,selected,out.z})||!clearLineAtHeight({a.p.x,y+20,a.p.z},{out.x,selected+20,out.z}))continue;
+            player=previousPlayer=out;playerY=selected;playerVerticalSpeed=0;playerVelocity={};grounded=true;swimming=false;airTime=0;
+            a.home=a.target=a.p;a.state=a.health>0?State::Idle:State::Dead;a.timer=2;
+            mounted=-1;jolt_world::teleportCharacter(player,playerY);return true;
+        }
         if(!walkable(out,12,true)||!clearLine(a.p,out))continue;
         player=previousPlayer=out;playerY=game::groundHeight(out);playerVerticalSpeed=0;playerVelocity={};
         grounded=true;swimming=false;airTime=0;
@@ -199,6 +300,10 @@ void updateRider(float dt){
             if(bodyWalkable(a,a.p+slide,a.angle,true))a.p=a.p+slide;
     }
     float moved=len(a.p-before);
+    if(builder::active()){
+        auto velocity=dt>0?(a.p-before)*(1/dt):Vec2{};a.p=before;jolt_world::moveAnimal(a,velocity,dt);
+        moved=len(a.p-before);
+    }
     if(moved>0.001f)a.phase+=moved*0.17f;
     a.state=moved>0.001f?State::Wander:State::Idle;
     a.home=a.target=a.p;a.peer=-1;a.alert=0;a.playerThreat=false;a.attackTime=0;
@@ -237,7 +342,7 @@ void hurt(int i,int damage,Vec2 attacker,bool playerCaused,int source){
     if(!a.health){a.state=State::Dead;a.alert=0;a.peer=-1;a.attackTime=0;
         if(i==mounted)dismount(true);
         if(impacts.size()<128)impacts.push_back({a.p,8,true});}
-    if(hitFlashes.size()<128)hitFlashes.push_back({{a.p.x,s.height*0.5f,a.p.z},0.18f,{0.7f,0.08f,0.05f},true});
+    if(hitFlashes.size()<128)hitFlashes.push_back({{a.p.x,originHeight(a)+s.height*0.5f,a.p.z},0.18f,{0.7f,0.08f,0.05f},true});
     // Herd members see the attack and flee; they do not gain player omniscience.
     for(int j=0;j<int(animals.size());++j){auto& other=animals[j];
         if(j!=i&&j!=mounted&&other.health>0&&other.species==a.species&&len(other.p-a.p)<120){
@@ -249,23 +354,29 @@ void scare(Vec2 origin,float range){
         a.threat=origin;a.alert=4;a.state=State::Flee;a.peer=-1;a.playerThreat=false;}
 }
 int meleeTarget(float range){
-    if(playerY>game::groundHeight(player)+45)return -1;
+    if(!builder::active()&&playerY>game::groundHeight(player)+45)return -1;
     int best=-1;Vec2 facing=forward(cameraYaw);
     for(int i=0;i<int(animals.size());++i){const auto& a=animals[i];Vec2 d=a.p-player;
         float distance=len(d);
-        if(a.health>0&&distance<range&&playerY<game::groundHeight(a.p)+catalog[a.species].height+25&&
-           facing.x*d.x+facing.z*d.z>distance*0.15f&&clearLine(player,a.p)){
+        bool height=builder::active()?verticalOverlap(playerY,37,originHeight(a)-8,catalog[a.species].height+16):
+            playerY<game::groundHeight(a.p)+catalog[a.species].height+25;
+        if(a.health>0&&distance<range&&height&&
+           facing.x*d.x+facing.z*d.z>distance*0.15f&&visible(a,player,playerY,37)){
             range=distance;best=i;}}
     return best;
 }
 bool hit(Vec3 p,int damage,Vec2 origin,bool playerCaused){
     for(int i=0;i<int(animals.size());++i){auto& a=animals[i];
-        if(a.health>0&&p.y>=game::groundHeight(a.p)&&p.y<=game::groundHeight(a.p)+catalog[a.species].height&&len(Vec2{p.x,p.z}-a.p)<radius(a)){
+        if(a.health>0&&p.y>=originHeight(a)&&p.y<=originHeight(a)+catalog[a.species].height&&len(Vec2{p.x,p.z}-a.p)<radius(a)){
             hurt(i,damage,origin,playerCaused);return true;}}
     return false;
 }
 void update(float dt){
     active=0;
+    std::vector<Vec2> before;
+    if(builder::active()){
+        reconcileScenery();before.reserve(animals.size());for(const auto& a:animals)before.push_back(a.p);
+    }
     if(riding()&&(!living(mounted)||health<=0||occupied>=0))dismount(true);
     if(carried>=0){if(health<=0||occupied>=0||swimming)drop();
         else {auto& a=animals[carried];a.p=player+forward(cameraYaw)*18;a.angle=cameraYaw;}}
@@ -283,16 +394,21 @@ void update(float dt){
             steer(a,a.p+escape*100,s.speed*1.35f,dt);continue;
         }
         if(a.state==State::Attack){
-            bool validTarget=a.playerThreat?health>0&&occupied<0&&playerY<game::groundHeight(a.p)+s.height+25:living(a.peer);
+            bool validTarget=a.playerThreat?health>0&&occupied<0&&
+                (builder::active()?verticalOverlap(originHeight(a),s.height+8,playerY,37):playerY<game::groundHeight(a.p)+s.height+25):living(a.peer);
             Vec2 target=a.playerThreat?player:living(a.peer)?animals[a.peer].p:a.threat;
+            float targetY=a.playerThreat?playerY:living(a.peer)?originHeight(animals[a.peer]):originHeight(a);
+            float targetHeight=a.playerThreat?37:living(a.peer)?catalog[animals[a.peer].species].height:0;
+            if(builder::active()&&!verticalOverlap(originHeight(a),s.height+8,targetY,targetHeight))validTarget=false;
             float distance=len(target-a.p);
             if(!validTarget||distance>240||len(target-a.home)>400||a.alert<=0){
                 a.state=State::Idle;a.timer=2;a.peer=-1;a.playerThreat=false;continue;}
-            if(clearLine(a.p,target))a.threat=target;
+            bool sight=visible(a,target,targetY,targetHeight);
+            if(sight)a.threat=target;
             float reach=std::max(radius(a),s.length*0.5f)+
                 (a.playerThreat?11:radius(animals[a.peer]))+6;
             if(distance>reach)steer(a,a.threat,s.speed,dt);
-            else if(a.cooldown<=0&&clearLine(a.p,target)){
+            else if(a.cooldown<=0&&sight){
                 a.angle=std::atan2(target.z-a.p.z,target.x-a.p.x);
                 a.cooldown=1.2f;a.attackTime=0.35f;
                 if(a.playerThreat)applyDamage(float(s.damage));
@@ -309,12 +425,15 @@ void update(float dt){
         if(a.timer<=0){
             int prey=-1,friendIndex=-1;float nearest=140;
             for(int j=0;j<int(animals.size());++j){const auto& other=animals[j];
-                if(j==i||j==mounted||other.health<=0||!clearLine(a.p,other.p))continue;
+                if(j==i||j==mounted||other.health<=0)continue;
                 float distance=len(other.p-a.p);
-                if(distance<100&&other.species==a.species&&
-                   (other.state==State::Idle||other.state==State::Wander))friendIndex=j;
-                if(s.predator&&other.species!=a.species&&catalog[other.species].height<=s.preySize&&distance<nearest){
-                    prey=j;nearest=distance;}
+                bool friendCandidate=distance<100&&other.species==a.species&&
+                    (other.state==State::Idle||other.state==State::Wander);
+                bool preyCandidate=s.predator&&other.species!=a.species&&catalog[other.species].height<=s.preySize&&distance<nearest;
+                if((!friendCandidate&&!preyCandidate)||!visible(a,other.p,originHeight(other),catalog[other.species].height)||
+                    (builder::active()&&!verticalOverlap(originHeight(a),s.height,originHeight(other),catalog[other.species].height)))continue;
+                if(friendCandidate)friendIndex=j;
+                if(preyCandidate){prey=j;nearest=distance;}
             }
             if(prey>=0){a.state=State::Attack;a.peer=prey;a.playerThreat=false;
                 a.alert=10;a.threat=animals[prey].p;continue;}
@@ -330,13 +449,21 @@ void update(float dt){
             else steer(a,a.target,s.speed*0.4f,dt);
         }
     }
+    if(builder::active())for(std::size_t i=0;i<animals.size();++i){auto& a=animals[i];
+        if(a.carried||int(i)==mounted||len(before[i]-player)>850)continue;
+        auto velocity=dt>0?(a.p-before[i])*(1/dt):Vec2{};a.p=before[i];jolt_world::moveAnimal(a,velocity,dt);
+    }
 }
 int nearbyCorpse(bool unlooted){
     if(health<=0||occupied>=0||riding())return -1;
     int best=-1;float distance=38;
     for(int i=0;i<int(animals.size());++i){const auto& a=animals[i];float d=len(a.p-player);
-        if(a.health==0&&!a.carried&&(!unlooted||!a.looted)&&d<distance&&
-           std::abs(playerY-game::groundHeight(player))<15&&clearLine(player,a.p)){best=i;distance=d;}}
+        // HUD loot/carry probes run every rendered frame. Only a nearby,
+        // eligible corpse needs the expensive real-geometry visibility test.
+        if(a.health!=0||a.carried||(unlooted&&a.looted)||d>=distance)continue;
+        bool reachable=builder::active()?std::abs(playerY-originHeight(a))<15&&visible(a,player,playerY,37):
+            std::abs(playerY-game::groundHeight(player))<15&&clearLine(player,a.p);
+        if(reachable){best=i;distance=d;}}
     return best;
 }
 void loot(int i){
@@ -347,7 +474,7 @@ void loot(int i){
         std::to_string(catalog[a.species].loot),3);
 }
 bool carryDrop(){
-    if(carried>=0){drop();announce("Animal dropped.",2);return true;}
+    if(carried>=0){drop();if(carried<0)announce("Animal dropped.",2);return true;}
     int i=nearbyCorpse(false);if(i<0)return false;
     carried=i;animals[i].carried=true;
     announce(std::string("Carrying ")+catalog[animals[i].species].name+". G to drop.",3);return true;

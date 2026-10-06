@@ -10,6 +10,8 @@
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 #include "game.h"
+#include "builder.h"
+#include "excavation.h"
 #include "camera.h"
 #include "dx11_assets.h"
 #include "dx11_texture_mips.h"
@@ -203,6 +205,7 @@ size_t instanceCapacity=0;
 int bufferW=0,bufferH=0;
 std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
 size_t staticStarts[dx11::MATERIAL_GROUPS]{},staticCounts[dx11::MATERIAL_GROUPS]{};
+std::uint64_t groundRevision=~std::uint64_t(0);
 std::vector<dx11::Vertex> vertices;
 std::vector<dx11::ModelInstance> models;
 struct InstanceData {XMFLOAT4 a,b,c,tint,quaternion;};
@@ -2166,7 +2169,9 @@ bool createStaticGeometry(){
     D3D11_BUFFER_DESC desc{};desc.ByteWidth=UINT(packed.size()*sizeof(dx11::Vertex));
     desc.Usage=D3D11_USAGE_IMMUTABLE;desc.BindFlags=D3D11_BIND_VERTEX_BUFFER;
     D3D11_SUBRESOURCE_DATA data{};data.pSysMem=packed.data();
-    return SUCCEEDED(device->CreateBuffer(&desc,&data,&staticBuffer));
+    ID3D11Buffer* replacement=nullptr;
+    if(FAILED(device->CreateBuffer(&desc,&data,&replacement)))return false;
+    release(staticBuffer);staticBuffer=replacement;groundRevision=excavation::revision();return true;
 }
 void setTessellation(int material){
     bool enabled=ui::graphicsQuality>0&&
@@ -2635,6 +2640,10 @@ SceneConstants constantsForFrame(const camera::Pose& pose,float solar,float dayl
                     45,1.0f,0.09f,0.04f,0.75f);
         }
     }
+    if(builder::active())for(const auto& block:builder::blocks())
+        if(builder::items()[block.second.item].id=="torch"){
+            auto p=builder::cellLow(block.first);addLight(p.x+20,p.y+38,p.z+20,180,1.0f,.65f,.22f,1.2f);
+        }
     for(const auto& flame:fire::active())
         addLight(flame.p.x,12,flame.p.z,70+flame.intensity*25,
             1.0f,0.29f,0.08f,0.85f+flame.intensity*0.65f);
@@ -2929,6 +2938,7 @@ bool initRenderer(){
 }
 void render(){
     if(deviceLost||!device||!context)return;
+    if(groundRevision!=excavation::revision()&&!createStaticGeometry())return;
     if(std::strstr(GetCommandLineA(),"--smoke")&&
        std::strstr(GetCommandLineA(),"--high-shadows"))
         ui::shadowQuality=2;
@@ -3389,7 +3399,11 @@ void render(){
         }
     }
     ++exposureFrame;
+    auto hudBegin=std::chrono::steady_clock::now();
     dx11::buildHud(hudPixels.data(),bufferW,bufferH);
+    if(GetEnvironmentVariableA("MINICITY_CPU_PROFILE",nullptr,0)){
+        char timing[100]{};std::snprintf(timing,sizeof(timing),"HUD profile: %.3f ms",std::chrono::duration<float,std::milli>(std::chrono::steady_clock::now()-hudBegin).count());logging::write(timing);
+    }
     if(SUCCEEDED(context->Map(hudTexture,0,D3D11_MAP_WRITE_DISCARD,0,&mapped))){
         for(int row=0;row<bufferH;++row)
             std::memcpy(static_cast<unsigned char*>(mapped.pData)+size_t(row)*mapped.RowPitch,
@@ -3429,6 +3443,10 @@ void render(){
     renderUploadMs=std::chrono::duration<float,std::milli>(instancesReady-sceneBuilt).count();
     renderDrawMs=std::chrono::duration<float,std::milli>(beforePresent-instancesReady).count();
     renderPresentMs=std::chrono::duration<float,std::milli>(afterPresent-beforePresent).count();
+    if(GetEnvironmentVariableA("MINICITY_CPU_PROFILE",nullptr,0)){
+        char timing[240]{};std::snprintf(timing,sizeof(timing),"Render profile: scene %.3f ms, upload/cull %.3f ms, draw/HUD %.3f ms, present %.3f ms, draws %d",
+            renderSceneMs,renderUploadMs,renderDrawMs,renderPresentMs,drawCalls);logging::write(timing);
+    }
     if(std::strstr(GetCommandLineA(),"--benchmark-travel")&&
        std::chrono::duration<float,std::milli>(afterPresent-renderBegin).count()>30){
         char timing[200]{};

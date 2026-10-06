@@ -1,0 +1,5 @@
+"View","Image","SHA256","Position"
+"wander","wander.png","F3626C171E65FB6EBC44D17A830208CBED2DEBFDE914101BAB6120ACEEC6064B","2026-10-6 21:55:10  Destination review: mode builder, state 0, pedestrian 153.02 -81.00 119.12, target 129.85 -79.95 102.90, selected 1"
+"flee","flee.png","CAF8BAED4F6B484D6877B987225BD873E5D162F3C2516CDF1149FAB582D32020","2026-10-6 21:55:22  Destination review: mode builder, state 2, pedestrian 253.16 -1.00 62.19, target 300.00 0.05 60.00, selected 1"
+"cover","cover.png","E2DECBD5BF26B4A3411C141CA307662D478909A46D9154D820996455DD7E4D15","2026-10-6 21:55:34  Destination review: mode builder, state 4, pedestrian 302.75 -81.00 139.56, target 301.00 -79.95 140.00, selected 1"
+"normal","normal.png","D106A4C031EAD350D3A7FA3967F3A351E9FDD084B8DAC5175B82B327CA1AD492","2026-10-6 21:55:46  Destination review: mode normal, state 2, pedestrian 253.16 0.00 62.19, target 300.00 0.05 60.00, selected 0"

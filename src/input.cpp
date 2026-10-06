@@ -14,6 +14,7 @@
 #include "vehicle_systems.h"
 #include "debug_menu.h"
 #include "ordnance.h"
+#include "builder.h"
 #endif
 
 namespace input {
@@ -23,6 +24,9 @@ bool lookCaptured=false;
 
 void releaseAim(){
     rightMouse=false;
+#ifdef MINI_CITY_JOLT
+    builder::setUseHeld(false);
+#endif
 }
 void clipLookCursor(){
     RECT client{};GetClientRect(win,&client);
@@ -42,7 +46,7 @@ void syncLookCapture(){
     bool gameplay=win&&IsWindowVisible(win)&&GetForegroundWindow()==win&&
         !ui::paused()&&commerce::menu()==commerce::Menu::None;
 #ifdef MINI_CITY_JOLT
-    gameplay=gameplay&&!debug_menu::open&&!ordnance::timerOpen();
+    gameplay=gameplay&&!debug_menu::open&&!ordnance::timerOpen()&&!builder::modal();
 #endif
     if(!gameplay){releaseLookCapture();return;}
     if(!lookCaptured){
@@ -77,6 +81,11 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         if(ordnance::timerOpen()){
             if(!(lp&(1<<30)))ordnance::timerKey(int(wp));return 0;
         }
+        if(builder::transitioning())return 0;
+        if(builder::inventoryOpen()){
+            if(!(lp&(1<<30)))builder::handleKey(int(wp));
+            releaseLookCapture();return 0;
+        }
         if(debug_menu::open){
             if(!(lp&(1<<30)))debug_menu::handleKey(int(wp));
             return 0;
@@ -90,6 +99,8 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             std::fill(std::begin(keys),std::end(keys),false);ui::handleKey(VK_ESCAPE);return 0;}
         if(ui::paused()){if(!(lp&(1<<30)))ui::handleKey(int(wp));return 0;}
 #ifdef MINI_CITY_JOLT
+        if(wp==VK_F5){if(!(lp&(1<<30)))builder::requestToggle();releaseLookCapture();return 0;}
+        if(!(lp&(1<<30))&&builder::handleKey(int(wp))){syncLookCapture();return 0;}
         if(wp==VK_F4){
             if(!(lp&(1<<30))){
                 releaseAim();leftMouse=false;
@@ -105,7 +116,7 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(wp==VK_CONTROL&&!(lp&(1<<24))&&occupied<0&&enteringVehicle<0&&
                !swimming&&health>0
 #ifdef MINI_CITY_JOLT
-               &&!debug_menu::flyMode
+               &&!debug_menu::flyMode&&!builder::active()
 #endif
                )crouched=!crouched;
             if(int(wp)==ui::bindings[int(ui::Action::Interact)]&&health>0)enterExit();
@@ -147,7 +158,12 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         if(wp=='R'&&(occupied<0||vehicles[occupied].kind!=Kind::Airplane)){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:if(wp<256)keys[wp]=false;return 0;
-    case WM_LBUTTONDOWN:if(ui::paused()){
+    case WM_LBUTTONDOWN:
+#ifdef MINI_CITY_JOLT
+        if(builder::transitioning())return 0;
+        if(builder::inventoryOpen()){builder::mouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),false,wp&MK_SHIFT);return 0;}
+#endif
+        if(ui::paused()){
             ui::handleMouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),false);return 0;
         }
         if(commerce::menu()==commerce::Menu::None
@@ -161,7 +177,13 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     case WM_MOUSEMOVE:if(ui::paused()&&(wp&MK_LBUTTON))
             ui::handleMouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),true);
         return 0;
-    case WM_RBUTTONDOWN:if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&
+    case WM_RBUTTONDOWN:
+#ifdef MINI_CITY_JOLT
+        if(builder::transitioning())return 0;
+        if(builder::inventoryOpen()){builder::mouse(GET_X_LPARAM(lp),GET_Y_LPARAM(lp),true,wp&MK_SHIFT);return 0;}
+        if(builder::active()&&!ui::paused()){builder::setUseHeld(true);return 0;}
+#endif
+        if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&
 #ifdef MINI_CITY_JOLT
         !debug_menu::open&&
         !ordnance::timerOpen()&&
@@ -175,6 +197,7 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     case WM_RBUTTONUP:releaseAim();return 0;
     case WM_MOUSEWHEEL:
 #ifdef MINI_CITY_JOLT
+        if(builder::active()&&!ui::paused()){builder::wheel(GET_WHEEL_DELTA_WPARAM(wp)>0?1:-1);return 0;}
         if(ordnance::timerOpen())return 0;
         if(occupied>=0&&occupied<int(vehicles.size())&&!vehicle_systems::pedal(vehicles[occupied].kind)&&
            vehicles[occupied].kind!=Kind::Trailer&&!ui::paused()&&!debug_menu::open&&commerce::menu()==commerce::Menu::None){

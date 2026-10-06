@@ -1,0 +1,99 @@
+{
+  "Date": "2026-10-06",
+  "GoalStatus": "in progress",
+  "Scope": "Builder pedestrian interactions, physical corpse release, supported armed tactical destinations and interaction HUD; controlled fixtures",
+  "TestsPassed": 38,
+  "TestsFailed": 0,
+  "FullCTestSeconds": 284.57,
+  "FocusedInteractionSeconds": 6.7,
+  "InteractionInFullRunSeconds": 6.63,
+  "InitialFullRun": {
+    "TestsPassed": 35,
+    "Failures": [
+      "builder transition completion assertion",
+      "tool-work timeout",
+      "obsolete cover route assertion"
+    ],
+    "Seconds": 477.88,
+    "Log": "ctest-initial.log",
+    "TestsFailed": 3
+  },
+  "RecheckSeconds": {
+    "Builder": 15.06,
+    "ToolWork": 49.42,
+    "CoverDestinations": 5.3
+  },
+  "TestDeadlinesIncreased": false,
+  "InitialTimingFailureCauseProven": false,
+  "NativeViewsVisuallyReviewed": 5,
+  "NativeCaptures": [
+    {
+      "View": "corpse",
+      "Image": "corpse.png",
+      "SHA256": "4481788E85D929E2B23506F77E5D583856081B2C70337BD7B67C9D0A55406D0A",
+      "Position": "2026-10-6 22:55:35  Interaction review: mode builder, alive 0, carried 0, looted 0, body 243.34 -75.01 129.54, bounds -80.05..-69.96, player Y -80.00, target floor 0.00, selected 0"
+    },
+    {
+      "View": "carried",
+      "Image": "carried.png",
+      "SHA256": "48F278322BEF18430BC7807968E275A61AE8CAED7CB80084E6515883FE9B160D",
+      "Position": "2026-10-6 22:55:47  Interaction review: mode builder, alive 0, carried 1, looted 1, body 218.00 -65.00 160.00, bounds -70.00..-60.00, player Y -80.00, target floor 0.00, selected 0"
+    },
+    {
+      "View": "dropped",
+      "Image": "dropped.png",
+      "SHA256": "D096C8E0E30EC394383716201DBB0EA7BC73CEB269DE3740815ACFB21442BE2D",
+      "Position": "2026-10-6 22:55:59  Interaction review: mode builder, alive 0, carried 0, looted 1, body 257.54 -75.03 160.11, bounds -80.20..-70.00, player Y -80.00, target floor 0.00, selected 0"
+    },
+    {
+      "View": "combat",
+      "Image": "combat.png",
+      "SHA256": "994AD35B7474D5FE9311B27112DBCE552DE98153038C57C26B27931DC8439027",
+      "Position": "2026-10-6 22:56:10  Interaction review: mode builder, alive 1, carried 0, looted 0, body 360.00 -62.00 228.75, bounds -81.00..-44.00, player Y -80.00, target floor -79.95, selected 1"
+    },
+    {
+      "View": "normal",
+      "Image": "normal.png",
+      "SHA256": "1087C508C33AB9171025F9E3B955E17012A9DA0832BECFEE79DF29FCA8ECA7FA",
+      "Position": "2026-10-6 22:56:23  Interaction review: mode normal, alive 0, carried 0, looted 0, body 242.29 5.39 127.53, bounds 0.35..10.44, player Y 80.00, target floor 0.00, selected 0"
+    }
+  ],
+  "SourceSHA256": {
+    "src/game.cpp": "591D21CA905E25648D64DC1B11AC4089F6A6EA63B37EF9CEE49A8B8D6F1EFE3A",
+    "src/ai.cpp": "4CE025168746518918604CE03D66885BAFAA66E5A209E181B5B174181FCD04FF",
+    "src/jolt_world.cpp": "23FCA99480C3B8A7DF0A1A728B67AF3A01ACACBB655822ADE266382C863A081F",
+    "src/jolt_world.h": "20332E7B7921313CAE585A2D8B98885FEF7B614D4B0815ACEF477DB8F491DE50",
+    "src/builder.cpp": "E3193D78735C20467F403DA9B789A39F1B4BCA5FF0B5A0FBAAB4A4825D073F9B",
+    "src/dx11_scene.cpp": "6F47F4B0DDC8475C102098E96E4B464DDA403CEFBCBB299B9E889BB04D5E9EDB",
+    "src/dx11_hud.cpp": "906142F847CB5A9F6FBB37FD214AB3DC70654B684B64959D33C835C1E27BCC9F",
+    "src/main.cpp": "15C20FC9BD265ACCE2BABE8DA9DD6AC19E5E8997A1008ADF967A23BDB36F0D83",
+    "tests/builder_interaction_scenarios.cpp": "189B66007DCF971BBE724B06570AC80CB9983C842EE36FB776E645AAE3DB3646",
+    "tests/builder_scenarios.cpp": "0805409602CB6EB1E62A90553434B63F3CA39F79F51138C66D5C9BB374259E57",
+    "tests/builder_navigation_scenarios.cpp": "C03FECFC4E7DA4E02AF095F906E1469A350B4D90023D541751D098F60CDBDC4D",
+    "tests/simulation_smoke.cpp": "9230E75B1ED079927B255935C6F11F7E5470AD8C02DC0392B7E6DA95FBBE8111",
+    "CMakeLists.txt": "6350CDF793D87CDA46AEE09E5A688BEA4278B358546C898C0E0EA1374225852D",
+    "tools/verify_builder_interactions.ps1": "DD1D6CD8F9591AC5620A5404A8A3F2A1D8E4F7FDE90799A6F2494E2917F55CB7",
+    "minecraft plan.md": "19B4DA29EA9927FF669215334296CD8983D8FD899E635228007E6C0CDFD0F928",
+    "idea.md": "8B4E47331D4DC8A1E4908C7C3D4FA721A3D0A1607A288F32944582DE5895B7F9",
+    "evidence/builder-interactions-20261006/README.md": "1CEC39F49CA6B614903F3EA5D64089417C95E32A11E0031BA2EE9B33A1BF97D6",
+    "evidence/builder-interactions-20261006/remaining-height-audit.md": "6D8C2A21912E148559C528AB5B1A03BB9A6D851E8BB0D6A1A117769063C9EEDA"
+  },
+  "RootExeSHA256": "E246A44FD02D2F2C50CF10FB6EAC1FF9F46B2619D8008826479A5EEC6A4D64E0",
+  "RuntimeExeSHA256": "E246A44FD02D2F2C50CF10FB6EAC1FF9F46B2619D8008826479A5EEC6A4D64E0",
+  "SimulationExeSHA256": "CAE8F85F2F035D3639EFB527F63DD15960F30E1C61505B4A188A0512C03A37A6",
+  "ProtectedRootSaveSHA256": "5A4C87DB5DC9E23148622694D21056E0B18EC4FE45FE7B294C59826B289FC539",
+  "OpenGLFallbackFilesModifiedThisMilestone": false,
+  "RetainedRoofLootCarryTheftMeleeRepairIsolationVerified": true,
+  "LiveAndCapturedCorpsePoseVerified": true,
+  "PhysicalDropAndBlockedRetryVerified": true,
+  "ExcavatedAndPlacedSupportVerified": true,
+  "CarriedF5TransitionsVerified": true,
+  "SupportedArmedTacticalEndpointsVerified": true,
+  "ElevatedThreatEndpointFloorVerified": true,
+  "CarryHeldModelAndHarvestCancellationVerified": true,
+  "BuilderInteractionHUDVisuallyReviewed": true,
+  "CorpsesAndAIStateRestartPersistenceClaimed": false,
+  "DenseCombatPerformanceOrFairnessClaimed": false,
+  "FullPlanComplete": false,
+  "RemainingAudit": "remaining-height-audit.md"
+}

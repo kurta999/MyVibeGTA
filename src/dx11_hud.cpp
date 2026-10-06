@@ -22,6 +22,8 @@
 #include "debug_menu.h"
 #include "fire.h"
 #include "ordnance.h"
+#include "builder.h"
+#include <filesystem>
 #ifdef MINI_CITY_JOLT
 #include "jolt_world.h"
 #endif
@@ -455,7 +457,10 @@ void buildHud(unsigned char* pixels,int width,int height){
     for(int star=0;star<4;++star)
         wantedStar(statusX+251+star*22,29,star<police::wantedLevel());
     rect(statusX+14,45,320,1,RGB(96,110,117));
-    label(statusX+15,53,weapons::stats(game::weapon).name.c_str(),RGB(244,245,234));
+    if(builder::active()){
+        const auto& held=builder::inventory()[builder::selected()];
+        label(statusX+15,53,held.item>=0?builder::items()[held.item].name.c_str():"BUILDING | EMPTY HAND",RGB(244,245,234));
+    }else label(statusX+15,53,weapons::stats(game::weapon).name.c_str(),RGB(244,245,234));
     if(weapons::stats(game::weapon).payload==weapons::Payload::Remote)
         std::snprintf(textBuffer,sizeof(textBuffer),"LMB DETONATE  |  C4 %d / 40",ordnance::c4Count());
     else if(weapons::stats(game::weapon).grapple)std::snprintf(textBuffer,sizeof(textBuffer),grapple::active()?"HOLD LMB / RELEASE":grapple::cooldown()>0?"GRAPPLE RECHARGING":"AIM + HOLD LMB");
@@ -464,10 +469,15 @@ void buildHud(unsigned char* pixels,int width,int height){
     else if(game::reloadRemaining>0)std::snprintf(textBuffer,sizeof(textBuffer),"RELOADING");
     else if(game::ammo[game::weapon]<0)std::snprintf(textBuffer,sizeof(textBuffer),"%d / --",game::magazine[game::weapon]);
     else std::snprintf(textBuffer,sizeof(textBuffer),"%d / %d",game::magazine[game::weapon],game::ammo[game::weapon]);
+    if(builder::active()){
+        const auto& held=builder::inventory()[builder::selected()];
+        if(held.item>=0&&builder::items()[held.item].durability>0)std::snprintf(textBuffer,sizeof(textBuffer),"DURABILITY %d / %d",held.durability,builder::items()[held.item].durability);
+        else std::snprintf(textBuffer,sizeof(textBuffer),"MINE / COLLECT / BUILD");
+    }
     label(statusX+15,77,textBuffer,RGB(255,221,137));
-    if(game::dualWieldActive(game::weapon))
+    if(!builder::active()&&game::dualWieldActive(game::weapon))
         label(statusX+116,77,"DUAL",RGB(255,221,137));
-    weaponIcon(statusX+225,49,weapons::stats(game::weapon).id);
+    if(!builder::active())weaponIcon(statusX+225,49,weapons::stats(game::weapon).id);
     std::snprintf(textBuffer,sizeof(textBuffer),"HP %d/%d",
         int(game::health),int(game::PLAYER_MAX_HEALTH));
     label(statusX+15,105,textBuffer,RGB(243,233,215));
@@ -509,7 +519,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(width-346,missionY+8,textBuffer,RGB(255,221,137));
         label(width-346,missionY+33,"Follow gold map line, then press F",RGB(225,235,224));
     }
-    std::string prompt=game::interactionPrompt();
+    std::string prompt=builder::modal()?std::string{}:game::interactionPrompt();
     if(game::stealthTarget()>=0)prompt="K: KNIFE STEALTH TAKEDOWN";
     if(game::swimming)prompt="LMB: DIVE   RMB: SURFACE";
     if(police::hiding()){
@@ -524,9 +534,9 @@ void buildHud(unsigned char* pixels,int width,int height){
         std::snprintf(textBuffer,sizeof(textBuffer),"TIMED BOMB: %d SECONDS",int(std::ceil(nearestBomb)));
         label(width/2-140,height-156,textBuffer,RGB(255,155,112));
     }
-    std::string carry=game::carryPrompt();
-    if(!prompt.empty())label(width/2-125,height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
-    if(!carry.empty())label(width/2-125,height-51,carry.c_str(),RGB(210,228,244));
+    std::string carry=builder::modal()?std::string{}:game::carryPrompt();
+    if(!prompt.empty())label(width/2-125,builder::active()?height-212:height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
+    if(!carry.empty())label(width/2-125,builder::active()?height-192:height-51,carry.c_str(),RGB(210,228,244));
     if(camera::zoomActive()&&game::scopeBlend>0.85f&&!ui::paused())scopeOverlay(width,height);
     else if(game::occupied<0&&game::rightMouse&&!game::swimming&&!ui::paused()){
         int x=width/2,y=height/2,kick=int(game::recoil*9);
@@ -542,8 +552,9 @@ void buildHud(unsigned char* pixels,int width,int height){
         map(x,y,mapW,mapH,true);
     }
     if(game::messageTime>0){
-        rect(width/2-310,height-65,620,44,RGB(31,41,49));
-        label(width/2-294,height-55,game::message.c_str(),RGB(255,225,154));
+        int messageY=builder::active()?height-170:height-65;
+        rect(width/2-310,messageY,620,44,RGB(31,41,49));
+        label(width/2-294,messageY+10,game::message.c_str(),RGB(255,225,154));
     }
     if(game::missionBannerTime>0&&!ui::paused()){
         int left=width/2-315,top=height/2-152;
@@ -587,7 +598,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         std::snprintf(textBuffer,sizeof(textBuffer),"FIRE %zu   SHOTS %zu   PROPS %zu",
             fire::active().size(),game::bullets.size(),game::props.size());
         label(width-304,height-52,textBuffer,RGB(224,245,220));}
-    if(ui::showHelp&&!ui::paused()&&!debug_menu::open)
+    if(ui::showHelp&&!ui::paused()&&!debug_menu::open&&!builder::active())
         label(18,height-28,"F4 DEBUG  |  X C4 DETONATE  |  K KNIFE TAKEDOWN  |  SWIM: LMB DIVE / RMB SURFACE",RGB(197,211,213));
     if(commerce::menu()!=commerce::Menu::None&&!ui::paused()){
         auto entries=commerce::menuEntries();
@@ -626,6 +637,65 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(x+24,y+122,"Digits / Backspace   Enter: place   Esc: cancel",RGB(187,209,215));
     }
     pauseMenu(width,height);
+    if(builder::active()){
+        int bx=width/2-270,by=height-90;char info[160]{};
+        if(!builder::modal()){rect(width/2-7,height/2,15,2,RGB(246,240,212));rect(width/2,height/2-7,2,15,RGB(246,240,212));}
+        auto slot=[&](builder::Rect r,const builder::Stack& stack,bool chosen){
+            rect(r.x-2,r.y-2,r.w+4,r.h+4,chosen?RGB(242,213,127):RGB(103,113,120));rect(r.x,r.y,r.w,r.h,RGB(35,44,50));
+            if(stack.item<0)return;
+            const auto& item=builder::items()[stack.item];auto& icon=weaponIcons["builder/"+item.id];
+            if(!icon){auto* source=mesh("builder/"+item.id);if(source){auto path=std::filesystem::path(source->textureFile).parent_path()/(item.id+".icon.png");icon=std::make_unique<Gdiplus::Bitmap>(path.c_str());}}
+            if(icon&&icon->GetLastStatus()==Gdiplus::Ok){Gdiplus::Graphics graphics(memoryDC);graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);graphics.DrawImage(icon.get(),Gdiplus::Rect(r.x+2,r.y+2,r.w-4,r.h-4));}
+            if(item.durability>0){rect(r.x+3,r.y+r.h-6,r.w-6,3,RGB(83,72,61));rect(r.x+3,r.y+r.h-6,int((r.w-6)*float(stack.durability)/item.durability),3,RGB(110,224,152));}
+            else{std::snprintf(info,sizeof(info),"%d",stack.count);label(r.x+r.w-24,r.y+r.h-20,info,RGB(250,250,233));}
+        };
+        for(int n=0;n<9;++n)slot({bx+n*60,by,56,56},builder::inventory()[n],n==builder::selected());
+        const auto& held=builder::inventory()[builder::selected()];
+        if(held.item>=0)label(bx,by-27,builder::items()[held.item].name.c_str(),RGB(245,235,194));
+        label(bx,by+64,"F5 exit layer | E inventory | LMB mine | RMB place",RGB(211,225,218));
+        // Leave the character's right hand and equipped tool readable in the
+        // shoulder inspection view instead of printing hints over their model.
+        bool inspection=!camera::firstPersonActive();int targetX=width/2+(inspection?100:-100);
+        const auto& target=builder::target();if(target.item>=0){std::snprintf(info,sizeof(info),"%s  %.0f%%",builder::items()[target.item].name.c_str(),builder::miningProgress()*100);label(targetX,height/2+30,info,RGB(245,235,194));}
+        auto harvestHint=builder::harvestHint();if(!harvestHint.empty()&&!builder::modal())label(inspection?targetX:width/2-130,height/2+53,harvestHint.c_str(),RGB(240,204,129));
+        if(builder::inventoryOpen()){
+            int y=builder::slotRect(9,width,height).y-60;rect(bx-18,y-42,576,360,RGB(25,34,40));label(bx,y-27,"BUILDER INVENTORY | E / ESC close",RGB(246,226,174));
+            for(int n=0;n<36;++n)slot(builder::slotRect(n,width,height),builder::inventory()[n],n==builder::selected());
+            if(auto chest=builder::chest()){rect(bx-18,y-244,576,204,RGB(25,34,40));label(bx,y-230,"CHEST",RGB(246,226,174));for(int n=0;n<27;++n)slot(builder::slotRect(n+36,width,height),(*chest)[n],false);}
+            else{
+                int first=builder::recipeScroll();auto panel=builder::recipeRect(first,width,height);rect(panel.x-10,panel.y-40,panel.w+20,438,RGB(25,34,40));
+                label(panel.x,panel.y-27,"CRAFTING | scroll recipes",RGB(246,226,174));
+                for(int n=first;n<std::min(first+8,int(builder::recipes().size()));++n){auto r=builder::recipeRect(n,width,height);const auto& recipe=builder::recipes()[n];bool available=builder::canCraft(n);
+                    rect(r.x,r.y,r.w,r.h-2,available?RGB(59,85,72):RGB(44,52,58));
+                    slot({r.x+2,r.y+2,34,34},{recipe.result,recipe.count,builder::items()[recipe.result].durability},false);
+                    label(r.x+42,r.y+2,builder::items()[recipe.result].name.c_str(),available?RGB(242,233,200):RGB(147,157,164));
+                    std::string cost;for(const auto& input:recipe.inputs){if(!cost.empty())cost+=" + ";cost+=std::to_string(input.count)+" "+input.id;}
+                    label(r.x+42,r.y+20,cost.c_str(),RGB(172,190,180));
+                }
+                auto repair=builder::repairRect(width,height);bool available=builder::canRepair();rect(repair.x,repair.y,repair.w,repair.h,available?RGB(59,85,72):RGB(44,52,58));
+                std::string tool=held.item>=0?builder::items()[held.item].name:"select tool";label(repair.x+8,repair.y+3,("R REPAIR | "+tool).c_str(),RGB(242,233,200));
+                auto hint=builder::repairHint();label(repair.x+8,repair.y+23,hint.c_str(),RGB(172,190,180));
+            }
+            POINT pointer{};GetCursorPos(&pointer);if(game::win)ScreenToClient(game::win,&pointer);slot({pointer.x+12,pointer.y+12,48,48},builder::cursor(),false);
+            if(builder::cursor().item<0){
+                const builder::Stack* hovered=nullptr;int total=builder::chest()?63:36;
+                for(int n=0;n<total;++n){auto r=builder::slotRect(n,width,height);if(pointer.x>=r.x&&pointer.x<r.x+r.w&&pointer.y>=r.y&&pointer.y<r.y+r.h){hovered=n<36?&builder::inventory()[n]:&(*builder::chest())[n-36];break;}}
+                if(hovered&&hovered->item>=0){const auto& item=builder::items()[hovered->item];if(item.tool!=builder::Tool::None){
+                    int tx=std::clamp(int(pointer.x)+16,8,std::max(8,width-308)),ty=std::clamp(int(pointer.y)+16,8,std::max(8,height-94));
+                    rect(tx,ty,300,82,RGB(20,29,36));label(tx+8,ty+6,item.name.c_str(),RGB(246,226,174));
+                    std::snprintf(info,sizeof(info),"Tier %d | Durability %d / %d",item.tier,hovered->durability,item.durability);label(tx+8,ty+30,info,RGB(214,228,215));
+                    const char* preferred[]={"","Stone / ores / masonry","Wood / trunks / planks","Soil / sand / gravel / snow","Plants / exposed soil","Leaves / bushes","Loose surface deposits"};
+                    label(tx+8,ty+54,preferred[int(item.tool)],RGB(183,207,199));
+                }}
+            }
+            label(bx,y+308,"LMB move | RMB split / one | Shift-click transfer",RGB(196,217,211));
+        }
+    }
+    if(builder::transitioning()){
+        rect(0,0,width,height,RGB(18,27,35));int x=width/2-260,y=height/2-50;
+        label(x,y,"SWITCHING WORLD LAYER",RGB(247,228,167));label(x,y+36,builder::transitionLabel(),RGB(210,225,230));
+        rect(x,y+78,520,20,RGB(55,67,76));rect(x,y+78,int(520*builder::transitionProgress()),20,RGB(120,212,158));
+    }
     for(size_t i=0;i<size_t(width)*height;++i)
         if(dib[i*4]||dib[i*4+1]||dib[i*4+2])dib[i*4+3]=255;
     std::memcpy(pixels,dib,size_t(width)*height*4);

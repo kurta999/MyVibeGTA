@@ -1,0 +1,6 @@
+"View","Image","SHA256","Position"
+"stealth","stealth.png","4BB9C0081BC205D974BBA829F96FFF6378CBCEDF9F57AD0168A93172F89CF0E5","2026-10-6 23:44:53  Police review: mode builder, actors 1, wanted 0, target 0, player Y -80.00, actor Y -80.00, plans 0, queries 0"
+"witness","witness.png","EB9458FB50D2612857A1DFA3902232748B8F96B2BF1EB7A7BDF2024CEAF1576C","2026-10-6 23:45:6  Police review: mode builder, actors 2, wanted 0, target 0, player Y -80.00, actor Y -80.00, plans 0, queries 0"
+"dispatch","dispatch.png","0C7759C254A6CE551378148EB8064A379156CA85375789524222E6724FC3A972","2026-10-6 23:45:18  Police review: mode builder, actors 1, wanted 1, target -1, player Y -81.00, actor Y -81.00, plans 0, queries 148"
+"blocked","blocked.png","DBBC9A2FD107A218AD3B5790EF91B9FBAD09B27926CE1AAA1EB0994C680372C0","2026-10-6 23:45:31  Police review: mode builder, actors 0, wanted 1, target -1, player Y -80.00, actor Y 0.00, plans 1, queries 18000"
+"normal","normal.png","1F6166DF4E5D72C4CA3C744BF82B3D4E64177C6B32C8ADC3BFA3F0207F5592FD","2026-10-6 23:45:44  Police review: mode normal, actors 1, wanted 1, target -1, player Y 0.00, actor Y 0.00, plans 0, queries 148"

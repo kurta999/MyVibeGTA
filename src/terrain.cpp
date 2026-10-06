@@ -2,6 +2,7 @@
 #include "regions.h"
 #include "commerce.h"
 #include "data_file.h"
+#include "excavation.h"
 #include <algorithm>
 #include <cmath>
 #include <set>
@@ -75,16 +76,18 @@ const std::string& lastError(){return error;}
 const std::vector<Landform>& landforms(){return forms;}
 const std::vector<float>& heights(){return grid;}
 std::uint64_t revision(){return generation;}
-float height(game::Vec2 p){
+float baseHeight(game::Vec2 p){
     float gx=std::clamp(p.x/spacing,0.0f,float(samples-1)),gz=std::clamp(p.z/spacing,0.0f,float(samples-1));
     int x=std::min(int(gx),int(samples)-2),z=std::min(int(gz),int(samples)-2);
     float u=gx-x,v=gz-z,a=sample(x,z),b=sample(x+1,z),c=sample(x+1,z+1),d=sample(x,z+1);
     // Jolt splits each cell from its top-left to bottom-right corner.
     return v>=u?a+(d-a)*v+(c-d)*u:a+(b-a)*u+(c-b)*v;
 }
+float height(game::Vec2 p){return excavation::floorBelow({p.x,baseHeight(p)+1,p.z});}
+bool contains(game::Vec3 p){return excavation::solid(p);}
 game::Vec3 normal(game::Vec2 p){
-    return game::norm(game::Vec3{height({p.x-25,p.z})-height({p.x+25,p.z}),50,
-        height({p.x,p.z-25})-height({p.x,p.z+25})});
+    return game::norm(game::Vec3{baseHeight({p.x-25,p.z})-baseHeight({p.x+25,p.z}),50,
+        baseHeight({p.x,p.z-25})-baseHeight({p.x,p.z+25})});
 }
 bool segmentHit(game::Vec3 start,game::Vec3 end,float& fraction){
     // Traverse no more than half a grid cell between probes, then bisect the
@@ -95,10 +98,10 @@ bool segmentHit(game::Vec3 start,game::Vec3 end,float& fraction){
     for(int i=0;i<=steps;++i){
         float t=float(i)/steps;auto p=start+delta*t;
         if(p.x<0||p.z<0||p.x>regions::WIDTH||p.z>regions::DEPTH){previous=t;continue;}
-        if(p.y<=height({p.x,p.z})){
+        if(contains(p)){
             float low=previous,high=t;
             for(int j=0;j<14;++j){float mid=(low+high)*.5f;auto q=start+delta*mid;
-                if(q.y<=height({q.x,q.z}))high=mid;else low=mid;}
+                if(contains(q))high=mid;else low=mid;}
             fraction=high;return true;
         }
         previous=t;

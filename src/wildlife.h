@@ -13,12 +13,17 @@ struct Animal {
     float angle=0,phase=0,timer=0,alert=0,cooldown=0,hit=0,attackTime=0,impactCooldown=0;
     int health=0,peer=-1; State state=State::Idle;
     bool looted=false,carried=false,playerThreat=false;
+    // Runtime support belongs to the active scenery layer, not the heightfield.
+    float elevation=0,verticalVelocity=0; game::Vec2 elevationAt{};
+    bool elevationKnown=false,elevationMode=false,supported=false;
 };
 extern std::vector<Animal> animals;
 const std::vector<Species>& species();
 void reset();
 void update(float dt);
 float radius(const Animal& animal);
+float originHeight(const Animal& animal);
+void reconcileScenery();
 bool bodyWalkable(const Animal& animal,game::Vec2 point,float angle,bool allowRoad=false);
 bool walkable(game::Vec2 point,float clearance,bool allowRoad=false);
 bool riding();

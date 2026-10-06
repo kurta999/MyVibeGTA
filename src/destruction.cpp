@@ -29,6 +29,20 @@ bool segment(const Building& b,Vec3 start,Vec3 end,float& entry){
     }
     entry=nearest;return nearest<=1;
 }
+bool cut(std::size_t index,Box volume){
+    if(index>=buildings.size())return false;auto& b=buildings[index];std::vector<BuildingPiece> remaining;bool changed=false;
+    auto add=[&](Vec3 low,Vec3 high){if(high.x-low.x>.5f&&high.y-low.y>.5f&&high.z-low.z>.5f)remaining.push_back({low,high});};
+    for(const auto& box:boxes(b)){
+        Vec3 lo{std::max(box.low.x,volume.low.x),std::max(box.low.y,volume.low.y),std::max(box.low.z,volume.low.z)};
+        Vec3 hi{std::min(box.high.x,volume.high.x),std::min(box.high.y,volume.high.y),std::min(box.high.z,volume.high.z)};
+        if(hi.x<=lo.x||hi.y<=lo.y||hi.z<=lo.z){add(box.low,box.high);continue;}changed=true;
+        add(box.low,{lo.x,box.high.y,box.high.z});add({hi.x,box.low.y,box.low.z},box.high);
+        add({lo.x,box.low.y,box.low.z},{hi.x,lo.y,box.high.z});add({lo.x,hi.y,box.low.z},{hi.x,box.high.y,box.high.z});
+        add({lo.x,lo.y,box.low.z},{hi.x,hi.y,lo.z});add({lo.x,lo.y,hi.z},{hi.x,hi.y,box.high.z});
+    }
+    if(!changed||remaining.size()>4096||b.cuts.size()>=4096)return false;
+    b.damaged=true;b.pieces=std::move(remaining);b.cuts.push_back({volume.low,volume.high});jolt_world::rebuildBuilding(index);return true;
+}
 void blast(Vec3 p,float radius){
     float r=std::clamp(radius*(radius>200?.85f:.65f),24.0f,425.0f);
     for(std::size_t index=0;index<buildings.size();++index){

@@ -1,0 +1,75 @@
+{
+  "Date": "2026-10-06",
+  "GoalStatus": "in progress",
+  "Scope": "Builder wildlife actual floor integration and original weapon pickup vertical/obstruction checks; controlled fixtures",
+  "TestsPassed": 37,
+  "TestsFailed": 0,
+  "FullCTestSeconds": 281.19,
+  "FocusedWildlifeSeconds": 9.03,
+  "WildlifeInFullRunSeconds": 7.61,
+  "SpeciesSettledAndRendered": 15,
+  "NativeViewsVisuallyReviewed": 5,
+  "NativeCaptures": [
+    {
+      "View": "tunnel",
+      "Image": "tunnel.png",
+      "SHA256": "039E734ECDDABE0625BDE850CD7B9FE45E0D9CFFEA6CEF8985061D514737363F",
+      "Position": "2026-10-6 22:23:25  Wildlife review: mode builder, animal 188.00 -80.30 140.00, supported 1, mounted 0, player Y -80.00"
+    },
+    {
+      "View": "pit",
+      "Image": "pit.png",
+      "SHA256": "609CE822916FAF69A98964329E39BA8388C684201B9D8D1885A553B0EFC22DDB",
+      "Position": "2026-10-6 22:23:36  Wildlife review: mode builder, animal 260.00 -80.30 180.00, supported 1, mounted 0, player Y 95.00"
+    },
+    {
+      "View": "block",
+      "Image": "block.png",
+      "SHA256": "06B404CAD45072195835E52A8B153ACA4E071BCDC5F68BD7A49A8E477DC21F18",
+      "Position": "2026-10-6 22:23:48  Wildlife review: mode builder, animal 220.00 39.70 140.00, supported 1, mounted 0, player Y 65.00"
+    },
+    {
+      "View": "mounted",
+      "Image": "mounted.png",
+      "SHA256": "858E45C6D7A913F0FD642F7BB4F58DBE861A2AFBD2CB199E18FF07C365D6E11D",
+      "Position": "2026-10-6 22:24:0  Wildlife review: mode builder, animal 296.00 -120.30 160.00, supported 1, mounted 1, player Y -114.30"
+    },
+    {
+      "View": "normal",
+      "Image": "normal.png",
+      "SHA256": "B03531E624B539B853884BF81F3B3917107C6926CC71BFDB0A015AB8F5D8AA90",
+      "Position": "2026-10-6 22:24:13  Wildlife review: mode normal, animal 260.00 0.00 180.00, supported 0, mounted 0, player Y 95.00"
+    }
+  ],
+  "SourceSHA256": {
+    "src/wildlife.cpp": "DF03988BBD714EBBBCECB2683370392B734F27D8E7ECA3BC3A53822A80DDD5C9",
+    "src/wildlife.h": "0882F33D636B9236DC3BACB658224ABBC5E54595373633F0752F13F20A857986",
+    "src/jolt_world.cpp": "AE2DCF299E570BA79EE7FFA733DA1A30EA0CB864095A2323F43EDCC4B1F6E342",
+    "src/jolt_world.h": "F17D111780FB20643516C179A58DBE54097CC46055DE7741068D9369DB211C04",
+    "src/game.cpp": "BFDEA73AC755ED5E102256648168CD309D8B02A427B93D1CA07D74092D0D250D",
+    "src/game_internal.h": "AB0E5E103B885F3762BD9DB3059434A435894C30A18BB2026143F2E138441C29",
+    "src/camera.cpp": "9E76126973C5551385EAE4FC5A8D2587ED0DB9E9D8CD6DE4D4881B09E8AC2DDC",
+    "src/dx11_scene.cpp": "F6D9DF967539B8C8A317F6ECCE7FDDCA4FD2DA57E4A65FC10AB9B52E087C3807",
+    "src/builder.cpp": "65F30C63CDF8E85FE62CBB54231E8D75A61AC4D5CCBADFF72AF375B187FA51CC",
+    "src/main.cpp": "426E0528204A87D135884CF7B47FAA22A7C3E91CC23D3EA6E5E512AD68DEB935",
+    "tests/builder_wildlife_scenarios.cpp": "C76718D3327D12FD192CE6F9AD8C20180393CB72E4ABC71016AFBB9471A6B4D7",
+    "tests/simulation_smoke.cpp": "424F9B64AA6C738ED4503901183E284BC0165343BF45EF6848E17CCABE569D76",
+    "CMakeLists.txt": "A1A056CE25AE3B940B4ABE6E633CF6863633A369B7D2475B8D8B8CDFB21FB686",
+    "tools/verify_builder_wildlife.ps1": "AAE0613D0800B99051DA2816DD0E483927A45FF7AABF1A64D4D5009BA9052DFA"
+  },
+  "RootExeSHA256": "9B634A489A721611D864E0561D9998975D7D3BF4244EE3DD05DC298160D4CACA",
+  "RuntimeExeSHA256": "9B634A489A721611D864E0561D9998975D7D3BF4244EE3DD05DC298160D4CACA",
+  "SimulationExeSHA256": "0A4CD78D15DCB607B4AE6D72E8CBFFE6082394B24A07504565D26493A5AFB2A8",
+  "ProtectedRootSaveSHA256": "5A4C87DB5DC9E23148622694D21056E0B18EC4FE45FE7B294C59826B289FC539",
+  "OpenGLFallbackFilesModifiedThisMilestone": false,
+  "RetainedRoofInteractionIsolationVerified": true,
+  "ActualUndergroundProjectileVerified": true,
+  "MountedMovementAndHeadroomVerified": true,
+  "ActualGravityOnRemovedSupportVerified": true,
+  "F5NormalAndBuilderRestorationVerified": true,
+  "PlacementAndReticleActualFloorVerified": true,
+  "LiveGamePickupCollectionVerified": true,
+  "AnimalsAIAndFallingStateRestartPersistenceClaimed": false,
+  "FullPlanComplete": false,
+  "RemainingAudit": "remaining-height-audit.md"
+}

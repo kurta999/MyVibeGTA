@@ -2,6 +2,8 @@
 #include "ped_navigation.h"
 #include "regions.h"
 #include "physics.h"
+#include "builder.h"
+#include "ped_navigation_surface.h"
 #include <queue>
 #include <limits>
 
@@ -183,9 +185,11 @@ Vec2 avoidPeople(const Ped& ped,Vec2 preferred,float speed,float dt,const Obstac
     return best;
 }
 }
-void beginFrame(){plansLeft=plansPerFrame;}
+void beginFrame(){plansLeft=plansPerFrame;ped_navigation_surface::beginFrame();}
 void clear(Ped& ped){ped.navigation={};}
 Vec2 velocity(Ped& ped,Vec2 goal,float speed,float dt){
+    if(builder::active())return ped_navigation_surface::velocity(ped,goal,std::numeric_limits<float>::quiet_NaN(),speed,dt);
+    if(ped.navigation.surfaceMode)clear(ped);
     if(dt<=0||speed<=0||!ped.alive||ped.drivingVehicle>=0)return {};
     auto& nav=ped.navigation;nav.repath=std::max(0.0f,nav.repath-dt);
     if(len(ped.p-nav.previous)>80)nav={}; // respawn, exit, load or teleport
@@ -213,5 +217,9 @@ Vec2 velocity(Ped& ped,Vec2 goal,float speed,float dt){
     float distance=len(waypoint-ped.p);
     Vec2 preferred=norm(waypoint-ped.p)*std::min(speed,distance/dt);
     return avoidPeople(ped,preferred,speed,dt,obstacles);
+}
+Vec2 velocityAtHeight(Ped& ped,Vec3 goal,float speed,float dt){
+    if(builder::active())return ped_navigation_surface::velocity(ped,{goal.x,goal.z},goal.y,speed,dt);
+    return velocity(ped,{goal.x,goal.z},speed,dt);
 }
 }

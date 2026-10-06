@@ -5,6 +5,8 @@
 #include "game.h"
 #ifdef MINI_CITY_JOLT
 #include "terrain.h"
+#include "builder.h"
+#include "scenery_edits.h"
 #endif
 #include "audio.h"
 #include "ui.h"
@@ -32,9 +34,11 @@
 #include "wildlife.h"
 #include "birds.h"
 #include "ordnance.h"
+#include "ped_navigation.h"
 #endif
 #include "ai.h"
 #include "content.h"
+#include "logging.h"
 #include <chrono>
 namespace game {
 float randf(float a,float b){return a+(b-a)*(float(std::rand())/RAND_MAX);}
@@ -193,8 +197,10 @@ void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
     Vec2 center{point.x,point.z};
 #ifdef MINI_CITY_JOLT
     destruction::blast(point,radius);
+    builder::blast(point,radius,damage);
     for(int i=0;i<int(wildlife::animals.size());++i){
-        float distance=len(wildlife::animals[i].p-center);
+        const auto& animal=wildlife::animals[i];
+        float distance=builder::active()?len(Vec3{animal.p.x,wildlife::originHeight(animal)+wildlife::species()[animal.species].height*.5f,animal.p.z}-point):len(animal.p-center);
         if(distance<radius)wildlife::hurt(i,int(damage*(1-distance/radius)),center,playerCaused);
     }
     for(int i=0;i<int(birds::flock.size());++i){
@@ -239,11 +245,15 @@ void explodeAt(Vec3 point,float radius,int damage,bool playerCaused){
         else {tree.burning=true;fire::ignite(tree.p,fire::Material::Wood);}
     }
 }
+namespace {bool vehicleReachable(const Vehicle& vehicle);}
 bool repairVehicle(int index){
     if(index<0||index>=int(vehicles.size())||occupied>=0||health<=0)return false;
     Vehicle& vehicle=vehicles[index];
     if(vehicle.exploded||vehicle.damage<physics::tuning(vehicle.kind).smokeThreshold||
        len(player-vehicle.p)>65)return false;
+#ifdef MINI_CITY_JOLT
+    if(builder::active()&&!vehicleReachable(vehicle))return false;
+#endif
     if(repairKits<=0){announce("Need a repair kit.",3);return false;}
     --repairKits;vehicle.damage=0;vehicle.burnTime=0;vehicle.explosionVisualTime=0;
     announce("VEHICLE REPAIRED",3);audio::play(audio::Effect::Pickup);
@@ -296,6 +306,9 @@ bool inside(const Building& b,Vec2 p,float pad){
 bool solid(Vec2 p,float radius){
     if(p.x<radius||p.x>regions::WIDTH-radius||p.z<radius||
        p.z>regions::DEPTH-radius||regions::waterAt(p))return true;
+#ifdef MINI_CITY_JOLT
+    if(builder::contains({p.x,groundHeight(p)+17,p.z},radius))return true;
+#endif
     for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
         if(destruction::contains(b,{p.x,17,p.z},radius))return true;
@@ -311,8 +324,37 @@ float groundHeight(Vec2 p){
     return 0;
 #endif
 }
+float pedGroundHeight(const Ped& ped){
+#ifdef MINI_CITY_JOLT
+    return jolt_world::pedHeight(ped);
+#else
+    return groundHeight(ped.p);
+#endif
+}
+float pickupOriginHeight(const Pickup& pickup){
+#ifdef MINI_CITY_JOLT
+    if(builder::active()){
+        float y=groundHeight(pickup.p);std::vector<std::pair<float,float>> column;
+        for(const auto& entry:builder::blocks()){
+            auto low=builder::cellLow(entry.first);
+            if(pickup.p.x>=low.x&&pickup.p.x<low.x+builder::BLOCK_SIZE&&pickup.p.z>=low.z&&pickup.p.z<low.z+builder::BLOCK_SIZE)
+                column.push_back({low.y,low.y+builder::BLOCK_SIZE});
+        }
+        std::sort(column.begin(),column.end());
+        for(auto span:column)if(span.first<=y+16&&span.second>y)y=span.second;
+        return y;
+    }
+#endif
+    return 0; // Preserve the original map marker altitude in normal mode.
+}
 bool bulletSolid(Vec3 p){
-    if(p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH||p.y<groundHeight({p.x,p.z}))return true;
+    if(p.x<0||p.x>regions::WIDTH||p.z<0||p.z>regions::DEPTH)return true;
+#ifdef MINI_CITY_JOLT
+    if(terrain::contains(p))return true;
+    if(builder::contains(p))return true;
+#else
+    if(p.y<groundHeight({p.x,p.z}))return true;
+#endif
     for(const auto& b:buildings)
 #ifdef MINI_CITY_JOLT
         if(destruction::contains(b,p))return true;
@@ -336,6 +378,8 @@ bool bulletSolidSegment(Vec3 start,Vec3 end,Vec3& impact){
     boundary(start.z,delta.z,0,regions::DEPTH);
     #ifdef MINI_CITY_JOLT
     float terrainEntry=0;if(terrain::segmentHit(start,end,terrainEntry))nearest=std::min(nearest,terrainEntry);
+    float builderEntry=0;if(builder::segment(start,end,builderEntry))nearest=std::min(nearest,builderEntry);
+    float sceneryEntry=0;if(scenery_edits::segment(start,end,sceneryEntry,scenery_edits::TraceMask::NonTrees))nearest=std::min(nearest,sceneryEntry);
 #else
     if(end.y<0&&delta.y<0)nearest=std::min(nearest,-start.y/delta.y);
 #endif
@@ -400,6 +444,7 @@ Vec2 randomWalkable(){
 }
 void reset(){
 #ifdef MINI_CITY_JOLT
+    builder::reset();
     debug_menu::reset();
     ordnance::reset();
     screenshotRequested=false;
@@ -450,8 +495,18 @@ void move(Vec2& p,Vec2 d,float radius,Kind kind){
     Vec2 trial{p.x+d.x,p.z};if(valid(trial,kind,radius))p.x=trial.x;
     trial={p.x,p.z+d.z};if(valid(trial,kind,radius))p.z=trial.z;
 }
+#ifdef MINI_CITY_JOLT
+bool clearLineAtHeight(Vec3 a,Vec3 b){
+    float entry=0;
+    if(builder::segment(a,b,entry)||scenery_edits::segment(a,b,entry)||terrain::segmentHit(a,b,entry)||ordnance::obscured({a.x,a.z},{b.x,b.z}))return false;
+    for(const auto& building:buildings)if(destruction::segment(building,a,b,entry))return false;
+    return true;
+}
+#endif
 bool clearLine(Vec2 a,Vec2 b){
 #ifdef MINI_CITY_JOLT
+    float builderEntry=0;if(builder::segment({a.x,groundHeight(a)+22,a.z},{b.x,groundHeight(b)+22,b.z},builderEntry))return false;
+    float sceneryEntry=0;if(scenery_edits::segment({a.x,groundHeight(a)+22,a.z},{b.x,groundHeight(b)+22,b.z},sceneryEntry))return false;
     if(ordnance::obscured(a,b))return false;
     float terrainEntry=0;if(terrain::segmentHit({a.x,groundHeight(a)+22,a.z},{b.x,groundHeight(b)+22,b.z},terrainEntry))return false;
     for(const auto& building:buildings){float entry=0;
@@ -472,6 +527,25 @@ bool clearLine(Vec2 a,Vec2 b){
 namespace {
 enum class InteractionType{None,Loot,AnimalLoot,Pickpocket,Talk,Repair,Shop,House,Ladder,Tree,Mission};
 struct Interaction{InteractionType type=InteractionType::None;int index=-1;};
+bool pedReachable(const Ped& ped,float verticalTolerance=12){
+#ifdef MINI_CITY_JOLT
+    if(builder::active()){
+        Vec3 contact{ped.p.x,jolt_world::pedHeight(ped)+18,ped.p.z};
+        if(ped.alive){if(std::abs(playerY-jolt_world::pedHeight(ped))>=verticalTolerance)return false;}
+        else {Vec3 low{},high{};jolt_world::corpsePose(ped,low,high,contact);
+            if(playerY+37<low.y-8||playerY>high.y+8)return false;}
+        return clearLineAtHeight({player.x,playerY+18,player.z},contact);
+    }
+#endif
+    return clearLine(player,ped.p);
+}
+bool vehicleReachable(const Vehicle& vehicle){
+#ifdef MINI_CITY_JOLT
+    if(builder::active())return std::abs(playerY-vehicle.rideHeight)<20&&
+        clearLineAtHeight({player.x,playerY+18,player.z},{vehicle.p.x,vehicle.rideHeight+18,vehicle.p.z});
+#endif
+    return clearLine(player,vehicle.p);
+}
 std::vector<Interaction> availableInteractions(){
     std::vector<Interaction> options;
 #ifdef MINI_CITY_JOLT
@@ -483,7 +557,7 @@ std::vector<Interaction> availableInteractions(){
         const Ped& ped=peds[i];
         if(ped.alive||ped.looted||ped.carried)continue;
         float distance=len(ped.p-player);
-        if(distance<corpseDistance&&clearLine(player,ped.p)){
+        if(distance<corpseDistance&&pedReachable(ped)){
             corpse=i;corpseDistance=distance;
         }
     }
@@ -497,18 +571,22 @@ std::vector<Interaction> availableInteractions(){
         const Ped& ped=peds[i];
         if(!ped.alive||ped.drivingVehicle>=0||ped.cash<=0||ped.hostile)continue;
         float distance=len(ped.p-player);
-        if(distance>=targetDistance||!clearLine(player,ped.p))continue;
+        if(distance>=targetDistance||!pedReachable(ped))continue;
         Vec2 facing=forward(ped.angle),behind=norm(player-ped.p);
         if(facing.x*behind.x+facing.z*behind.z>-0.45f)continue;
         target=i;targetDistance=distance;
     }
     if(target>=0)options.push_back({InteractionType::Pickpocket,target});
     int talk=-1;float talkDistance=43;
-    if(playerY<12&&!swimming&&!traversal::active())
+    if((playerY<12
+#ifdef MINI_CITY_JOLT
+        ||builder::active()
+#endif
+        )&&!swimming&&!traversal::active())
         for(int i=0;i<int(peds.size());++i){
             const Ped& ped=peds[i];float distance=len(ped.p-player);
             if(ped.alive&&ped.drivingVehicle<0&&!ped.hostile&&!ped.police&&
-               ped.knockedDown<=0&&distance<talkDistance&&clearLine(player,ped.p)){
+               ped.knockedDown<=0&&distance<talkDistance&&pedReachable(ped)){
                 talk=i;talkDistance=distance;
             }
         }
@@ -518,7 +596,7 @@ std::vector<Interaction> availableInteractions(){
         const Vehicle& vehicle=vehicles[i];
         float distance=len(vehicle.p-player);
         if(!vehicle.exploded&&vehicle.damage>=physics::tuning(vehicle.kind).smokeThreshold&&
-           distance<repairDistance&&clearLine(player,vehicle.p)){
+           distance<repairDistance&&vehicleReachable(vehicle)){
             repair=i;repairDistance=distance;
         }
     }
@@ -537,7 +615,11 @@ std::vector<Interaction> availableInteractions(){
         if(len(traversal::trees[i].bottom-player)<43&&
            clearLine(player,traversal::trees[i].bottom)){
             int treeIndex=traversal::trees[i].treeIndex;
-            if(treeIndex>=0&&treeIndex<int(trees.size())&&!trees[treeIndex].destroyed)
+            bool available=treeIndex>=0&&treeIndex<int(trees.size())&&!trees[treeIndex].destroyed;
+#ifdef MINI_CITY_JOLT
+            if(available){const auto& tree=trees[treeIndex];available=!scenery_edits::removed(scenery_edits::treeId(treeIndex),builder::cellAt({tree.p.x,terrain::baseHeight(tree.p)+12,tree.p.z}));}
+#endif
+            if(available)
                 options.push_back({InteractionType::Tree,i});
         }
     if(activeMission<0)for(int i=0;i<int(missions.size());++i)
@@ -608,7 +690,7 @@ std::string carryPrompt(){
     if(carriedPed>=0)return "G  DROP BODY";
     if(health<=0||occupied>=0)return {};
     for(const Ped& ped:peds)if(!ped.alive&&!ped.carried&&len(ped.p-player)<38&&
-        clearLine(player,ped.p))return "G  CARRY BODY";
+        pedReachable(ped))return "G  CARRY BODY";
     return {};
 }
 void interact(){
@@ -653,6 +735,24 @@ void carryDrop(){
     if(carriedPed<0&&wildlife::carryDrop())return;
 #endif
     if(carriedPed>=0){
+#ifdef MINI_CITY_JOLT
+        if(builder::active()){
+            jolt_world::preparePedNavigation();auto& ped=peds[carriedPed];
+            for(int direction=0;direction<16;++direction){float angle=cameraYaw+direction*PI/8;
+                auto candidate=player+forward(angle)*52;Vec3 feet{candidate.x,playerY,candidate.z};
+                if(candidate.x<24||candidate.z<24||candidate.x>regions::WIDTH-24||candidate.z>regions::DEPTH-24||
+                   !jolt_world::corpseDropClear(feet,angle)||!clearLineAtHeight({player.x,playerY+18,player.z},feet+Vec3{0,8,0}))continue;
+                bool blocked=false;for(const auto& other:peds)if(&other!=&ped&&other.alive&&other.drivingVehicle<0&&
+                    len(other.p-candidate)<32&&std::abs(jolt_world::pedHeight(other)-playerY)<30){blocked=true;break;}
+                if(blocked)continue;
+                auto old=ped;ped.carried=false;ped.p=candidate;ped.angle=angle;ped.pinned=false;
+                jolt_world::teleportPed(carriedPed,candidate,playerY);
+                if(!jolt_world::spawnRagdoll(ped,{},nullptr,true)){ped=old;announce("Cannot release body physics. Keep carrying and retry.",2);return;}
+                ped.corpseVisualDelay=6;carriedPed=-1;announce("Body dropped.",2);return;
+            }
+            announce("No clear space to drop this body.",2);return;
+        }
+#endif
         Ped& ped=peds[carriedPed];ped.carried=false;
         Vec2 candidate=player+forward(cameraYaw)*20;
         if(solid(candidate,10))candidate=player-forward(cameraYaw)*20;
@@ -663,7 +763,7 @@ void carryDrop(){
     int best=-1;float distance=38;
     for(int i=0;i<int(peds.size());++i){
         const Ped& ped=peds[i];float d=len(ped.p-player);
-        if(!ped.alive&&!ped.carried&&d<distance&&clearLine(player,ped.p)){
+        if(!ped.alive&&!ped.carried&&d<distance&&pedReachable(ped)){
             best=i;distance=d;
         }
     }
@@ -672,6 +772,7 @@ void carryDrop(){
     peds[best].corpseVisualDelay=0;
 #ifdef MINI_CITY_JOLT
     jolt_world::removeRagdoll(peds[best].id);
+    if(builder::active())jolt_world::teleportPed(best,peds[best].p,playerY+10);
 #endif
     announce("Carrying body. Press G to drop.",3);
 }
@@ -727,6 +828,11 @@ void enterExit(){
         // ground navigation. Keep bounds and obstacles in the exit test.
         auto exitAt=[&](Vec2 out){
             if(out.x<12||out.z<12||out.x>regions::WIDTH-12||out.z>regions::DEPTH-12)return false;
+            if(builder::active()&&!regions::waterAt(out)){
+                float entry=0;Vec3 from{v.p.x,v.rideHeight+17,v.p.z},to{out.x,v.rideHeight+17,out.z};
+                if(builder::segment(from,to,entry)||terrain::segmentHit(from,to,entry)||
+                   builder::contains({out.x,v.rideHeight+17,out.z},12)||terrain::contains({out.x,v.rideHeight+1,out.z}))return false;
+            }
             for(int step=1;step<=12;++step){
                 Vec2 point=v.p+(out-v.p)*(step/12.0f);
                 for(const auto& b:buildings)if(destruction::contains(b,{point.x,v.rideHeight+17,point.z},12))return false;
@@ -825,13 +931,20 @@ void recordArmedKill(const Ped& ped,int weaponIndex){
     savegame::request();
 }
 int stealthTarget(){
-    if(health<=0||occupied>=0||enteringVehicle>=0||swimming||playerY>groundHeight(player)+4||
+    bool heightAllowed=playerY<=groundHeight(player)+4;
+#ifdef MINI_CITY_JOLT
+    heightAllowed|=builder::active();
+#endif
+    if(health<=0||occupied>=0||enteringVehicle>=0||swimming||carryingBody()||!heightAllowed||
         fireCooldown>0||weapons::stats(weapon).id!="knife")return -1;
     int result=-1;float best=44;
     for(int i=0;i<int(peds.size());++i){const auto& ped=peds[i];
-        Vec2 delta=player-ped.p;float distance=len(delta);Vec2 f=forward(ped.angle);
+        Vec2 delta=player-ped.p;float horizontal=len(delta),distance=horizontal;Vec2 f=forward(ped.angle);
+#ifdef MINI_CITY_JOLT
+        if(builder::active())distance=len(Vec3{delta.x,playerY-jolt_world::pedHeight(ped),delta.z});
+#endif
         if(!ped.alive||ped.drivingVehicle>=0||distance>=best||
-            f.x*delta.x+f.z*delta.z>-.5f*distance||!clearLine(player,ped.p))continue;
+            f.x*delta.x+f.z*delta.z>-.5f*horizontal||!pedReachable(ped))continue;
         result=i;best=distance;
     }
     return result;
@@ -842,9 +955,16 @@ void stealthKill(){
     // Check witnesses while the victim is still alive, excluding the victim.
     for(int i=0;i<int(peds.size());++i){const auto& witness=peds[i];
         if(i==target||!witness.alive)continue;
-        Vec2 delta=ped.p-witness.p;float distance=len(delta);Vec2 f=forward(witness.angle);
-        if(distance<180&&(distance<12||f.x*delta.x+f.z*delta.z>distance*.25f)&&
-            clearLine(witness.p,ped.p)){seen=true;break;}
+        Vec2 delta=ped.p-witness.p;float horizontal=len(delta),distance=horizontal;Vec2 f=forward(witness.angle);
+        bool sight=clearLine(witness.p,ped.p);
+#ifdef MINI_CITY_JOLT
+        if(builder::active()){
+            float victimHeight=jolt_world::pedHeight(ped),witnessHeight=jolt_world::pedHeight(witness);
+            distance=len(Vec3{delta.x,victimHeight-witnessHeight,delta.z});
+            sight=clearLineAtHeight({witness.p.x,witnessHeight+22,witness.p.z},{ped.p.x,victimHeight+22,ped.p.z});
+        }
+#endif
+        if(distance<180&&(distance<12||f.x*delta.x+f.z*delta.z>horizontal*.25f)&&sight){seen=true;break;}
     }
     ped.health=0;ped.alive=false;ped.respawn=ped.police?999999:45;ped.corpseVisualDelay=6;
     spawnDebris(ped,{0,25,0});recordArmedKill(ped,weapon);
@@ -874,12 +994,19 @@ void shoot(){
         meleeVisualAction=unarmed?10:11;
         Vec2 facing=forward(cameraYaw);
         int target=-1;float nearest=reach;
-        if(playerY<groundHeight(player)+45)for(int index=0;index<int(peds.size());++index){
+        bool meleeHeight=playerY<groundHeight(player)+45;
+#ifdef MINI_CITY_JOLT
+        meleeHeight|=builder::active();
+#endif
+        if(meleeHeight)for(int index=0;index<int(peds.size());++index){
             const Ped& ped=peds[index];
-            Vec2 delta=ped.p-player;float distance=len(delta);
+            Vec2 delta=ped.p-player;float horizontal=len(delta),distance=horizontal;
+#ifdef MINI_CITY_JOLT
+            if(builder::active())distance=len(Vec3{delta.x,jolt_world::pedHeight(ped)-playerY,delta.z});
+#endif
             if(!ped.alive||ped.drivingVehicle>=0||distance>=nearest||
-                facing.x*delta.x+facing.z*delta.z<distance*0.15f||
-                !clearLine(player,ped.p))continue;
+                facing.x*delta.x+facing.z*delta.z<horizontal*0.15f||
+                !pedReachable(ped,reach))continue;
             nearest=distance;target=index;
         }
 #ifdef MINI_CITY_JOLT
@@ -1012,9 +1139,14 @@ void spawnHitFlash(const Bullet& bullet,Vec3 point,bool person=false){
     hitFlashes.push_back({point,0.22f,tint,person});
 }
 void update(float dt){
+    auto builderBegin=std::chrono::steady_clock::now();
 #ifdef MINI_CITY_JOLT
+    if(builder::advance(dt))return;
+    ped_navigation::beginFrame();
+    builder::update(dt);
     if(ordnance::timerOpen())return;
 #endif
+    auto builderEnd=std::chrono::steady_clock::now();
     previousPlayer=player;
     audio::setListener(player.x,player.z,cameraYaw);
     dt=std::min(dt,0.05f);fireCooldown=std::max(-dt,fireCooldown-dt);
@@ -1076,7 +1208,11 @@ void update(float dt){
         vehicle.explosionVisualTime=std::max(0.0f,vehicle.explosionVisualTime-dt);
         vehicle.collisionCooldown=std::max(0.0f,vehicle.collisionCooldown-dt);
     }
-    for(int i=0;i<std::min(9,weapons::count());++i)if(keys['1'+i]&&unlocked[i])weapon=i;
+    for(int i=0;i<std::min(9,weapons::count());++i)if(keys['1'+i]&&unlocked[i]
+#ifdef MINI_CITY_JOLT
+        &&!builder::active()
+#endif
+        )weapon=i;
     if(keys[VK_LEFT])cameraYaw-=dt*1.8f;
     if(keys[VK_RIGHT])cameraYaw+=dt*1.8f;
     auto physicsBegin=std::chrono::steady_clock::now();
@@ -1088,7 +1224,7 @@ void update(float dt){
 #endif
         else if(occupied<0){
 #ifdef MINI_CITY_JOLT
-            if(leftMouse&&weapons::stats(weapon).grapple&&!grapple::active())shoot();
+            if(!builder::active()&&leftMouse&&weapons::stats(weapon).grapple&&!grapple::active())shoot();
             bool grappleMoved=grapple::update(dt);
 #else
             bool grappleMoved=false;
@@ -1101,6 +1237,9 @@ void update(float dt){
                 r*(float(keys[ui::bindings[int(ui::Action::Right)]])-float(keys[ui::bindings[int(ui::Action::Left)]]));
             bool slowWalk=keys[VK_MENU]||keys[VK_LMENU]||keys[VK_RMENU];
             bool running=!crouched&&!slowWalk&&keys[ui::bindings[int(ui::Action::Sprint)]];
+#ifdef MINI_CITY_JOLT
+            if(builder::active())running=!crouched&&!slowWalk&&keys[VK_CONTROL];
+#endif
             Vec2 desired=norm(input)*(swimming?95.0f:crouched?75.0f:
                 slowWalk?80.0f:carryingBody()?105.0f:running?250.0f:160.0f);
             float response=grounded?10.0f:3.0f;
@@ -1134,7 +1273,11 @@ void update(float dt){
                     player.z>=BEACH_START?1:0);
                     stepTimer=running?0.29f:crouched||slowWalk?0.62f:0.43f;}
             }else stepTimer=0;
-            if(leftMouse&&!swimming)shoot();
+            if(leftMouse&&!swimming
+#ifdef MINI_CITY_JOLT
+                &&!builder::active()
+#endif
+                )shoot();
             }
         }else{
             Vehicle& v=vehicles[occupied];
@@ -1229,17 +1372,36 @@ void update(float dt){
     }
     auto physicsEnd=std::chrono::steady_clock::now();
     police::update(dt);
+#ifdef MINI_CITY_JOLT
+    ai::update(dt,false);
+#else
     ai::update(dt);
+#endif
     activeAi=ai::activeCount();
+    auto pedestrianEnd=std::chrono::steady_clock::now();
 #ifdef MINI_CITY_JOLT
     wildlife::update(dt);
     activeAi+=wildlife::activeCount();
     birds::update(dt);
     activeAi+=birds::activeCount();
 #endif
+    auto wildlifeEnd=std::chrono::steady_clock::now();
+    if(std::getenv("MINICITY_CPU_PROFILE")){
+        char report[256]{};std::snprintf(report,sizeof(report),"Simulation profile: builder %.3f ms, pedestrians/police %.3f ms, wildlife/birds %.3f ms",
+            std::chrono::duration<float,std::milli>(builderEnd-builderBegin).count(),
+            std::chrono::duration<float,std::milli>(pedestrianEnd-physicsEnd).count(),
+            std::chrono::duration<float,std::milli>(wildlifeEnd-pedestrianEnd).count());logging::write(report);
+    }
     for(auto& pickup:pickups){
         if(!pickup.available){pickup.respawn-=dt;if(pickup.respawn<=0)pickup.available=true;continue;}
-        if(occupied<0&&len(player-pickup.p)<24){
+        bool reachable=true;
+#ifdef MINI_CITY_JOLT
+        if(builder::active()){
+            float y=pickupOriginHeight(pickup);
+            reachable=playerY<y+24&&playerY+37>y&&clearLineAtHeight({player.x,playerY+18,player.z},{pickup.p.x,y+16,pickup.p.z});
+        }
+#endif
+        if(occupied<0&&len(player-pickup.p)<24&&reachable){
             pickup.available=false;pickup.respawn=45;
             unlocked[pickup.weapon]=true;
             if(weapons::stats(pickup.weapon).melee||weapons::stats(pickup.weapon).grapple){
@@ -1265,10 +1427,11 @@ void update(float dt){
         if(wallHit)next=wallPoint;
         Vec3 impactPoint=next;
         int hitBird=-1;
+        int hitSceneTree=-1;
         int samples=std::clamp(int(std::ceil(len(next-bullet.p)/4.0f)),1,64);
         Vec2 horizontalStart{bullet.p.x,bullet.p.z};
         Vec2 horizontalEnd{next.x,next.z};
-        const auto treeCandidates=regions::nearbyTreeIndices(
+        auto treeCandidates=regions::nearbyTreeIndices(
             (horizontalStart+horizontalEnd)*0.5f,
             len(horizontalEnd-horizontalStart)*0.5f+25.0f);
         if(bullet.streamType==0){
@@ -1277,7 +1440,7 @@ void update(float dt){
             auto consider=[&](Vec2 center,float radius,float low,float high){
                 float entry=0;
                 if(bulletCylinderSegment(bullet.p,next,center,radius,low,high,entry)&&
-                   entry<nearest){nearest=entry;dynamicHit=true;hitBird=-1;}
+                   entry<nearest){nearest=entry;dynamicHit=true;hitBird=-1;hitSceneTree=-1;}
             };
             for(const auto& prop:props)if(prop.alive)
                 consider(prop.p,prop.barrel?12.0f:14.0f,prop.y,prop.y+25);
@@ -1287,7 +1450,7 @@ void update(float dt){
 #ifdef MINI_CITY_JOLT
                 float entry=0;
                 if(physics::vehicleSegmentHit(car,bullet.p,next,entry)&&entry<nearest){
-                    nearest=entry;dynamicHit=true;hitBird=-1;
+                    nearest=entry;dynamicHit=true;hitBird=-1;hitSceneTree=-1;
                 }
 #else
                 consider(car.p,physics::vehicleRadius(car.kind),
@@ -1295,19 +1458,31 @@ void update(float dt){
 #endif
             }
             for(int index:treeCandidates){
+#ifdef MINI_CITY_JOLT
+                if(builder::active())continue;
+#endif
                 if(index<0||std::size_t(index)>=trees.size())continue;
                 const auto& tree=trees[index];
+                float root=groundHeight(tree.p);
+#ifdef MINI_CITY_JOLT
+                root=terrain::baseHeight(tree.p);
+#endif
                 if(!tree.destroyed)
                     consider(tree.p,6.0f*std::min(tree.scale,4.0f),
-                        groundHeight(tree.p),groundHeight(tree.p)+tree.height*tree.scale*0.6f);
+                        root,root+tree.height*tree.scale*0.6f);
             }
 #ifdef MINI_CITY_JOLT
+            builder::Target sceneTarget;sceneTarget.distance=len(next-bullet.p);
+            if(builder::active()&&sceneTarget.distance>.001f&&scenery_edits::trace(bullet.p,next-bullet.p,sceneTarget.distance,sceneTarget,scenery_edits::TraceMask::Trees)){
+                float entry=sceneTarget.distance/len(next-bullet.p);if(entry<nearest){nearest=entry;dynamicHit=true;hitBird=-1;hitSceneTree=sceneTarget.index;
+                    if(std::find(treeCandidates.begin(),treeCandidates.end(),hitSceneTree)==treeCandidates.end())treeCandidates.push_back(hitSceneTree);}
+            }
             for(const auto& animal:wildlife::animals)if(animal.health>0)
-                consider(animal.p,wildlife::radius(animal),groundHeight(animal.p),groundHeight(animal.p)+wildlife::species()[animal.species].height);
+                consider(animal.p,wildlife::radius(animal),wildlife::originHeight(animal),wildlife::originHeight(animal)+wildlife::species()[animal.species].height);
             for(int i=0;i<int(birds::flock.size());++i){
                 float entry=0;
                 if(birds::segmentHit(birds::flock[i],bullet.p,next,entry,true)&&entry<nearest){
-                    nearest=entry;dynamicHit=true;hitBird=i;
+                    nearest=entry;dynamicHit=true;hitBird=i;hitSceneTree=-1;
                 }
             }
 #endif
@@ -1320,7 +1495,7 @@ void update(float dt){
                    missionStep<int(missions[activeMission].goals.size()))
                     consider(missions[activeMission].goals[missionStep],18.0f,0,45);
                 for(const auto& ped:peds)if(ped.alive)
-                    consider(ped.p,10.0f,groundHeight(ped.p)+2,groundHeight(ped.p)+37);
+                    consider(ped.p,10.0f,pedGroundHeight(ped)+2,pedGroundHeight(ped)+37);
             }
             if(dynamicHit){
                 Vec3 travel=next-bullet.p;
@@ -1375,10 +1550,18 @@ void update(float dt){
             for(int treeIndex:treeCandidates){
                 if(treeIndex<0||std::size_t(treeIndex)>=trees.size())continue;
                 Tree& tree=trees[treeIndex];
-                if(tree.destroyed||point.y<groundHeight({point.x,point.z})||
-                   point.y>groundHeight(tree.p)+tree.height*tree.scale*0.6f||
+                float root=groundHeight(tree.p);
+#ifdef MINI_CITY_JOLT
+                root=terrain::baseHeight(tree.p);
+#endif
+                bool sceneHit=false;
+#ifdef MINI_CITY_JOLT
+                if(builder::active()){if(treeIndex!=hitSceneTree)continue;sceneHit=true;}
+#endif
+                if(tree.destroyed||(!sceneHit&&(point.y<root||
+                   point.y>root+tree.height*tree.scale*0.6f||
                    len(tree.p-Vec2{point.x,point.z})>=
-                       6.0f*std::min(tree.scale,4.0f))continue;
+                       6.0f*std::min(tree.scale,4.0f))))continue;
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point);
                 if(bullet.streamType==1){
@@ -1435,16 +1618,16 @@ void update(float dt){
                 break;
             }
             for(auto& ped:peds)if(ped.alive&&len(Vec2{ped.p.x-point.x,ped.p.z-point.z})<10&&
-                point.y>=groundHeight(ped.p)+2&&point.y<=groundHeight(ped.p)+37){
+                point.y>=pedGroundHeight(ped)+2&&point.y<=pedGroundHeight(ped)+37){
                 applyStreamEffect(bullet,point);
                 spawnHitFlash(bullet,point,true);
                 if(bullet.streamType==1)fire::ignitePed(ped);
                 else if(bullet.streamType==2||bullet.streamType==3)ped.burnTime=0;
                 Vec2 side{-std::sin(ped.angle),std::cos(ped.angle)};
                 float lateral=(point.x-ped.p.x)*side.x+(point.z-ped.p.z)*side.z;
-                bool headshot=bullet.streamType==0&&point.y>=groundHeight(ped.p)+29;
+                bool headshot=bullet.streamType==0&&point.y>=pedGroundHeight(ped)+29;
                 int zoneDamage=bullet.streamType==2?0:bullet.streamType==3?1:
-                    point.y<groundHeight(ped.p)+11?std::max(1,damage/2):
+                    point.y<pedGroundHeight(ped)+11?std::max(1,damage/2):
                     std::abs(lateral)>5?std::max(1,damage*2/3):damage;
                 if(headshot)ped.health=0;
                 else{
@@ -1457,6 +1640,9 @@ void update(float dt){
                     (bullet.streamType==3?230.0f:70.0f);
                 if(bullet.streamType==3)ped.knockedDown=3.0f;
                 if(bullet.streamType!=2&&!bullet.hostile)ai::reactToHit(ped,player);
+#ifdef MINI_CITY_JOLT
+                if(!builder::active())
+#endif
                 if(solid(ped.target,12))ped.target=ped.p;
                 if(ped.health<=0){ped.alive=false;ped.respawn=ped.police?999999:45;
                     ped.corpseVisualDelay=6;
