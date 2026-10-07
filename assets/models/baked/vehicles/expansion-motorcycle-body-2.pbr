@@ -1,3 +1,6 @@
-0 60 0.90392 0.00000 0 - - - - - OPAQUE 0.5
-60 450 0.90392 0.00000 0 - - - - - OPAQUE 0.5
-510 225 0.90392 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 60 0.4 0.15 0 expansion-motorcycle-paint-base.png expansion-motorcycle-paint-normal.png expansion-motorcycle-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+60 450 0.55 0.6 0 expansion-motorcycle-graphite-base.png expansion-motorcycle-graphite-normal.png expansion-motorcycle-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+510 225 0.4 0.15 0 expansion-motorcycle-paint-base.png expansion-motorcycle-paint-normal.png expansion-motorcycle-paint-orm.png - - OPAQUE 0.5

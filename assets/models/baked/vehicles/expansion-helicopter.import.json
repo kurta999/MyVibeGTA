@@ -104,5 +104,15 @@
       "spin": 2
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-helicopter-body-0.m3d": "2c56ce2377ca0135d7fc2f500d48f4814a8cc334f77757ba371483c024817f8e",
+    "expansion-helicopter-body-1.m3d": "fbea88d523bf69dbb7e13d7aaa6889f650e2cb8af2019c59b9c1810b6d48912a",
+    "expansion-helicopter-body-2.m3d": "1c70615e4c41532b2ece8b0defcd60d2c18a31227019574530a878b212312d17",
+    "expansion-helicopter-body-3.m3d": "3a73ec4b7863d94d3d7a4dfe8173c28a16c837c5fa22050cfaf30b476411fecf",
+    "expansion-helicopter-body-6.m3d": "590c634c2109fa3d16df0759492102c0d786fe9cde6e9b395e6ed05a1d70e861",
+    "expansion-helicopter-body-7.m3d": "a2dbfbf4b00bb140945695d53bf4788b1f6c915a58c6140a1b85260073d74080",
+    "expansion-helicopter-rotor.m3d": "7912bf40e4745efcb64747c4fbdfb61f8e78699ed4399a08e7bf0985e115fef2"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. helicopter"
 }

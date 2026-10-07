@@ -118,5 +118,16 @@
       "spin": 1
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-airplane-body-0.m3d": "32d844bfd9f8e95373a0655532cc9208e2996a56f26456fd60a96b0c9a180a2b",
+    "expansion-airplane-body-1.m3d": "2fd3ff1339609b4c118084ecd330046ca3d0d838eac9032d5963ef3b3dc1542f",
+    "expansion-airplane-body-2.m3d": "b5b8cf0c841556a810572209cdcf949f85b7b89cd2d9bf84788dc69ac22bd424",
+    "expansion-airplane-body-3.m3d": "ba0950a71b5e3736927dcd7899498860218541310558eaa01100feeca62ddc93",
+    "expansion-airplane-propeller.m3d": "bc8e34ea8e179c7c95396573f35ddbadaab7c8a882b1027ddd1e9f13e405659d",
+    "expansion-airplane-wheel-0.m3d": "8db23df5b793a4035dac6e8be22a874eb8715cda03d9954fa950915e627fc619",
+    "expansion-airplane-wheel-1.m3d": "95ae96496f45c28a51d333c14e4a0f4fbc75071d3b9ed141b0ad75c8a5d61909",
+    "expansion-airplane-wheel-2.m3d": "e437d07eefe1fd7afbbb5acd584607d6ea3dacff821984f1d64cfee3820ff04e"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. airplane"
 }

@@ -816,6 +816,28 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(builder::active()!=desired&&(!builder::requestToggle()||!finishBuilderPreview()))return 1;
         logging::write(desired?"Benchmark layer: builder, generated world retained":"Benchmark layer: normal, generated world retained");
     }
+    if(smoke&&commandLine&&(std::strstr(commandLine,"--bike-seat-preview")||
+                           std::strstr(commandLine,"--bicycle-seat-preview"))){
+        Kind kind=std::strstr(commandLine,"--bicycle-seat-preview")?Kind::Bicycle:Kind::Bike;
+        peds.clear();props.clear();pickups.clear();ui::grassDistance=0;
+        for(int n=0;n<int(vehicles.size());++n)if(vehicles[n].kind!=kind)
+            jolt_world::teleportVehicle(n,{6000+float(n)*150,6000},0);
+        for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==kind){
+            jolt_world::teleportVehicle(i,{4500,4500},0);occupied=i;
+            player=previousPlayer=vehicles[i].p;cameraYaw=2.2f;cameraPitch=0;
+            vehicleLookTime=30;cameraMode=CameraMode::ThirdNear;break;
+        }
+        if(std::strstr(commandLine,"--seat-close-up")){
+            // Review the shared driver pose from a closer on-foot camera.
+            auto& bike=vehicles[occupied];Ped driver{};driver.id="seat-review";
+            driver.alive=true;driver.style=1;driver.drivingVehicle=occupied;
+            peds.push_back(driver);bike.driver=0;occupied=-1;
+            player=previousPlayer=bike.p+Vec2{60,-60};playerY=terrain::height(player)+3;
+            Vec3 aim=norm(Vec3{bike.p.x,bike.rideHeight+16,bike.p.z}-Vec3{player.x,playerY+31,player.z});
+            cameraMode=CameraMode::FirstWide;cameraYaw=std::atan2(aim.z,aim.x);cameraPitch=std::asin(aim.y);
+            jolt_world::teleportCharacter(player,playerY);
+        }
+    }
     // Focus loss opens the pause menu. Continue only an already-started F5
     // transition there, so disabled input cannot trap the player in loading.
     auto advancePausedBuilder=[](float dt){if(ui::paused()&&builder::transitioning())builder::advance(dt);};

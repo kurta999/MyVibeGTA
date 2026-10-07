@@ -1,2 +1,4 @@
-0 240 0.90392 0.00000 0 - - - - - OPAQUE 0.5
-240 15 0.90392 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+0 240 0.55 0.6 0 expansion-motorcycle-graphite-base.png expansion-motorcycle-graphite-normal.png expansion-motorcycle-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+240 15 0.4 0.15 0 expansion-motorcycle-paint-base.png expansion-motorcycle-paint-normal.png expansion-motorcycle-paint-orm.png - - OPAQUE 0.5

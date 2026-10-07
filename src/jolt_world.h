@@ -59,6 +59,7 @@ struct TreeFragment {
     float qx=0,qy=0,qz=0,qw=1;
     bool foliage=false;
     int category=0,shape=0;game::Color color{1,1,1};std::string mesh;
+    float meshScale=1;
 };
 const std::vector<TreeFragment>& treeFragments();
 std::size_t activeTreeColliderCount();

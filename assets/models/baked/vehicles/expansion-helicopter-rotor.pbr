@@ -1,1 +1,2 @@
-0 72 0.99000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+0 72 0.55 0.6 0 expansion-helicopter-graphite-base.png expansion-helicopter-graphite-normal.png expansion-helicopter-graphite-orm.png - - OPAQUE 0.5

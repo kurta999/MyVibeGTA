@@ -1,0 +1,27 @@
+Start testing: Oct 07 10:04 Mitteleuropäische Sommerzeit
+----------------------------------------------------------
+11/39 Testing: builder_recovery_scenarios
+11/39 Test: builder_recovery_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--builder-recovery-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"builder_recovery_scenarios" start time: Oct 07 10:04 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+recovery: prop pit fall, immediate F5 resurface, preserved unrelated momentum and re-entry fall passed
+recovery: unchanged submerged prop retains the existing water-bed physics passed
+recovery: live ragdoll rigid pose/joint recovery and obsolete pin release passed
+recovery: settled corpse snapshot support casts, rigid poses and repeated F5 isolation passed
+recovery: settled corpse retains support from an unchanged dynamic crate passed
+recovery: reappearing saved block clears loose props and legacy corpse animation origins passed
+recovery: restored Jolt tree trunk collision clears a prop from its mined root passed
+recovery: wide building roof fallback, ground-only legacy corpse escape and removed-roof fall passed
+recovery: valid wall pin retained, removed saved wall releases only its external constraint passed
+<end of output>
+Test time =  17.39 sec
+----------------------------------------------------------
+Test Passed.
+"builder_recovery_scenarios" end time: Oct 07 10:04 Mitteleuropäische Sommerzeit
+"builder_recovery_scenarios" time elapsed: 00:00:17
+----------------------------------------------------------
+
+End testing: Oct 07 10:04 Mitteleuropäische Sommerzeit

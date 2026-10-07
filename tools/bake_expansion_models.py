@@ -243,6 +243,8 @@ if __name__=='__main__':
     catalog={}
     for config in selected:catalog[config[0]]=cook(config,inspect)
     if not inspect:
+        if any(key in catalog for key in ('helicopter','airplane','motorcycle','bicycle')):
+            print('Finish original surface maps with: python tools/texture_vehicle_surfaces.py',flush=True)
         path=ROOT/'data/vehicle-models.ini'
         old={}
         if path.exists():

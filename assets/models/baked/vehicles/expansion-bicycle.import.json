@@ -118,5 +118,16 @@
       "spin": 1
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-bicycle-body-0.m3d": "4d7ca6f7e54e60106ffc2574924f83f89c95b61bd772b2a8e45ba8a9b3d8579b",
+    "expansion-bicycle-body-1.m3d": "76e420dd8e89bf16102fb96400ff564bf50ac20b0865ece381051c6d3300d935",
+    "expansion-bicycle-body-2.m3d": "b59377396504e7b48d601132c2fc02afe5587b932d5dd28bfa35dda777e4000f",
+    "expansion-bicycle-body-3.m3d": "94fe113fc340a779506117d73ea4ec15adb285dcc8efd6d65841d19144a7c77c",
+    "expansion-bicycle-body-6.m3d": "629e3eaa8c5cd5490439fd11229742bf733de448d91219c538dd208087c26b67",
+    "expansion-bicycle-body-7.m3d": "ab6202045ccc14332fb1467c28732563ab285f88f2e8171cdb35e77d9905a10c",
+    "expansion-bicycle-wheel-0.m3d": "84b15cbaba680249c8269f9582b064763e712e10fd8979372aa16d12197983ff",
+    "expansion-bicycle-wheel-1.m3d": "b3bd090e399f09ca4a72e7e253c6c21e3abd9caf0918d2af0db0ef0e9dcc203c"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. bicycle"
 }

@@ -1,5 +1,10 @@
-0 36 0.99000 0.00000 0 - - - - - OPAQUE 0.5
-36 552 0.99000 0.00000 0 - - - - - OPAQUE 0.5
-588 426 0.97000 0.00000 0 - - - - - OPAQUE 0.5
-1014 360 0.99000 0.00000 0 - - - - - OPAQUE 0.5
-1374 144 0.97000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+0 36 0.55 0.6 0 expansion-helicopter-graphite-base.png expansion-helicopter-graphite-normal.png expansion-helicopter-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+36 552 0.55 0.6 0 expansion-helicopter-graphite-base.png expansion-helicopter-graphite-normal.png expansion-helicopter-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+588 426 0.4 0.15 0 expansion-helicopter-paint-base.png expansion-helicopter-paint-normal.png expansion-helicopter-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+1014 360 0.4 0.15 0 expansion-helicopter-paint-base.png expansion-helicopter-paint-normal.png expansion-helicopter-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+1374 144 0.4 0.15 0 expansion-helicopter-paint-base.png expansion-helicopter-paint-normal.png expansion-helicopter-paint-orm.png - - OPAQUE 0.5

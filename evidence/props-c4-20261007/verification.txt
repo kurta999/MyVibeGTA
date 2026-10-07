@@ -1,0 +1,8 @@
+DX11 MiniCity3D build succeeded.
+Six selected CTest suites passed in 47.46 seconds.
+Pre-fix dry-basin held-input C4 regression failed at the placement/ammo assertion.
+Post-fix city capsule height: -0.000003; held input consumed one charge, landed and remotely detonated.
+Dry basin: C4 and grenade throw/consumption passed; swimming preserved ammo.
+Visual review: street-props.png and hydrant-bin.png inspected; bin and hydrant sizes doubled.
+Captures: --smoke --day --modern-street-preview --screenshot; --smoke --day --streetlight-preview --screenshot.
+Root/runtime executable SHA256: F0E2A8F6ECBFB43EB1CDEDE637A4C68D7183C7613F353FF86F19B77D75CE8CD8

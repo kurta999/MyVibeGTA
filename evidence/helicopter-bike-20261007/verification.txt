@@ -1,0 +1,10 @@
+Vehicle correction verification, 2026-10-07
+DX11 runtime and root executable SHA256: 0CDE8366527CC1D726F3D26F1AFFB2BB776CA7EB2FA391E92F66B4EDB77BC491
+Root save SHA256 (preserved): 0B2A225EEA20901C64C04B557749B99EA0FC42C84D1BF2415972846294FD1F92
+
+Textures: four vehicles, 24 project-authored maps; deterministic surface --verify passed.
+Geometry: all 27 affected parts preserve positions, normals, indices and counts compared with Git HEAD; source models unchanged.
+Rendering: six final captures visually inspected; arguments and hashes in captures.csv. Aircraft liveries and mechanical surfaces render in DX11; bicycle/motorcycle riders align with saddles; combine and airplane render at 150% scale.
+Physics: expansion scenarios verify scaled landing gear, mesh/part pivots and destruction debris; existing flight and ground travel checks pass at 30/60 Hz.
+Tests: simulation_smoke, driver_scenarios, asset_smoke, expansion_scenarios, equipment_scenarios, vehicle_collision_scenarios, builder_transition_scenarios, terrain_scenarios, scene_jobs_scenarios and ordnance_scenarios passed the final selected run. builder_recovery_scenarios initially failed its transition deadline, then passed a separate rerun with the original deadline (17.39 seconds). Logs: ctest-initial.txt and ctest-recovery-recheck.txt.
+Scope: 11 selected suites verified; not a full repository test run. Rider pose remains procedural. OpenGL files and target unchanged.

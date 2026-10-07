@@ -1,0 +1,108 @@
+Start testing: Oct 07 09:39 Mitteleuropäische Sommerzeit
+----------------------------------------------------------
+5/39 Testing: simulation_smoke
+5/39 Test: simulation_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"simulation_smoke" start time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Connected playable area (conservative 100-unit grid): 267.79 million square units
+simulation smoke passed
+<end of output>
+Test time =  37.66 sec
+----------------------------------------------------------
+Test Passed.
+"simulation_smoke" end time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+"simulation_smoke" time elapsed: 00:00:37
+----------------------------------------------------------
+
+22/39 Testing: equipment_scenarios
+22/39 Test: equipment_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--equipment-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"equipment_scenarios" start time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Minigun rounds in 2s: 51
+Equipment scenarios passed: flight, collisions, weapons, animation, grapple, transient corpses.
+<end of output>
+Test time =   3.71 sec
+----------------------------------------------------------
+Test Passed.
+"equipment_scenarios" end time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+"equipment_scenarios" time elapsed: 00:00:03
+----------------------------------------------------------
+
+23/39 Testing: ordnance_scenarios
+23/39 Test: ordnance_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--ordnance-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"ordnance_scenarios" start time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+C4 city capsule height: -0.000003
+Ordnance, stealth, hideout, range, debug and underwater scenarios passed.
+<end of output>
+Test time =   1.87 sec
+----------------------------------------------------------
+Test Passed.
+"ordnance_scenarios" end time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+"ordnance_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+29/39 Testing: scene_jobs_scenarios
+29/39 Test: scene_jobs_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--scene-jobs-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"scene_jobs_scenarios" start time: Oct 07 09:39 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+<end of output>
+Test time =   1.33 sec
+----------------------------------------------------------
+Test Passed.
+"scene_jobs_scenarios" end time: Oct 07 09:40 Mitteleuropäische Sommerzeit
+"scene_jobs_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+31/39 Testing: terrain_scenarios
+31/39 Test: terrain_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--terrain-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"terrain_scenarios" start time: Oct 07 09:40 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+terrain capsule 13900 1800: 671.270 vs 671.269
+terrain capsule 13800 12550: 532.173 vs 532.172
+terrain capsule 13800 4550: -132.322 vs -132.330
+terrain capsule 13900 15450: -150.036 vs -150.041
+terrain car 13901 15450: y -149.568 vs -150.051, contacts 4
+terrain car 13900 1804: y 660.575 vs 670.406, contacts 3
+terrain scenarios passed
+<end of output>
+Test time =   2.18 sec
+----------------------------------------------------------
+Test Passed.
+"terrain_scenarios" end time: Oct 07 09:40 Mitteleuropäische Sommerzeit
+"terrain_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+35/39 Testing: asset_smoke
+35/39 Test: asset_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/asset_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"asset_smoke" start time: Oct 07 09:40 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+asset smoke passed
+<end of output>
+Test time =   0.69 sec
+----------------------------------------------------------
+Test Passed.
+"asset_smoke" end time: Oct 07 09:40 Mitteleuropäische Sommerzeit
+"asset_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 07 09:40 Mitteleuropäische Sommerzeit

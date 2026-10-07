@@ -40,6 +40,29 @@ void expansionScenarios(){
     Vehicle combine{};combine.kind=Kind::Combine;bool cuttingAuger=false;
     for(const auto& part:vehicle_systems::parts(combine))cuttingAuger|=part.spin==4;
     assert(cuttingAuger);
+    // Resized machinery shares its mesh scale, rigid pivots, ground gear and
+    // debris extents; explosion fragments must not shrink back to source size.
+    for(Kind kind:{Kind::Combine,Kind::Airplane}){
+        stage();vehicle(kind);jolt_world::reset();ticks(90);
+        assert(jolt_world::wheelContactCount(0)>=2);
+        std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
+        std::vector<dx11::ModelInstance> instances;dx11::buildScene(groups,instances);
+        auto parts=vehicle_systems::parts(vehicles[0]);int rendered=0;
+        for(const auto& part:parts){
+            const auto* source=dx11::mesh(part.mesh);assert(source);
+            float extent=std::max({source->maxX-source->minX,source->maxY-source->minY,source->maxZ-source->minZ});
+            assert(std::abs(std::max({part.size.x,part.size.y,part.size.z})-extent*1.5f)<.01f);
+            for(const auto& instance:instances)if(instance.source==source){
+                assert(instance.scaleX==1.5f&&instance.scaleY==1.5f&&instance.scaleZ==1.5f);
+                auto position=vehicle_systems::partPosition(vehicles[0],part);
+                assert(len(position-Vec3{instance.x,instance.y,instance.z})<.01f);++rendered;
+            }
+        }
+        assert(rendered==int(parts.size()));
+        damageVehicle(0,10000);jolt_world::step(1.0f/60);
+        assert(vehicles[0].exploded&&jolt_world::treeFragments().size()==parts.size());
+        for(const auto& fragment:jolt_world::treeFragments())assert(fragment.meshScale==1.5f);
+    }
     reset();std::set<Kind> kinds;for(auto& v:vehicles){kinds.insert(v.kind);
         if(v.id.rfind("expansion-",0)==0)assert(!solid(v.p,physics::chassisHalf(v.kind).x));}
     assert(kinds.size()==13);assert(radio::load());assert(radio::stations().size()>=10);

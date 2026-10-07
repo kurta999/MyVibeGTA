@@ -1,0 +1,225 @@
+Start testing: Oct 07 10:01 Mitteleuropäische Sommerzeit
+----------------------------------------------------------
+5/39 Testing: simulation_smoke
+5/39 Test: simulation_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"simulation_smoke" start time: Oct 07 10:01 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Connected playable area (conservative 100-unit grid): 267.79 million square units
+simulation smoke passed
+<end of output>
+Test time =  52.46 sec
+----------------------------------------------------------
+Test Passed.
+"simulation_smoke" end time: Oct 07 10:02 Mitteleuropäische Sommerzeit
+"simulation_smoke" time elapsed: 00:00:52
+----------------------------------------------------------
+
+11/39 Testing: builder_recovery_scenarios
+11/39 Test: builder_recovery_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--builder-recovery-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"builder_recovery_scenarios" start time: Oct 07 10:02 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+recovery: prop pit fall, immediate F5 resurface, preserved unrelated momentum and re-entry fall passed
+recovery: unchanged submerged prop retains the existing water-bed physics passed
+recovery: live ragdoll rigid pose/joint recovery and obsolete pin release passed
+recovery: settled corpse snapshot support casts, rigid poses and repeated F5 isolation passed
+recovery: settled corpse retains support from an unchanged dynamic crate passed
+Assertion failed: finishBuilderTransition(true)&&builder::active()==next, file C:\GIT_local\MyVibeGTA\tests\builder_recovery_scenarios.cpp, line 22
+<end of output>
+Test time =  44.56 sec
+----------------------------------------------------------
+Test Failed.
+"builder_recovery_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"builder_recovery_scenarios" time elapsed: 00:00:44
+----------------------------------------------------------
+
+12/39 Testing: builder_transition_scenarios
+12/39 Test: builder_transition_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--builder-transition-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"builder_transition_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja\savegame.ini
+transition: failed normal entry leaves layer/camera/actors intact, then F5 retry succeeds
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja\savegame.ini
+Save creation failed (32): C:\GIT_local\MyVibeGTA\build-msvc-ninja\savegame.ini.tmp
+transition: failed save creation/replacement preserves cuts, collision, chest tools, drops and exact disk bytes
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja\savegame.ini
+transition: successful retries preserve F5 separation and complete edit/item records across on-disk reload
+<end of output>
+Test time =  19.94 sec
+----------------------------------------------------------
+Test Passed.
+"builder_transition_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"builder_transition_scenarios" time elapsed: 00:00:19
+----------------------------------------------------------
+
+21/39 Testing: expansion_scenarios
+21/39 Test: expansion_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--expansion-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"expansion_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+SKATEBOARD travel 74.2 speed 28.3 height 1.5
+SKATEBOARD travel 72.2 speed 28.2 height 1.6
+BICYCLE travel 273.4 speed 135.8 height 1.7
+BICYCLE travel 280.1 speed 138.9 height 1.7
+TRACTOR travel 216.3 speed 138.6 height 0.8
+TRACTOR travel 214.0 speed 138.1 height 0.8
+COMBINE travel 165.0 speed 108.6 height 1.6
+COMBINE travel 121.2 speed 87.5 height 2.2
+TANK travel 161.8 speed 114.8 height 3.0
+TANK travel 209.4 speed 139.8 height 2.6
+TRUCK travel 257.3 speed 156.7 height -2.6
+TRUCK travel 264.3 speed 174.6 height -2.6
+PLANE dt 0.0167 x 5726.7 alt 842.2 speed 125.6 pitch 0.97 stall 0 damage 0.0
+PLANE dt 0.0333 x 5724.2 alt 839.2 speed 131.8 pitch 0.95 stall 0 damage 0.0
+Vehicle expansion, trailer, tank, building holes, fragments, radio and saved display checks passed
+<end of output>
+Test time =   5.10 sec
+----------------------------------------------------------
+Test Passed.
+"expansion_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"expansion_scenarios" time elapsed: 00:00:05
+----------------------------------------------------------
+
+22/39 Testing: equipment_scenarios
+22/39 Test: equipment_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--equipment-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"equipment_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Minigun rounds in 2s: 51
+Equipment scenarios passed: flight, collisions, weapons, animation, grapple, transient corpses.
+<end of output>
+Test time =   4.05 sec
+----------------------------------------------------------
+Test Passed.
+"equipment_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"equipment_scenarios" time elapsed: 00:00:04
+----------------------------------------------------------
+
+23/39 Testing: ordnance_scenarios
+23/39 Test: ordnance_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--ordnance-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"ordnance_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+C4 city capsule height: -0.000003
+Ordnance, stealth, hideout, range, debug and underwater scenarios passed.
+<end of output>
+Test time =   1.96 sec
+----------------------------------------------------------
+Test Passed.
+"ordnance_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"ordnance_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+26/39 Testing: driver_scenarios
+26/39 Test: driver_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--drivers-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"driver_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Bike kind 2 pelvis: height 13.163, along -11.332, samples 260
+Bike kind 2 pelvis: height 13.163, along -11.333, samples 260
+Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+Driver scenarios passed: real entry, road acceleration, seated geometry, vehicle rotation, exit cleanup.
+<end of output>
+Test time =   1.32 sec
+----------------------------------------------------------
+Test Passed.
+"driver_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"driver_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+27/39 Testing: vehicle_collision_scenarios
+27/39 Test: vehicle_collision_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--vehicle-collisions-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"vehicle_collision_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Empty-road vehicle 0: peak speed 500.0, damage 0.000
+Empty-road vehicle 1: peak speed 500.0, damage 0.000
+Empty-road vehicle 2: peak speed 500.0, damage 0.000
+Tree strike distance 80: peak 71.3, destroyed 0, fragments 0
+Tree strike distance 450: peak 260.3, destroyed 1, fragments 11
+Coasting vehicle 0: 428.3 -> 0.00, travel 590.3
+Coasting vehicle 1: 500.0 -> 0.00, travel 681.8
+Coasting vehicle 2: 499.3 -> 0.00, travel 650.3
+Vehicle collision scenarios passed: empty-road braking/turning/drifting and real wall damage.
+<end of output>
+Test time =   0.98 sec
+----------------------------------------------------------
+Test Passed.
+"vehicle_collision_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"vehicle_collision_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/39 Testing: scene_jobs_scenarios
+29/39 Test: scene_jobs_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--scene-jobs-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"scene_jobs_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+<end of output>
+Test time =   1.33 sec
+----------------------------------------------------------
+Test Passed.
+"scene_jobs_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"scene_jobs_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+31/39 Testing: terrain_scenarios
+31/39 Test: terrain_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--terrain-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"terrain_scenarios" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+terrain capsule 13900 1800: 671.270 vs 671.269
+terrain capsule 13800 12550: 532.173 vs 532.172
+terrain capsule 13800 4550: -132.322 vs -132.330
+terrain capsule 13900 15450: -150.036 vs -150.041
+terrain car 13901 15450: y -149.568 vs -150.051, contacts 4
+terrain car 13900 1804: y 660.575 vs 670.406, contacts 3
+terrain scenarios passed
+<end of output>
+Test time =   2.06 sec
+----------------------------------------------------------
+Test Passed.
+"terrain_scenarios" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"terrain_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+35/39 Testing: asset_smoke
+35/39 Test: asset_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/asset_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"asset_smoke" start time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+Output:
+----------------------------------------------------------
+asset smoke passed
+<end of output>
+Test time =   0.67 sec
+----------------------------------------------------------
+Test Passed.
+"asset_smoke" end time: Oct 07 10:03 Mitteleuropäische Sommerzeit
+"asset_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 07 10:03 Mitteleuropäische Sommerzeit

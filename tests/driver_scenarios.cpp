@@ -17,7 +17,7 @@ void driverScenarios(){
         jolt_world::teleportVehicle(i,{9000+float(i)*150,9000},0);}
     std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
     std::vector<dx11::ModelInstance> instances;
-    for(Kind kind:{Kind::Bike,Kind::Car,Kind::SportCar}){
+    for(Kind kind:{Kind::Bike,Kind::Bicycle,Kind::Car,Kind::SportCar}){
         int index=-1;
         for(int i=0;i<int(vehicles.size());++i)if(vehicles[i].kind==kind){index=i;break;}
         assert(index>=0);
@@ -48,7 +48,35 @@ void driverScenarios(){
             }
             // The RX-7 cabin is lower than the Rover; the seated head must fit
             // under each imported roof rather than the old procedural body.
-            assert(kind==Kind::Bike?top>34&&top<45:kind==Kind::SportCar?top>20&&top<28:top>32&&top<43);
+            assert(kind==Kind::Bike?top>26&&top<37:kind==Kind::Bicycle?top>30&&top<39:kind==Kind::SportCar?top>20&&top<28:top>32&&top<43);
+            if(kind==Kind::Bike||kind==Kind::Bicycle){
+                const auto* skin=dx11::skinMesh("characters/hoodie-man");
+                const auto* bounds=dx11::mesh("characters/hoodie-man");
+                Vec3 hips{};int samples=0;
+                for(size_t n=0;n<skin->vertices.size();++n){
+                    // The bind vertices are in mesh-local space; the matching
+                    // idle mesh gives their height after the skin palette.
+                    float height=(bounds->vertices[n].y-bounds->minY)/(bounds->maxY-bounds->minY);
+                    if(height<.48f||height>.52f)continue;
+                    float arms=0;
+                    for(int joint=0;joint<4;++joint){
+                        int part=skin->bodyPartForJoint[skin->vertices[n].joints[joint]];
+                        if(part==2||part==3)arms+=skin->vertices[n].weights[joint];
+                    }
+                    if(arms>.1f)continue;
+                    const auto& vertex=groups[5][n];hips=hips+Vec3{vertex.x,vertex.y,vertex.z};++samples;
+                }
+                assert(samples>10);hips=hips*(1.0f/samples);
+                Vec2 direction=forward(angle);
+                float along=(hips.x-vehicle.p.x)*direction.x+(hips.z-vehicle.p.z)*direction.z;
+                std::printf("Bike kind %d pelvis: height %.3f, along %.3f, samples %d\n",int(kind),hips.y-vehicle.rideHeight,along,samples);
+                // The actual imported motorcycle saddle is around y=13.7,
+                // z=-9.5, rather than the previous floating/rear-biased rider.
+                float saddleHeight=kind==Kind::Bike?13.7f:18.55f;
+                float saddleAlong=kind==Kind::Bike?-9.5f:-7;
+                assert(std::abs(hips.y-vehicle.rideHeight-saddleHeight)<3);
+                assert(std::abs(along-saddleAlong)<3);
+            }
             std::vector<dx11::SkinInstance> skins;
             dx11::buildScene(groups,instances,vehicle.p.x,60,vehicle.p.z-60,&skins);
             assert(skins.empty());

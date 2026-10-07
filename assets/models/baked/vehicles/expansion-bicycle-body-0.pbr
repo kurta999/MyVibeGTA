@@ -1,2 +1,4 @@
-0 504 0.95000 0.00000 0 - - - - - OPAQUE 0.5
-504 8148 1.00000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+0 504 0.55 0.6 0 expansion-bicycle-graphite-base.png expansion-bicycle-graphite-normal.png expansion-bicycle-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+504 8148 0.4 0.15 0 expansion-bicycle-paint-base.png expansion-bicycle-paint-normal.png expansion-bicycle-paint-orm.png - - OPAQUE 0.5

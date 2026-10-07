@@ -504,12 +504,12 @@ void streetlights(){
         if(mesh("modern/street-lamp")){
             authoredProp("modern/street-lamp",{x,0,z});
             if(close({x,z},260)){
-                authoredProp("modern/bin",{x-6,0,z+10});
+                authoredProp("modern/bin",{x-6,0,z+10},0,20);
                 if(row%3==0)authoredProp("modern/bench",{x-6,0,z-25},game::PI/2);
                 else if(row%3==1)authoredProp("modern/bike-rack",{x-6,0,z-22},game::PI/2);
                 else authoredProp("modern/planter",{x-6,0,z-23},game::PI/2);
                 authoredProp("modern/bollard",{x-10,0,z-9});
-                if(row%3==0)authoredProp("modern/hydrant",{x-7,0,z+27});
+                if(row%3==0)authoredProp("modern/hydrant",{x-7,0,z+27},0,20);
             }
             if(daylight<0.1f)
                 glowBox({x-13.1f,44.63f,z},{4.8f,.20f,3.6f},0,game::rgb(255,220,135));
@@ -1280,10 +1280,10 @@ float carLampDepth(const Mesh& body,Vec3 size,float x,float y,bool front){
 }
 void drawRigidPart(Vec3 position,Vec3 size,Color tint,int shape,const RagdollPart& rotation);
 Vec3 rotateBy(const RagdollPart& body,Vec3 v);
-void rigidVehicleMesh(const std::string& name,Vec3 position,const RagdollPart& rotation){
+void rigidVehicleMesh(const std::string& name,Vec3 position,const RagdollPart& rotation,float scale=1){
     const Mesh* source=mesh(name);if(!source)return;
     ModelInstance instance{};instance.source=source;instance.material=6;
-    instance.scaleX=instance.scaleY=instance.scaleZ=1;instance.cosYaw=1;instance.cosPitch=1;
+    instance.scaleX=instance.scaleY=instance.scaleZ=scale;instance.cosYaw=1;instance.cosPitch=1;
     instance.x=position.x;instance.y=position.y;instance.z=position.z;
     instance.r=instance.g=instance.b=1;
     instance.qx=rotation.qx;instance.qy=rotation.qy;instance.qz=rotation.qz;instance.qw=rotation.qw;
@@ -1297,15 +1297,24 @@ void vehicles(){
         int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
             game::peds[v.driver].style:-1;
         for(const auto& part:vehicle_systems::parts(v)){
-            rigidVehicleMesh(part.mesh,vehicle_systems::partPosition(v,part),vehicle_systems::partRotation(v,part));
+            float scale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane?physics::vehicleScale(v.kind):1;
+            rigidVehicleMesh(part.mesh,vehicle_systems::partPosition(v,part),vehicle_systems::partRotation(v,part),scale);
         }
         if(style>=0&&v.kind!=game::Kind::Trailer){
             const char* names[]={"casual-man","hoodie-man","casual-woman","beach-man"};
             float bottom=v.kind==game::Kind::Skateboard?7:v.kind==game::Kind::Bicycle?11:
                 v.kind==game::Kind::Tractor?20:v.kind==game::Kind::Combine?12:v.kind==game::Kind::Truck?12:
-                v.kind==game::Kind::Airplane?7:v.kind==game::Kind::Helicopter?6:v.kind==game::Kind::Tank?18:v.kind==game::Kind::Bike?3:v.kind==game::Kind::SportCar?-16:0;
+                v.kind==game::Kind::Airplane?7:v.kind==game::Kind::Helicopter?6:v.kind==game::Kind::Tank?18:v.kind==game::Kind::Bike?-5.3f:v.kind==game::Kind::SportCar?-16:0;
+            // Anchors measured on the imported saddles. The posed pelvis is
+            // halfway up the standing skin; its feet origin must sit below it.
+            if(v.kind==game::Kind::Bicycle)bottom=1.55f;
             float longitudinal=v.kind==game::Kind::Truck?20:v.kind==game::Kind::Combine?10:
-                v.kind==game::Kind::Helicopter?42:-5;
+                v.kind==game::Kind::Helicopter?42:v.kind==game::Kind::Bike?-9.5f:v.kind==game::Kind::Bicycle?-7:-5;
+            if(v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane){
+                float hip=v.kind==game::Kind::Airplane?13.0f:17.0f;
+                float scale=physics::vehicleScale(v.kind);
+                bottom=(bottom+hip)*scale-hip;longitudinal*=scale;
+            }
             Vec2 seat=v.p+facing*longitudinal;
             if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){Vec2 side{-facing.z,facing.x};seat=seat-side*10;}
             std::size_t first=buckets[5].size();
@@ -1728,7 +1737,7 @@ void effects(){
                 instance.x=fragment.p.x;instance.y=fragment.p.y;instance.z=fragment.p.z;
                 instance.qx=fragment.qx;instance.qy=fragment.qy;instance.qz=fragment.qz;instance.qw=fragment.qw;
                 modelInstances->push_back(instance);
-            }else if(!fragment.mesh.empty())rigidVehicleMesh(fragment.mesh,fragment.p,rotation);
+            }else if(!fragment.mesh.empty())rigidVehicleMesh(fragment.mesh,fragment.p,rotation,fragment.meshScale);
             else drawRigidPart(fragment.p,fragment.size,fragment.color,fragment.shape,rotation);
             continue;
         }

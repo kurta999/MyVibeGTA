@@ -62,5 +62,12 @@
       "spin": 0
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-motorcycle-body-0.m3d": "eba7e1b37a52ba88dc1d5f3109c3d240f02797d4e9c348f4f5380c192fd64f5a",
+    "expansion-motorcycle-body-1.m3d": "894de8e28460cf0e6e8a63355f6aaaaeaf0fb6cb5bcfc117f1db3e022d20d2c2",
+    "expansion-motorcycle-body-2.m3d": "aed0242cdc67e3b123ee45c80698d1df1f317d6bcdcef584248ca52f0eadb11f",
+    "expansion-motorcycle-body-3.m3d": "68b7553004312e2ccc751d2356574f1e600fe3ec34baba0f794ba69a7d79b824"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. motorcycle"
 }

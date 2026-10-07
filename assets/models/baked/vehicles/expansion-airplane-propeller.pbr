@@ -1,2 +1,4 @@
-0 186 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-186 1152 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 186 0.4 0.15 0 expansion-airplane-paint-base.png expansion-airplane-paint-normal.png expansion-airplane-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+186 1152 0.55 0.6 0 expansion-airplane-graphite-base.png expansion-airplane-graphite-normal.png expansion-airplane-graphite-orm.png - - OPAQUE 0.5

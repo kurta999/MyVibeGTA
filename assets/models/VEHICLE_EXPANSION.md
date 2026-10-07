@@ -60,8 +60,22 @@ Rebuild sources with:
 
 ```powershell
 blender --background --factory-startup --disable-autoexec --python tools/bake_expansion_models.py
+python tools/texture_vehicle_surfaces.py
+python tools/texture_vehicle_surfaces.py --verify
 ```
 
 The cooker does not download models. `tools/fetch_expansion_models.py` fetches
 the five Poly Pizza GLBs and records their public source metadata. The other
 sources are downloaded from the author pages above and retained locally.
+
+The helicopter, airplane, motorcycle and bicycle sources contain colors but no
+usable base-color maps in the expansion bake. The surface pass above adds
+original project-authored albedo, normal and packed occlusion/roughness/metallic
+maps and projected UVs. Aircraft receive painted livery and opaque glazing;
+the bikes retain their authored frame/fairing colors with painted panels and
+mechanical detail. The pass preserves triangle indices, positions, normals and
+rigid pivots and records their hashes in each import manifest. It requires Pillow
+and NumPy in the regular Python interpreter; Blender does not need those packages.
+DX11 scales the combine and airplane to 150% at runtime, including rigid parts,
+chassis, wheel gear, seats, hit volumes and explosion debris. Source files and
+canonical baked geometry sizes remain intact.

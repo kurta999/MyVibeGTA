@@ -1,1 +1,2 @@
-0 3456 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+0 3456 0.55 0.6 0 expansion-airplane-graphite-base.png expansion-airplane-graphite-normal.png expansion-airplane-graphite-orm.png - - OPAQUE 0.5

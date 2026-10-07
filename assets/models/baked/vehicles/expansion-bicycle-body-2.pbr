@@ -1,1 +1,2 @@
-0 3165 1.00000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 3165 0.4 0.15 0 expansion-bicycle-paint-base.png expansion-bicycle-paint-normal.png expansion-bicycle-paint-orm.png - - OPAQUE 0.5

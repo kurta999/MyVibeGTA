@@ -9,6 +9,7 @@
 #include "../src/birds.h"
 #include "../src/physics.h"
 #include "../src/savegame.h"
+#include "../src/terrain.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -37,6 +38,30 @@ void ordnanceScenarios(){
     for(const char* id:{"c4","remote-trigger","grenade","smoke-grenade","molotov","flashbang","timed-bomb"}){
         int i=weapons::indexOf(id);assert(i>=20&&weapons::stats(i).payload!=Payload::None);
     }
+    // Real held input must throw after the capsule settles onto a city street.
+    stage();player=previousPlayer={772,242};jolt_world::teleportCharacter(player,0);
+    equip("c4");ticks(30);
+    std::printf("C4 city capsule height: %.6f\n",playerY);
+    assert(grounded&&!swimming);
+    leftMouse=true;ticks(1);leftMouse=false;
+    assert(ordnance::c4Count()==1&&magazine[weapon]==39&&ammo[weapon]==100);
+    ticks(120);assert(ordnance::devices[0].settled);
+    equip("remote-trigger");shoot();assert(ordnance::c4Count()==0&&!blasts.empty());
+
+    // A dry basin below sea level is also valid throwing ground.
+    stage();player=previousPlayer={13800,4550};playerY=terrain::height(player)+4;
+    jolt_world::teleportCharacter(player,playerY);ticks(120);
+    assert(grounded&&!swimming&&playerY<-100);
+    equip("c4");rightMouse=true;cameraPitch=-.2f;
+    leftMouse=true;ticks(1);leftMouse=false;
+    assert(ordnance::c4Count()==1&&magazine[weapon]==39&&ammo[weapon]==100);
+    ticks(180);assert(ordnance::devices[0].settled&&ordnance::devices[0].p.y<0);
+    fireCooldown=0;shoot();assert(ordnance::c4Count()==2&&magazine[weapon]==38);
+    equip("grenade");shoot();assert(ordnance::devices.size()==3&&magazine[weapon]==5);
+    // Swimming still blocks placement and preserves ammunition.
+    stage();equip("c4");swimming=true;playerY=-20;shoot();
+    assert(ordnance::devices.empty()&&magazine[weapon]==40&&ammo[weapon]==100);
+
     // The cap includes airborne charges, even with infinite debug ammunition.
     stage();equip("c4");debug_menu::infiniteAmmo=true;
     for(int i=0;i<40;++i){fireCooldown=0;shoot();}

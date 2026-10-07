@@ -144,6 +144,33 @@ int main(){
     }
     assert(dx11::mesh("weapons/c4")->textured);
     assert(dx11::mesh("vehicles/sedan")->vehicleWear);
+    // The live helicopter uses the expansion parts, all of which must retain
+    // valid surface maps instead of silently falling back to vertex colors.
+    data_file::Ini vehicleCatalog;assert(vehicleCatalog.load(data_file::resourcePath("vehicle-models.ini")));
+    for(const char* kind:{"helicopter","airplane","motorcycle","bicycle"}){
+      int partCount=0;assert(vehicleCatalog.integer(kind,"Count",partCount,1,32));
+      for(int part=0;part<partCount;++part){
+        std::string record;assert(vehicleCatalog.string(kind,"Part"+std::to_string(part),record));
+        const auto* asset=dx11::mesh(record.substr(0,record.find(' ')));
+        assert(asset&&asset->textured&&!asset->materialRanges.empty());
+        unsigned covered=0;
+        for(const auto& range:asset->materialRanges){
+            assert(range.start==covered);covered+=range.count;
+            assert(std::filesystem::exists(range.baseFile));
+            assert(std::filesystem::exists(range.normalFile));
+            assert(std::filesystem::exists(range.ormFile));
+            float minU=1,maxU=0,minV=1,maxV=0;
+            for(unsigned i=range.start;i<range.start+range.count;++i){
+                const auto& vertex=asset->vertices[asset->indices[i]];
+                assert(vertex.u>=0&&vertex.u<=1&&vertex.v>=0&&vertex.v<=1);
+                minU=std::min(minU,vertex.u);maxU=std::max(maxU,vertex.u);
+                minV=std::min(minV,vertex.v);maxV=std::max(maxV,vertex.v);
+            }
+            assert(maxU-minU>.001f||maxV-minV>.001f);
+        }
+        assert(covered==asset->indices.size());
+      }
+    }
     // Original modern meshes must arrive with contiguous indexed material
     // sections, complete maps, valid LOD bounds and safe glass/history routing.
     for(const char* name:{"coastal-office","terrace-apartments",

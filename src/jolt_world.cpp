@@ -565,8 +565,8 @@ void reset(){
             wheels.mMaxPitchRollAngle=plane?game::PI:bike?0.48f:0.62f;
             float radius=tuning.wheelRadius*scale;
             float width=(bike?2.5f:3.5f)*scale;
-            float wheelX=plane?11.0f:bike?2.7f:halfW*0.78f;
-            float wheelZ=plane?27.0f:bike?halfL*0.72f:halfL*0.76f;
+            float wheelX=plane?11.0f*scale:bike?2.7f:halfW*0.78f;
+            float wheelZ=plane?27.0f*scale:bike?halfL*0.72f:halfL*0.76f;
             for(int axle=0;axle<2;++axle)for(int side=0;side<2;++side){
                 JPH::WheelSettingsWV* wheel=new JPH::WheelSettingsWV();
                 wheel->mPosition=JPH::Vec3(side==0?wheelX:-wheelX,
@@ -1167,6 +1167,7 @@ void breakVehicle(std::size_t index,bool fragments){
         float a=n++*2.39996f;
         spawnFragment(p,part.size,{velocity.GetX()+std::cos(a)*130,velocity.GetY()+120+float(n%4)*30,velocity.GetZ()+std::sin(a)*130},part.color,part.shape);
         if(!fragmentBodies.empty()){auto& f=fragmentBodies.back();f.visual.mesh=part.mesh;
+            f.visual.meshScale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane?physics::vehicleScale(v.kind):1;
             auto pose=vehicle_systems::partRotation(v,part);auto partRotation=JPH::Quat(pose.qx,pose.qy,pose.qz,pose.qw);
             bodies.SetRotation(f.id,partRotation,JPH::EActivation::Activate);
             f.visual.qx=pose.qx;f.visual.qy=pose.qy;f.visual.qz=pose.qz;f.visual.qw=pose.qw;}

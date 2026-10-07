@@ -87,7 +87,9 @@ bool timerOpen(){return enteringTimer;}
 const std::string& timerText(){return seconds;}
 bool use(const weapons::Stats& stats){
     if(stats.payload==Payload::None)return false;
-    if(occupied>=0||enteringVehicle>=0||swimming||playerY<0||traversal::active())return true;
+    // Dry terrain and excavations can lie below sea level. Swimming, rather
+    // than absolute world height, determines whether throwing is blocked.
+    if(occupied>=0||enteringVehicle>=0||swimming||traversal::active())return true;
     if(stats.payload==Payload::Remote){detonateRemote();fireCooldown=.4f;return true;}
     if(stats.payload==Payload::C4&&c4Count()>=MAX_C4){announce("C4 limit: 40 active charges. Detonate first.",3);fireCooldown=.4f;return true;}
     if(devices.size()>=96){announce("Too many active devices.",2);return true;}

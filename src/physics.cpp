@@ -10,7 +10,8 @@ namespace physics {
 using namespace game;
 float vehicleScale(Kind kind){
 #ifdef MINI_CITY_JOLT
-    return kind==Kind::Car||kind==Kind::SportCar||kind==Kind::Helicopter?2.0f:1.0f;
+    return kind==Kind::Car||kind==Kind::SportCar||kind==Kind::Helicopter?2.0f:
+        kind==Kind::Combine||kind==Kind::Airplane?1.5f:1.0f;
 #else
     return 1.0f;
 #endif
@@ -18,18 +19,18 @@ float vehicleScale(Kind kind){
 Vec3 chassisHalf(Kind k){
     switch(k){
     case Kind::Skateboard:return {5,1,15};case Kind::Bicycle:return {5,4,17};
-    case Kind::Tractor:return {19,8,27};case Kind::Combine:return {31,12,42};
+    case Kind::Tractor:return {19,8,27};case Kind::Combine:return Vec3{31,12,42}*vehicleScale(k);
     case Kind::Tank:return {30,10,43};case Kind::Truck:return {26,10,58};
-    case Kind::Trailer:return {27,8,54};case Kind::Airplane:return {74,8,52};
+    case Kind::Trailer:return {27,8,54};case Kind::Airplane:return Vec3{74,8,52}*vehicleScale(k);
     default:return Vec3{k==Kind::Helicopter?16.0f:k==Kind::Bike?5.0f:k==Kind::Boat?12.0f:13.0f,
         k==Kind::Helicopter?12.0f:k==Kind::Boat?10.0f:k==Kind::Bike?4.0f:5.0f,
         k==Kind::Helicopter?30.0f:k==Kind::Bike?13.0f:24.0f}*vehicleScale(k);
     }
 }
 float vehicleRestHeight(Kind kind){
-    if(int(kind)>=5)return kind==Kind::Skateboard?4:kind==Kind::Bicycle?12:
+    if(int(kind)>=5)return (kind==Kind::Skateboard?4:kind==Kind::Bicycle?12:
         kind==Kind::Tractor?22:kind==Kind::Combine?26:kind==Kind::Tank?18:
-        kind==Kind::Truck?24:kind==Kind::Trailer?22:16;
+        kind==Kind::Truck?24:kind==Kind::Trailer?22:16)*vehicleScale(kind);
     return (kind==Kind::Helicopter?12.0f:kind==Kind::Boat?10.0f:
         kind==Kind::Bike?13.0f:14.0f)*vehicleScale(kind);
 }
@@ -45,7 +46,7 @@ float vehicleRadius(Kind kind){
 namespace {
 Vec3 hitSize(Kind kind){
     if(int(kind)>=5){auto half=chassisHalf(kind);return {half.x,kind==Kind::Skateboard?5.0f:
-        kind==Kind::Bicycle?26.0f:kind==Kind::Tank?34.0f:kind==Kind::Airplane?29.0f:55.0f,half.z};}
+        kind==Kind::Bicycle?26.0f:kind==Kind::Tank?34.0f:kind==Kind::Airplane?29.0f*vehicleScale(kind):55.0f*vehicleScale(kind),half.z};}
     Vec3 size=kind==Kind::Helicopter?Vec3{13.25f,30.5f,40.75f}:
         kind==Kind::Bike?Vec3{7,42,15}:kind==Kind::Boat?Vec3{12,42,24}:
         Vec3{13,kind==Kind::SportCar?20.0f:26.0f,24};
