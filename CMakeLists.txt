@@ -2,6 +2,25 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(MiniCity3D LANGUAGES CXX RC)
 
+# AMD FSR2 2.2.1: pinned upstream source, native DX12 backend and offline shaders.
+include(FetchContent)
+FetchContent_Declare(fsr2
+  GIT_REPOSITORY https://github.com/GPUOpen-Effects/FidelityFX-FSR2.git
+  GIT_TAG 1680d1edd5c034f88ebbbb793d8b88f8842cf804
+  GIT_SUBMODULES ""
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/FidelityFX-FSR2"
+  SOURCE_SUBDIR src/ffx-fsr2-api)
+set(FFX_FSR2_API_DX12 ON CACHE BOOL "FSR2 DX12" FORCE)
+set(FFX_FSR2_API_VK OFF CACHE BOOL "No Vulkan backend" FORCE)
+set(FSR2_BUILD_AS_DLL OFF CACHE BOOL "Static FSR2" FORCE)
+# Upstream's standalone CMake identifies Ninja x64 through this linker flag.
+set(_minicity_linker_flags "${CMAKE_EXE_LINKER_FLAGS}")
+if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(CMAKE_EXE_LINKER_FLAGS "/machine:x64")
+endif()
+FetchContent_MakeAvailable(fsr2)
+set(CMAKE_EXE_LINKER_FLAGS "${_minicity_linker_flags}")
+
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/JoltPhysics/Build/CMakeLists.txt")
   message(FATAL_ERROR "Jolt Physics v5.6.0 is required in third_party/JoltPhysics")
 endif()
@@ -16,12 +35,13 @@ set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp au
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     src/startup.cpp assets/app/minicity.rc
-    src/renderer_dx11.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
+    src/renderer_dx12.cpp src/dx12_backend.cpp src/fsr2.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
-target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
-target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app)
-target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
+target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_DX12)
+target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
+target_link_libraries(MiniCity3D PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
+target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
 add_custom_command(TARGET MiniCity3D POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
@@ -29,6 +49,21 @@ add_custom_command(TARGET MiniCity3D POST_BUILD
   "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data")
 
 option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
+option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for performance comparisons" OFF)
+if(MINI_CITY_BUILD_DX11_BENCHMARK)
+  get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
+  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES src/renderer_dx12.cpp src/dx12_backend.cpp src/fsr2.cpp)
+  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} src/renderer_dx11.cpp)
+  target_compile_features(MiniCity3D-DX11-benchmark PRIVATE cxx_std_17)
+  target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
+  target_include_directories(MiniCity3D-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
+  target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
+  add_custom_command(TARGET MiniCity3D-DX11-benchmark POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D-DX11-benchmark>/assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D-DX11-benchmark>/data")
+endif()
 if(MINI_CITY_BUILD_OPENGL)
   add_executable(MiniCity3DGL WIN32 ${COMMON_SOURCES} src/renderer.cpp src/textures.cpp)
   target_compile_features(MiniCity3DGL PRIVATE cxx_std_17)
@@ -41,6 +76,13 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(dx12_fsr2_smoke tests/dx12_fsr2_smoke.cpp src/dx12_backend.cpp src/fsr2.cpp src/logging.cpp)
+  target_compile_features(dx12_fsr2_smoke PRIVATE cxx_std_17)
+  target_compile_definitions(dx12_fsr2_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_include_directories(dx12_fsr2_smoke PRIVATE third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
+  target_link_libraries(dx12_fsr2_smoke PRIVATE user32 d3d12 dxgi d3dcompiler ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
+  add_test(NAME dx12_fsr2_smoke COMMAND dx12_fsr2_smoke --dx12-debug)
+  set_tests_properties(dx12_fsr2_smoke PROPERTIES TIMEOUT 120)
   add_executable(radio_live_smoke tests/radio_live_smoke.cpp src/radio.cpp)
   target_compile_features(radio_live_smoke PRIVATE cxx_std_17)
   target_compile_definitions(radio_live_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)

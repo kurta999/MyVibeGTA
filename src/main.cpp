@@ -71,7 +71,13 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     wc.hIcon=LoadIconA(instance,MAKEINTRESOURCEA(IDI_MINICITY));
 #endif
     if(!RegisterClassA(&wc)){logging::write("Window class registration failed");logging::shutdown();return 1;}
-    win=CreateWindowExA(0,wc.lpszClassName,"Mini City 3D - Direct3D 11",WS_OVERLAPPEDWINDOW,
+    const char* windowTitle=
+#ifdef MINI_CITY_DX12
+        "Mini City 3D - Direct3D 12";
+#else
+        "Mini City 3D - Direct3D 11";
+#endif
+    win=CreateWindowExA(0,wc.lpszClassName,windowTitle,WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,CW_USEDEFAULT,fullHd?1940:1620,fullHd?1120:940,
         nullptr,nullptr,instance,nullptr);
     if(!win){logging::write("Window creation failed");logging::shutdown();return 1;}

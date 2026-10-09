@@ -1,0 +1,27 @@
+Start testing: Oct 09 08:53 W. Europe Summer Time
+----------------------------------------------------------
+1/40 Testing: dx12_fsr2_smoke
+1/40 Test: dx12_fsr2_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/dx12_fsr2_smoke.exe" "--dx12-debug"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"dx12_fsr2_smoke" start time: Oct 09 08:53 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+PASS Quality 426x240 -> 640x360, temporal reset and GPU readback
+PASS Balanced 376x211 -> 640x360, temporal reset and GPU readback
+PASS Performance 320x180 -> 640x360, temporal reset and GPU readback
+PASS Ultra Performance 213x120 -> 640x360, temporal reset and GPU readback
+PASS Quality 533x300 -> 800x450, temporal reset and GPU readback
+PASS Balanced 470x264 -> 800x450, temporal reset and GPU readback
+PASS Performance 400x225 -> 800x450, temporal reset and GPU readback
+PASS Ultra Performance 266x150 -> 800x450, temporal reset and GPU readback
+PASS native DX12 resource lifetime, resizing, all FSR2 modes; validation errors: 0
+<end of output>
+Test time =   0.68 sec
+----------------------------------------------------------
+Test Passed.
+"dx12_fsr2_smoke" end time: Oct 09 08:53 W. Europe Summer Time
+"dx12_fsr2_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 09 08:53 W. Europe Summer Time

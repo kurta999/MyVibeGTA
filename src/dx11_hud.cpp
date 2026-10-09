@@ -304,7 +304,7 @@ void pauseMenu(int width,int height){
     int menuHeight=ui::page==ui::Page::Graphics?ui::GRAPHICS_MENU_HEIGHT:500;
     int x=width/2-280,y=(height-menuHeight)/2;
     rect(x,y,560,menuHeight,RGB(34,45,56));
-    label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 11",RGB(255,225,151));
+    label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 12",RGB(255,225,151));
     const char* heading=ui::page==ui::Page::Main?"PAUSED":ui::page==ui::Page::Graphics?"GRAPHICS":
         ui::page==ui::Page::Controls?"CONTROLS":"AUDIO";
     label(x+29,y+66,heading,RGB(231,241,242));
@@ -318,18 +318,25 @@ void pauseMenu(int width,int height){
         const char* quality[]={"Low","Medium","High"};const char* sizes[]={"1280 x 720","1600 x 900","1920 x 1080"};
         const char* shadows[]={"Off","Medium","High"};
         const char* filtering[]={"4x","8x","16x"};
+        const char* aa[]={"FXAA Low","FXAA","TAA"};
         const char* items[]={quality[ui::graphicsQuality],sizes[ui::windowChoice],
             quality[ui::vegetationDensity],quality[ui::effectsQuality],shadows[ui::shadowQuality],
-            shadows[ui::reflectionQuality],shadows[ui::antiAliasingQuality],shadows[ui::aoQuality],
+            shadows[ui::reflectionQuality],ui::fsr2Quality?"FSR2":aa[ui::antiAliasingQuality],shadows[ui::aoQuality],
             quality[ui::textureQuality],filtering[ui::filteringQuality]};
         const char* names[]={"Scene quality","Window size","Vegetation","Effects","Shadows",
-            "Reflections (SSR)","Anti-aliasing (FXAA)","Ambient occlusion (SSAO)",
+            "Reflections (SSR)","Anti-aliasing","Ambient occlusion (SSAO)",
             "Texture quality","Anisotropic filtering","Draw distance","LOD distance","Grass distance","Grass LOD","Display mode"};
-        for(int i=0;i<15;++i){int row=y+105+i*39;
-            if(i==ui::selection)rect(x+22,row-4,510,38,RGB(73,113,134));
+        for(int i=0;i<17;++i){int row=y+105+i*ui::GRAPHICS_ROW_HEIGHT;
+            if(i==ui::selection)rect(x+22,row-4,510,31,RGB(73,113,134));
             if(i<10){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
+            }else if(i==15){
+                const char* modes[]={"Off (native)","Quality","Balanced","Performance","Ultra Performance"};
+                std::snprintf(buffer,sizeof(buffer),"AMD FSR2: < %s >",modes[ui::fsr2Quality]);label(x+42,row+5,buffer,RGB(239,241,229));
+            }else if(i==16){
+                std::snprintf(buffer,sizeof(buffer),"FSR2 sharpness: %d%%",ui::fsr2Sharpness);label(x+42,row+5,buffer,RGB(239,241,229));
+                rect(x+290,row+13,220,6,RGB(70,86,97));rect(x+290,row+13,ui::fsr2Sharpness*220/100,6,RGB(139,214,178));
             }else if(i==14){
                 const char* modes[]={"Windowed","Borderless","Fullscreen"};
                 std::snprintf(buffer,sizeof(buffer),"Display mode: < %s >",modes[ui::windowMode]);label(x+42,row+5,buffer,RGB(239,241,229));

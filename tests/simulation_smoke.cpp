@@ -1679,15 +1679,15 @@ int main(int argc,char** argv){
     ui::shadowQuality=2;ui::reflectionQuality=2;
     ui::antiAliasingQuality=2;ui::aoQuality=2;
     ui::drawDistance=100;ui::lodDistance=75;
-    ui::grassDistance=83;ui::grassLodDistance=90;ui::save();
+    ui::grassDistance=83;ui::grassLodDistance=90;ui::fsr2Quality=3;ui::fsr2Sharpness=65;ui::save();
     ui::shadowQuality=0;ui::reflectionQuality=0;
     ui::antiAliasingQuality=0;ui::aoQuality=0;
     ui::drawDistance=0;ui::lodDistance=0;
-    ui::grassDistance=0;ui::grassLodDistance=0;ui::load();
+    ui::grassDistance=0;ui::grassLodDistance=0;ui::fsr2Quality=0;ui::fsr2Sharpness=0;ui::load();
     assert(ui::shadowQuality==2&&ui::reflectionQuality==2&&
         ui::antiAliasingQuality==2&&ui::aoQuality==2&&
         ui::drawDistance==100&&ui::lodDistance==75&&
-        ui::grassDistance==83&&ui::grassLodDistance==90);
+        ui::grassDistance==83&&ui::grassLodDistance==90&&ui::fsr2Quality==3&&ui::fsr2Sharpness==65);
     assert(std::abs(ui::drawDistanceScale()-7.5f)<0.001f);
     std::puts("simulation smoke passed");
 }

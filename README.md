@@ -1,6 +1,6 @@
 # Mini City 3D
 
-A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
+A playable Windows city sandbox written in C++17, with **native Direct3D 12**, **AMD FSR2**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
@@ -107,6 +107,30 @@ To choose a different output executable:
 ```
 
 Create the destination directory first and keep `assets/` and `data/` beside a relocated executable. The build directory already contains both folders.
+
+### Native DX12 and AMD FSR2
+
+`MiniCity3D` creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The older DX11 source remains for reference; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+
+In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100%. Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`.
+
+| Mode | Render resolution at 1920 × 1080 | Linear scale |
+| --- | --- | --- |
+| Off | 1920 × 1080 | Native |
+| Quality (default) | 1280 × 720 | 1.5× |
+| Balanced | 1129 × 635 | 1.7× |
+| Performance | 960 × 540 | 2× |
+| Ultra Performance | 640 × 360 | 3× |
+
+FSR2 uses jittered scene color, depth, motion vectors, and a reactive mask. It replaces FXAA/TAA while enabled; HUD and menus are composed afterward at display resolution. Quality/resolution changes and camera cuts reset temporal history. This is temporal upscaling, not frame generation. Native DX12 preserves the existing shadow, HDR, post-processing, GPU skinning, instancing and LOD passes.
+
+CMake fetches AMD's MIT-licensed **FSR2 2.2.1**, pinned at `1680d1edd5c034f88ebbbb793d8b88f8842cf804`, and builds its DX12 backend and shader permutations. The first build needs internet access and takes longer to compile the permutations. FSR2 is linked statically; no FSR DLL needs to ship. Packages include `AMD-FSR2-LICENSE.txt`. Use a current Windows SDK and Visual Studio x64 C++ tools; FSR2 needs Shader Model 6.2 support.
+
+`dx12_fsr2_smoke` verifies all quality modes, resize/history reset, and reconstructed GPU pixels using the real AMD dispatch. `--dx12-debug` enables the D3D12 debug layer when Windows Graphics Tools is installed. Game checks accept `--fsr2=0` through `--fsr2=4`, `--fsr2-cycle`, and `--capture-converged` (with `--smoke --benchmark --benchmark-short`).
+
+DX12 overlaps CPU preparation with GPU execution using two fence-protected recording slots. Upload memory is reused after both GPU work and live buffer references release it; texture descriptor tables are cached, and scene vertices copy directly into upload memory using the CPU worker pool. `--scene-workers=1` selects the serial preparation path; command-list recording remains on the main thread. `--dx12-sync` restores a full GPU wait per frame for diagnostics.
+
+For matched API benchmarks, configure with `-DMINI_CITY_BUILD_DX11_BENCHMARK=ON` and build the optional `MiniCity3D-DX11-benchmark` target. Run both executables from the same build directory with `--smoke --benchmark`, adding `--fsr2=0` to DX12 for native-resolution comparisons. Keep settings identical and disable debug validation and screenshots while measuring. Results and remaining limits are in [DX12 performance evidence](evidence/dx12-performance-20261009/README.md).
 
 ### CMake directly
 

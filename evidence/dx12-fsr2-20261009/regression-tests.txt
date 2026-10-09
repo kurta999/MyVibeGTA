@@ -1,0 +1,146 @@
+Start testing: Oct 09 08:42 W. Europe Summer Time
+----------------------------------------------------------
+1/40 Testing: dx12_fsr2_smoke
+1/40 Test: dx12_fsr2_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/dx12_fsr2_smoke.exe" "--dx12-debug"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"dx12_fsr2_smoke" start time: Oct 09 08:42 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+PASS Quality 426x240 -> 640x360, temporal reset and GPU readback
+PASS Balanced 376x211 -> 640x360, temporal reset and GPU readback
+PASS Performance 320x180 -> 640x360, temporal reset and GPU readback
+PASS Ultra Performance 213x120 -> 640x360, temporal reset and GPU readback
+PASS Quality 533x300 -> 800x450, temporal reset and GPU readback
+PASS Balanced 470x264 -> 800x450, temporal reset and GPU readback
+PASS Performance 400x225 -> 800x450, temporal reset and GPU readback
+PASS Ultra Performance 266x150 -> 800x450, temporal reset and GPU readback
+PASS native DX12 resource lifetime, resizing, all FSR2 modes; validation errors: 0
+<end of output>
+Test time =   1.08 sec
+----------------------------------------------------------
+Test Passed.
+"dx12_fsr2_smoke" end time: Oct 09 08:42 W. Europe Summer Time
+"dx12_fsr2_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+6/40 Testing: simulation_smoke
+6/40 Test: simulation_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"simulation_smoke" start time: Oct 09 08:42 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Connected playable area (conservative 100-unit grid): 267.79 million square units
+simulation smoke passed
+<end of output>
+Test time =  50.94 sec
+----------------------------------------------------------
+Test Passed.
+"simulation_smoke" end time: Oct 09 08:43 W. Europe Summer Time
+"simulation_smoke" time elapsed: 00:00:50
+----------------------------------------------------------
+
+30/40 Testing: scene_jobs_scenarios
+30/40 Test: scene_jobs_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--scene-jobs-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"scene_jobs_scenarios" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+<end of output>
+Test time =   1.40 sec
+----------------------------------------------------------
+Test Passed.
+"scene_jobs_scenarios" end time: Oct 09 08:43 W. Europe Summer Time
+"scene_jobs_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+31/40 Testing: grass_scenarios
+31/40 Test: grass_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--grass-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"grass_scenarios" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Grass checks passed: 2K masked PBR, rooted wind, surface exclusions, deterministic density/LODs; default 2383, max 6184 roots
+<end of output>
+Test time =   1.08 sec
+----------------------------------------------------------
+Test Passed.
+"grass_scenarios" end time: Oct 09 08:43 W. Europe Summer Time
+"grass_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+32/40 Testing: terrain_scenarios
+32/40 Test: terrain_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/simulation_smoke.exe" "--terrain-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"terrain_scenarios" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+terrain capsule 13900 1800: 671.270 vs 671.269
+terrain capsule 13800 12550: 532.173 vs 532.172
+terrain capsule 13800 4550: -132.322 vs -132.330
+terrain capsule 13900 15450: -150.036 vs -150.041
+terrain car 13901 15450: y -149.568 vs -150.051, contacts 4
+terrain car 13900 1804: y 660.575 vs 670.406, contacts 3
+terrain scenarios passed
+<end of output>
+Test time =   2.11 sec
+----------------------------------------------------------
+Test Passed.
+"terrain_scenarios" end time: Oct 09 08:43 W. Europe Summer Time
+"terrain_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+36/40 Testing: asset_smoke
+36/40 Test: asset_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/asset_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"asset_smoke" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+asset smoke passed
+<end of output>
+Test time =   0.70 sec
+----------------------------------------------------------
+Test Passed.
+"asset_smoke" end time: Oct 09 08:43 W. Europe Summer Time
+"asset_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/40 Testing: texture_mips_smoke
+37/40 Test: texture_mips_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/texture_mips_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"texture_mips_smoke" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+texture mip checks passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"texture_mips_smoke" end time: Oct 09 08:43 W. Europe Summer Time
+"texture_mips_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/40 Testing: texture_loading_smoke
+38/40 Test: texture_loading_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/texture_loading_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"texture_loading_smoke" start time: Oct 09 08:43 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Texture loading checks passed: BC7/BC5/BC4/RGBA DDS, rejected corrupt DDS, exact mip bytes, bounded concurrency, cancellation, failures, reopening; serial 0.145 s
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"texture_loading_smoke" end time: Oct 09 08:43 W. Europe Summer Time
+"texture_loading_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 09 08:43 W. Europe Summer Time

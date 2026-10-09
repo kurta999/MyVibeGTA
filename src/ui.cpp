@@ -17,6 +17,7 @@ int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
     effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,
     windowMode=0,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
+int fsr2Quality=1,fsr2Sharpness=20;
 bool showHelp=false;
 std::array<int,int(Action::Count)> bindings{{'W','S','A','D',VK_SHIFT,'E'}};
 
@@ -27,7 +28,14 @@ std::string configPath(){
     std::string result(path);auto slash=result.find_last_of("\\/");
     return result.substr(0,slash+1)+"settings.ini";
 }
-int count(Page p){return p==Page::Main?7:p==Page::Graphics?15:p==Page::Controls?8:p==Page::Audio?1:0;}
+int count(Page p){
+#ifdef MINI_CITY_DX12
+    constexpr int graphicsRows=17;
+#else
+    constexpr int graphicsRows=15;
+#endif
+    return p==Page::Main?7:p==Page::Graphics?graphicsRows:p==Page::Controls?8:p==Page::Audio?1:0;
+}
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
     WritePrivateProfileStringA(section,key,text,path.c_str());
@@ -94,6 +102,8 @@ float grassLodDistanceUnits(){
 }
 void load(){
     std::string path=configPath();
+    fsr2Quality=std::clamp(int(GetPrivateProfileIntA("Graphics","FSR2",1,path.c_str())),0,4);
+    fsr2Sharpness=std::clamp(int(GetPrivateProfileIntA("Graphics","FSR2Sharpness",20,path.c_str())),0,100);
     graphicsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Quality",2,path.c_str())),0,2);
     shadowQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Shadows",1,path.c_str())),0,2);
     reflectionQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Reflections",1,path.c_str())),0,2);
@@ -129,6 +139,8 @@ void load(){
 }
 void save(){
     std::string path=configPath();
+    writeValue("Graphics","FSR2",fsr2Quality,path);
+    writeValue("Graphics","FSR2Sharpness",fsr2Sharpness,path);
     writeValue("Graphics","Quality",graphicsQuality,path);
     writeValue("Graphics","Shadows",shadowQuality,path);
     writeValue("Graphics","Reflections",reflectionQuality,path);
@@ -189,6 +201,8 @@ void handleKey(int key){
         selection=0;return;
     }
     if(page==Page::Graphics){
+        if(selection==15&&direction)fsr2Quality=std::clamp(fsr2Quality+direction,0,4);
+        if(selection==16&&direction)fsr2Sharpness=std::clamp(fsr2Sharpness+direction*5,0,100);
         if(selection==0&&direction)graphicsQuality=std::clamp(graphicsQuality+direction,0,2);
         if(selection==1&&direction){windowChoice=std::clamp(windowChoice+direction,0,2);applyWindow();}
         if(selection==2&&direction)vegetationDensity=std::clamp(vegetationDensity+direction,0,2);
@@ -219,13 +233,14 @@ void handleMouse(int x,int y,bool dragging){
     RECT client{};GetClientRect(game::win,&client);
     int left=(client.right-client.left)/2-280;
     int top=((client.bottom-client.top)-GRAPHICS_MENU_HEIGHT)/2;
-    for(int row=10;row<=13;++row){
-        int rowY=top+105+row*39;
-        if(y<rowY-5||y>rowY+38)continue;
+    for(int row=10;row<count(Page::Graphics);++row){
+        if(row==14||row==15)continue;
+        int rowY=top+105+row*GRAPHICS_ROW_HEIGHT;
+        if(y<rowY-4||y>rowY+GRAPHICS_ROW_HEIGHT-4)continue;
         if(!dragging&&x<left+285)return;
         selection=row;
         int value=std::clamp((x-(left+290))*100/220,0,100);
-        int& setting=row==10?drawDistance:row==11?lodDistance:row==12?grassDistance:grassLodDistance;
+        int& setting=row==10?drawDistance:row==11?lodDistance:row==12?grassDistance:row==13?grassLodDistance:fsr2Sharpness;
         if(setting!=value){setting=value;save();}
         return;
     }

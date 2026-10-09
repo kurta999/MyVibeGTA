@@ -1,0 +1,48 @@
+2026-10-9 9:9:15  Application started
+2026-10-9 9:9:15  Startup: Starting Mini City 3D took 0.007 s
+2026-10-9 9:9:15  Startup: Starting native Direct3D 12
+2026-10-9 9:9:16  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-9 9:9:16  Startup: Starting native Direct3D 12 took 0.156 s
+2026-10-9 9:9:16  Startup: Compiling graphics shaders
+2026-10-9 9:9:18  Shader loading: workers 4, peak active 4, completed 19/19, wall 2.714 s, CPU 3.737 s
+2026-10-9 9:9:18  Startup: Compiling graphics shaders took 2.717 s
+2026-10-9 9:9:18  Startup: Creating graphics buffers and shadows
+2026-10-9 9:9:21  Startup: Creating graphics buffers and shadows took 2.434 s
+2026-10-9 9:9:21  Startup: Loading surface textures
+2026-10-9 9:9:21  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.610 s, decode CPU 0.351 s, mip CPU 0.975 s, upload 0.055 s
+2026-10-9 9:9:21  Startup: Loading surface textures took 0.610 s
+2026-10-9 9:9:21  Startup: Loading city models and animations
+2026-10-9 9:9:22  Startup: Loading city models and animations took 0.665 s
+2026-10-9 9:9:22  Startup: Preparing city geometry
+2026-10-9 9:9:22  Startup: Preparing city geometry took 0.003 s
+2026-10-9 9:9:22  Startup: Preparing regional textures
+2026-10-9 9:9:31  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 8.646 s, decode CPU 3.211 s, mip CPU 21.448 s, upload 0.698 s
+2026-10-9 9:9:31  Startup: Preparing regional textures took 8.646 s
+2026-10-9 9:9:31  Startup: Uploading regional graphics
+2026-10-9 9:9:31  Startup: Uploading regional graphics took 0.431 s
+2026-10-9 9:9:31  Startup: Loading HDR lighting
+2026-10-9 9:9:31  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 9:9:31  CPU scene workers: 4
+2026-10-9 9:9:31  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 9:9:31  Renderer initialized
+2026-10-9 9:9:31  Startup: Loading HDR lighting took 0.086 s
+2026-10-9 9:9:31  Startup: Starting audio and loading settings
+2026-10-9 9:9:32  Startup: Starting audio and loading settings took 0.502 s
+2026-10-9 9:9:32  Startup: Loading gameplay data
+2026-10-9 9:9:32  Startup: Loading gameplay data took 0.028 s
+2026-10-9 9:9:32  Startup: Building the city and physics world
+2026-10-9 9:9:32  Startup: Building the city and physics world took 0.090 s
+2026-10-9 9:9:32  Startup: Loading saved progress
+2026-10-9 9:9:32  Startup: Loading saved progress took 0.000 s
+2026-10-9 9:9:32  Startup: Preparing the first frame
+2026-10-9 9:9:32  AMD FSR2 2.2.1 Quality: 1280x720 -> 1920x1080 (native DX12 compute)
+2026-10-9 9:9:32  GPU skinning: 6 ordinary poses, 92046 vertices; shared color/shadow buffer
+2026-10-9 9:9:38  Benchmark 1920x1080: avg 44.72 ms (sim 2.30, physics 1.32, render 42.42), p95 55.91 ms, p99 59.77 ms, max 60.72 ms, draws 1245, active AI 43 over 120 frames, 0 flames, RAM 1462 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 9:9:38  GPU timing: shadow 7.26 ms, scene 15.11 ms, post/HUD 14.40 ms (119 nonblocking samples); submitted triangles 4952015/frame
+2026-10-9 9:9:38  CPU scene work: deformation 7.731 ms (247656 vertices/frame), grass rebuild 0.000 ms, 15.00 parallel batches/frame
+2026-10-9 9:9:38  CPU rendering: scene 13.992 ms, upload/cull 11.022 ms, draw/HUD 15.346 ms, present 2.055 ms (seed 1)
+2026-10-9 9:9:38  Startup: Preparing the first frame took 6.143 s
+2026-10-9 9:9:38  Startup: Ready
+2026-10-9 9:9:38  Startup ready in 22.518 s
+2026-10-9 9:9:38  Smoke render completed
+2026-10-9 9:9:38  Application stopped

@@ -42,3 +42,7 @@ __pycache__/
 # Large Poly Haven source geometry; restore with tools/fetch_city_sources.ps1
 /assets/models/source/polyhaven/island_tree_03/island_tree_03.bin
 /assets/models/source/polyhaven/jacaranda_tree/jacaranda_tree.bin
+
+# Pinned and restored by CMake FetchContent
+/third_party/FidelityFX-FSR2/
+/bin/ffx_fsr2_api/

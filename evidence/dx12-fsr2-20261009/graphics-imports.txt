@@ -1,0 +1,6 @@
+    d3d12.dll
+                           E D3D12SerializeRootSignature
+    dxgi.dll
+                           5 CreateDXGIFactory2
+    D3DCOMPILER_47.dll
+                           1 D3DCompile

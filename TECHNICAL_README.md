@@ -1,3 +1,5 @@
+> Renderer update (2026-10-09): the main executable now uses `renderer_dx12.cpp`, `dx12_backend.cpp`, and AMD FSR2's native DX12 compute backend. The detailed DX11 API walkthrough below documents the previous backend; the scene, materials, shaders, physics and animation concepts still apply. See README's Native DX12 and AMD FSR2 section for the current build/settings path. The current backend uses a direct queue, explicit barriers, descriptor heaps, native graphics/compute PSOs and fence-protected uploads/readbacks. Two fence-protected recording slots now overlap CPU preparation with GPU execution. Each slot owns its command allocator, shader-visible heaps and retained resources. Upload pages are reused only after GPU completion and after every live buffer releases its allocation; texture descriptor tables are cached per command list. Dynamic scene uploads use the CPU worker pool and avoid intermediate copies. Readback, resize and shutdown still drain the queue. Command-list recording itself remains on the main thread.
+
 # Mini City 3D — Technical Guide
 
 **From asset bytes to pixels, movement, and collision in the Direct3D 11 engine.**
