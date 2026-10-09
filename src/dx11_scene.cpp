@@ -1297,7 +1297,7 @@ void vehicles(){
         int style=playerDriver?1:v.driver>=0&&v.driver<int(game::peds.size())&&game::peds[v.driver].alive?
             game::peds[v.driver].style:-1;
         for(const auto& part:vehicle_systems::parts(v)){
-            float scale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane?physics::vehicleScale(v.kind):1;
+            float scale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane||v.kind==game::Kind::Trailer?physics::vehicleScale(v.kind):1;
             rigidVehicleMesh(part.mesh,vehicle_systems::partPosition(v,part),vehicle_systems::partRotation(v,part),scale);
         }
         if(style>=0&&v.kind!=game::Kind::Trailer){
@@ -1834,7 +1834,8 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
         for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);if(close({low.x,low.z},2000))add(block.second.item,low,builder::BLOCK_SIZE);}
         for(const auto& drop:builder::drops())if(close({drop.p.x,drop.p.z},500))add(drop.stack.item,drop.p,10);
         const auto& target=builder::target();if(target.source!=builder::Source::None&&!builder::modal()){
-            auto low=builder::cellLow(target.cell);auto high=low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE};
+            float size=builder::BLOCK_SIZE;
+            auto low=builder::cellLow(target.cell);auto high=low+Vec3{size,size,size};
             if(target.source==builder::Source::Deposit){surface_work::Deposit deposit;if(surface_work::deposit(target.cell,deposit)){low=deposit.position-Vec3{9,0,9};high=deposit.position+Vec3{9,4,9};}}
             Color tint=game::rgb(245,224,126);
             if(target.source==builder::Source::Ground&&target.normal.y>.5f){
@@ -1851,7 +1852,7 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
                 auto* preview=mesh("builder/"+builder::items()[selected.item].id+"-preview");auto bottom=builder::cellLow(target.adjacent);
                 bool valid=builder::canPlace(target.adjacent,selected.item);
                 if(preview){float sx=builder::BLOCK_SIZE/std::max(.01f,preview->maxX-preview->minX),sy=builder::BLOCK_SIZE/std::max(.01f,preview->maxY-preview->minY),sz=builder::BLOCK_SIZE/std::max(.01f,preview->maxZ-preview->minZ);
-                    instances.push_back({preview,0,sx,sy,sz,1,0,bottom.x+20,bottom.y,bottom.z+20,(preview->minX+preview->maxX)*.5f,preview->minY,(preview->minZ+preview->maxZ)*.5f,valid?.45f:1.0f,valid?1.0f:.3f,.45f});}
+                    instances.push_back({preview,0,sx,sy,sz,1,0,bottom.x+builder::BLOCK_SIZE*.5f,bottom.y,bottom.z+builder::BLOCK_SIZE*.5f,(preview->minX+preview->maxX)*.5f,preview->minY,(preview->minZ+preview->maxZ)*.5f,valid?.45f:1.0f,valid?1.0f:.3f,.45f});}
             }
         }
         // Held textured model in the first-person view; animation follows mining.

@@ -35,7 +35,7 @@ std::vector<Part> parts(const Vehicle& v){
                part.size.x<=0||part.size.y<=0||part.size.z<=0||part.spin<0||part.spin>6)break;
             // Only these expanded vehicles use a runtime size correction.
             // Scale their pivots and collision/debris extents with the mesh.
-            if(v.kind==Kind::Combine||v.kind==Kind::Airplane){
+            if(v.kind==Kind::Combine||v.kind==Kind::Airplane||v.kind==Kind::Trailer){
                 float scale=physics::vehicleScale(v.kind);
                 part.center=part.center*scale;part.size=part.size*scale;
             }

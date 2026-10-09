@@ -1,1 +1,2 @@
-0 2016 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 2016 0.4 0.15 0 expansion-tank-paint-base.png expansion-tank-paint-normal.png expansion-tank-paint-orm.png - - OPAQUE 0.5

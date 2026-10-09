@@ -7,6 +7,8 @@
 #include "../src/terrain.h"
 #include "../src/wildlife.h"
 #include "../src/birds.h"
+#include "../src/input.h"
+#include "../src/ui.h"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -21,6 +23,44 @@ std::string savePath(){char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,file
 std::string bytes(const std::string& path){std::ifstream input(path,std::ios::binary);assert(input);
     return {std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>()};}
 void toggle(){bool next=!builder::active();assert(builder::requestToggle());assert(finishBuilderTransition(true)&&builder::active()==next);}
+void restartInputScenarios(){
+    using namespace game;
+    for(bool inventoryOpen:{false,true}){
+        reset();buildings.clear();trees.clear();peds.clear();vehicles.clear();props.clear();
+        wildlife::animals.clear();birds::flock.clear();
+        player=previousPlayer={100,100};playerY=0;jolt_world::reset();toggle();
+        ui::page=ui::Page::Closed;
+        int axe=builder::itemIndex("iron-axe"),iron=builder::itemIndex("iron-ingot");
+        const auto& tool=builder::items()[axe];
+        assert(builder::addItem(axe,1,1)&&builder::addItem(iron,tool.repairCount));
+        assert(builder::place({8,0,4},builder::itemIndex("crafting-bench"),false));
+        const auto snapshot=builder::capture();
+        input::windowProc(nullptr,WM_KEYDOWN,'R',0);
+        input::windowProc(nullptr,WM_KEYUP,'R',0);
+        assert(builder::active()&&health==PLAYER_MAX_HEALTH&&reloadRemaining==0&&builder::capture()==snapshot);
+        if(inventoryOpen){
+            input::windowProc(nullptr,WM_KEYDOWN,'E',0);assert(builder::inventoryOpen()&&builder::canRepair());
+            input::windowProc(nullptr,WM_KEYDOWN,'R',0);
+            input::windowProc(nullptr,WM_KEYUP,'R',0);
+            assert(builder::active()&&builder::inventoryOpen()&&builder::inventory()[0].durability==1+tool.repairAmount);
+        }
+        health=0;money=123;
+        input::windowProc(nullptr,WM_KEYDOWN,'R',LPARAM(1)<<30);
+        assert(health==0&&money==123&&builder::active()); // A held key does not restart.
+        ui::page=ui::Page::Main;
+        input::windowProc(nullptr,WM_KEYDOWN,'R',0);
+        assert(health==0&&money==123&&builder::active());
+        ui::page=ui::Page::Closed;
+        keys['W']=true;leftMouse=rightMouse=true;builder::setUseHeld(true);
+        input::windowProc(nullptr,WM_KEYDOWN,'R',0);
+        assert(health==PLAYER_MAX_HEALTH&&money==123&&builder::active()&&!builder::modal());
+        assert(builder::inventory()[0].item==axe&&builder::inventory()[0].durability>0&&builder::blocks().size()==1);
+        assert(!keys['W']&&!keys['R']&&!leftMouse&&!rightMouse&&reloadRemaining==0);
+        assert(len(player-Vec2{300,235})==0&&playerY==0&&occupied==-1&&enteringVehicle==-1);
+        input::windowProc(nullptr,WM_KEYUP,'R',0);
+    }
+    std::puts("input: death-screen R restarts with builder inventory closed/open, ignores repeats/pause, alive R still repairs");
+}
 void failedSwitch(const std::string& file,bool blockTemporary){
     using namespace game;
     savegame::flush();auto disk=bytes(file),snapshot=builder::capture();bool mode=builder::active();
@@ -62,18 +102,18 @@ void builderTransitionScenarios(){
         if(terrain::baseHeight({candidate.x*40.0f+20,candidate.z*40.0f+20})!=0)continue;
         if(builder::place(candidate,chest,false)){cell=candidate;found=true;}}
     assert(found&&builder::addItem(axe,1,17)&&builder::addItem(sand,7));auto low=builder::cellLow(cell);
-    player=previousPlayer={low.x-35,low.z+20};playerY=0;cameraYaw=cameraPitch=0;jolt_world::teleportCharacter(player,0);
+    player=previousPlayer={low.x-35,low.z+10};playerY=0;cameraYaw=0;cameraPitch=-std::atan2(30.0f,45.0f);jolt_world::teleportCharacter(player,0);
     builder::use();assert(builder::inventoryOpen()&&builder::chest());auto r=builder::slotRect(0,screenW,screenH);
     builder::mouse(r.x+3,r.y+3,false,true);assert((*builder::chest())[0].item==axe&&(*builder::chest())[0].durability==17);
     builder::closeInventory();builder::handleKey('2');builder::handleKey('Q');assert(builder::drops().size()==1);
-    assert(builder::mineTerrain({cell.x,-1,cell.z}));auto b=buildings.front();
+    assert(builder::mineTerrain(builder::cellAt(low-Vec3{0,1,0})));auto b=buildings.front();
     assert(destruction::cut(0,{{b.x,0,b.z},{b.x+40,std::min(40.0f,b.h),b.z+40}}));
     trees.front().health=17;trees.front().destroyed=true;
     jolt_world::refreshScenery();assert(jolt_world::activeBuilderColliderCount()>0&&savegame::save());
-    auto saved=builder::capture();auto center=low+Vec3{20,20,20};assert(builder::contains(center));
+    auto saved=builder::capture();auto center=low+Vec3{10,10,10};assert(builder::contains(center));
     // Check failure at both creation and atomic replacement, in a populated
     // builder layer with chest durability, loose items and world cuts.
-    failedSwitch(file,false);assert(builder::contains(center)&&excavation::removed({cell.x,-1,cell.z}));
+    failedSwitch(file,false);assert(builder::contains(center)&&excavation::removed(builder::cellAt(low-Vec3{0,1,0})));
     failedSwitch(file,true);assert(builder::contains(center)&&builder::capture()==saved);
     std::puts("transition: failed save creation/replacement preserves cuts, collision, chest tools, drops and exact disk bytes");
     toggle();assert(!builder::active()&&cameraMode==CameraMode::ThirdFar&&crouched&&!builder::contains(center));
@@ -82,7 +122,8 @@ void builderTransitionScenarios(){
     assert(buildings.front().damaged&&trees.front().destroyed);
     assert(savegame::save()&&savegame::load()&&!builder::active());toggle();
     assert(builder::capture()==saved&&builder::blocks().at(cell).contents[0].durability==17);
-    assert(excavation::removed({cell.x,-1,cell.z})&&buildings.front().damaged&&trees.front().destroyed);
+    assert(excavation::removed(builder::cellAt(low-Vec3{0,1,0}))&&buildings.front().damaged&&trees.front().destroyed);
     std::puts("transition: successful retries preserve F5 separation and complete edit/item records across on-disk reload");
+    restartInputScenarios();
     reset();assert(savegame::save());jolt_world::shutdown();
 }

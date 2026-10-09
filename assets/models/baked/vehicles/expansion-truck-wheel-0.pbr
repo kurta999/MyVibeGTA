@@ -1,2 +1,4 @@
-0 558 0.22000 0.80000 0 - - - - - OPAQUE 0.5
-558 1050 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 558 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+558 1050 0.55 0.6 0 expansion-truck-graphite-base.png expansion-truck-graphite-normal.png expansion-truck-graphite-orm.png - - OPAQUE 0.5

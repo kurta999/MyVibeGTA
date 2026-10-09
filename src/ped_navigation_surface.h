@@ -2,7 +2,7 @@
 #include "game.h"
 
 namespace ped_navigation_surface {
-struct Stats {unsigned plans=0,expanded=0,physicsQueries=0;};
+struct Stats {unsigned plans=0,expanded=0,physicsQueries=0,floorCacheHits=0;float navigationMs=0,floorQueryMs=0;};
 void beginFrame();
 game::Vec2 velocity(game::Ped& ped,game::Vec2 goal,float goalHeight,float speed,float dt);
 const Stats& stats();

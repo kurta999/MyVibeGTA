@@ -14,6 +14,7 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
+from tree_geometry import leaf_components, select_leaves, expand_leaves, decimate_wood
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets/models/source"
@@ -178,9 +179,11 @@ def write_mesh(path, vertices):
     arr = np.asarray(vertices, dtype="<f4").reshape((-1, 12))
     if len(arr) == 0 or len(arr) > 3_000_000 or not np.isfinite(arr).all():
         raise ValueError(f"Invalid mesh {path}: {len(arr)} vertices")
-    with path.open("wb") as file:
+    temporary = path.with_name(path.name + '.tmp')
+    with temporary.open("wb") as file:
         file.write(struct.pack("<4sI", b"M3D1", len(arr)))
         file.write(arr.tobytes())
+    temporary.replace(path)
     return len(arr) // 3
 
 
@@ -302,74 +305,58 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
                     continue
                 if path.suffix == ".glb" and "date-palm" in path.name and "foliage" in name_lower:
                     continue
-                cap = (35000 if path.name == "tree_small_02.gltf" else
-                       25000 if path.name in ("fir_sapling.gltf", "pine_sapling_small.gltf") else 35000) if foliage else (
-                           6000 if "branch" in name_lower else 10000)
-                if bush:
-                    cap = 20000
+                if normals is None:
+                    normals = np.zeros_like(pos)
+                    face = np.cross(pos[tri[:, 1]] - pos[tri[:, 0]], pos[tri[:, 2]] - pos[tri[:, 0]])
+                    for corner in range(3):
+                        np.add.at(normals, tri[:, corner], face)
+                    normals /= np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1e-8)
+                packed_source = np.concatenate((pos, normals, uv), axis=1)
+                near_scale = lod_scale = 1.0
+                near_labels = lod_labels = None
                 if solid_only:
-                    cap = len(tri)  # Preserve bark topology; random triangle samples leave open cuts.
-                if len(tri) > cap:
-                    if foliage and (path.name in ("tree_small_02.gltf", "fir_sapling.gltf", "pine_sapling_small.gltf") or
-                                    path.name.startswith("island_tree_")) and len(tri) % 2 == 0:
-                        # The source leaf cards are triangle pairs; retain both halves.
-                        pairs = tri.reshape((-1, 2, 3))
-                        selection = np.sort(rng.choice(len(pairs), cap // 2, replace=False))
-                        tri = pairs[selection].reshape((-1, 3))
-                    else:
-                        selection = np.sort(rng.choice(len(tri), cap, replace=False))
-                        tri = tri[selection]
-                lod_cap = (5000 if path.name == "tree_small_02.gltf" or
-                           path.name.startswith("island_tree_") else
-                           4000 if path.name in ("fir_sapling.gltf", "pine_sapling_small.gltf") else 1800) if foliage else 650
-                if foliage and (path.name in ("tree_small_02.gltf", "fir_sapling.gltf", "pine_sapling_small.gltf") or
-                                path.name.startswith("island_tree_")) and len(tri) % 2 == 0:
-                    pairs = tri.reshape((-1, 2, 3))
-                    selection = np.sort(rng.choice(len(pairs), min(lod_cap // 2, len(pairs)), replace=False))
-                    lod_tri = pairs[selection].reshape((-1, 3))
+                    near_geometry = lod_geometry = packed_source[tri.ravel()]
+                elif foliage and path.suffix == '.gltf':
+                    labels = leaf_components(tri, len(pos))
+                    near_tri, near_labels, near_scale = select_leaves(tri, labels, 35000, rng)
+                    # A nested subset avoids completely changing the crown at the LOD switch.
+                    lod_tri, lod_labels, reduced_scale = select_leaves(near_tri, near_labels, 6000, rng)
+                    lod_scale = near_scale * reduced_scale
+                    near_geometry = packed_source[near_tri.ravel()]
+                    lod_geometry = packed_source[lod_tri.ravel()]
                 else:
-                    lod_tri = tri[np.sort(rng.choice(len(tri), min(lod_cap, len(tri)), replace=False))]
+                    near_geometry, lod_geometry = decimate_wood(pos, normals, uv, tri,
+                        18000 if 'branch' in name_lower else 10000,
+                        3000 if 'branch' in name_lower else 1800, ROOT)
 
-                def pack(t, is_lod=False):
-                    ids = t.reshape(-1)
-                    points = pos[ids] @ matrix[:3, :3].T + matrix[:3, 3]
-                    if foliage and (path.name in ("tree_small_02.gltf", "fir_sapling.gltf", "pine_sapling_small.gltf") or
-                                    path.name.startswith("island_tree_")) and len(points) % 6 == 0:
-                        # The source uses tiny two-triangle leaf cards. Enlarging
-                        # each card retains its detailed texture and closes the
-                        # holes left by the game-sized leaf sample.
-                        cards = points.reshape((-1, 6, 3))
-                        center = cards.mean(axis=1, keepdims=True)
-                        card_scale = (12.0 if path.name == "tree_small_02.gltf" else
-                                      6.2 if path.name in ("fir_sapling.gltf", "pine_sapling_small.gltf") else 11.0) if is_lod else (
-                                      5.0 if path.name == "tree_small_02.gltf" else
-                                      3.0 if path.name in ("fir_sapling.gltf", "pine_sapling_small.gltf") else 4.8)
-                        cards[:] = center + (cards - center) * card_scale
+                def pack(geometry, labels=None, card_scale=1.0):
+                    points = geometry[:, :3] @ matrix[:3, :3].T + matrix[:3, 3]
+                    if labels is not None:
+                        points = expand_leaves(points, labels, card_scale)
                     # Change crown asymmetry and branch spread while preserving the trunk base.
                     points[:, 0] += np.sin(points[:, 1] * (0.65 + variant % 5 * 0.07) + variant) * points[:, 1] * (0.004 + variant % 3 * 0.002)
                     points[:, 2] += np.cos(points[:, 1] * 0.52 + variant * 1.3) * points[:, 1] * 0.004
                     if bush:
                         points[:, 0] *= 0.88 + ((variant * 7) % 9) * 0.035
                         points[:, 2] *= 0.88 + ((variant * 11) % 9) * 0.035
-                    if normals is not None:
-                        normal = normals[ids] @ np.linalg.inv(matrix[:3, :3])
-                    else:
-                        edges = points.reshape((-1, 3, 3))
-                        n = np.cross(edges[:, 1] - edges[:, 0], edges[:, 2] - edges[:, 0])
-                        normal = np.repeat(n, 3, axis=0)
+                    normal = geometry[:, 3:6] @ np.linalg.inv(matrix[:3, :3])
                     normal /= np.maximum(np.linalg.norm(normal, axis=1, keepdims=True), 1e-8)
-                    tex = np.mod(uv[ids], 1.0)
-                    tex[:, 1] = 1.0 - tex[:, 1]
+                    # Keep 1.0 at the atlas edge: wrapping it to zero collapses
+                    # full-range UVs and smears the cutout across leaf triangles.
+                    source_uv = geometry[:, 6:8]
+                    tex = source_uv.copy() if np.all((source_uv >= 0) & (source_uv <= 1)) else np.mod(source_uv, 1.0)
+                    # Raw glTF and DX11 image uploads both start at the top
+                    # left. A V flip moves the leaf's alpha mask off its mesh.
                     tex[:, 0] = (material_index % cols + tex[:, 0] * 0.998 + 0.001) / cols
                     tex[:, 1] = (material_index // cols + tex[:, 1] * 0.998 + 0.001) / rows
                     factor = material.get("pbrMetallicRoughness", {}).get("baseColorFactor", [1, 1, 1, 1])
                     if "baseColorTexture" not in material.get("pbrMetallicRoughness", {}):
                         factor = [1, 1, 1, 1]  # Applied to the fallback texture above.
-                    color = np.tile(np.asarray(factor, np.float32), (len(ids), 1))
+                    color = np.tile(np.asarray(factor, np.float32), (len(geometry), 1))
                     return np.concatenate((points, normal, tex, color), axis=1).astype(np.float32)
 
-                full_parts.append(pack(tri))
-                lod_parts.append(pack(lod_tri, is_lod=True))
+                full_parts.append(pack(near_geometry, near_labels, near_scale))
+                lod_parts.append(pack(lod_geometry, lod_labels, lod_scale))
         for child in node.get("children", []):
             visit(child, matrix)
 
@@ -389,10 +376,6 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
         print(f"{name}: mining solid {len(indices)//3} triangles, {len(vertices)} vertices", flush=True)
         return
     lod = np.concatenate(lod_parts)
-    if bush and len(lod) > 4200 * 3:
-        triangles = lod.reshape((-1, 3, 12))
-        selection = np.sort(rng.choice(len(triangles), 4200, replace=False))
-        lod = triangles[selection].reshape((-1, 12))
     # Some kit assets place the model slightly above the origin; runtime aligns minY.
     print(f"{name}: {write_mesh(destination.with_suffix('.m3d'), full)} triangles, "
           f"LOD {write_mesh(destination.with_name(name + '-lod.m3d'), lod)}")

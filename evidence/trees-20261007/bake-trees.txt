@@ -1,0 +1,90 @@
+tree_blocks: 1982 triangles, LOD 1982
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_default: 62998 triangles, LOD 10737
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_detailed: 62991 triangles, LOD 10799
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_fat: 4956 triangles, LOD 3140
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_oak: 62992 triangles, LOD 10799
+tree_simple: 1796 triangles, LOD 1796
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_tall: 62992 triangles, LOD 10800
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_thin: 58792 triangles, LOD 17427
+tree_cone: 35379 triangles, LOD 6377
+tree_pineDefaultA: 35079 triangles, LOD 6479
+tree_pineDefaultB: 35503 triangles, LOD 6509
+tree_pineGroundA: 35526 triangles, LOD 6519
+tree_pineGroundB: 3236 triangles, LOD 3236
+tree_pineRoundA: 35540 triangles, LOD 6537
+tree_pineRoundB: 35527 triangles, LOD 6292
+tree_pineRoundC: 35442 triangles, LOD 6479
+tree_pineRoundD: 35530 triangles, LOD 6535
+tree_pineSmallA: 35520 triangles, LOD 6520
+tree_pineSmallB: 35104 triangles, LOD 6482
+tree_pineTallA: 35032 triangles, LOD 6483
+tree_pineTallB: 35522 triangles, LOD 6527
+tree_palmDetailedShort: 1264 triangles, LOD 1264
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_palmDetailedTall: 6224 triangles, LOD 2746
+tree_palmShort: 1076 triangles, LOD 1076
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_palmTall: 5336 triangles, LOD 2912
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_palm: 44414 triangles, LOD 7378
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_palmBend: 10000 triangles, LOD 1800
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_plateau: 7700 triangles, LOD 3600
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_small: 6960 triangles, LOD 3600
+Blender 4.5.14 LTS (hash 62c1db4208e8 built 2026-09-15 01:33:49)
+
+Blender quit
+tree_urbanCherry: 2294 triangles, LOD 2094

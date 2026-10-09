@@ -10,7 +10,7 @@ namespace physics {
 using namespace game;
 float vehicleScale(Kind kind){
 #ifdef MINI_CITY_JOLT
-    return kind==Kind::Car||kind==Kind::SportCar||kind==Kind::Helicopter?2.0f:
+    return kind==Kind::Car||kind==Kind::SportCar||kind==Kind::Helicopter||kind==Kind::Trailer?2.0f:
         kind==Kind::Combine||kind==Kind::Airplane?1.5f:1.0f;
 #else
     return 1.0f;
@@ -21,7 +21,7 @@ Vec3 chassisHalf(Kind k){
     case Kind::Skateboard:return {5,1,15};case Kind::Bicycle:return {5,4,17};
     case Kind::Tractor:return {19,8,27};case Kind::Combine:return Vec3{31,12,42}*vehicleScale(k);
     case Kind::Tank:return {30,10,43};case Kind::Truck:return {26,10,58};
-    case Kind::Trailer:return {27,8,54};case Kind::Airplane:return Vec3{74,8,52}*vehicleScale(k);
+    case Kind::Trailer:return Vec3{27,8,54}*vehicleScale(k);case Kind::Airplane:return Vec3{74,8,52}*vehicleScale(k);
     default:return Vec3{k==Kind::Helicopter?16.0f:k==Kind::Bike?5.0f:k==Kind::Boat?12.0f:13.0f,
         k==Kind::Helicopter?12.0f:k==Kind::Boat?10.0f:k==Kind::Bike?4.0f:5.0f,
         k==Kind::Helicopter?30.0f:k==Kind::Bike?13.0f:24.0f}*vehicleScale(k);

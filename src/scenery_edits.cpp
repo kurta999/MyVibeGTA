@@ -146,7 +146,11 @@ void makeCaps(Geometry& geometry,const std::vector<game::BuildingPiece>& volumes
                 for(int coordinate:{a,b}){polygon=clip(polygon,[&](const Vertex& v){return coord(v,coordinate)-coord(volumes[cut].low,coordinate);});
                     polygon=clip(polygon,[&](const Vertex& v){return coord(volumes[cut].high,coordinate)-coord(v,coordinate);});}
                 triangles(polygon,planeMesh.vertices,normal);}
-            std::vector<game::BuildingPiece> others;for(std::size_t n=0;n<volumes.size();++n)if(n!=cut)others.push_back(volumes[n]);
+            // A cap on the shared plane of two removed cells is internal.
+            // Include that plane in the neighboring subtraction; otherwise
+            // the zero-thickness cap survives the strict box overlap test.
+            Vec3 pad{};if(axis==0)pad.x=.002f;else if(axis==1)pad.y=.002f;else pad.z=.002f;
+            std::vector<game::BuildingPiece> others;for(std::size_t n=0;n<volumes.size();++n)if(n!=cut)others.push_back({volumes[n].low-pad,volumes[n].high+pad});
             auto clipped=dx11::clipBuildingMesh({&planeMesh,0,1,1,1,1,0,0,0,0,0,0,0,1,1,1},others);
             auto& mesh=geometry.caps[material];for(std::size_t n=0;n+2<clipped.vertices.size();n+=3)triangles({clipped.vertices[n],clipped.vertices[n+1],clipped.vertices[n+2]},mesh.vertices,normal);
         }
@@ -166,7 +170,7 @@ Geometry* prepare(const Object& object){
         }
         geometry.solid.textureFile=model->textureFile;geometry.solid.textured=model->textured;
     }
-    std::vector<game::BuildingPiece> volumes;if(builder::active()){auto found=cuts.find(object.id);if(found!=cuts.end())for(auto cell:found->second){auto low=builder::cellLow(cell);volumes.push_back({low,low+Vec3{40,40,40}});}}
+    std::vector<game::BuildingPiece> volumes;if(builder::active()){auto found=cuts.find(object.id);if(found!=cuts.end())for(auto cell:found->second){auto low=builder::cellLow(cell);volumes.push_back({low,low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE}});}}
     std::uint64_t meshRevision=geometry.exterior.revision+1;geometry.exterior=dx11::clipBuildingMesh(instance(object,model),volumes);geometry.exterior.revision=meshRevision;
     for(auto& group:geometry.caps){group.second.vertices.clear();++group.second.revision;}
     if(!volumes.empty())makeCaps(geometry,volumes);
@@ -251,11 +255,11 @@ bool edited(const std::string& id){auto found=cuts.find(id);return builder::acti
 bool removed(const std::string& id,builder::Cell cell){auto found=cuts.find(id);return builder::active()&&found!=cuts.end()&&found->second.count(cell);}
 std::uint64_t revision(const std::string& id){auto found=versions.find(id);return (found==versions.end()?baselineGeneration:found->second)*2+(builder::active()?1:0);}
 bool validCut(const std::string& id,builder::Cell cell){
-    if(cell.x<0||cell.z<0||cell.x>=420||cell.z>=420||cell.y<-10||cell.y>=75)return false;Object object;if(!find(id,object))return false;
-    auto* geometry=prepare(object);if(!geometry)return false;auto low=builder::cellLow(cell);return meshIntersects(geometry->original,low+Vec3{.001f,.001f,.001f},low+Vec3{39.999f,39.999f,39.999f});
+    if(cell.x<0||cell.z<0||cell.x>=int(regions::WIDTH/builder::BLOCK_SIZE)||cell.z>=int(regions::DEPTH/builder::BLOCK_SIZE)||cell.y<int(-400/builder::BLOCK_SIZE)||cell.y>=int(3000/builder::BLOCK_SIZE))return false;Object object;if(!find(id,object))return false;
+    auto* geometry=prepare(object);if(!geometry)return false;auto low=builder::cellLow(cell);return meshIntersects(geometry->original,low+Vec3{.001f,.001f,.001f},low+Vec3{builder::BLOCK_SIZE-.001f,builder::BLOCK_SIZE-.001f,builder::BLOCK_SIZE-.001f});
 }
 bool cut(const std::string& id,builder::Cell cell){
-    if(!builder::active()||cutCount>=16384||removed(id,cell)||!validCut(id,cell))return false;
+    if(!builder::active()||cutCount>=131072||removed(id,cell)||!validCut(id,cell))return false;
     cuts[id].insert(cell);++cutCount;versions[id]=++generation;return true;
 }
 bool trace(Vec3 origin,Vec3 direction,float range,builder::Target& target,TraceMask mask){
@@ -322,7 +326,7 @@ std::vector<destruction::Box> trunkPieces(std::size_t index){
     if(index>=game::trees.size()||game::trees[index].destroyed)return {};const auto& tree=game::trees[index];float radius=jolt_world::treeRadius(tree),height=std::max(16.0f,tree.height*tree.scale*.6f),root=terrain::baseHeight(tree.p);
     std::vector<destruction::Box> pieces{{{tree.p.x-radius,root,tree.p.z-radius},{tree.p.x+radius,root+height,tree.p.z+radius}}};
     auto found=cuts.find(treeId(index));if(!builder::active()||found==cuts.end())return pieces;
-    for(auto cell:found->second){auto low=builder::cellLow(cell),high=low+Vec3{40,40,40};std::vector<destruction::Box> remaining;
+    for(auto cell:found->second){auto low=builder::cellLow(cell),high=low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE};std::vector<destruction::Box> remaining;
         auto add=[&](Vec3 a,Vec3 b){if(b.x-a.x>.01f&&b.y-a.y>.01f&&b.z-a.z>.01f)remaining.push_back({a,b});};
         for(auto box:pieces){Vec3 lo{std::max(box.low.x,low.x),std::max(box.low.y,low.y),std::max(box.low.z,low.z)},hi{std::min(box.high.x,high.x),std::min(box.high.y,high.y),std::min(box.high.z,high.z)};
             if(hi.x<=lo.x||hi.y<=lo.y||hi.z<=lo.z){remaining.push_back(box);continue;}

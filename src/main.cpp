@@ -261,7 +261,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(cancelStartup())return 0;
     startup::report(94,"Loading saved progress");
 #endif
-    if(!smoke&&savegame::load()){message="Saved progress loaded. Press F near a marker for a mission.";messageTime=5;
+    bool savedBuilderPreview=smoke&&commandLine&&std::strstr(commandLine,"--saved-builder-preview");
+    bool loadedSave=(!smoke||savedBuilderPreview)&&savegame::load();
+    if(savedBuilderPreview&&!loadedSave){logging::write("Saved builder preview: save load failed");return 1;}
+    if(loadedSave){message="Saved progress loaded. Press F near a marker for a mission.";messageTime=5;
         logging::write("Saved progress loaded");}
     if(smoke&&commandLine&&std::strstr(commandLine,"--day"))gameHour=12;
     if(smoke&&commandLine&&std::strstr(commandLine,"--night"))gameHour=22;
@@ -711,6 +714,17 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int tick=0;tick<180;++tick)jolt_world::step(1.0f/60);
         jolt_world::teleportCharacter(player,playerY);
     }
+    if(smoke&&commandLine&&(std::strstr(commandLine,"--tank-surface-preview")||std::strstr(commandLine,"--truck-preview")||std::strstr(commandLine,"--trailer-preview"))){
+        bool trailer=std::strstr(commandLine,"--trailer-preview")!=nullptr;
+        player=previousPlayer=trailer?Vec2{4300,4800}:Vec2{4400,4680};playerY=trailer?75.0f:45.0f;
+        cameraYaw=std::atan2(4500-player.z,4500-player.x);cameraPitch=trailer?-.15f:-.18f;
+        cameraMode=CameraMode::FirstWide;occupied=-1;rightMouse=false;ui::grassDistance=0;
+        vehicles.clear();peds.clear();pickups.clear();trees.clear();props.clear();buildings.clear();
+        Vehicle v{};v.kind=trailer?Kind::Trailer:std::strstr(commandLine,"--truck-preview")?Kind::Truck:Kind::Tank;
+        v.id="vehicle-surface-preview";v.p={4500,4500};v.angle=PI/2;vehicles.push_back(v);
+        jolt_world::reset();for(int n=0;n<90;++n)jolt_world::step(1.0f/60);
+        debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);
+    }
     if(smoke&&commandLine&&std::strstr(commandLine,"--tank-aim-preview")){
         player=previousPlayer={4500,4500};playerY=0;cameraYaw=.9f;cameraPitch=.25f;
         cameraMode=CameraMode::ThirdNear;rightMouse=false;ui::grassDistance=0;
@@ -811,10 +825,34 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     auto finishBuilderPreview=[](){bool expected=!builder::active();
         for(int tick=0;tick<5000&&builder::transitioning();++tick){builder::advance(1.0f/60);if(builder::transitioning())Sleep(1);}
         return !builder::transitioning()&&builder::active()==expected;};
+    if(savedBuilderPreview){
+        if(builder::blocks().empty()||!builder::requestToggle()||!finishBuilderPreview())return 1;
+        auto low=builder::cellLow(builder::blocks().begin()->first);
+        occupied=-1;player=previousPlayer={low.x-90,low.z+builder::BLOCK_SIZE*.5f};playerY=terrain::baseHeight(player);
+        jolt_world::teleportCharacter(player,playerY);cameraMode=CameraMode::FirstWide;cameraYaw=0;
+        cameraPitch=std::atan2(low.y+builder::BLOCK_SIZE*.5f-(playerY+40),100.0f);builder::update(.01f);
+        logging::write(("Saved builder preview: "+std::to_string(builder::blocks().size())+" migrated blocks on 20-unit grid").c_str());
+    }
     if(benchmark&&(std::strstr(commandLine,"--benchmark-builder")||std::strstr(commandLine,"--benchmark-normal"))){
         bool desired=std::strstr(commandLine,"--benchmark-builder")!=nullptr;
         if(builder::active()!=desired&&(!builder::requestToggle()||!finishBuilderPreview()))return 1;
         logging::write(desired?"Benchmark layer: builder, generated world retained":"Benchmark layer: normal, generated world retained");
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--builder-stack-preview")){
+        builder::reset();buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();birds::flock.clear();pickups.clear();occupied=-1;
+        player=previousPlayer={400,410};playerY=0;cameraYaw=0;cameraPitch=-std::atan2(20.0f,90.0f);jolt_world::reset();
+        if(!builder::requestToggle()||!finishBuilderPreview())return 1;
+        int soil=builder::itemIndex("soil");builder::addItem(soil,3);
+        if(!builder::place({24,0,20},soil))return 1;
+        builder::update(.01f);builder::setUseHeld(true);builder::setUseHeld(false);
+        if(builder::blocks().size()!=2)return 1;
+        if(std::strstr(commandLine,"--stack-respawn")){
+            health=0;input::windowProc(win,WM_KEYDOWN,'R',0);
+            if(!builder::active()||health!=PLAYER_MAX_HEALTH||builder::blocks().size()!=2)return 1;
+            player=previousPlayer={400,410};playerY=0;jolt_world::teleportCharacter(player,playerY);
+        }
+        if(std::strstr(commandLine,"--stack-third-person"))cameraMode=CameraMode::ThirdNear;
+        builder::update(.01f);
     }
     if(smoke&&commandLine&&(std::strstr(commandLine,"--bike-seat-preview")||
                            std::strstr(commandLine,"--bicycle-seat-preview"))){
@@ -833,7 +871,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             driver.alive=true;driver.style=1;driver.drivingVehicle=occupied;
             peds.push_back(driver);bike.driver=0;occupied=-1;
             player=previousPlayer=bike.p+Vec2{60,-60};playerY=terrain::height(player)+3;
-            Vec3 aim=norm(Vec3{bike.p.x,bike.rideHeight+16,bike.p.z}-Vec3{player.x,playerY+31,player.z});
+            Vec3 aim=norm(Vec3{bike.p.x,bike.rideHeight+16,bike.p.z}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
             cameraMode=CameraMode::FirstWide;cameraYaw=std::atan2(aim.z,aim.x);cameraPitch=std::asin(aim.y);
             jolt_world::teleportCharacter(player,playerY);
         }
@@ -861,7 +899,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             for(const auto& file:std::filesystem::directory_iterator(folder))if(!known.count(file.path())){known.insert(file.path());if(file.path().extension()==".png")generated=file.path();}
             if(generated.empty())return false;std::filesystem::rename(generated,destination);captures<<label<<'\t'<<destination.filename().string()<<'\n';captures.flush();return true;};
         auto aimRock=[&](){player=previousPlayer={260,280};playerY=0;cameraMode=CameraMode::FirstWide;
-            auto direction=norm(Vec3{340,20,340}-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+            auto direction=norm(Vec3{340,20,340}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
             jolt_world::teleportCharacter(player,playerY);builder::update(.01f);};
         for(const char* name:rocks){
             builder::reset();player=previousPlayer={260,280};playerY=0;cameraMode=CameraMode::FirstWide;jolt_world::reset();
@@ -890,7 +928,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(int n=0;n<20;++n)if(!builder::place({galleryCell.x+n%5,0,galleryCell.z+n/5},builder::itemIndex(rocks[n]),false))return 1;
         auto galleryLow=builder::cellLow(galleryCell);Vec2 galleryCenter{galleryLow.x+100,galleryLow.z+80};
         auto gallery=[&](){player=previousPlayer={galleryCenter.x,galleryCenter.z+150};playerY=280;cameraMode=CameraMode::FirstWide;
-            auto direction=norm(Vec3{galleryCenter.x,20,galleryCenter.z}-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+            auto direction=norm(Vec3{galleryCenter.x,20,galleryCenter.z}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
             jolt_world::teleportCharacter(player,playerY);builder::update(.01f);};
         gallery();message="20 ROCK MATERIALS | DISTINCT GRAIN, LAYERS, PORES AND CRYSTALS";messageTime=30;
         if(!captureRock("gallery")||!savegame::save()||!savegame::load()||builder::active()||builder::blocks().size()!=20)return 1;
@@ -968,7 +1006,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             auto drops=builder::drops().size();builder::handleKey('Q');if(builder::drops().size()!=drops+1)return 1;auto dropped=builder::drops().back();
             if(dropped.stack.item!=item||dropped.stack.durability!=durability)return 1;
             moveReview({dropped.p.x,dropped.p.z-40});cameraMode=CameraMode::FirstWide;
-            auto direction=norm(dropped.p+Vec3{5,5,5}-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+            auto direction=norm(dropped.p+Vec3{5,5,5}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
             builder::update(.01f);
             if(!captureReview(tool.id+".drop"))return 1;
             moveReview({dropped.p.x,dropped.p.z});builder::update(.01f);int retrieved=inventorySlot(item);
@@ -1056,7 +1094,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(material){if(!builder::place({10,0,10},builder::itemIndex(material),false))return 1;builder::update(.01f);}
         else{bool found=false;for(const auto& deposit:surface_work::nearby({4500,4500},600)){
             for(int z=-5;z<=5&&!found;z+=2)for(int x=-5;x<=5&&!found;x+=2){auto point=deposit.position+Vec3{float(x),1.5f,float(z)};
-                player=previousPlayer={point.x-65,point.z};playerY=terrain::baseHeight(player);auto direction=norm(point-Vec3{player.x,playerY+31,player.z});
+                player=previousPlayer={point.x-65,point.z};playerY=terrain::baseHeight(player);auto direction=norm(point-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
                 cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);jolt_world::teleportCharacter(player,playerY);builder::update(.01f);
                 found=builder::target().source==builder::Source::Deposit&&builder::target().cell==deposit.cell;}if(found)break;}
             if(!found)return 1;builder::setUseHeld(true);
@@ -1077,7 +1115,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         builder::addItem(builder::itemIndex("iron-hoe"),1,100);builder::addItem(builder::itemIndex("brush"),1,45);
         builder::addItem(builder::itemIndex("iron-ingot"),3);builder::addItem(builder::itemIndex("plank"),8);builder::addItem(builder::itemIndex("soil"),20);
         auto aimAt=[&](Vec3 point){player=previousPlayer={point.x-65,point.z};playerY=terrain::baseHeight(player);cameraMode=CameraMode::FirstWide;
-            auto direction=norm(point-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+            auto direction=norm(point-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
             jolt_world::teleportCharacter(player,playerY);builder::update(.01f);};
         builder::Cell soil{};bool found=false;
         for(int z=110;z<150&&!found;++z)for(int x=110;x<150&&!found;++x){Vec2 center{x*40.0f+20,z*40.0f+20};auto cell=builder::cellAt({center.x,terrain::baseHeight(center)-.01f,center.z});
@@ -1097,6 +1135,23 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         }else if(std::strstr(commandLine,"--tool-work-normal")){
             if(!builder::requestToggle())return 1;if(!finishBuilderPreview())return 1;aimAt(center);
         }
+    }
+    if(smoke&&commandLine&&std::strstr(commandLine,"--tree-preview")){
+        buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();birds::flock.clear();pickups.clear();occupied=-1;
+        ui::grassDistance=0;
+        Tree tree{};tree.id="tree-quality-preview";tree.p={4500,4500};tree.scale=2;
+        tree.modelId="tree_detailed";tree.crownWidth=54;tree.height=68;
+        if(const char* option=std::strstr(commandLine,"--tree-model=")){
+            char model[96]{};if(std::sscanf(option,"--tree-model=%95s",model)==1)tree.modelId=model;
+        }
+        trees.push_back(tree);
+        bool distant=std::strstr(commandLine,"--tree-distant")!=nullptr;
+        player=previousPlayer={distant?4080.0f:4320.0f,4500};playerY=terrain::baseHeight(player);
+        cameraMode=CameraMode::FirstWide;
+        auto direction=norm(Vec3{tree.p.x,terrain::baseHeight(tree.p)+65,tree.p.z}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
+        cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+        jolt_world::reset();jolt_world::teleportCharacter(player,playerY);
+        message=tree.modelId+(distant?" | DISTANT TREE":" | NEAR TREE");messageTime=30;
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--scenery-preview")){
         builder::reset();buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();birds::flock.clear();pickups.clear();occupied=-1;
@@ -1120,7 +1175,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         player=previousPlayer={origin.x,origin.z};playerY=std::max(terrain::baseHeight(player),origin.y-31);
         if(object.kind==scenery_edits::Kind::Tree){player=previousPlayer={object.position.x-90,object.position.z};playerY=object.position.y;}
         if(object.kind==scenery_edits::Kind::Plant){player=previousPlayer={object.position.x-65,object.position.z};playerY=terrain::baseHeight(player);}
-        auto direction=norm(object.position+Vec3{0,object.kind==scenery_edits::Kind::Tree?42:eyeHeight,0}-Vec3{player.x,playerY+31,player.z});
+        auto direction=norm(object.position+Vec3{0,object.kind==scenery_edits::Kind::Tree?42:eyeHeight,0}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
         cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);jolt_world::teleportCharacter(player,playerY);builder::update(1.0f/60);
         if(std::strstr(commandLine,"--scenery-normal")){
             if(!builder::requestToggle())return 1;if(!finishBuilderPreview())return 1;
@@ -1184,7 +1239,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(mount){cameraMode=CameraMode::ThirdNear;cameraYaw=0;cameraPitch=-.1f;}
         else{
             player=previousPlayer=tunnel?Vec2{a.p.x-85,a.p.z}:block?Vec2{150,65}:Vec2{185,90};
-            playerY=tunnel?-80:block?65:95;auto direction=norm(focus-Vec3{player.x,playerY+31,player.z});
+            playerY=tunnel?-80:block?65:95;auto direction=norm(focus-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
             cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);cameraMode=CameraMode::FirstWide;debug_menu::flyMode=true;
             jolt_world::teleportCharacter(player,playerY);
         }
@@ -1219,7 +1274,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(cover){player=previousPlayer={380,100};playerY=-80;focus={270,-62,140};message="BUILDER: DEFENDER HOLDS REAL UNDERGROUND BLOCK COVER";}
         else if(wander){player=previousPlayer={110,140};playerY=-80;focus={peds[0].p.x,-62,peds[0].p.z};message="BUILDER: WANDERING BELOW AN ORIGINAL BUILDING";}
         else{player=previousPlayer={185,25};playerY=100;focus={265,0,140};message=normal?"NORMAL: ORIGINAL GROUND AND ROUTING RESTORED":"BUILDER: FLEEING ACTOR CHOOSES A SUPPORTED PIT DETOUR";}
-        auto direction=norm(focus-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+        auto direction=norm(focus-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
         cameraMode=CameraMode::FirstWide;debug_menu::flyMode=true;messageTime=30;jolt_world::teleportCharacter(player,playerY);builder::update(.01f);
         char result[256]{};std::snprintf(result,sizeof(result),"Destination review: mode %s, state %d, pedestrian %.2f %.2f %.2f, target %.2f %.2f %.2f, selected %d",
             builder::active()?"builder":"normal",int(peds[0].state),peds[0].p.x,jolt_world::pedHeight(0),peds[0].p.z,
@@ -1267,7 +1322,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             if(combat){player=previousPlayer={220,160};playerY=-80;contact={peds[0].p.x,-62,peds[0].p.z};}
             else if(normal){player=previousPlayer={150,80};playerY=80;}
             else {player=previousPlayer=peds[0].p+Vec2{-32,-8};playerY=-80;}
-            auto direction=norm(contact-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+            auto direction=norm(contact-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
             cameraMode=CameraMode::FirstWide;debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);
         }
         if(!carried)builder::handleKey('9'); // Keep actual body/weapon models visible in review views.
@@ -1310,7 +1365,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 at(peds[0].p+Vec2{-35,-6},-80);message="BUILDER: RETAINED ROOF HIDES THE TAKEDOWN FROM A SURFACE WITNESS";
             }else{focus={220,-62,140};message="BUILDER: K TAKEDOWN REACHES A VICTIM ON THE SAME UNDERGROUND FLOOR";}
         }
-        auto direction=norm(focus-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+        auto direction=norm(focus-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
         cameraMode=CameraMode::FirstWide;debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);builder::handleKey('9');builder::update(.01f);messageTime=30;
         auto stats=ped_navigation_surface::stats();char result[320]{};std::snprintf(result,sizeof(result),"Police review: mode %s, actors %zu, wanted %d, target %d, player Y %.2f, actor Y %.2f, plans %u, queries %u",
             builder::active()?"builder":"normal",peds.size(),police::wantedLevel(),target,playerY,peds.empty()?0:jolt_world::pedHeight(0),stats.plans,stats.physicsQueries);logging::write(result);
@@ -1344,7 +1399,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         }
         if(underground){player=previousPlayer={110,140};playerY=-80;cameraYaw=0;cameraPitch=.05f;}
         if(streaming)player=previousPlayer={peds[0].p.x-100,140};
-        else if(!underground){player=previousPlayer={185,25};playerY=100;auto direction=norm(Vec3{265,0,140}-Vec3{player.x,playerY+31,player.z});
+        else if(!underground){player=previousPlayer={185,25};playerY=100;auto direction=norm(Vec3{265,0,140}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});
             cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);}
         cameraMode=CameraMode::FirstWide;debug_menu::flyMode=true;jolt_world::teleportCharacter(player,playerY);builder::update(.01f);
         message=underground?"BUILDER: WALKING BELOW THE RETAINED ROOF":builder::active()?"BUILDER: PEDESTRIAN ROUTES AROUND THE PIT":"NORMAL: TERRAIN AND DIRECT ROUTE RESTORED";messageTime=30;

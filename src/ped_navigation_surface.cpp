@@ -7,8 +7,12 @@
 #include "regions.h"
 #include "game_internal.h"
 #include <map>
+#include <list>
 #include <queue>
 #include <limits>
+#include <chrono>
+#include <cstdlib>
+#include <tuple>
 
 namespace ped_navigation_surface {
 using namespace game;
@@ -16,15 +20,29 @@ namespace {
 constexpr float spacing=20,radius=9;
 constexpr unsigned plansPerFrame=4,queriesPerFrame=18000,maxExpanded=3000,maxNodes=30000;
 Stats frameStats{};
-std::map<std::pair<float,float>,std::vector<float>> frameFloors;
+bool profileEnabled=false;
+struct Timer {
+    float& total;
+    std::chrono::steady_clock::time_point start=profileEnabled?std::chrono::steady_clock::now():std::chrono::steady_clock::time_point{};
+    ~Timer(){if(profileEnabled)total+=std::chrono::duration<float,std::milli>(std::chrono::steady_clock::now()-start).count();}
+};
+using ColumnKey=std::pair<float,float>;
+std::list<ColumnKey> floorUsage;
+std::list<ColumnKey> planFloorUsage;
+struct Column {std::vector<float> heights;std::list<ColumnKey>::iterator usage;bool planning=false;};
+std::map<ColumnKey,Column> staticFloors;
 std::uint64_t floorRevision=0;
+std::uint64_t collisionRevision=~std::uint64_t(0);
 std::uint64_t revision(){return builder::revision()^(excavation::revision()<<32);}
 void currentFloors(){auto next=revision();if(next!=floorRevision){
     // Player edits can happen after beginFrame but before a threat callback.
     // Update live collision as well as floor samples before choosing a target.
     if(builder::active())jolt_world::preparePedNavigation();
-    frameFloors.clear();floorRevision=next;
-}}
+    floorRevision=next;
+}
+    auto collision=jolt_world::staticCollisionRevision();
+    if(collision!=collisionRevision){staticFloors.clear();floorUsage.clear();planFloorUsage.clear();collisionRevision=collision;}
+}
 float dot(Vec2 a,Vec2 b){return a.x*b.x+a.z*b.z;}
 float segmentDistance(Vec2 p,Vec2 a,Vec2 b){auto d=b-a;float t=std::clamp(dot(p-a,d)/std::max(.001f,dot(d,d)),0.0f,1.0f);return len(p-a-d*t);}
 Vec2 horizontal(Vec3 p){return {p.x,p.z};}
@@ -32,35 +50,61 @@ bool queryAvailable(){if(frameStats.physicsQueries>=queriesPerFrame)return false
 
 struct Context {
     float referenceHeight;
+    bool planning=false;
     std::vector<BuildingPiece> boxes;
+    std::vector<const Prop*> localProps;
+    std::vector<const Vehicle*> localVehicles;
     std::map<std::pair<float,float>,std::vector<float>> floorCache;
+    std::map<std::tuple<float,float,float>,int> supportCache;
     Context(Vec2 from,Vec2 goal,float height):referenceHeight(height){
         float x0=std::min(from.x,goal.x)-400,x1=std::max(from.x,goal.x)+400;
         float z0=std::min(from.z,goal.z)-400,z1=std::max(from.z,goal.z)+400;
         for(const auto& building:buildings)if(building.x<=x1&&building.x+building.w>=x0&&building.z<=z1&&building.z+building.d>=z0)
             for(auto box:destruction::boxes(building))boxes.push_back({box.low,box.high});
         for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);
-            if(low.x<=x1&&low.x+40>=x0&&low.z<=z1&&low.z+40>=z0)boxes.push_back({low,low+Vec3{40,40,40}});}
+            if(low.x<=x1&&low.x+builder::BLOCK_SIZE>=x0&&low.z<=z1&&low.z+builder::BLOCK_SIZE>=z0)boxes.push_back({low,low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE}});}
+        for(const auto& prop:props)if(prop.alive&&prop.p.x>=x0&&prop.p.x<=x1&&prop.p.z>=z0&&prop.p.z<=z1)localProps.push_back(&prop);
+        for(const auto& car:vehicles)if(car.p.x>=x0&&car.p.x<=x1&&car.p.z>=z0&&car.p.z<=z1)localVehicles.push_back(&car);
     }
     bool clearPoint(Vec3 p){
+        // A Context sees one unchanged world/obstacle snapshot. Floors already
+        // accepted in it have passed these same static and moving bounds.
+        auto accepted=floorCache.find({p.x,p.z});
+        if(accepted!=floorCache.end())for(float floor:accepted->second)if(floor==p.y)return true;
         if(p.x<radius||p.z<radius||p.x>regions::WIDTH-radius||p.z>regions::DEPTH-radius)return false;
         for(Vec2 offset:{Vec2{},Vec2{radius,0},Vec2{-radius,0},Vec2{0,radius},Vec2{0,-radius}})if(regions::waterAt(horizontal(p)+offset))return false;
         // Source bounds also protect routes at the edge of streamed collision.
         for(const auto& box:boxes)if(p.x+radius>box.low.x&&p.x-radius<box.high.x&&p.z+radius>box.low.z&&p.z-radius<box.high.z&&p.y+31>box.low.y+.1f&&p.y+1<box.high.y-.1f)return false;
-        for(const auto& prop:props)if(prop.alive&&p.y+31>prop.y&&p.y<prop.y+(prop.barrel?25:23)&&len(horizontal(p)-prop.p)<(prop.barrel?12:14)+radius+2)return false;
-        for(const auto& car:vehicles){if(p.y+31<car.rideHeight||p.y>car.rideHeight+42)continue;
+        for(const auto* object:localProps){const auto& prop=*object;if(p.y+31>prop.y&&p.y<prop.y+(prop.barrel?25:23)&&len(horizontal(p)-prop.p)<(prop.barrel?12:14)+radius+2)return false;}
+        for(const auto* object:localVehicles){const auto& car=*object;if(p.y+31<car.rideHeight||p.y>car.rideHeight+42)continue;
             Vec2 d=horizontal(p)-car.p,f=forward(car.angle);float along=dot(d,f),across=-d.x*f.z+d.z*f.x;
             if(std::abs(along)<(car.kind==Kind::Bike?18:26)+radius+2&&std::abs(across)<(car.kind==Kind::Bike?7:14)+radius+2)return false;}
-        auto known=frameFloors.find({p.x,p.z});
-        if(known!=frameFloors.end())for(float floor:known->second)if(std::abs(floor-p.y)<.001f)return true;
+        auto known=staticFloors.find({p.x,p.z});
+        if(known!=staticFloors.end())for(float floor:known->second.heights)if(std::abs(floor-p.y)<.001f)return true;
         return queryAvailable()&&jolt_world::pedestrianClear(p);
     }
     const std::vector<float>& floors(Vec2 p){
         auto key=std::make_pair(p.x,p.z);auto found=floorCache.find(key);if(found!=floorCache.end())return found->second;
-        auto raw=frameFloors.find(key);
-        if(raw==frameFloors.end())raw=frameFloors.emplace(key,jolt_world::pedestrianFloors(p,&frameStats.physicsQueries,queriesPerFrame)).first;
+        auto raw=staticFloors.find(key);
+        if(raw==staticFloors.end()){
+            Timer timer{frameStats.floorQueryMs};auto heights=jolt_world::pedestrianFloors(p,&frameStats.physicsQueries,queriesPerFrame);
+            // An exhausted query may have inspected only part of a column.
+            // Never retain that incomplete result for subsequent frames.
+            if(frameStats.physicsQueries>=queriesPerFrame){
+                std::vector<float> result;for(float height:heights)if(clearPoint({p.x,height,p.z}))result.push_back(height);
+                return floorCache.emplace(key,std::move(result)).first->second;
+            }
+            auto& usage=planning?planFloorUsage:floorUsage;
+            usage.push_front(key);raw=staticFloors.emplace(key,Column{std::move(heights),usage.begin(),planning}).first;
+        }else {
+            ++frameStats.floorCacheHits;
+            if(planning&&!raw->second.planning){
+                planFloorUsage.splice(planFloorUsage.begin(),floorUsage,raw->second.usage);raw->second.planning=true;
+            }else {auto& usage=raw->second.planning?planFloorUsage:floorUsage;
+                usage.splice(usage.begin(),usage,raw->second.usage);}
+        }
         std::vector<float> result;
-        for(float height:raw->second)if(clearPoint({p.x,height,p.z}))result.push_back(height);
+        for(float height:raw->second.heights)if(clearPoint({p.x,height,p.z}))result.push_back(height);
         return floorCache.emplace(key,std::move(result)).first->second;
     }
     bool nearest(Vec2 p,float reference,float tolerance,Vec3& result){
@@ -69,6 +113,8 @@ struct Context {
         return found;
     }
     int unsupported(Vec3 p){
+        auto key=std::make_tuple(p.x,p.y,p.z);auto found=supportCache.find(key);
+        if(found!=supportCache.end())return found->second;
         int missing=0;
         constexpr float footprint=8;
         const float tolerance=5.1f+footprint*std::tan(PI*.28f);
@@ -76,7 +122,7 @@ struct Context {
         for(Vec2 offset:{Vec2{footprint,0},Vec2{-footprint,0},Vec2{0,footprint},Vec2{0,-footprint},
                         Vec2{diagonal,diagonal},Vec2{-diagonal,diagonal},Vec2{diagonal,-diagonal},Vec2{-diagonal,-diagonal}}){
             Vec3 support{};if(!nearest(horizontal(p)+offset,p.y,tolerance,support))++missing;}
-        return missing;
+        supportCache.emplace(key,missing);return missing;
     }
     bool clear(Vec3 from,Vec3 to){
         float distance=len(horizontal(to)-horizontal(from));int samples=std::max(1,int(std::ceil(distance/4)));
@@ -129,7 +175,7 @@ std::vector<Vec3> search(Vec3 start,Vec3 goal,Context& context){
 
 Vec2 steer(Ped& ped,Vec2 preferred,float speed,float dt,Context& context){
     Vec2 wanted=preferred,separation{};float height=jolt_world::pedHeight(ped);
-    for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||std::abs(jolt_world::pedHeight(other)-height)>=25)continue;
+    for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>46||std::abs(jolt_world::pedHeight(other)-height)>=25)continue;
         auto away=ped.p-other.p;float distance=len(away);if(distance>46)continue;
         if(distance<.01f){away=&ped<&other?Vec2{0,1}:Vec2{0,-1};distance=.01f;}
         separation=separation+norm(away)*std::max(0.0f,(34-distance)/34)*speed;}
@@ -141,7 +187,7 @@ Vec2 steer(Ped& ped,Vec2 preferred,float speed,float dt,Context& context){
         if(option<16){float turn=(option%8-3)*PI/8;auto f=norm(wanted);candidate={f.x*std::cos(turn)-f.z*std::sin(turn),f.x*std::sin(turn)+f.z*std::cos(turn)};
             candidate=candidate*(len(wanted)*(option<8?1.0f:.45f));}
         float horizon=std::max(dt,.18f);auto end=ped.p+candidate*horizon;if(!context.clear(ped.p,end))continue;bool safe=true;
-        for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||std::abs(jolt_world::pedHeight(other)-height)>=25||len(other.p-ped.p)>65)continue;
+        for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>65||std::abs(jolt_world::pedHeight(other)-height)>=25)continue;
             float now=len(other.p-ped.p),next=segmentDistance(other.p,ped.p,end);
             if((now>=19&&next<19)||(now<19&&len(other.p-end)<now+.01f&&len(candidate)>.01f)){safe=false;break;}}
         if(!safe)continue;
@@ -155,7 +201,16 @@ Vec2 steer(Ped& ped,Vec2 preferred,float speed,float dt,Context& context){
     return best;
 }
 }
-void beginFrame(){frameStats={};frameFloors.clear();floorRevision=revision();if(builder::active())jolt_world::preparePedNavigation();}
+void beginFrame(){
+    frameStats={};profileEnabled=std::getenv("MINICITY_CPU_PROFILE")!=nullptr;
+    if(builder::active())jolt_world::preparePedNavigation();
+    currentFloors();
+    // Moving footprints generate new exact coordinates every tick. Keep their
+    // short history separate so they cannot evict reusable pathfinding columns.
+    // Neither cache rounds positions across voxel seams or narrow ledges.
+    while(planFloorUsage.size()>65536){staticFloors.erase(planFloorUsage.back());planFloorUsage.pop_back();}
+    while(floorUsage.size()>8192){staticFloors.erase(floorUsage.back());floorUsage.pop_back();}
+}
 const Stats& stats(){return frameStats;}
 bool hasDestination(const Ped& ped){
     const auto& nav=ped.navigation;
@@ -175,10 +230,12 @@ bool reachable(Vec3 from,Vec3 to){
     if(!context.nearest(horizontal(from),from.y,2.5f,start)||!context.nearest(horizontal(to),to.y,2.5f,end)||
        context.unsupported(start)!=0||context.unsupported(end)!=0)return false;
     ++frameStats.plans;
+    context.planning=true;
     auto path=context.clear(start,end)?std::vector<Vec3>{end}:search(start,end,context);
     return !path.empty()&&len(path.back()-end)<2.5f;
 }
 bool destination(Ped& ped,Vec2 intended,Vec3& feet,const Vec3* threatEye){
+    Timer timer{frameStats.navigationMs};
     if(!builder::active()||!ped.alive||ped.speed<=0||ped.drivingVehicle>=0||len(ped.p-player)>1200||
        frameStats.plans>=plansPerFrame||frameStats.physicsQueries>=queriesPerFrame)return false;
     currentFloors();float height=jolt_world::pedHeight(ped);Context context(ped.p,intended,height);Vec3 start{},goal{};
@@ -190,6 +247,7 @@ bool destination(Ped& ped,Vec2 intended,Vec3& feet,const Vec3* threatEye){
     if(threatEye&&(!goalFloor||context.unsupported(goal)!=0||!concealed(goal)))return false;
     if(!goalFloor)goal={intended.x,height,intended.z};
     ++frameStats.plans;
+    context.planning=true;
     auto path=goalFloor&&context.unsupported(goal)==0&&context.clear(start,goal)?std::vector<Vec3>{goal}:search(start,goal,context);
     if(path.empty())return false;auto end=path.back();
     if((!threatEye&&len(horizontal(end)-ped.p)<8)||context.unsupported(end)!=0||!concealed(end))return false;
@@ -200,6 +258,7 @@ bool destination(Ped& ped,Vec2 intended,Vec3& feet,const Vec3* threatEye){
     nav.planned=true;nav.repath=.55f;feet=end;return true;
 }
 Vec2 velocity(Ped& ped,Vec2 goal,float goalHeight,float speed,float dt){
+    Timer timer{frameStats.navigationMs};
     if(dt<=0||speed<=0||!ped.alive||ped.drivingVehicle>=0||len(ped.p-player)>1200)return {};
     auto& nav=ped.navigation;float height=jolt_world::pedHeight(ped);
     currentFloors();auto currentRevision=revision();
@@ -207,6 +266,9 @@ Vec2 velocity(Ped& ped,Vec2 goal,float goalHeight,float speed,float dt){
     nav.repath=std::max(0.0f,nav.repath-dt);
     if(nav.planned&&len(ped.p-nav.previous)<speed*dt*.08f&&len(goal-ped.p)>20)nav.stuck+=dt;else nav.stuck=0;
     nav.previous=ped.p;nav.previousHeight=height;
+    // Idle actors still receive gravity/collision in movePed(). They need no
+    // route or footprint probes for a zero horizontal move on their own floor.
+    if(len(goal-ped.p)<2&&std::isfinite(goalHeight)&&std::abs(goalHeight-height)<2.5f)return {};
     Context context(ped.p,goal,height);Vec3 start{},destination{};
     if(!context.nearest(ped.p,height,2.5f,start))return {}; // Let the real capsule finish falling first.
     float desired=std::isfinite(goalHeight)?goalHeight:
@@ -218,8 +280,10 @@ Vec2 velocity(Ped& ped,Vec2 goal,float goalHeight,float speed,float dt){
     if(arrived)return {};
     if((changed||nav.next>=nav.surfacePath.size()||nav.stuck>.7f)&&nav.repath<=0&&frameStats.plans<plansPerFrame){
         ++frameStats.plans;
+        context.planning=true;
         nav.surfacePath=context.clear(start,destination)?std::vector<Vec3>{destination}:search(start,destination,context);
         nav.next=0;nav.goal=goal;nav.goalHeight=destination.y;nav.planned=true;nav.repath=.55f;nav.stuck=0;
+        context.planning=false;
     }
     if(nav.next>=nav.surfacePath.size())return {};
     // Static edits invalidate the route through its revision. Moving obstacles

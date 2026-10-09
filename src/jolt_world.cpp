@@ -92,6 +92,12 @@ struct FragmentBody {JPH::BodyID id;TreeFragment visual;float life=12;};
 std::vector<FragmentBody> fragmentBodies;
 std::vector<TreeFragment> fragmentVisuals;
 void destroyBody(JPH::BodyID& id);
+std::uint64_t collisionRevision=0;
+JPH::BodyID addBody(const JPH::BodyCreationSettings& settings,JPH::EActivation activation){
+    auto id=world->GetBodyInterface().CreateAndAddBody(settings,activation);
+    if(!id.IsInvalid()&&settings.mObjectLayer==Layer::staticBody)++collisionRevision;
+    return id;
+}
 void syncSceneryColliders(game::Vec2 focus,float dt=0);
 // The physics jobs are single threaded. Queue contacts and apply gameplay
 // damage after Update, when the physics world is no longer locked.
@@ -178,12 +184,12 @@ void syncBuilderColliders(game::Vec2 focus){
         // Cached focus can move across a 400-unit cell on both axes. Include
         // that diagonal drift plus a block/capsule margin around builder AI.
         auto low=builder::cellLow(block.first);if(game::len(game::Vec2{low.x,low.z}-focus)>1900)continue;
-        auto center=low+game::Vec3{20,20,20};
-        chunks[{block.first.x/16,block.first.z/16}].AddShape(JPH::Vec3(center.x,center.y,center.z),JPH::Quat::sIdentity(),new JPH::BoxShape(JPH::Vec3(20,20,20),.05f));
+        float half=builder::BLOCK_SIZE*.5f;auto center=low+game::Vec3{half,half,half};
+        chunks[{block.first.x/16,block.first.z/16}].AddShape(JPH::Vec3(center.x,center.y,center.z),JPH::Quat::sIdentity(),new JPH::BoxShape(JPH::Vec3(half,half,half),.05f));
     }
     for(auto& chunk:chunks){auto shape=chunk.second.Create();if(shape.HasError())continue;
         JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
-        settings.mFriction=.9f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);if(!id.IsInvalid())builderBodies.push_back(id);}
+        settings.mFriction=.9f;auto id=addBody(settings,JPH::EActivation::DontActivate);if(!id.IsInvalid())builderBodies.push_back(id);}
 }
 int streamedCellX=-1,streamedCellZ=-1;
 struct Ragdoll {
@@ -230,7 +236,7 @@ bool recoveryOffset(const std::vector<RecoveryProbe>& probes,game::Vec3& result,
             // search may cross streaming boundaries, so include global edits.
             auto intersects=[&](game::Vec3 low,game::Vec3 high){return candidate.Overlaps(JPH::AABox(JPH::Vec3(low.x,low.y,low.z),JPH::Vec3(high.x,high.y,high.z)));};
             for(const auto& building:game::buildings)for(const auto& box:destruction::boxes(building))if(intersects(box.low,box.high))return false;
-            if(builder::active())for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);if(intersects(low,low+game::Vec3{40,40,40}))return false;}}
+            if(builder::active())for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);if(intersects(low,low+game::Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE}))return false;}}
         return recoveryClear(probes,delta);
     };
     if(clear({}))return true;
@@ -307,7 +313,7 @@ JPH::BodyID createStatic(game::Vec3 center,game::Vec3 half){
         JPH::RVec3(center.x,center.y,center.z),JPH::Quat::sIdentity(),
         JPH::EMotionType::Static,Layer::staticBody);
     settings.mFriction=0.9f;
-    return bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+    return addBody(settings,JPH::EActivation::DontActivate);
 }
 void addStatic(game::Vec3 center,game::Vec3 half){
     auto id=createStatic(center,half);
@@ -340,7 +346,7 @@ void syncTerrainColliders(){
             surface.mBlockSize=4;surface.mBitsPerSample=16;auto shape=surface.Create();
             if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
             JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
-            settings.mFriction=.85f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+            settings.mFriction=.85f;auto id=addBody(settings,JPH::EActivation::DontActivate);
             if(id.IsInvalid())throw std::runtime_error("No heightfield body available");fresh.push_back(id);
         }catch(...){for(auto& id:fresh)destroyBody(id);throw;}
         for(auto& id:terrainBodies)destroyBody(id);terrainBodies=std::move(fresh);
@@ -361,7 +367,7 @@ void syncTerrainColliders(){
         JPH::MeshShapeSettings surface(triangles);surface.mBuildQuality=JPH::MeshShapeSettings::EBuildQuality::FavorBuildSpeed;auto shape=surface.Create();
         if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
         JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
-        settings.mFriction=.9f;auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+        settings.mFriction=.9f;auto id=addBody(settings,JPH::EActivation::DontActivate);
         if(id.IsInvalid())throw std::runtime_error("No excavation chunk body available");
         destroyBody(chunk.id);chunk.id=id;chunk.revision=revision;wake(group.first);
     }
@@ -378,15 +384,13 @@ JPH::BodyID createBuilding(const game::Building& b){
     auto shape=compound.Create();if(shape.HasError())return {};
     JPH::BodyCreationSettings setting(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);
     setting.mFriction=.9f;
-    return world->GetBodyInterface().CreateAndAddBody(setting,JPH::EActivation::DontActivate);
+    return addBody(setting,JPH::EActivation::DontActivate);
 }
 void syncBuildingColliders(game::Vec2 focus){
     if(!world)return;
     auto& bodies=world->GetBodyInterface();
     if(buildingBodies.size()!=game::buildings.size()){
-        for(auto id:buildingBodies)if(!id.IsInvalid()){
-            bodies.RemoveBody(id);bodies.DestroyBody(id);
-        }
+        for(auto& id:buildingBodies)destroyBody(id);
         buildingBodies.assign(game::buildings.size(),JPH::BodyID());
         streamedCellX=streamedCellZ=-1;
     }
@@ -408,7 +412,7 @@ void syncBuildingColliders(game::Vec2 focus){
         if(nearby&&id.IsInvalid())
             id=createBuilding(building);
         else if(!nearby&&!id.IsInvalid()){
-            bodies.RemoveBody(id);bodies.DestroyBody(id);id=JPH::BodyID();
+            destroyBody(id);
         }
     }
 }
@@ -446,6 +450,7 @@ void restorePedCharacters(game::Vec2 focus){
 }
 }
 void shutdown(){
+    ++collisionRevision;
     if(world){
         for(auto& id:terrainBodies)destroyBody(id);
         for(auto& chunk:terrainChunks)destroyBody(chunk.second.id);
@@ -528,7 +533,7 @@ void reset(){
         settings.mFriction=0.85f;settings.mRestitution=0.12f;
         settings.mOverrideMassProperties=JPH::EOverrideMassProperties::CalculateInertia;
         settings.mMassPropertiesOverride.mMass=40.0f;
-        auto id=bodies.CreateAndAddBody(settings,JPH::EActivation::Activate);
+        auto id=addBody(settings,JPH::EActivation::Activate);
         propBodies.push_back(id);
     }
     for(const auto& vehicle:game::vehicles){
@@ -842,6 +847,7 @@ void preparePedNavigation(){
     syncBuildingColliders(game::player);syncSceneryColliders(game::player);
     restorePedCharacters(game::player);
 }
+std::uint64_t staticCollisionRevision(){return collisionRevision;}
 bool pedestrianClear(game::Vec3 feet,bool includeDynamic){
     if(!world||!pedestrianSettings)return false;
     // The capsule's bottom is one unit above its origin. A settled character
@@ -957,6 +963,8 @@ void movePed(std::size_t index,game::Vec2 horizontal,float dt){
 namespace {
 void destroyBody(JPH::BodyID& id){
     if(id.IsInvalid())return;
+    {JPH::BodyLockRead lock(world->GetBodyLockInterface(),id);
+        if(lock.Succeeded()&&lock.GetBody().GetObjectLayer()==Layer::staticBody)++collisionRevision;}
     auto& bodies=world->GetBodyInterface();
     bodies.RemoveBody(id);bodies.DestroyBody(id);id=JPH::BodyID();
 }
@@ -1001,7 +1009,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
                 JPH::RVec3(tree.p.x,terrain::baseHeight(tree.p)+halfHeight,tree.p.z),JPH::Quat::sIdentity(),
                 JPH::EMotionType::Static,Layer::staticBody);
             settings.mFriction=0.8f;settings.mUserData=treeTag|i;
-            auto fresh=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);
+            auto fresh=addBody(settings,JPH::EActivation::DontActivate);
             if(fresh.IsInvalid())throw std::runtime_error("No edited tree body available");
             destroyBody(id);id=fresh;treeRevisions[i]=revision;
         }
@@ -1016,7 +1024,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
         JPH::MeshShapeSettings surface(triangles);surface.mBuildQuality=JPH::MeshShapeSettings::EBuildQuality::FavorBuildSpeed;auto shape=surface.Create();
         if(shape.HasError())throw std::runtime_error(shape.GetError().c_str());
         JPH::BodyCreationSettings settings(shape.Get(),JPH::RVec3::sZero(),JPH::Quat::sIdentity(),JPH::EMotionType::Static,Layer::staticBody);settings.mFriction=.85f;
-        auto fresh=bodies.CreateAndAddBody(settings,JPH::EActivation::DontActivate);if(fresh.IsInvalid())throw std::runtime_error("No scanned rock body available");
+        auto fresh=addBody(settings,JPH::EActivation::DontActivate);if(fresh.IsInvalid())throw std::runtime_error("No scanned rock body available");
         destroyBody(body.id);body.id=fresh;body.revision=revision;
     }
     for(auto it=rockBodies.begin();it!=rockBodies.end();)if(!nearbyRocks.count(it->first)){destroyBody(it->second.id);it=rockBodies.erase(it);}else ++it;
@@ -1037,7 +1045,7 @@ void syncSceneryColliders(game::Vec2 focus,float dt){
                 JPH::Vec3(species.width*0.5f,species.height*0.5f,species.length*0.45f),0.2f),
                 target,rotation,JPH::EMotionType::Kinematic,Layer::moving);
             settings.mFriction=0.5f;settings.mUserData=animalTag|i;
-            id=bodies.CreateAndAddBody(settings,JPH::EActivation::Activate);
+            id=addBody(settings,JPH::EActivation::Activate);
             animalBodySpecies[i]=a.species;
         }else if(dt>0)bodies.MoveKinematic(id,target,rotation,dt);
         else bodies.SetPositionAndRotation(id,target,rotation,JPH::EActivation::DontActivate);
@@ -1076,7 +1084,7 @@ void breakTree(std::size_t index,const SceneryImpact& impact){
         settings.mLinearVelocity=JPH::Vec3(impact.direction.x*impact.speed*0.25f+std::cos(angle)*25,
             35+float(piece%3)*15,impact.direction.z*impact.speed*0.25f+std::sin(angle)*25);
         settings.mAngularVelocity=JPH::Vec3(impact.direction.z*2.5f,0.4f,-impact.direction.x*2.5f);
-        auto id=bodies.CreateAndAddBody(settings,JPH::EActivation::Activate);
+        auto id=addBody(settings,JPH::EActivation::Activate);
         if(!id.IsInvalid())fragmentBodies.push_back({id,{position,size,rotation.GetX(),
             rotation.GetY(),rotation.GetZ(),rotation.GetW(),foliage},12});
     }
@@ -1113,7 +1121,7 @@ void spawnFragment(game::Vec3 p,game::Vec3 size,game::Vec3 velocity,game::Color 
     settings.mMassPropertiesOverride.mMass=std::clamp(size.x*size.y*size.z*.01f,2.0f,180.0f);
     settings.mLinearVelocity=JPH::Vec3(velocity.x,velocity.y,velocity.z);
     settings.mAngularVelocity=JPH::Vec3(1.7f+velocity.z*.015f,.9f,2.1f-velocity.x*.012f);
-    auto id=world->GetBodyInterface().CreateAndAddBody(settings,JPH::EActivation::Activate);
+    auto id=addBody(settings,JPH::EActivation::Activate);
     TreeFragment visual;visual.p=p;visual.size=size;visual.category=1;visual.shape=shape;visual.color=tint;
     if(masonryKind>=0){visual.category=2;visual.mesh=masonry::name(masonryKind);}
     if(!id.IsInvalid())fragmentBodies.push_back({id,visual,masonryKind>=0?45.0f:18.0f});
@@ -1139,7 +1147,7 @@ bool toggleTrailer(std::size_t index){
     for(std::size_t n=0;n<vehicles.size();++n){auto& trailer=vehicles[n];
         if(trailer.kind!=Kind::Trailer||trailer.exploded||trailer.towVehicle>=0||vehicleBodies[n].IsInvalid())continue;
         auto truckPoint=bodies.GetCenterOfMassPosition(truckId)+bodies.GetRotation(truckId)*JPH::Vec3(0,0,-62);
-        auto trailerPoint=bodies.GetCenterOfMassPosition(vehicleBodies[n])+bodies.GetRotation(vehicleBodies[n])*JPH::Vec3(0,0,76);
+        auto trailerPoint=bodies.GetCenterOfMassPosition(vehicleBodies[n])+bodies.GetRotation(vehicleBodies[n])*JPH::Vec3(0,physics::vehicleRestHeight(Kind::Truck)-physics::vehicleRestHeight(trailer.kind),76*physics::vehicleScale(trailer.kind));
         if((truckPoint-trailerPoint).Length()>24||std::abs(trailer.speed)>12)continue;
         JPH::BodyLockWrite a(world->GetBodyLockInterfaceNoLock(),truckId);
         JPH::BodyLockWrite b(world->GetBodyLockInterfaceNoLock(),vehicleBodies[n]);
@@ -1167,7 +1175,7 @@ void breakVehicle(std::size_t index,bool fragments){
         float a=n++*2.39996f;
         spawnFragment(p,part.size,{velocity.GetX()+std::cos(a)*130,velocity.GetY()+120+float(n%4)*30,velocity.GetZ()+std::sin(a)*130},part.color,part.shape);
         if(!fragmentBodies.empty()){auto& f=fragmentBodies.back();f.visual.mesh=part.mesh;
-            f.visual.meshScale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane?physics::vehicleScale(v.kind):1;
+            f.visual.meshScale=v.kind==game::Kind::Combine||v.kind==game::Kind::Airplane||v.kind==game::Kind::Trailer?physics::vehicleScale(v.kind):1;
             auto pose=vehicle_systems::partRotation(v,part);auto partRotation=JPH::Quat(pose.qx,pose.qy,pose.qz,pose.qw);
             bodies.SetRotation(f.id,partRotation,JPH::EActivation::Activate);
             f.visual.qx=pose.qx;f.visual.qy=pose.qy;f.visual.qz=pose.qz;f.visual.qw=pose.qw;}

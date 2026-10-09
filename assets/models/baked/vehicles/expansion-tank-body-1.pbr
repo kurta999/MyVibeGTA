@@ -1,5 +1,10 @@
-0 9984 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-9984 1488 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-11472 8064 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-19536 4224 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-23760 3072 0.22000 0.80000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 9984 0.4 0.15 0 expansion-tank-paint-base.png expansion-tank-paint-normal.png expansion-tank-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+9984 1488 0.4 0.15 0 expansion-tank-paint-base.png expansion-tank-paint-normal.png expansion-tank-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+11472 8064 0.4 0.15 0 expansion-tank-paint-base.png expansion-tank-paint-normal.png expansion-tank-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE graphite
+19536 4224 0.55 0.6 0 expansion-tank-graphite-base.png expansion-tank-graphite-normal.png expansion-tank-graphite-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+23760 3072 0.4 0.15 0 expansion-tank-paint-base.png expansion-tank-paint-normal.png expansion-tank-paint-orm.png - - OPAQUE 0.5

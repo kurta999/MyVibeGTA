@@ -28,6 +28,20 @@ bool targetObject(const scenery_edits::Object& object,const char* material,build
         if(scenery_edits::trace(start,{1,0,0},200,hit)&&hit.objectId==object.id&&(material==nullptr||builder::items()[hit.item].id==material)){result=hit;return true;}
     }return false;
 }
+bool targetTrunkBase(const scenery_edits::Object& object,builder::Target& result){
+    // A complete mesh exposes peripheral roots that the old randomly sampled
+    // bake omitted. Mine the supporting trunk cell for the climbing fixture.
+    auto base=builder::cellAt(object.position+game::Vec3{0,3,0});
+    for(int y=3;y<40;y+=4)for(int angle=0;angle<64;++angle){
+        float yaw=angle*game::PI/32;
+        game::Vec3 direction{std::cos(yaw),0,std::sin(yaw)};
+        auto start=object.position+game::Vec3{0,float(y),0}-direction*100;
+        builder::Target hit;hit.distance=200;
+        if(scenery_edits::trace(start,direction,200,hit)&&hit.objectId==object.id&&
+           hit.cell==base&&builder::items()[hit.item].id=="log"){result=hit;return true;}
+    }
+    return false;
+}
 }
 void sceneryScenarios(){
     using namespace game;
@@ -36,14 +50,15 @@ void sceneryScenarios(){
     Tree tree{};tree.id="scenery-test-tree";tree.p={100,100};tree.variant=0;tree.scale=2;trees.push_back(tree);
     player=previousPlayer={30,100};playerY=0;occupied=-1;cameraYaw=cameraPitch=0;jolt_world::reset();toggle();
     scenery_edits::Object object;assert(scenery_edits::treeObject(0,object));builder::Target trunk;
-    assert(targetObject(object,"log",trunk));assert(trunk.source==builder::Source::Tree);
+    assert(targetTrunkBase(object,trunk));assert(trunk.source==builder::Source::Tree);
     traversal::trees={{"climb-fixture",tree.id,{100,100},68,0,false}};player=previousPlayer={65,100};assert(traversal::startTree(0));traversal::detach();
     std::printf("tree target %.2f %.2f %.2f cell %d %d %d\n",trunk.point.x,trunk.point.y,trunk.point.z,trunk.cell.x,trunk.cell.y,trunk.cell.z);
     int axe=builder::itemIndex("iron-axe"),log=builder::itemIndex("log");assert(builder::addItem(axe,1));
     auto origin=trunk.point+trunk.normal*70;player=previousPlayer={origin.x,origin.z};playerY=std::max(0.0f,origin.y-31);
-    auto direction=norm(trunk.point-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+    auto direction=norm(trunk.point-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
     builder::update(.01f);assert(builder::target().objectId==object.id&&builder::target().item==log);
     auto minedCell=builder::target().cell;leftMouse=true;builder::update(.08f);assert(!builder_feedback::cracks().empty());
+    assert(minedCell==trunk.cell);
     auto contactNormal=builder::target().normal;
     for(const auto& line:builder_feedback::cracks())for(auto point:{line.a,line.b}){builder::Target hit;hit.distance=24;
         bool traced=scenery_edits::trace(point+contactNormal*12,contactNormal*-1,24,hit);
@@ -52,6 +67,8 @@ void sceneryScenarios(){
     for(int n=0;n<300&&!scenery_edits::removed(object.id,minedCell);++n)builder::update(.01f);leftMouse=false;
     assert(scenery_edits::removed(object.id,minedCell)&&!trees[0].destroyed);
     assert(builder::inventory()[0].durability==builder::items()[axe].durability-1&&builder::inventory()[1].item==log&&builder::inventory()[1].count==1);
+    // Clear the full ray corridor, including the baked tree's peripheral roots.
+    for(int x=3;x<=6;++x)for(int y=0;y<2;++y)for(int z=4;z<=5;++z){builder::Cell c{x,y,z};if(!scenery_edits::removed(object.id,c)&&scenery_edits::validCut(object.id,c))assert(scenery_edits::cut(object.id,c));}
     auto saved=builder::capture();assert(!builder::mineScenery(trunk)&&builder::capture()==saved);
     assert(!builder::restore(saved+"Record99999=S \"unknown-object\" 2 0 2\n")&&builder::capture()==saved);
     assert(!builder::restore(saved+"Record99999=S \"tree:scenery-test-tree\" 20 0 20\n")&&builder::capture()==saved);
@@ -60,14 +77,18 @@ void sceneryScenarios(){
     std::vector<dx11::ModelInstance> instances;assert(scenery_edits::appendIfEdited(object.id,instances)&&!instances.empty());
     const auto* original=dx11::mesh(object.model);bool cap=false;
     for(const auto& instance:instances){assert(instance.source!=original);cap|=instance.source->textureFile==dx11::mesh("builder/log")->textureFile;
-        for(const auto& v:instance.source->vertices){auto low=builder::cellLow(minedCell);assert(!(v.x>low.x+.01f&&v.x<low.x+39.99f&&v.y>low.y+.01f&&v.y<low.y+39.99f&&v.z>low.z+.01f&&v.z<low.z+39.99f));}}
+        for(const auto& v:instance.source->vertices){auto low=builder::cellLow(minedCell);assert(!(v.x>low.x+.01f&&v.x<low.x+(builder::BLOCK_SIZE-.01f)&&v.y>low.y+.01f&&v.y<low.y+(builder::BLOCK_SIZE-.01f)&&v.z>low.z+.01f&&v.z<low.z+(builder::BLOCK_SIZE-.01f)));}}
     assert(cap);auto boxes=scenery_edits::trunkPieces(0);assert(!boxes.empty());
     player=previousPlayer={65,100};assert(!traversal::startTree(0));
     player=previousPlayer={30,100};playerY=0;assert(builder::canPlace(minedCell,builder::itemIndex("granite")));
-    assert(!builder::canPlace({2,1,2},builder::itemIndex("granite")));
-    auto low=builder::cellLow(minedCell);float y=low.y+20;
+    assert(!builder::canPlace(builder::cellAt({100,45,100}),builder::itemIndex("granite")));
+    auto low=builder::cellLow(minedCell);float y=low.y+builder::BLOCK_SIZE*.5f;
     jolt_world::step(1.0f/60);Vec3 anchor{};
-    if(y<40){assert(!jolt_world::staticAnchor({60,y,100},{1,0,0},80,anchor));assert(jolt_world::staticAnchor({60,45,100},{1,0,0},80,anchor));
+    if(y<40){
+        // Cut the adjacent modeled bush too; its independent geometry can now
+        // occupy a 20-unit cell beside the cleared trunk.
+        scenery_edits::Object bush;if(scenery_edits::find(scenery_edits::treeBushId(0),bush))for(int x=4;x<=6;++x)for(int z=3;z<=5;++z){builder::Cell c{x,0,z};if(scenery_edits::validCut(bush.id,c)&&!scenery_edits::removed(bush.id,c))assert(scenery_edits::cut(bush.id,c));}
+        saved=builder::capture();assert(!jolt_world::staticAnchor({60,y,100},{1,0,0},80,anchor));assert(jolt_world::staticAnchor({60,45,100},{1,0,0},80,anchor));
         float fraction=0;assert(!scenery_edits::segment({60,y,100},{140,y,100},fraction));
         camera::Pose gap{{60,y,100},{140,y,100}};assert(std::abs(camera::traceReticle(gap,80).x-140)<.1f);
         Bullet shot{};shot.p={60,y,100};shot.v={400,0,0};shot.life=1;shot.range=200;shot.damage=20;bullets={shot};
@@ -116,7 +137,7 @@ void sceneryScenarios(){
     assert(found);int shears=builder::itemIndex("shears");assert(builder::addItem(shears,1));int shearsSlot=-1;
     for(int n=0;n<9;++n)if(builder::inventory()[n].item==shears)shearsSlot=n;assert(shearsSlot>=0);builder::handleKey('1'+shearsSlot);
     player=previousPlayer={bush.position.x-60,leaf.point.z};playerY=bush.position.y;jolt_world::teleportCharacter(player,playerY);
-    direction=norm(leaf.point-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
+    direction=norm(leaf.point-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);
     builder::update(.01f);assert(builder::target().objectId==bush.id&&builder::target().item==builder::itemIndex("leaves"));leaf=builder::target();
     auto count=scenery_edits::records().size();leftMouse=true;for(int n=0;n<200&&!scenery_edits::removed(bush.id,leaf.cell);++n)builder::update(.01f);leftMouse=false;
     assert(scenery_edits::records().size()==count+1&&scenery_edits::removed(bush.id,leaf.cell));

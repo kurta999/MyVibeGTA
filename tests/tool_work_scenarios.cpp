@@ -24,12 +24,12 @@ void toggle(){bool next=!builder::active();assert(builder::requestToggle());asse
 void clean(){builder::reset();buildings.clear();trees.clear();peds.clear();vehicles.clear();props.clear();wildlife::animals.clear();birds::flock.clear();
     player=previousPlayer={100,100};playerY=terrain::baseHeight(player);occupied=enteringVehicle=-1;leftMouse=rightMouse=false;jolt_world::reset();toggle();}
 void aim(Vec3 point,float height=0){player=previousPlayer={point.x-65,point.z};playerY=terrain::baseHeight(player)+height;cameraMode=CameraMode::FirstWide;
-    jolt_world::teleportCharacter(player,playerY);auto direction=norm(point-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);builder::update(.01f);}
+    jolt_world::teleportCharacter(player,playerY);auto direction=norm(point-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);builder::update(.01f);}
 int count(int item){int result=0;for(auto s:builder::inventory())if(s.item==item)result+=s.count;for(auto d:builder::drops())if(d.stack.item==item)result+=d.stack.count;return result;}
-builder::Cell soilCell(){for(int z=2;z<100;++z)for(int x=2;x<100;++x){Vec2 p{x*40.0f+20,z*40.0f+20};auto cell=builder::cellAt({p.x,terrain::baseHeight(p)-.01f,p.z});
+builder::Cell soilCell(){for(int z=2;z<100;++z)for(int x=2;x<100;++x){Vec2 p{x*builder::BLOCK_SIZE+20,z*builder::BLOCK_SIZE+20};auto cell=builder::cellAt({p.x,terrain::baseHeight(p)-.01f,p.z});
     if(surface_work::validSoil(cell)&&!surface_work::validDeposit(cell)&&terrain::baseHeight(p)==0)return cell;}assert(false);return {};}
 surface_work::Deposit exposedDeposit(){
-    for(int z=2;z<160;z+=4)for(int x=2;x<160;x+=4)for(auto d:surface_work::nearby({x*40.0f,z*40.0f},100)){
+    for(int z=2;z<160;z+=4)for(int x=2;x<160;x+=4)for(auto d:surface_work::nearby({x*builder::BLOCK_SIZE,z*builder::BLOCK_SIZE},100)){
         // Aim at a real mesh triangle through the game's reticle. Avoid incidental plant geometry.
         for(int dz=-5;dz<=5;dz+=2)for(int dx=-5;dx<=5;dx+=2){aim(d.position+Vec3{float(dx),1.5f,float(dz)});
             if(builder::target().source==builder::Source::Deposit&&builder::target().cell==d.cell)return d;}}
@@ -45,7 +45,7 @@ void toolWorkScenarios(){
     dx11::loadMeshes(L"assets/models/baked");reset();assert(builder::loadCatalog());clean();
     int soil=builder::itemIndex("soil"),tilled=builder::itemIndex("tilled-soil"),brush=builder::itemIndex("brush");assert(soil>=0&&tilled>=0&&brush>=0);
     assert(!surface_work::validSoil({INT_MAX,INT_MAX,INT_MIN})&&!surface_work::validDeposit({-1,0,0}));
-    auto cell=soilCell();auto low=builder::cellLow(cell);Vec3 ground{low.x+20,terrain::baseHeight({low.x+20,low.z+20}),low.z+20};
+    auto cell=soilCell();auto low=builder::cellLow(cell);Vec3 ground{low.x+builder::BLOCK_SIZE*.5f,terrain::baseHeight({low.x+builder::BLOCK_SIZE*.5f,low.z+builder::BLOCK_SIZE*.5f}),low.z+builder::BLOCK_SIZE*.5f};
     // All five modeled hoe variants perform an actual RMB action, once, on natural soil.
     for(const auto& tool:builder::items())if(tool.tool==builder::Tool::Hoe){clean();int index=builder::itemIndex(tool.id);assert(builder::addItem(index,1));aim(ground);
         assert(builder::target().source==builder::Source::Ground&&builder::target().cell==cell);float before=terrain::height({ground.x,ground.z});
@@ -66,7 +66,7 @@ void toolWorkScenarios(){
     std::puts("hoe variants: natural soil, texture, F5, snapshot validation and one-time soil harvest passed");
     // A hoe prepares the top of a placed soil cube. A shovel harvests the original soil resource.
     clean();int hoe=builder::itemIndex("iron-hoe"),shovel=builder::itemIndex("iron-shovel");assert(builder::addItem(hoe,1));assert(builder::addItem(shovel,1));
-    builder::Cell cube{cell.x,cell.y+1,cell.z};aim(ground,60);assert(builder::place(cube,soil,false));aim(ground+Vec3{0,40,0},60);
+    builder::Cell cube=builder::cellAt(ground);ground=builder::cellLow(cube)+Vec3{10,0,10};aim(ground,60);assert(builder::place(cube,soil,false));aim(ground+Vec3{0,builder::BLOCK_SIZE,0},60);
     assert(builder::target().source==builder::Source::Block&&builder::target().normal.y>.7f);builder::use();assert(builder::blocks().at(cube).item==tilled);
     assert(builder::inventory()[0].durability==builder::items()[hoe].durability-1);builder::update(.3f);builder::use();assert(builder::inventory()[0].durability==builder::items()[hoe].durability-1);
     builder::handleKey('2');leftMouse=true;for(int n=0;n<100&&builder::blocks().count(cube);++n)builder::update(.01f);leftMouse=false;

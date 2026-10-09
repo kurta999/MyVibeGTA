@@ -1,0 +1,1 @@
+Validated 30 trees and their near/distant assets; wrote C:\GIT_local\MyVibeGTA\evidence\trees-20261007\geometry-audit.json

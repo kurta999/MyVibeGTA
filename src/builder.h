@@ -5,8 +5,8 @@
 #include <cstdint>
 
 namespace builder {
-constexpr float BLOCK_SIZE=40.0f;
-constexpr float REACH=BLOCK_SIZE*5;
+constexpr float BLOCK_SIZE=20.0f;
+constexpr float REACH=200.0f;
 constexpr int INVENTORY_SLOTS=36;
 enum class Tool {None,Pickaxe,Axe,Shovel,Hoe,Shears,Brush};
 struct Item {
@@ -41,6 +41,7 @@ const std::vector<Item>& items();
 int itemIndex(const std::string& id);
 void reset();
 bool active();
+bool respawn();
 bool transitioning();
 bool modal();
 bool inventoryOpen();

@@ -1,2 +1,4 @@
-0 1800 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-1800 1332 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 1800 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+1800 1332 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5

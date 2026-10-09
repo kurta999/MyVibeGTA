@@ -62,7 +62,7 @@ bool insert(std::array<Stack,INVENTORY_SLOTS>& inventory,int item,int count,int 
     for(auto& s:inventory)if(s.item<0&&count){int amount=std::min(count,capacity(item));s={item,amount,durability};count-=amount;}return true;
 }
 bool stationNearby(const std::string& id){for(const auto& block:placed)if(catalog[block.second.item].id==id&&
-    game::len(cellLow(block.first)+game::Vec3{20,20,20}-game::Vec3{game::player.x,game::playerY+20,game::player.z})<=REACH)return true;return false;}
+    game::len(cellLow(block.first)+game::Vec3{BLOCK_SIZE*.5f,BLOCK_SIZE*.5f,BLOCK_SIZE*.5f}-game::Vec3{game::player.x,game::playerY+20,game::player.z})<=REACH)return true;return false;}
 bool consume(std::array<Stack,INVENTORY_SLOTS>& inventory,const std::string& id,int count,int skip=-1){
     for(int n=0;n<INVENTORY_SLOTS&&count;++n)if(n!=skip&&inventory[n].item>=0){auto& stack=inventory[n];const auto& item=catalog[stack.item];
         if(item.id!=id&&!(id=="stone-material"&&item.craftGroup==id))continue;int amount=std::min(count,stack.count);count-=amount;stack.count-=amount;if(!stack.count)stack={};}return count==0;}
@@ -85,7 +85,7 @@ bool craftResult(int index,std::array<Stack,INVENTORY_SLOTS>& result){
     const auto& recipe=crafting[index];
     if(recipe.station!="none"){
         bool nearby=false;for(const auto& block:placed)if(catalog[block.second.item].id==recipe.station&&
-            game::len(cellLow(block.first)+game::Vec3{20,20,20}-game::Vec3{game::player.x,game::playerY+20,game::player.z})<=REACH)nearby=true;
+            game::len(cellLow(block.first)+game::Vec3{BLOCK_SIZE*.5f,BLOCK_SIZE*.5f,BLOCK_SIZE*.5f}-game::Vec3{game::player.x,game::playerY+20,game::player.z})<=REACH)nearby=true;
         if(!nearby)return false;
     }
     result=slots;
@@ -100,7 +100,7 @@ bool craftResult(int index,std::array<Stack,INVENTORY_SLOTS>& result){
 }
 void clearInputs(){game::leftMouse=game::rightMouse=false;std::fill(std::begin(game::keys),std::end(game::keys),false);
     useHeld=false;game::scopeBlend=0;game::telescopeActive=false;progress=miningTime=useAnimation=finishAnimation=0;mining={};builder_feedback::clear();}
-void safeActors(){
+void safeActors(bool playerOnly=false){
     auto blocked=[](game::Vec3 p,float radius,float height){
         for(const auto& b:game::buildings)for(const auto& box:destruction::boxes(b))
             if(p.x+radius>box.low.x&&p.x-radius<box.high.x&&p.z+radius>box.low.z&&p.z-radius<box.high.z&&
@@ -120,7 +120,7 @@ void safeActors(){
     };
     auto p=resolve(game::player,game::playerY,10,36);
     game::player=game::previousPlayer={p.x,p.z};game::playerY=p.y;game::playerVelocity={};game::playerVerticalSpeed=0;
-    jolt_world::teleportCharacter(game::player,p.y);
+    jolt_world::teleportCharacter(game::player,p.y);if(playerOnly)return;
     for(std::size_t n=0;n<game::vehicles.size();++n){auto& v=game::vehicles[n];if(game::len(v.p-game::player)>1400)continue;
         float r=physics::vehicleRadius(v.kind);
         if(v.rideHeight<excavation::floorBelow({v.p.x,v.rideHeight+.1f,v.p.z})-1||blocked({v.p.x,v.rideHeight,v.p.z},r,42*physics::vehicleScale(v.kind))){auto q=resolve(v.p,v.rideHeight,r,42*physics::vehicleScale(v.kind));
@@ -202,6 +202,17 @@ void reset(){enabled=initialized=menu=hasChest=false;phase=0;phaseTime=progress=
     outgoingSave={};preparedBaseline=false;
     useHeld=normalCrouched=false;useAnimation=finishAnimation=0;builder_feedback::clear();placed.clear();loose.clear();slots={};held={};normalState={};builderState={};aim=mining={};craftScroll=0;excavation::clear();scenery_edits::clear();surface_work::clear();++generation;}
 bool active(){return enabled;}
+bool respawn(){
+    if(!enabled||transitioning()||game::health>0)return false;
+    closeInventory();grapple::release();traversal::reset();game::carryDrop();
+    game::health=game::PLAYER_MAX_HEALTH;game::armor=0;game::invulnerable=3;
+    game::occupied=game::enteringVehicle=-1;game::vehicleEntryTime=0;
+    game::reloadRemaining=game::fireCooldown=game::recoil=0;
+    game::swimming=game::crouched=false;game::airTime=0;game::grounded=true;
+    game::player={300,235};game::playerY=terrain::baseHeight(game::player);
+    safeActors(true);aim={};placeCooldown=0;
+    notice("Respawned in building mode");savegame::request();return true;
+}
 bool transitioning(){return phase!=0;}
 bool modal(){return menu||transitioning();}
 bool inventoryOpen(){return menu;}
@@ -338,7 +349,7 @@ Target trace(game::Vec3 origin,game::Vec3 direction){
     auto test=[&](Source source,int index,int item,game::Vec3 low,game::Vec3 high){float hit=0;game::Vec3 normal;
         if(boxRay(origin,direction,low,high,result.distance,hit,normal)){result.source=source;result.index=index;result.item=item;result.distance=hit;
             result.point=origin+direction*hit;result.normal=normal;result.cell=cellAt(result.point-normal*.01f);result.adjacent=cellAt(result.point+normal*.01f);}};
-    if(enabled)for(const auto& b:placed){auto lo=cellLow(b.first);test(Source::Block,-1,b.second.item,lo,lo+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE});}
+    if(enabled)for(const auto& b:placed){auto lo=cellLow(b.first);float previous=result.distance;test(Source::Block,-1,b.second.item,lo,lo+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE});if(result.distance<previous)result.cell=b.first;}
     for(int n=0;n<int(game::buildings.size());++n)for(const auto& box:destruction::boxes(game::buildings[n]))test(Source::Building,n,itemIndex("brick"),box.low,box.high);
     scenery_edits::trace(origin,direction,result.distance,result);
     if(enabled)surface_work::trace(origin,direction,result.distance,result);
@@ -354,7 +365,7 @@ bool canPlace(Cell cell,int item){
     if(!enabled||modal()||item<0||item>=int(catalog.size())||!catalog[item].block||placed.count(cell))return false;
     auto lo=cellLow(cell),hi=lo+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE};
     if(lo.x<0||lo.z<0||hi.x>regions::WIDTH||hi.z>regions::DEPTH||lo.y<-400||hi.y>3000)return false;
-    if(!excavation::removed(cell))for(float x:{lo.x+.1f,hi.x-.1f})for(float z:{lo.z+.1f,hi.z-.1f})if(lo.y<terrain::baseHeight({x,z})-.2f)return false;
+    for(float x:{lo.x+.1f,hi.x-.1f})for(float z:{lo.z+.1f,hi.z-.1f})if(lo.y<terrain::baseHeight({x,z})-.2f&&!excavation::removed(cellAt({x,lo.y+.1f,z})))return false;
     auto overlap=[&](game::Vec3 a,game::Vec3 b){return a.x<hi.x&&b.x>lo.x&&a.y<hi.y&&b.y>lo.y&&a.z<hi.z&&b.z>lo.z;};
     for(const auto& b:game::buildings)for(const auto& box:destruction::boxes(b))if(overlap(box.low,box.high))return false;
     if(overlap({game::player.x-10,game::playerY,game::player.z-10},{game::player.x+10,game::playerY+36,game::player.z+10}))return false;
@@ -370,7 +381,7 @@ bool canPlace(Cell cell,int item){
            std::abs(delta.x*f.x+delta.z*f.z)<halfLength+BLOCK_SIZE*.5f*(std::abs(f.x)+std::abs(f.z))&&
            std::abs(delta.x*side.x+delta.z*side.z)<halfWidth+BLOCK_SIZE*.5f*(std::abs(side.x)+std::abs(side.z)))return false;
     }
-    for(const auto& object:scenery_edits::nearby({lo.x+20,lo.z+20},60))if(scenery_edits::intersects(object,lo+game::Vec3{.01f,.01f,.01f},hi-game::Vec3{.01f,.01f,.01f}))return false;
+    for(const auto& object:scenery_edits::nearby({lo.x+BLOCK_SIZE*.5f,lo.z+BLOCK_SIZE*.5f},60))if(scenery_edits::intersects(object,lo+game::Vec3{.01f,.01f,.01f},hi-game::Vec3{.01f,.01f,.01f}))return false;
     if(placed.size()>=16384){notice("Building block limit reached");return false;}
     return true;
 }
@@ -381,7 +392,7 @@ bool place(Cell cell,int item,bool consume){
 }
 bool mineBlock(Cell cell){
     if(!enabled||modal())return false;auto found=placed.find(cell);if(found==placed.end())return false;
-    auto p=cellLow(cell)+game::Vec3{20,8,20};auto block=found->second;
+    auto p=cellLow(cell)+game::Vec3{BLOCK_SIZE*.5f,8,BLOCK_SIZE*.5f};auto block=found->second;
     if(!addItem(block.item,1))loose.push_back({p,{block.item,1,0}});
     for(const auto& s:block.contents)if(s.item>=0)loose.push_back({p,s});
     placed.erase(found);++generation;savegame::request();return true;
@@ -390,7 +401,7 @@ bool mineTerrain(Cell cell){
     if(!enabled||modal()||!excavation::cut(cell))return false;
     surface_work::removed(cell);
     int material=excavation::material(cell),resource=material>=0?itemIndex(catalog[material].harvestDrop):-1;
-    if(resource>=0&&!addItem(resource,1))loose.push_back({cellLow(cell)+game::Vec3{20,8,20},{resource,1,0}});
+    if(resource>=0&&!addItem(resource,1))loose.push_back({cellLow(cell)+game::Vec3{BLOCK_SIZE*.5f,8,BLOCK_SIZE*.5f},{resource,1,0}});
     ++generation;savegame::request();return true;
 }
 bool mineScenery(const Target& target){
@@ -407,12 +418,12 @@ bool mineScenery(const Target& target){
 }
 void blast(game::Vec3 point,float radius,int damage){
     if(!enabled||radius<=0||damage<=0)return;std::vector<Cell> broken;bool changed=false;
-    for(auto& block:placed){auto center=cellLow(block.first)+game::Vec3{20,20,20};float distance=game::len(center-point);
+    for(auto& block:placed){auto center=cellLow(block.first)+game::Vec3{BLOCK_SIZE*.5f,BLOCK_SIZE*.5f,BLOCK_SIZE*.5f};float distance=game::len(center-point);
         if(distance>=radius)continue;const auto& material=catalog[block.second.item];
         block.second.damage+=(1-distance/radius)*damage*100/material.blastResistance;changed=true;
         if(block.second.damage>=material.hp)broken.push_back(block.first);
     }
-    for(auto cell:broken){auto found=placed.find(cell);if(found==placed.end())continue;auto p=cellLow(cell)+game::Vec3{20,8,20};
+    for(auto cell:broken){auto found=placed.find(cell);if(found==placed.end())continue;auto p=cellLow(cell)+game::Vec3{BLOCK_SIZE*.5f,8,BLOCK_SIZE*.5f};
         loose.push_back({p,{found->second.item,1,0}});for(const auto& stack:found->second.contents)if(stack.item>=0)loose.push_back({p,stack});placed.erase(found);}
     if(changed){++generation;savegame::request();}
 }
@@ -481,7 +492,7 @@ void update(float dt){
 std::uint64_t revision(){return generation;}
 const std::vector<game::Tree>& normalTrees(){return enabled&&initialized?normalState.trees:game::trees;}
 std::string capture(){
-    std::ostringstream out;out<<std::setprecision(9)<<"Version=1\nInitialized="<<initialized<<"\nSelected="<<hotbar<<'\n';int row=0;
+    std::ostringstream out;out<<std::setprecision(9)<<"Version=2\nInitialized="<<initialized<<"\nSelected="<<hotbar<<'\n';int row=0;
     if(initialized){auto normal=enabled?normalState:scenery(),built=enabled?scenery():builderState;writeScenery(out,'N',normal,row);writeScenery(out,'V',built,row);}
     for(int n=0;n<36;++n){out<<"Record"<<row++<<"=I "<<n;writeStack(out,slots[n]);out<<'\n';}
     out<<"Record"<<row++<<"=H";writeStack(out,held);out<<'\n';
@@ -502,22 +513,44 @@ bool restore(const std::string& records){
     std::array<Stack,INVENTORY_SLOTS> newSlots{};Stack newHeld{};std::map<Cell,Block> newBlocks;std::vector<Drop> newDrops;std::set<Cell> newCuts;
     scenery_edits::Records newSceneryCuts;std::size_t sceneryCutCount=0;
     std::set<Cell> newSoil,newBrushed;
-    bool version=false,newInitialized=false;int newSelected=0;std::set<std::string> seen;std::istringstream lines(records);std::string line;
+    int version=0;bool newInitialized=false;int newSelected=0;std::set<std::string> seen;std::istringstream lines(records);std::string line;
     while(std::getline(lines,line)){line=data_file::trim(line);if(line.empty())continue;auto equal=line.find('=');if(equal==std::string::npos)return false;
         auto key=line.substr(0,equal);if(!seen.insert(key).second)return false;std::istringstream in(line.substr(equal+1));
-        if(key=="Version"){int value=0;if(!(in>>value)||value!=1)return false;version=true;}
+        if(key=="Version"){int value=0;if(!(in>>value)||(value!=1&&value!=2))return false;version=value;}
         else if(key=="Initialized"){int value=0;if(!(in>>value)||value<0||value>1)return false;newInitialized=value!=0;}
         else if(key=="Selected"){if(!(in>>newSelected)||newSelected<0||newSelected>8)return false;}
-        else if(key.rfind("Record",0)==0){std::string type;if(!(in>>type))return false;
+        else if(key.rfind("Record",0)==0){std::string type;if(!version||!(in>>type))return false;
             if(type=="I"){int index;if(!(in>>index)||index<0||index>=36||!readStack(in,newSlots[index]))return false;}
             else if(type=="H"){if(!readStack(in,newHeld))return false;}
-            else if(type=="E"){Cell cell;if(!(in>>cell.x>>cell.y>>cell.z)||!excavation::validCell(cell)||newCuts.size()>=16384||!newCuts.insert(cell).second)return false;}
-            else if(type=="S"){std::string id;Cell cell;if(!(in>>std::quoted(id)>>cell.x>>cell.y>>cell.z)||sceneryCutCount>=16384||!scenery_edits::validCut(id,cell)||!newSceneryCuts[id].insert(cell).second)return false;++sceneryCutCount;}
+            else if(type=="E"||type=="S"){
+                std::string id;Cell cell;if(type=="S"&&!(in>>std::quoted(id)))return false;
+                if(!(in>>cell.x>>cell.y>>cell.z))return false;
+                int scale=version==1?2:1;
+                if(cell.x<0||cell.z<0||cell.x>=int(regions::WIDTH/(BLOCK_SIZE*scale))||cell.z>=int(regions::DEPTH/(BLOCK_SIZE*scale))||cell.y<int(-400/(BLOCK_SIZE*scale))||cell.y>=int(3000/(BLOCK_SIZE*scale)))return false;
+                bool inserted=false;
+                for(int x=0;x<scale;++x)for(int y=0;y<scale;++y)for(int z=0;z<scale;++z){
+                    Cell small{cell.x*scale+x,cell.y*scale+y,cell.z*scale+z};
+                    bool valid=type=="E"?excavation::validCell(small):scenery_edits::validCut(id,small);
+                    if(!valid){if(version==1)continue;return false;}
+                    if(type=="E"){if(newCuts.size()>=131072||!newCuts.insert(small).second)return false;}
+                    else {if(sceneryCutCount>=131072||!newSceneryCuts[id].insert(small).second)return false;++sceneryCutCount;}
+                    inserted=true;
+                }
+                if(!inserted)return false;
+            }
             else if(type=="G"||type=="R"){Cell cell;auto& set=type=="G"?newSoil:newBrushed;if(!(in>>cell.x>>cell.y>>cell.z)||set.size()>=16384||
-                !(type=="G"?surface_work::validSoil(cell):surface_work::validDeposit(cell))||!set.insert(cell).second)return false;}
+                (version!=1&&!(type=="G"?surface_work::validSoil(cell):surface_work::validDeposit(cell))))return false;
+                if(version==1){
+                    if(cell.x<0||cell.z<0||cell.x>=420||cell.z>=420||cell.y<-10||cell.y>=75)return false;
+                    for(int x=0;x<2;++x)for(int z=0;z<2;++z){
+                        auto low=cellLow({cell.x*2+x,0,cell.z*2+z});Cell small=cellAt({low.x+BLOCK_SIZE*.5f,terrain::baseHeight({low.x+BLOCK_SIZE*.5f,low.z+BLOCK_SIZE*.5f})-.01f,low.z+BLOCK_SIZE*.5f});
+                        if(type=="G"?surface_work::validSoil(small):surface_work::validDeposit(small))if(!set.insert(small).second)return false;
+                    }
+                }else if(!set.insert(cell).second)return false;
+            }
             else if(type=="P"){Cell c;Block b;std::string id;if(!(in>>c.x>>c.y>>c.z>>std::quoted(id)>>b.damage))return false;b.item=itemIndex(id);
-                if(b.item<0||!catalog[b.item].block||c.x<0||c.z<0||c.x>=420||c.z>=420||c.y<-10||c.y>=75||!std::isfinite(b.damage)||b.damage<0||b.damage>=catalog[b.item].hp)return false;
-                for(auto& s:b.contents)if(!readStack(in,s))return false;if(newBlocks.size()>=16384||!newBlocks.emplace(c,b).second)return false;}
+                if(b.item<0||!catalog[b.item].block||c.x<0||c.z<0||c.x>=int(regions::WIDTH/(version==1?40.0f:BLOCK_SIZE))||c.z>=int(regions::DEPTH/(version==1?40.0f:BLOCK_SIZE))||c.y<int(-400/(version==1?40.0f:BLOCK_SIZE))||c.y>=int(3000/(version==1?40.0f:BLOCK_SIZE))||!std::isfinite(b.damage)||b.damage<0||b.damage>=catalog[b.item].hp)return false;
+                for(auto& s:b.contents)if(!readStack(in,s))return false;if(version==1){c.x*=2;c.y*=2;c.z*=2;}if(newBlocks.size()>=16384||!newBlocks.emplace(c,b).second)return false;}
             else if(type=="D"){Drop d;if(!(in>>d.p.x>>d.p.y>>d.p.z)||!std::isfinite(d.p.x)||!std::isfinite(d.p.y)||!std::isfinite(d.p.z)||d.p.x<0||d.p.z<0||d.p.x>regions::WIDTH||d.p.z>regions::DEPTH||!readStack(in,d.stack)||d.stack.item<0||newDrops.size()>=32768)return false;newDrops.push_back(d);}
             else if(type=="NB"||type=="VB"){auto& state=type=="NB"?normal:built;std::string id;int pieces,cuts;
                 if(!(in>>std::quoted(id)>>pieces>>cuts)||pieces<0||pieces>4096||cuts<0||cuts>4096)return false;

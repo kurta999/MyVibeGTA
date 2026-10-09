@@ -595,6 +595,13 @@ void loadMeshes(const std::wstring& folder){
             lod->second.textureFile=detail->second.textureFile;
             lod->second.textured=detail->second.textured;
             lod->second.alphaTest=detail->second.alphaTest;
+            if(key.rfind("nature/tree_",0)==0){
+                // Leaf density changes must not resize or move the trunk when
+                // model() normalizes the selected mesh to the catalog dimensions.
+                lod->second.minX=detail->second.minX;lod->second.maxX=detail->second.maxX;
+                lod->second.minY=detail->second.minY;lod->second.maxY=detail->second.maxY;
+                lod->second.minZ=detail->second.minZ;lod->second.maxZ=detail->second.maxZ;
+            }
         }
     }
     const char* people[]={"beach-man","casual-man","casual-woman","hoodie-man"};

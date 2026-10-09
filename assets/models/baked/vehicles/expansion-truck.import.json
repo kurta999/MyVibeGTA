@@ -148,5 +148,18 @@
       "spin": 1
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-truck-body-0.m3d": "30b57a1da95d855b832dc281bc0488930f0723b09bf461c3d3239bdf4e3a774f",
+    "expansion-truck-body-1.m3d": "6bcd75a831964b1fbf51e7f924ab6dc18cbe826654b1ae6bc358f2d9e0cc2402",
+    "expansion-truck-body-2.m3d": "2caaf0d122df02c9c00ffad558ccbfab873532aab32232e196baa927d0531f4b",
+    "expansion-truck-body-3.m3d": "7d76489f3001c1fc8c3924579b56be1c13c27457fa004706a8da7b9c136e7792",
+    "expansion-truck-wheel-0.m3d": "dce179c3f693ed2c716d53ba99171d9018d9f5caab50b0c531ed4f7ce173e930",
+    "expansion-truck-wheel-1.m3d": "5136dd4367d8208342d48fb06645a95579f5f473b17a933a41e7260fdcf12b86",
+    "expansion-truck-wheel-2.m3d": "0a5e7f8016025217a45a0b8d3832030e162fdd06a315d594eb48cc5989cdf12a",
+    "expansion-truck-wheel-3.m3d": "401179b50fe09b4c9ea2d7e3c456b16963c855ff5c6f9d85fbfd780ecaf683da",
+    "expansion-truck-wheel-4.m3d": "fd0e1f5ae564c4c53dc3fea0072924425e6ea65311a94df126a41475fc876d0e",
+    "expansion-truck-wheel-5.m3d": "8416fb07805c0f666f8a0f7eecd72b72bb72109dc9e2b0f6d6fb2ced62d2847f"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. truck"
 }

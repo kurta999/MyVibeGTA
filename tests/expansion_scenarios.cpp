@@ -42,8 +42,8 @@ void expansionScenarios(){
     assert(cuttingAuger);
     // Resized machinery shares its mesh scale, rigid pivots, ground gear and
     // debris extents; explosion fragments must not shrink back to source size.
-    for(Kind kind:{Kind::Combine,Kind::Airplane}){
-        stage();vehicle(kind);jolt_world::reset();ticks(90);
+    for(Kind kind:{Kind::Combine,Kind::Airplane,Kind::Trailer}){
+        stage();vehicle(kind);float scale=physics::vehicleScale(kind);jolt_world::reset();ticks(90);
         assert(jolt_world::wheelContactCount(0)>=2);
         std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];
         std::vector<dx11::ModelInstance> instances;dx11::buildScene(groups,instances);
@@ -51,9 +51,9 @@ void expansionScenarios(){
         for(const auto& part:parts){
             const auto* source=dx11::mesh(part.mesh);assert(source);
             float extent=std::max({source->maxX-source->minX,source->maxY-source->minY,source->maxZ-source->minZ});
-            assert(std::abs(std::max({part.size.x,part.size.y,part.size.z})-extent*1.5f)<.01f);
+            assert(std::abs(std::max({part.size.x,part.size.y,part.size.z})-extent*scale)<.01f);
             for(const auto& instance:instances)if(instance.source==source){
-                assert(instance.scaleX==1.5f&&instance.scaleY==1.5f&&instance.scaleZ==1.5f);
+                assert(instance.scaleX==scale&&instance.scaleY==scale&&instance.scaleZ==scale);
                 auto position=vehicle_systems::partPosition(vehicles[0],part);
                 assert(len(position-Vec3{instance.x,instance.y,instance.z})<.01f);++rendered;
             }
@@ -61,7 +61,7 @@ void expansionScenarios(){
         assert(rendered==int(parts.size()));
         damageVehicle(0,10000);jolt_world::step(1.0f/60);
         assert(vehicles[0].exploded&&jolt_world::treeFragments().size()==parts.size());
-        for(const auto& fragment:jolt_world::treeFragments())assert(fragment.meshScale==1.5f);
+        for(const auto& fragment:jolt_world::treeFragments())assert(fragment.meshScale==scale);
     }
     reset();std::set<Kind> kinds;for(auto& v:vehicles){kinds.insert(v.kind);
         if(v.id.rfind("expansion-",0)==0)assert(!solid(v.p,physics::chassisHalf(v.kind).x));}
@@ -85,10 +85,10 @@ void expansionScenarios(){
     }
     // A physical hitch preserves relative spacing while accelerating, detaches,
     // and is cleaned up when either connected vehicle explodes.
-    stage();vehicle(Kind::Truck);vehicle(Kind::Trailer,{4362,4500});jolt_world::reset();occupied=0;
+    stage();vehicle(Kind::Truck);vehicle(Kind::Trailer,{4286,4500});jolt_world::reset();occupied=0;
     ticks(60);assert(jolt_world::toggleTrailer(0));assert(vehicles[0].trailer==1&&vehicles[1].towVehicle==0);
     keys['W']=true;ticks(180);keys['W']=false;
-    assert(vehicles[1].p.x>4380);assert(len(vehicles[0].p-vehicles[1].p)<170);
+    assert(vehicles[1].p.x>4380);assert(len(vehicles[0].p-vehicles[1].p)<250);
     jolt_world::stopVehicle(0);jolt_world::stopVehicle(1);assert(jolt_world::toggleTrailer(0));
     assert(vehicles[0].trailer<0&&vehicles[1].towVehicle<0);
     // One tank shot, no inventory consumption, bounded repeat rate.

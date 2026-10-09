@@ -15,10 +15,10 @@
 
 namespace {
 using namespace game;
-const builder::Cell cell{10,0,10};
+const builder::Cell cell{20,1,20};
 void toggle(){bool next=!builder::active();assert(builder::requestToggle());assert(finishBuilderTransition()&&builder::active()==next);}
 void setup(const char* material,const char* tool){builder::reset();buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();birds::flock.clear();
-    auto low=builder::cellLow(cell);player=previousPlayer={low.x-70,low.z+20};playerY=terrain::baseHeight(player);occupied=enteringVehicle=-1;cameraYaw=cameraPitch=0;leftMouse=rightMouse=false;jolt_world::reset();toggle();
+    auto low=builder::cellLow(cell);player=previousPlayer={low.x-70,low.z+10};playerY=terrain::baseHeight(player);occupied=enteringVehicle=-1;cameraYaw=0;cameraPitch=-std::atan2(10.0f,70.0f);leftMouse=rightMouse=false;jolt_world::reset();toggle();
     if(tool)assert(builder::addItem(builder::itemIndex(tool),1));assert(builder::place(cell,builder::itemIndex(material),false));builder::update(.01f);
     assert(builder::target().source==builder::Source::Block&&builder::target().cell==cell);}
 dx11::ModelInstance equipped(const std::string& id){std::vector<dx11::Vertex> groups[dx11::MATERIAL_GROUPS];std::vector<dx11::ModelInstance> instances;dx11::buildScene(groups,instances);
@@ -27,7 +27,7 @@ dx11::ModelInstance equipped(const std::string& id){std::vector<dx11::Vertex> gr
 void builderFeedbackScenarios(){
     using namespace game;reset();assert(builder::loadCatalog());dx11::loadMeshes(L"assets/models/baked");
     // Live mining contact precedes the drop/durability event; cracks grow only on the selected occupied face.
-    setup("granite","iron-pickaxe");auto initial=equipped("iron-pickaxe");leftMouse=true;builder::update(.06f);auto early=builder_feedback::cracks();assert(!early.empty());
+    setup("granite","iron-pickaxe");auto initial=equipped("iron-pickaxe");leftMouse=true;builder::update(.06f);auto early=builder_feedback::cracks();if(early.empty()){auto t=builder::target();std::printf("empty cracks: progress %.3f point %.3f %.3f %.3f normal %.1f %.1f %.1f cell %d %d %d\n",builder::miningProgress(),t.point.x,t.point.y,t.point.z,t.normal.x,t.normal.y,t.normal.z,t.cell.x,t.cell.y,t.cell.z);}assert(!early.empty());
     assert(builder_feedback::lastContact().serial==0&&builder::inventory()[0].durability==250);builder::update(.2f);
     auto later=builder_feedback::cracks();assert(later.size()>early.size());assert(builder_feedback::lastContact().cue==builder_feedback::Cue::Stone&&builder_feedback::lastContact().serial==1);
     assert(!builder_feedback::particles().empty()&&builder::blocks().count(cell));auto striking=equipped("iron-pickaxe");assert(std::abs(initial.sinPitch-striking.sinPitch)>.3f);
@@ -53,7 +53,7 @@ void builderFeedbackScenarios(){
     assert(builder::inventory()[0].durability==60&&builder::blocks().count(cell));
     // Natural-ground cracks follow the real surface instead of floating over a voxel cube.
     setup("soil","iron-shovel");assert(builder::mineBlock(cell));player=previousPlayer={355,420};playerY=0;jolt_world::teleportCharacter(player,playerY);
-    auto direction=norm(Vec3{420,0,420}-Vec3{player.x,playerY+31,player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);builder::update(.01f);
+    auto direction=norm(Vec3{420,0,420}-Vec3{player.x,playerY+(builder::active()?40.0f:31.0f),player.z});cameraYaw=std::atan2(direction.z,direction.x);cameraPitch=std::asin(direction.y);builder::update(.01f);
     assert(builder::target().source==builder::Source::Ground);leftMouse=true;builder::update(.05f);auto groundLines=builder_feedback::cracks();assert(!groundLines.empty());
     for(auto line:groundLines)for(auto point:{line.a,line.b})assert(std::abs(point.y-terrain::baseHeight({point.x,point.z})-.18f)<.01f);
     // Two halves open and close around a shared pivot in both equipped views; the dropped asset stays complete.

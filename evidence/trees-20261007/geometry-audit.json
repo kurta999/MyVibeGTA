@@ -1,0 +1,1229 @@
+[
+  {
+    "model": "tree_blocks",
+    "source": "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-olive-tree-b7baf3c7.glb",
+    "source_sha256": "98e313be40c11e2b419845cd4a1ddd2b6708fae2ab8108c17a3b049d03111d76",
+    "meshes": {
+      "before-near": {
+        "sha256": "f4489ac8a36703018e79f67b0946cce75aa19e43b7f3c1aab6ac038d6200196e",
+        "bytes": 285416,
+        "triangles": 1982,
+        "wood_boundary_edges": 18,
+        "wood_edges": 608,
+        "wood_boundary_fraction": 0.029605263157894735
+      },
+      "after-near": {
+        "sha256": "e30cb3fc4760c727fad96316b1831f4a7527bbad5ad59d2610a425ea1c57b6a7",
+        "bytes": 285416,
+        "triangles": 1982,
+        "wood_boundary_edges": 18,
+        "wood_edges": 608,
+        "wood_boundary_fraction": 0.029605263157894735
+      },
+      "before-lod": {
+        "sha256": "f4489ac8a36703018e79f67b0946cce75aa19e43b7f3c1aab6ac038d6200196e",
+        "bytes": 285416,
+        "triangles": 1982,
+        "wood_boundary_edges": 18,
+        "wood_edges": 608,
+        "wood_boundary_fraction": 0.029605263157894735
+      },
+      "after-lod": {
+        "sha256": "e30cb3fc4760c727fad96316b1831f4a7527bbad5ad59d2610a425ea1c57b6a7",
+        "bytes": 285416,
+        "triangles": 1982,
+        "wood_boundary_edges": 18,
+        "wood_edges": 608,
+        "wood_boundary_fraction": 0.029605263157894735
+      }
+    }
+  },
+  {
+    "model": "tree_default",
+    "source": "assets\\models\\source\\polyhaven\\tree_small_02\\tree_small_02.gltf",
+    "source_sha256": "3062a709614c05b80fdc1e56583998bc3cb1027b0d52f956c8ecfb882ff8ca6d",
+    "meshes": {
+      "before-near": {
+        "sha256": "ce0670f6c1b1ef79264ddca0bc3a4b7366b64b8a688db0366f11b0886146b59c",
+        "bytes": 7344008,
+        "triangles": 51000,
+        "wood_boundary_edges": 36258,
+        "wood_edges": 42129,
+        "wood_boundary_fraction": 0.8606423128961048
+      },
+      "after-near": {
+        "sha256": "8290aefff3c83ff9c1e75acaa973b6ebe8d79248f743278b7630c8f330f766b8",
+        "bytes": 9071720,
+        "triangles": 62998,
+        "wood_boundary_edges": 5348,
+        "wood_edges": 44669,
+        "wood_boundary_fraction": 0.1197250889878887
+      },
+      "before-lod": {
+        "sha256": "cfe915998ac271ce8aa49260fa692e0fbaafc4f5803ba20d1e62603dff65a6af",
+        "bytes": 907208,
+        "triangles": 6300,
+        "wood_boundary_edges": 3854,
+        "wood_edges": 3877,
+        "wood_boundary_fraction": 0.9940675780242455
+      },
+      "after-lod": {
+        "sha256": "2792f07e6fcf3b4ba99eeaf50774670ec1552fd2db2c45f8c87f871999f56fcd",
+        "bytes": 1546136,
+        "triangles": 10737,
+        "wood_boundary_edges": 1577,
+        "wood_edges": 7956,
+        "wood_boundary_fraction": 0.19821518350930115
+      }
+    },
+    "buffers_sha256": {
+      "tree_small_02.bin": "8da6c3c389ad8748286d1b7488cd827f75ebdad9d8f59ef7dfb0916df5edc634"
+    }
+  },
+  {
+    "model": "tree_detailed",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_03\\island_tree_03.gltf",
+    "source_sha256": "da487ff6b6f49ac84afe99674aae05f3192af0f6e4e696f7ef9096b30daaf27f",
+    "meshes": {
+      "before-near": {
+        "sha256": "e615ee57a59495a92250f7b91df91fe7e00ad5306dda0ca6d26b2aa5de46bf9e",
+        "bytes": 7344008,
+        "triangles": 51000,
+        "wood_boundary_edges": 34052,
+        "wood_edges": 41026,
+        "wood_boundary_fraction": 0.8300102374104227
+      },
+      "after-near": {
+        "sha256": "50e316de699781462668deb7e6052a0b1a7420e01bfb17405eee881a8579329d",
+        "bytes": 9070712,
+        "triangles": 62991,
+        "wood_boundary_edges": 15181,
+        "wood_edges": 49589,
+        "wood_boundary_fraction": 0.3061364415495372
+      },
+      "before-lod": {
+        "sha256": "6bb6206cc718d1e718401cf80b8ae4852c6c30ef1bed6f0f19e752510a29698f",
+        "bytes": 907208,
+        "triangles": 6300,
+        "wood_boundary_edges": 3852,
+        "wood_edges": 3876,
+        "wood_boundary_fraction": 0.9938080495356038
+      },
+      "after-lod": {
+        "sha256": "e2d0824f3e6ed97e3643527133392c780894ef7974e231353d7c44f0abbf7c84",
+        "bytes": 1555064,
+        "triangles": 10799,
+        "wood_boundary_edges": 3025,
+        "wood_edges": 8711,
+        "wood_boundary_fraction": 0.3472620824245207
+      }
+    },
+    "buffers_sha256": {
+      "island_tree_03.bin": "ac0631f236502155307ac0320b53201a0d3bab6348699ad9edd3172322aaf08b"
+    }
+  },
+  {
+    "model": "tree_fat",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-buttress-root-tree-44607ba7.glb",
+    "source_sha256": "5de1330263c8d437555d56aaaf554ffa8f81cca273981e652abf83d04a47467f",
+    "meshes": {
+      "before-near": {
+        "sha256": "a0adb3891c32f062b64c833014d38d922a47ebf6853fd6d73f17f09a9c85b7b1",
+        "bytes": 713672,
+        "triangles": 4956,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2003,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "d01c5de6e81b615f14e2f57578f2f6831fbf71051239493eaa99cb91223505df",
+        "bytes": 713672,
+        "triangles": 4956,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2003,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "40177efb24e536cb9d99d4738ebfc6c51255381440560126640027fd4381743e",
+        "bytes": 389672,
+        "triangles": 2706,
+        "wood_boundary_edges": 778,
+        "wood_edges": 1741,
+        "wood_boundary_fraction": 0.446869615163699
+      },
+      "after-lod": {
+        "sha256": "f9d2ecff43cf32a15c10dcfd537d02909cbf1f70a5ea87fdbc77bb9d69c678c0",
+        "bytes": 452168,
+        "triangles": 3140,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2003,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_oak",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_01\\island_tree_01.gltf",
+    "source_sha256": "78e905a40670bfabb2760601d4d9a6c17193a50d68e6271c66893eb7bd75906d",
+    "meshes": {
+      "before-near": {
+        "sha256": "620c8e384f27672838d56e758d18140f278d6f70c9d939f4659d35d2dea1dd9a",
+        "bytes": 7344008,
+        "triangles": 51000,
+        "wood_boundary_edges": 39186,
+        "wood_edges": 43593,
+        "wood_boundary_fraction": 0.8989057876264538
+      },
+      "after-near": {
+        "sha256": "31108d285d94313c53319dca552acd61592ee499139dcee157f79b0bc9408f11",
+        "bytes": 9070856,
+        "triangles": 62992,
+        "wood_boundary_edges": 14020,
+        "wood_edges": 49010,
+        "wood_boundary_fraction": 0.28606406855743727
+      },
+      "before-lod": {
+        "sha256": "74ceb03df08a8f2a2b3a9ece5bc6a4741915b613457247da30442dbcb85f9155",
+        "bytes": 907208,
+        "triangles": 6300,
+        "wood_boundary_edges": 3860,
+        "wood_edges": 3880,
+        "wood_boundary_fraction": 0.9948453608247423
+      },
+      "after-lod": {
+        "sha256": "b6d5493decfd99ffd8695764129bbcffb830dd352ecca9ffadc3221cb36122a8",
+        "bytes": 1555064,
+        "triangles": 10799,
+        "wood_boundary_edges": 2935,
+        "wood_edges": 8666,
+        "wood_boundary_fraction": 0.3386798984537272
+      }
+    },
+    "buffers_sha256": {
+      "island_tree_01.bin": "1faa817b46e24ed6fc90d3ec72188a0dc5ac75e82c89b3dd3c5fdaecf7cc005c"
+    }
+  },
+  {
+    "model": "tree_simple",
+    "source": "assets\\models\\source\\3dassets\\korean-hanok-village-and-street-persimmon-tree-ec7be2f6.glb",
+    "source_sha256": "bf181836980e631e1372fe80ceb8e3961811f20b24dfca142eb3087c6371e518",
+    "meshes": {
+      "before-near": {
+        "sha256": "b9f0d07b3f4c33522bf9bc9cbfd81b974921ec57f35bbc190e69b6047bf694a9",
+        "bytes": 258632,
+        "triangles": 1796,
+        "wood_boundary_edges": 196,
+        "wood_edges": 1280,
+        "wood_boundary_fraction": 0.153125
+      },
+      "after-near": {
+        "sha256": "f3af68f6b93cb972051cbd69f407f7388e56f92e1424f73debc56e34dca1cc21",
+        "bytes": 258632,
+        "triangles": 1796,
+        "wood_boundary_edges": 196,
+        "wood_edges": 1280,
+        "wood_boundary_fraction": 0.153125
+      },
+      "before-lod": {
+        "sha256": "b9f0d07b3f4c33522bf9bc9cbfd81b974921ec57f35bbc190e69b6047bf694a9",
+        "bytes": 258632,
+        "triangles": 1796,
+        "wood_boundary_edges": 196,
+        "wood_edges": 1280,
+        "wood_boundary_fraction": 0.153125
+      },
+      "after-lod": {
+        "sha256": "f3af68f6b93cb972051cbd69f407f7388e56f92e1424f73debc56e34dca1cc21",
+        "bytes": 258632,
+        "triangles": 1796,
+        "wood_boundary_edges": 196,
+        "wood_edges": 1280,
+        "wood_boundary_fraction": 0.153125
+      }
+    }
+  },
+  {
+    "model": "tree_tall",
+    "source": "assets\\models\\source\\polyhaven\\island_tree_02\\island_tree_02.gltf",
+    "source_sha256": "d8c5d9ead41cdbef91a648f40ff60470faa19eb3a7010e59e44cb1a01250f75d",
+    "meshes": {
+      "before-near": {
+        "sha256": "50937782d4ea45307ccc60df5ed6f27182b56cf23c5db109253823864f62156d",
+        "bytes": 7344008,
+        "triangles": 51000,
+        "wood_boundary_edges": 36698,
+        "wood_edges": 42349,
+        "wood_boundary_fraction": 0.8665611938888758
+      },
+      "after-near": {
+        "sha256": "5291a637eda695b71c502151d7726b4aebf5596205904738f4264e5a54044378",
+        "bytes": 9070856,
+        "triangles": 62992,
+        "wood_boundary_edges": 11765,
+        "wood_edges": 47882,
+        "wood_boundary_fraction": 0.24570819932333654
+      },
+      "before-lod": {
+        "sha256": "510dbcc52bc3c68e9d65e8ba1c2d6e1c7c0d3fb60639985196498c495623a6ed",
+        "bytes": 907208,
+        "triangles": 6300,
+        "wood_boundary_edges": 3834,
+        "wood_edges": 3867,
+        "wood_boundary_fraction": 0.991466252909232
+      },
+      "after-lod": {
+        "sha256": "65161eccaa823e025e46089f3b4aa3a1dde2654b0a6a817711905a8c060f5186",
+        "bytes": 1555208,
+        "triangles": 10800,
+        "wood_boundary_edges": 2941,
+        "wood_edges": 8670,
+        "wood_boundary_fraction": 0.3392156862745098
+      }
+    },
+    "buffers_sha256": {
+      "island_tree_02.bin": "427d69ccc1ea12d1fb9c6af89691563b4a097f39a6f34c15be6e45ef5e5fd4ce"
+    }
+  },
+  {
+    "model": "tree_thin",
+    "source": "assets\\models\\source\\polyhaven\\jacaranda_tree\\jacaranda_tree.gltf",
+    "source_sha256": "f946991efd4d3bc3c10404245c4603ed7091ca38cef279dff75bfb5f44241375",
+    "meshes": {
+      "before-near": {
+        "sha256": "eeeea97e0abb96a16b511fbf9c2ad8e09a8fab47abc0407b190eabb6e6acd188",
+        "bytes": 7344008,
+        "triangles": 51000,
+        "wood_boundary_edges": 44186,
+        "wood_edges": 46067,
+        "wood_boundary_fraction": 0.9591681681029804
+      },
+      "after-near": {
+        "sha256": "766bcb5a9619124c8441e2a8a422e05d47388331fda0e622e184f8925e69cb5d",
+        "bytes": 8466056,
+        "triangles": 58792,
+        "wood_boundary_edges": 1857,
+        "wood_edges": 36636,
+        "wood_boundary_fraction": 0.05068784801834261
+      },
+      "before-lod": {
+        "sha256": "583faf93d738a99d796a3bee8efac040ed6dc3bf126573fb524d0e5b62d229bf",
+        "bytes": 446408,
+        "triangles": 3100,
+        "wood_boundary_edges": 3880,
+        "wood_edges": 3890,
+        "wood_boundary_fraction": 0.9974293059125964
+      },
+      "after-lod": {
+        "sha256": "267122b29b5b7176cec8713640b9de564928accb3c65439283d87d5bc86b77e3",
+        "bytes": 2509496,
+        "triangles": 17427,
+        "wood_boundary_edges": 1255,
+        "wood_edges": 17780,
+        "wood_boundary_fraction": 0.07058492688413948
+      }
+    },
+    "buffers_sha256": {
+      "jacaranda_tree.bin": "4310d1e25db8ac63d6d345afc8154a1df7e85b301dfad228be66d85d6c52bbfc"
+    }
+  },
+  {
+    "model": "tree_cone",
+    "source": "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf",
+    "source_sha256": "a9466ca9d8c5b9b2eeeeafd3ce426f8912dcbd98a7281bad8c734833eb35b186",
+    "meshes": {
+      "before-near": {
+        "sha256": "e7c20c0561202fcd1841a118025b998af9e0eed95df2e0e339d8ed3b02f1b28c",
+        "bytes": 3655304,
+        "triangles": 25384,
+        "wood_boundary_edges": 72,
+        "wood_edges": 612,
+        "wood_boundary_fraction": 0.11764705882352941
+      },
+      "after-near": {
+        "sha256": "d6ee57d2d9700793744915c0655b08fda0a7022ae5285c3591821b0716b0a987",
+        "bytes": 5094584,
+        "triangles": 35379,
+        "wood_boundary_edges": 72,
+        "wood_edges": 612,
+        "wood_boundary_fraction": 0.11764705882352941
+      },
+      "before-lod": {
+        "sha256": "391ccecfb3bb749794f7945be35685b27fa512eab84314a56ff09cd62bfc0808",
+        "bytes": 631304,
+        "triangles": 4384,
+        "wood_boundary_edges": 72,
+        "wood_edges": 612,
+        "wood_boundary_fraction": 0.11764705882352941
+      },
+      "after-lod": {
+        "sha256": "49c164606347784d6c231d4156e3ea5fa38d810faf06ab341e1beb9289339cdc",
+        "bytes": 918296,
+        "triangles": 6377,
+        "wood_boundary_edges": 72,
+        "wood_edges": 612,
+        "wood_boundary_fraction": 0.11764705882352941
+      }
+    },
+    "buffers_sha256": {
+      "fir_sapling.bin": "efdebfae6ee4b3ea20c7a85eb9f798ff4953259a3616bcff0b7e580b00f34f40"
+    }
+  },
+  {
+    "model": "tree_pineDefaultA",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "1098546f3617cf36e9d5808b1437323d8f75e74387aea72530782b816bd59b65",
+        "bytes": 3669992,
+        "triangles": 25486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-near": {
+        "sha256": "9895f2bfa05902702e2ae0105cdbe49cb62631b21297db1dcc281e8903b0eb1f",
+        "bytes": 5051384,
+        "triangles": 35079,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "before-lod": {
+        "sha256": "2dec15475cf0e907bec281c778de8e17a4ce63279b4955c25ab2d201346403fd",
+        "bytes": 645992,
+        "triangles": 4486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-lod": {
+        "sha256": "4e6130ff46c9003591f4f1f07db9c04aa7b83d5b63cdbba01b0f37837052fdf0",
+        "bytes": 932984,
+        "triangles": 6479,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineDefaultB",
+    "source": "assets\\models\\source\\polyhaven\\fir_sapling\\fir_sapling.gltf",
+    "source_sha256": "a9466ca9d8c5b9b2eeeeafd3ce426f8912dcbd98a7281bad8c734833eb35b186",
+    "meshes": {
+      "before-near": {
+        "sha256": "a855bb539b6e368e1fed507f6ed0ffa3adeb4c2c9690ae11f06801cd002e8e48",
+        "bytes": 3673448,
+        "triangles": 25510,
+        "wood_boundary_edges": 102,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.125
+      },
+      "after-near": {
+        "sha256": "2238771b85411376839f049008f76103328a298cc7f2b35805ed66d025853a3b",
+        "bytes": 5112440,
+        "triangles": 35503,
+        "wood_boundary_edges": 102,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.125
+      },
+      "before-lod": {
+        "sha256": "dd8fed14b3af61869eaa00b75db9f44434724adfec7f5999d40d5a17f4db59d3",
+        "bytes": 649448,
+        "triangles": 4510,
+        "wood_boundary_edges": 102,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.125
+      },
+      "after-lod": {
+        "sha256": "5968a0415c9e01e1c6876496aa7de3cb4d23067ae6a81112f3063453cc74f168",
+        "bytes": 937304,
+        "triangles": 6509,
+        "wood_boundary_edges": 102,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.125
+      }
+    },
+    "buffers_sha256": {
+      "fir_sapling.bin": "efdebfae6ee4b3ea20c7a85eb9f798ff4953259a3616bcff0b7e580b00f34f40"
+    }
+  },
+  {
+    "model": "tree_pineGroundA",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "5602351eabc552ffae8064bea2e95a956db71b4c419e3b230a6547ff2e35da60",
+        "bytes": 3676040,
+        "triangles": 25528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-near": {
+        "sha256": "aa4bda079d9cd45a77fb67f049837137f4eb97087aafee9c203c1dffc4e05738",
+        "bytes": 5115752,
+        "triangles": 35526,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "before-lod": {
+        "sha256": "03c60bbf650f604f9b4838e270244ecc5b625a621093be7f7f457b101bbfa604",
+        "bytes": 652040,
+        "triangles": 4528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-lod": {
+        "sha256": "1c25809b1ad60c19d898a1a44a51ecf37937f043374c97db4ca19290e720d000",
+        "bytes": 938744,
+        "triangles": 6519,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineGroundB",
+    "source": "assets\\models\\source\\3dassets\\alpine-and-arctic-biomes-timberline-tree-4975b730.glb",
+    "source_sha256": "5ef4b07e36e576705a9a1f55321f023553b90d2ff4c7dcd037e811c59167da8f",
+    "meshes": {
+      "before-near": {
+        "sha256": "9ad473abd4b1213a6fbf184db5fa25b4c3a21eb78aae086817c8214a4860961b",
+        "bytes": 465992,
+        "triangles": 3236,
+        "wood_boundary_edges": 0,
+        "wood_edges": 4480,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "1d2256530f405c059b2adea576e8fe5a6da070d6b744ed166551215fefd40994",
+        "bytes": 465992,
+        "triangles": 3236,
+        "wood_boundary_edges": 0,
+        "wood_edges": 4480,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "9ad473abd4b1213a6fbf184db5fa25b4c3a21eb78aae086817c8214a4860961b",
+        "bytes": 465992,
+        "triangles": 3236,
+        "wood_boundary_edges": 0,
+        "wood_edges": 4480,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-lod": {
+        "sha256": "1d2256530f405c059b2adea576e8fe5a6da070d6b744ed166551215fefd40994",
+        "bytes": 465992,
+        "triangles": 3236,
+        "wood_boundary_edges": 0,
+        "wood_edges": 4480,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_pineRoundA",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "f6acb771127604c3e1c25138b944f8f85021314da575481496c589a9af8ed1a4",
+        "bytes": 3677768,
+        "triangles": 25540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-near": {
+        "sha256": "ec9a32e6866612868321738e5c77e0b71588eff669031f4127c1373ab40fb416",
+        "bytes": 5117768,
+        "triangles": 35540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "before-lod": {
+        "sha256": "0a1049f8bf71e19c340a4e80520bca2ff0f82efc2cab58b4061e7e2d80004225",
+        "bytes": 653768,
+        "triangles": 4540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-lod": {
+        "sha256": "1c6583a5dde97ba604ccb653667a9bfee3f36e56c8a6d3e791c2899ee3215cab",
+        "bytes": 941336,
+        "triangles": 6537,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundB",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "790c2a1d8ff67c3d2cc077154c2fcc50c03a0a1c2196d32da1b3795dbfb8a5a8",
+        "bytes": 3676040,
+        "triangles": 25528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-near": {
+        "sha256": "17774bca2e8007da08a83d2475a25d42b7c91859a681cfbde8fbe4f9ea13ab7b",
+        "bytes": 5115896,
+        "triangles": 35527,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "before-lod": {
+        "sha256": "012d29f5c3c238e3c720d0f213ea2812b735e902a481ae1f7c6f1a49e3a1755a",
+        "bytes": 652040,
+        "triangles": 4528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-lod": {
+        "sha256": "99a0ba1a6351227568c1fc5add6adc6858ed3e67bd1ce674132f76bdb92b8449",
+        "bytes": 906056,
+        "triangles": 6292,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundC",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "1deea179d97f427a64c5c956e8c8b4e5f8d1f228727bde98c585b491dd63a071",
+        "bytes": 3669992,
+        "triangles": 25486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-near": {
+        "sha256": "1549c57f89c42b87bddbe05d4efe20b28c350614b93b91447add1ff223d46545",
+        "bytes": 5103656,
+        "triangles": 35442,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "before-lod": {
+        "sha256": "59926412ab0dc13978273489000f19aef059c8a4fcc9d096b27bdcb66b5a179e",
+        "bytes": 645992,
+        "triangles": 4486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-lod": {
+        "sha256": "11484f4252b754ea01fbc32264ec3b261b029663c2684bf0756d361b2b9d1d59",
+        "bytes": 932984,
+        "triangles": 6479,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineRoundD",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "96095b1cb000f78539f067da38068d21f575ce2b97865a729432479d81fa1af9",
+        "bytes": 3677768,
+        "triangles": 25540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-near": {
+        "sha256": "a3ce03314ae61a4b93536d9a85a98abb713786259b554ca90cf8d45bd1ff2e3f",
+        "bytes": 5116328,
+        "triangles": 35530,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "before-lod": {
+        "sha256": "ab0083ab0932b457b817dba17054b5ec9278c59232b5d1ae1e1c73d8067905cb",
+        "bytes": 653768,
+        "triangles": 4540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-lod": {
+        "sha256": "1f38b686c42168f883f4b5ff69cf828f78e9fff759875b5a797732f280e9e295",
+        "bytes": 941048,
+        "triangles": 6535,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineSmallA",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "4e11f6b682bfbd9396afa0c0551532f2014330b5598ad2a7b56dfb34956857c7",
+        "bytes": 3676040,
+        "triangles": 25528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-near": {
+        "sha256": "82ef05437d7a1a47e9f4c1ecb24611628745aaf07946339ebe0d8ea2226b7544",
+        "bytes": 5114888,
+        "triangles": 35520,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "before-lod": {
+        "sha256": "8aabaa99426d94a24494ef36c2f221a855953c9726a52799b2e90f4a3de2140a",
+        "bytes": 652040,
+        "triangles": 4528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-lod": {
+        "sha256": "35b653f4ef1211c79d129aa79f0620d519bdebe16aaa4383987eddfeadb38538",
+        "bytes": 938888,
+        "triangles": 6520,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineSmallB",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "4f01c10f676f3533cacb731880f3f140516f0475272ecc1dbd4936a856b46c1f",
+        "bytes": 3669992,
+        "triangles": 25486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-near": {
+        "sha256": "c169e16843b5f4cdae74cc62ba6ca26549c2e52a26162d4215d0cf73556161c5",
+        "bytes": 5054984,
+        "triangles": 35104,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "before-lod": {
+        "sha256": "c21931c201666e68fa1dc3c8f09189825690415da4bddc2ccf5f86b25588e92a",
+        "bytes": 645992,
+        "triangles": 4486,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      },
+      "after-lod": {
+        "sha256": "e912ad1f70503f96ad5833d79a4068e2e82e3738c35d18669ac9003899188a6d",
+        "bytes": 933416,
+        "triangles": 6482,
+        "wood_boundary_edges": 42,
+        "wood_edges": 750,
+        "wood_boundary_fraction": 0.056
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineTallA",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "190b1c2ca23763ee45e374068ecf44baa7a07a00ebc53cd110a24a700e0c1f3a",
+        "bytes": 3677768,
+        "triangles": 25540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-near": {
+        "sha256": "21b96f7fc11fa5728849274177ed1e128167fd967616b0a3acd355f0ccc5f6e4",
+        "bytes": 5044616,
+        "triangles": 35032,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "before-lod": {
+        "sha256": "49db688797c8489ca8d27b02fc1b1b105fdcca27522a21e9a7f896fa9ae44a76",
+        "bytes": 653768,
+        "triangles": 4540,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      },
+      "after-lod": {
+        "sha256": "d882c08f787a318302c169d8a996792a492aa8a38ae267757ef82a3298a6f045",
+        "bytes": 933560,
+        "triangles": 6483,
+        "wood_boundary_edges": 48,
+        "wood_edges": 834,
+        "wood_boundary_fraction": 0.05755395683453238
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_pineTallB",
+    "source": "assets\\models\\source\\polyhaven\\pine_sapling_small\\pine_sapling_small.gltf",
+    "source_sha256": "f358c01926861dd082f32dba60f7c9fba232b585a985cf38c0d2229eecf4bc48",
+    "meshes": {
+      "before-near": {
+        "sha256": "73e96c47762c3aa88706d541550324b244a606dbeb5fe21ee3c96970b7a26649",
+        "bytes": 3676040,
+        "triangles": 25528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-near": {
+        "sha256": "9d7f98b53425fefe5e0b34314f1e81c5c6242a2a9cee268bffe4bace81ecf1f5",
+        "bytes": 5115176,
+        "triangles": 35522,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "before-lod": {
+        "sha256": "72af8c2e952addcf4a21340c78e99eef38401f21e9a8c5c037dc09ae8b91bfae",
+        "bytes": 652040,
+        "triangles": 4528,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      },
+      "after-lod": {
+        "sha256": "885348147dd172a72a96fb172028d261b4f93d6cd1de07bb4e12aea1555d39b9",
+        "bytes": 939896,
+        "triangles": 6527,
+        "wood_boundary_edges": 48,
+        "wood_edges": 816,
+        "wood_boundary_fraction": 0.058823529411764705
+      }
+    },
+    "buffers_sha256": {
+      "pine_sapling_small.bin": "b4d2fc73d53f1d8717eb5ef9a2c66957d2a53152787e543aace88fcd6fca94ef"
+    }
+  },
+  {
+    "model": "tree_palmDetailedShort",
+    "source": "assets\\models\\source\\3dassets\\greek-island-village-and-harbour-fig-tree-15e48fe1.glb",
+    "source_sha256": "054c6922106287be47ee8ec653704c2895b6a81c4b5eff0d384c049e70fc575d",
+    "meshes": {
+      "before-near": {
+        "sha256": "a4e89b54f875535e3a60849af9fda3359e0a2abc051a46c3b5d386c93a7b4a57",
+        "bytes": 182024,
+        "triangles": 1264,
+        "wood_boundary_edges": 18,
+        "wood_edges": 198,
+        "wood_boundary_fraction": 0.09090909090909091
+      },
+      "after-near": {
+        "sha256": "2f0d015ee149d0d5a35881604777f56be2f2dfd688d40c3579bd9c84b640b2c0",
+        "bytes": 182024,
+        "triangles": 1264,
+        "wood_boundary_edges": 18,
+        "wood_edges": 198,
+        "wood_boundary_fraction": 0.09090909090909091
+      },
+      "before-lod": {
+        "sha256": "a4e89b54f875535e3a60849af9fda3359e0a2abc051a46c3b5d386c93a7b4a57",
+        "bytes": 182024,
+        "triangles": 1264,
+        "wood_boundary_edges": 18,
+        "wood_edges": 198,
+        "wood_boundary_fraction": 0.09090909090909091
+      },
+      "after-lod": {
+        "sha256": "2f0d015ee149d0d5a35881604777f56be2f2dfd688d40c3579bd9c84b640b2c0",
+        "bytes": 182024,
+        "triangles": 1264,
+        "wood_boundary_edges": 18,
+        "wood_edges": 198,
+        "wood_boundary_fraction": 0.09090909090909091
+      }
+    }
+  },
+  {
+    "model": "tree_palmDetailedTall",
+    "source": "assets\\models\\source\\3dassets\\desert-mosque-and-madrasa-courtyard-date-palm-c311e205.glb",
+    "source_sha256": "0e1a03139703a37ffb709a5064baf00aa0e4bb8cfc4070493b7022875f03b575",
+    "meshes": {
+      "before-near": {
+        "sha256": "c8708773e4fa69802f343305c59994ede97bf1ec064202d7fdf7366408ae8a3d",
+        "bytes": 896264,
+        "triangles": 6224,
+        "wood_boundary_edges": 20,
+        "wood_edges": 4561,
+        "wood_boundary_fraction": 0.0043850032887524665
+      },
+      "after-near": {
+        "sha256": "c44d091d332ff5df77fff23160e0dedfbed90a28b187fcbd2fa67042f2156d46",
+        "bytes": 896264,
+        "triangles": 6224,
+        "wood_boundary_edges": 20,
+        "wood_edges": 4561,
+        "wood_boundary_fraction": 0.0043850032887524665
+      },
+      "before-lod": {
+        "sha256": "bb2a7969668a93c2b380c198d20db4de455bb45d18dc446d5becc43db3f4d3bb",
+        "bytes": 229832,
+        "triangles": 1596,
+        "wood_boundary_edges": 1510,
+        "wood_edges": 2069,
+        "wood_boundary_fraction": 0.7298211696471726
+      },
+      "after-lod": {
+        "sha256": "30f1d03cd2c34837f2152df21c2874e6bb230ec6b43d6e3d4fcf55b5812065aa",
+        "bytes": 395432,
+        "triangles": 2746,
+        "wood_boundary_edges": 20,
+        "wood_edges": 3049,
+        "wood_boundary_fraction": 0.0065595277140045915
+      }
+    }
+  },
+  {
+    "model": "tree_palmShort",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-palm-sapling-6702b25c.glb",
+    "source_sha256": "4663f39641fb11586fae611b968a40c5b010c8710fede5af3678c56ad8373628",
+    "meshes": {
+      "before-near": {
+        "sha256": "f7b4193f4ab185920c0e975ec1f0066528237e06f3ae7d6a3c5a6b530db3fb15",
+        "bytes": 154952,
+        "triangles": 1076,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1344,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "30f92d14c32eed3711da11be487ca088c6ee71fa360f36f52d9d4cd0eed1d0ce",
+        "bytes": 154952,
+        "triangles": 1076,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1344,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "f7b4193f4ab185920c0e975ec1f0066528237e06f3ae7d6a3c5a6b530db3fb15",
+        "bytes": 154952,
+        "triangles": 1076,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1344,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-lod": {
+        "sha256": "30f92d14c32eed3711da11be487ca088c6ee71fa360f36f52d9d4cd0eed1d0ce",
+        "bytes": 154952,
+        "triangles": 1076,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1344,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_palmTall",
+    "source": "assets\\models\\source\\3dassets\\jungle-temple-and-stone-city-jungle-canopy-tree-6e668f41.glb",
+    "source_sha256": "189a1718e5b372e55d7becec6115d0bcfdd3e513adb3d9056cebf6271838965a",
+    "meshes": {
+      "before-near": {
+        "sha256": "1dbb4f864713439d030f0c1e41a6cdca38e9eb8e9a10b8838049cd8d5145a4f5",
+        "bytes": 768392,
+        "triangles": 5336,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1668,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "344032a7ef5394dbe068fb03962900302f29c2153dfe70ba42acbdefffd79dbc",
+        "bytes": 768392,
+        "triangles": 5336,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1668,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "f89a35b1d22cda87aa6eb878b6af2a76ad3c28e48a963603a2e7b55e5321bd89",
+        "bytes": 383912,
+        "triangles": 2666,
+        "wood_boundary_edges": 508,
+        "wood_edges": 1553,
+        "wood_boundary_fraction": 0.3271088216355441
+      },
+      "after-lod": {
+        "sha256": "69eea04272b5b8e1900e9f7d4656b610a9d014ce65d2410c019ab917784b4013",
+        "bytes": 419336,
+        "triangles": 2912,
+        "wood_boundary_edges": 0,
+        "wood_edges": 1668,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_palm",
+    "source": "assets\\models\\source\\polyhaven\\quiver_tree_01\\quiver_tree_01.gltf",
+    "source_sha256": "aa6885a0fe43b274584851b0947e2209dc64afce1d20a75a1567e790a12d0722",
+    "meshes": {
+      "before-near": {
+        "sha256": "30a0590625138e0dc9eff62a5232dbd5dd0d444c3e2d2f528c93d59a02381cc6",
+        "bytes": 6480008,
+        "triangles": 45000,
+        "wood_boundary_edges": 21898,
+        "wood_edges": 25949,
+        "wood_boundary_fraction": 0.8438860842421674
+      },
+      "after-near": {
+        "sha256": "f3646958cf517003303c95da8558a39cbedaa81d018b8c8fd952240b0b35436e",
+        "bytes": 6395624,
+        "triangles": 44414,
+        "wood_boundary_edges": 0,
+        "wood_edges": 15000,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "21d89934f3134df57f4c80230605f2185b461df397f1ba111b3d388558cb2da4",
+        "bytes": 352808,
+        "triangles": 2450,
+        "wood_boundary_edges": 1918,
+        "wood_edges": 1934,
+        "wood_boundary_fraction": 0.9917269906928645
+      },
+      "after-lod": {
+        "sha256": "2a88da0db36aef7462300ce3382f1271154db2e307713ff6d113b7cdc17e5188",
+        "bytes": 1062440,
+        "triangles": 7378,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2700,
+        "wood_boundary_fraction": 0.0
+      }
+    },
+    "buffers_sha256": {
+      "quiver_tree_01.bin": "20efdf4aa14825ffd01abb21535afd485a00022c96ad04c1269bb01c137bbe08"
+    }
+  },
+  {
+    "model": "tree_palmBend",
+    "source": "assets\\models\\source\\polyhaven\\quiver_tree_02\\quiver_tree_02.gltf",
+    "source_sha256": "abdd8c2031a12905783ef2dabed11e5bc87123d322e057c138aeb9b67e400e91",
+    "meshes": {
+      "before-near": {
+        "sha256": "77bbc97cd0c1a19eed0e29bdb2281fe41671b1113729efce2d7727b37702c491",
+        "bytes": 1440008,
+        "triangles": 10000,
+        "wood_boundary_edges": 26342,
+        "wood_edges": 28171,
+        "wood_boundary_fraction": 0.9350750772070568
+      },
+      "after-near": {
+        "sha256": "abcd214bcf81bdde2fdeeb0daa3915a361cfdbc31b5b9cbfd68fd427420e50fb",
+        "bytes": 1440008,
+        "triangles": 10000,
+        "wood_boundary_edges": 36,
+        "wood_edges": 15018,
+        "wood_boundary_fraction": 0.0023971234518577705
+      },
+      "before-lod": {
+        "sha256": "fa232fb1ca6d9a560c258222630b0547a1b89da3647de897a5c347586660f418",
+        "bytes": 93608,
+        "triangles": 650,
+        "wood_boundary_edges": 1934,
+        "wood_edges": 1942,
+        "wood_boundary_fraction": 0.995880535530381
+      },
+      "after-lod": {
+        "sha256": "bae46ee9b997d9a3bfadcbb4f16b3a8dfd8e3c1ac68a9acfab0d515aa2380ddd",
+        "bytes": 259208,
+        "triangles": 1800,
+        "wood_boundary_edges": 14,
+        "wood_edges": 2707,
+        "wood_boundary_fraction": 0.005171776874769117
+      }
+    },
+    "buffers_sha256": {
+      "quiver_tree_02.bin": "fd3598b4aea34bc6864452d2dbb37a04e4bfa7ad1ab6062a3b97c485fae258f3"
+    }
+  },
+  {
+    "model": "tree_plateau",
+    "source": "assets\\models\\source\\3dassets\\exotic-wildlife-hd-umbrella-acacia-850a62bb.glb",
+    "source_sha256": "c9d999ac23bc5cb1f647fe0a7614af2086e4d15eed45779ec8e63553a74dc83b",
+    "meshes": {
+      "before-near": {
+        "sha256": "8ce2daec3d2d30e6ac52fa4e3d7bc336082846f399568f04ead993212f365759",
+        "bytes": 1108808,
+        "triangles": 7700,
+        "wood_boundary_edges": 0,
+        "wood_edges": 7554,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "9541e8b0b9c224f457aab8828de2df9196a0539c2703115e68662e76fd97c742",
+        "bytes": 1108808,
+        "triangles": 7700,
+        "wood_boundary_edges": 0,
+        "wood_edges": 7554,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "50203e5931dd49eee7e24115dbe4606a9cddbb052c08ff090ec8f3494c871ee5",
+        "bytes": 352808,
+        "triangles": 2450,
+        "wood_boundary_edges": 1702,
+        "wood_edges": 1826,
+        "wood_boundary_fraction": 0.932092004381161
+      },
+      "after-lod": {
+        "sha256": "7bc1789fb79bb5c7820a94de0788c83b57a229c905549049cbf8489656b1690a",
+        "bytes": 518408,
+        "triangles": 3600,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2700,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_small",
+    "source": "assets\\models\\source\\3dassets\\exotic-wildlife-hd-baobab-tree-fb196805.glb",
+    "source_sha256": "c88abe11cf252d211934a78255ed9707f4b197929acd933b2771c27628576bd0",
+    "meshes": {
+      "before-near": {
+        "sha256": "75ca7eb66a2d0843ffdeb5efef4910a867907c80fd2e3489beab2cb1333ce3c6",
+        "bytes": 1002248,
+        "triangles": 6960,
+        "wood_boundary_edges": 0,
+        "wood_edges": 7368,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "db38ecfe28a04de8cae12d9e2c1c591d25de05a1dd26886da9963e6f12942a6e",
+        "bytes": 1002248,
+        "triangles": 6960,
+        "wood_boundary_edges": 0,
+        "wood_edges": 7368,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "ca2e1b93e94bde9dfc0576ff1f03dfa3d92292dda95287220bc3e1cd1fb23964",
+        "bytes": 352808,
+        "triangles": 2450,
+        "wood_boundary_edges": 1688,
+        "wood_edges": 1819,
+        "wood_boundary_fraction": 0.9279824079164376
+      },
+      "after-lod": {
+        "sha256": "dbb6f2986bfa20777a0422fd1be8debb3e15a3a4098830917693644831e8afe8",
+        "bytes": 518408,
+        "triangles": 3600,
+        "wood_boundary_edges": 0,
+        "wood_edges": 2700,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  },
+  {
+    "model": "tree_urbanCherry",
+    "source": "assets\\models\\source\\3dassets\\japanese-school-and-city-street-cherry-tree-blossom-618a9f6d.glb",
+    "source_sha256": "6849354119783e02cee85b585efe9fdf0ceca6c6791a502896f20f595de7aa0f",
+    "meshes": {
+      "before-near": {
+        "sha256": "4cc55071aa93dda6e6d5161fb93147d4b04dc6ef53a1d67e4e2639bbda21f690",
+        "bytes": 330344,
+        "triangles": 2294,
+        "wood_boundary_edges": 0,
+        "wood_edges": 441,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-near": {
+        "sha256": "680c376708f56fd1dd3ec1a1cc8e6926782e3014fe599f49ac07e554283e1b9e",
+        "bytes": 330344,
+        "triangles": 2294,
+        "wood_boundary_edges": 0,
+        "wood_edges": 441,
+        "wood_boundary_fraction": 0.0
+      },
+      "before-lod": {
+        "sha256": "493a5077922699b5d2c1a802eaf9298fd975a3a0e886bf48750342abb5f06dc7",
+        "bytes": 301544,
+        "triangles": 2094,
+        "wood_boundary_edges": 0,
+        "wood_edges": 441,
+        "wood_boundary_fraction": 0.0
+      },
+      "after-lod": {
+        "sha256": "5e84949cd948b5a33b872758e8faacbc5e219d6a73b4d314674a3640a42f178d",
+        "bytes": 301544,
+        "triangles": 2094,
+        "wood_boundary_edges": 0,
+        "wood_edges": 441,
+        "wood_boundary_fraction": 0.0
+      }
+    }
+  }
+]

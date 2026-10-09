@@ -147,7 +147,7 @@ int main(){
     // The live helicopter uses the expansion parts, all of which must retain
     // valid surface maps instead of silently falling back to vertex colors.
     data_file::Ini vehicleCatalog;assert(vehicleCatalog.load(data_file::resourcePath("vehicle-models.ini")));
-    for(const char* kind:{"helicopter","airplane","motorcycle","bicycle"}){
+    for(const char* kind:{"helicopter","airplane","motorcycle","bicycle","tank","truck"}){
       int partCount=0;assert(vehicleCatalog.integer(kind,"Count",partCount,1,32));
       for(int part=0;part<partCount;++part){
         std::string record;assert(vehicleCatalog.string(kind,"Part"+std::to_string(part),record));
@@ -370,6 +370,9 @@ int main(){
         assert(tree->textured&&tree->alphaTest&&
             std::filesystem::exists(tree->textureFile));
         assert(lod->textured&&lod->textureFile==tree->textureFile);
+        assert(lod->minX==tree->minX&&lod->maxX==tree->maxX&&
+            lod->minY==tree->minY&&lod->maxY==tree->maxY&&
+            lod->minZ==tree->minZ&&lod->maxZ==tree->maxZ);
         assert(treeTextures.insert(tree->textureFile).second);
     }
     std::set<std::wstring> bushTextures;

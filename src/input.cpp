@@ -82,6 +82,17 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(!(lp&(1<<30)))ordnance::timerKey(int(wp));return 0;
         }
         if(builder::transitioning())return 0;
+        // The death-screen restart takes priority over builder shortcuts,
+        // including R's repair action when the inventory is open.
+        if(wp=='R'&&health<=0&&!ui::paused()&&!debug_menu::open&&
+           commerce::menu()==commerce::Menu::None){
+            if(!(lp&(1<<30))){
+                releaseAim();leftMouse=false;
+                std::fill(std::begin(keys),std::end(keys),false);
+                if(!builder::respawn())reset();
+            }
+            syncLookCapture();return 0;
+        }
         if(builder::inventoryOpen()){
             if(!(lp&(1<<30)))builder::handleKey(int(wp));
             releaseLookCapture();return 0;

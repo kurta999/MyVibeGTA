@@ -1,0 +1,11 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start  8: scenery_scenarios
+1/3 Test  #8: scenery_scenarios ................   Passed   12.86 sec
+    Start 29: scene_jobs_scenarios
+2/3 Test #29: scene_jobs_scenarios .............   Passed    1.27 sec
+    Start 35: asset_smoke
+3/3 Test #35: asset_smoke ......................   Passed    0.62 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =  14.76 sec

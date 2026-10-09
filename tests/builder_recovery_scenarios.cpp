@@ -23,7 +23,7 @@ void toggle(){bool next=!builder::active();assert(builder::requestToggle());asse
 void ticks(int count){for(int n=0;n<count;++n)jolt_world::step(1.0f/60);}
 void clean(){builder::reset();buildings.clear();trees.clear();peds.clear();vehicles.clear();props.clear();wildlife::animals.clear();birds::flock.clear();
     player=previousPlayer={140,60};playerY=0;occupied=enteringVehicle=-1;leftMouse=rightMouse=false;jolt_world::reset();}
-void pit(){for(int x=2;x<=4;++x)for(int z=2;z<=4;++z)for(int y=-2;y<0;++y)assert(builder::mineTerrain({x,y,z}));}
+void pit(){for(int x=2;x<=4;++x)for(int z=2;z<=4;++z)for(int y=-2;y<0;++y)assert(mineTerrainVolume({x,y,z}));}
 void corpse(bool pinned=false){Ped ped{};ped.id="builder-recovery-corpse";ped.p=ped.target={140,140};ped.style=1;ped.cash=73;ped.looted=true;ped.respawn=45;peds.push_back(ped);
     jolt_world::addPed();jolt_world::teleportPed(0,ped.p,-80);peds[0].alive=false;peds[0].health=0;peds[0].corpseVisualDelay=6;peds[0].pinned=pinned;
     peds[0].pinAnchor=ped.p;jolt_world::spawnRagdoll(peds[0],{},pinned?&peds[0].pinAnchor:nullptr);ticks(1);}
@@ -67,7 +67,7 @@ void builderRecoveryScenarios(){
     before=ragdollParts;toggle();assert(jolt_world::lastSceneryRecovery().corpses==1);rigid(before,ragdollParts);
     for(auto part:ragdollParts)assert(part.p.y<-50&&part.p.y>-80);assert(corpseSnapshots.size()==1);
     for(int n=0;n<4;++n){toggle();for(auto part:ragdollParts)assert(builder::active()?part.p.y<-50:part.p.y>0);assert(corpseSnapshots.size()==1);}
-    assert(excavation::cells().size()==18&&peds[0].cash==73&&peds[0].looted);
+    assert(excavation::cells().size()==144&&peds[0].cash==73&&peds[0].looted);
     std::puts("recovery: settled corpse snapshot support casts, rigid poses and repeated F5 isolation passed");
     // Preserve support from shared dynamic scenery too. A captured pose placed
     // on a normal crate must not be lowered through that unchanged crate.
@@ -80,7 +80,7 @@ void builderRecoveryScenarios(){
     std::puts("recovery: settled corpse retains support from an unchanged dynamic crate passed");
     // Saved placed collision can appear around a normal-mode prop or an old
     // corpse animation; both must be outside it before input resumes.
-    clean();toggle();assert(builder::place({3,0,3},builder::itemIndex("granite"),false));toggle();
+    clean();toggle();assert(placeEditVolume({3,0,3},builder::itemIndex("granite"),false));toggle();
     props.push_back({{140,140},{},0});Ped old{};old.id="builder-recovery-old-corpse";old.p=old.target={140,140};old.alive=false;old.health=0;old.respawn=45;peds.push_back(old);jolt_world::reset();
     toggle();assert(jolt_world::lastSceneryRecovery().props==1&&jolt_world::lastSceneryRecovery().corpses==1);
     assert(props[0].p.x<108||props[0].p.x>172||props[0].p.z<108||props[0].p.z>172||props[0].y>=40);
@@ -90,7 +90,7 @@ void builderRecoveryScenarios(){
     // The actual incoming Jolt trunk shape must also clear a loose prop.
     clean();dx11::loadMeshes(L"assets/models/baked");Tree tree{};tree.id="builder-recovery-tree";tree.p={4500,4500};trees.push_back(tree);
     player=previousPlayer={4420,4500};playerY=terrain::baseHeight(player);jolt_world::reset();toggle();
-    auto root=builder::cellAt({4500,1,4500});assert(scenery_edits::cut(scenery_edits::treeId(0),root));
+    auto root=builder::cellAt({4500,1,4500});for(int x=-1;x<=0;++x)for(int z=-1;z<=0;++z)for(int y=0;y<2;++y){builder::Cell c{root.x+x,y,root.z+z};if(scenery_edits::validCut(scenery_edits::treeId(0),c))assert(scenery_edits::cut(scenery_edits::treeId(0),c));}
     props.push_back({{4500,4500},{},0});jolt_world::reset();ticks(60);assert(len(props[0].p-tree.p)<1);
     toggle();assert(jolt_world::lastSceneryRecovery().props==1&&len(props[0].p-tree.p)>jolt_world::treeRadius(tree)+11);
     assert(scenery_edits::records().size()==1);ticks(60);assert(props[0].alive&&props[0].health==80);

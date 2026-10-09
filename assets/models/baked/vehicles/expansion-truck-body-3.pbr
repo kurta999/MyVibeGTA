@@ -1,6 +1,12 @@
-0 12 0.12000 0.00000 0 - - - - - OPAQUE 0.5
-12 4884 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-4896 10824 0.22000 0.80000 0 - - - - - OPAQUE 0.5
-15720 12 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-15732 12 0.50000 0.00000 0 - - - - - OPAQUE 0.5
-15744 3588 0.50000 0.00000 0 - - - - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+0 12 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+12 4884 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+4896 10824 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+15720 12 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+15732 12 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5
+# VEHICLE_SURFACE paint
+15744 3588 0.4 0.15 0 expansion-truck-paint-base.png expansion-truck-paint-normal.png expansion-truck-paint-orm.png - - OPAQUE 0.5

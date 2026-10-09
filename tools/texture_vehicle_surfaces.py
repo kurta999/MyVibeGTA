@@ -1,6 +1,6 @@
 """Add original UV-mapped vehicle paint/glass details to retained source parts.
 
-These four source vehicles have material colors but no usable base-color images.
+These source vehicles have material colors but no usable base-color images.
 Run after the expansion baker, or directly on an existing bake. Geometry, part
 pivots, indices and collision extents are preserved. Requires Pillow and NumPy.
 """
@@ -79,6 +79,8 @@ def vehicle_maps(key):
     base = Image.new("RGB", size, (229, 232, 234) if key == "airplane" else (235, 239, 243))
     orm = Image.new("RGB", size, (255, 90, 50))
     draw, surface = ImageDraw.Draw(base), ImageDraw.Draw(orm)
+    if key in ("tank", "truck"):
+        return heavy_vehicle_maps(key)
     if key == "airplane":
         def point(z, y):
             return (round((z + 55) / 110 * 1023), round((35 - y) / 51 * 511))
@@ -115,6 +117,45 @@ def vehicle_maps(key):
             "graphite-base": graphite,
             "graphite-orm": Image.new("RGB", graphite.size, (255, 173, 26)),
             "graphite-normal": Image.new("RGB", graphite.size, (128, 128, 255))}
+
+
+def heavy_vehicle_maps(key):
+    """Neutral paint detail multiplies the original olive/red material colors."""
+    rng = np.random.default_rng(902 if key == "tank" else 903)
+    noise = rng.normal(0, 2.2, (512, 1024, 1))
+    base = Image.fromarray(np.uint8(np.clip(230 + noise + np.zeros((512, 1024, 3)), 0, 255)))
+    draw = ImageDraw.Draw(base)
+    if key == "tank":
+        for _ in range(65):
+            x, y = rng.integers(0, 1024), rng.integers(0, 512)
+            width, height = rng.integers(50, 145), rng.integers(20, 60)
+            draw.polygon([(x, y), (x+width//3, y-height//2), (x+width, y),
+                          (x+width*3//4, y+height), (x+width//4, y+height//2)],
+                         fill=(174, 182, 162))
+    for x in range(0, 1024, 256):
+        draw.line((x, 0, x, 511), fill=(120, 126, 129), width=2)
+        draw.line((x+3, 0, x+3, 511), fill=(245, 245, 240), width=1)
+        for y in range(16, 512, 64):
+            draw.ellipse((x+7, y-2, x+11, y+2), fill=(96, 101, 102))
+    for y in (32, 478):
+        draw.line((0, y, 1023, y), fill=(165, 170, 169), width=2)
+    for _ in range(150):
+        x,y=rng.integers(0,1024),rng.integers(400,512)
+        draw.line((x,y,x+int(rng.integers(2,16)),y-2),fill=(133,125,111),width=1)
+    graphite=Image.new("RGB",(256,256),(172,176,177));g=ImageDraw.Draw(graphite)
+    for y in range(0,256,24):
+        g.line((0,y,255,y+20),fill=(85,91,93),width=7)
+        g.line((0,y+9,255,y+29),fill=(216,219,218),width=2)
+    def normal(image):
+        height=np.asarray(image,dtype=np.float32).mean(axis=2)/255
+        dy,dx=np.gradient(height)
+        vectors=np.stack((-dx*2,-dy*2,np.ones_like(height)),axis=2)
+        vectors/=np.linalg.norm(vectors,axis=2,keepdims=True)
+        return Image.fromarray(np.uint8(np.clip((vectors*.5+.5)*255,0,255)))
+    return {"paint-base":base,"paint-normal":normal(base),
+            "paint-orm":Image.new("RGB",base.size,(255,153 if key=="tank" else 104,55)),
+            "graphite-base":graphite,"graphite-normal":normal(graphite),
+            "graphite-orm":Image.new("RGB",graphite.size,(255,188,20))}
 
 
 def apply(verify=False, key="helicopter"):
@@ -162,6 +203,15 @@ def apply(verify=False, key="helicopter"):
                         uv = np.column_stack(((p[:, 2] + 85) / 170, (40 - p[:, 1]) / 64))
                     elif key == "airplane":
                         uv = np.column_stack(((p[:, 2] + 55) / 110, (35 - p[:, 1]) / 51))
+                    elif key in ("tank", "truck"):
+                        # World-space projection with face-specific axes preserves detail
+                        # on roofs, ends and side panels; authored normals split cube edges.
+                        normals = np.abs(vertices[ids, 3:6])
+                        dominant = np.argmax(normals, axis=1)
+                        uv = np.empty((len(ids), 2), dtype=np.float32)
+                        for axis, axes in ((0, (2, 1)), (1, (0, 2)), (2, (0, 1))):
+                            mask = dominant == axis
+                            uv[mask] = .02 + .96 * (p[mask][:, axes] + 80) / 160
                     else:
                         uv = np.column_stack(((p[:, 2] + 20) / 40, (12 - p[:, 1]) / 26))
                 else:
@@ -192,7 +242,7 @@ def apply(verify=False, key="helicopter"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--verify", action="store_true")
-    parser.add_argument("--vehicle", choices=("helicopter", "airplane", "motorcycle", "bicycle"))
+    parser.add_argument("--vehicle", choices=("helicopter", "airplane", "motorcycle", "bicycle", "tank", "truck"))
     args = parser.parse_args()
-    for key in ((args.vehicle,) if args.vehicle else ("helicopter", "airplane", "motorcycle", "bicycle")):
+    for key in ((args.vehicle,) if args.vehicle else ("helicopter", "airplane", "motorcycle", "bicycle", "tank", "truck")):
         apply(args.verify, key)

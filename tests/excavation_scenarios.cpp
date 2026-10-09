@@ -25,29 +25,32 @@ void settle(int ticks=120){for(int n=0;n<ticks;++n){jolt_world::moveCharacter({}
 void excavationScenarios(){
     using namespace game;
     reset();assert(builder::loadCatalog());buildings.clear();trees.clear();peds.clear();props.clear();vehicles.clear();wildlife::animals.clear();
-    player=previousPlayer={100,60};playerY=0;occupied=-1;jolt_world::reset();toggle();
-    const builder::Cell pit{2,-1,2};const Vec2 center{100,100};
+    player=previousPlayer={110,70};playerY=0;occupied=-1;jolt_world::reset();toggle();
+    const builder::Cell pit{5,-1,5};const Vec2 center{100,100};
     int shovel=builder::itemIndex("iron-shovel"),soil=builder::itemIndex("soil");
-    assert(builder::addItem(shovel,1));cameraYaw=PI/2;cameraPitch=-std::atan2(31.0f,40.0f);builder::update(.01f);
+    assert(builder::addItem(shovel,1));cameraYaw=PI/2;cameraPitch=-std::atan2(40.0f,40.0f);builder::update(.01f);
     assert(builder::target().source==builder::Source::Ground&&builder::target().cell==pit);
     leftMouse=true;for(int n=0;n<100&&!excavation::removed(pit);++n)builder::update(.01f);leftMouse=false;
     assert(excavation::removed(pit)&&builder::inventory()[0].durability==249);
     assert(builder::inventory()[1].item==soil&&builder::inventory()[1].count==1);
     auto mined=builder::capture();assert(!builder::mineTerrain(pit)&&builder::capture()==mined);
-    assert(terrain::height(center)==-40&&terrain::baseHeight(center)==0);
-    assert(!terrain::contains({100,-20,100})&&terrain::contains({100,-41,100}));
+    assert(terrain::height(center)==-20&&terrain::baseHeight(center)==0);
+    assert(!terrain::contains({110,-10,110})&&terrain::contains({110,-21,110}));
+    for(int x=4;x<=5;++x)for(int z=4;z<=5;++z)if(!excavation::removed({x,-1,z}))assert(excavation::cut({x,-1,z}));
     // The real capsule falls through both former city floor and former heightfield.
     player=previousPlayer=center;playerY=3;jolt_world::teleportCharacter(player,playerY);settle();
-    std::printf("pit capsule %.3f\n",playerY);assert(grounded&&std::abs(playerY+40)<1);
-    float fraction=0;assert(terrain::segmentHit({100,50,100},{100,-60,100},fraction));assert(std::abs(50-110*fraction+40)<.1f);
-    Vec3 impact{};assert(bulletSolidSegment({100,50,100},{100,-60,100},impact));assert(std::abs(impact.y+40)<.1f);
-    camera::Pose down{{100,-9,100},{100,-100,100}};assert(std::abs(camera::traceReticle(down,100).y+40)<.1f);
+    std::printf("pit capsule %.3f\n",playerY);assert(grounded&&std::abs(playerY+20)<1);
+    float fraction=0;assert(terrain::segmentHit({110,50,110},{110,-60,110},fraction));assert(std::abs(50-110*fraction+20)<.1f);
+    Vec3 impact{};assert(bulletSolidSegment({110,50,110},{110,-60,110},impact));assert(std::abs(impact.y+20)<.1f);
+    camera::Pose down{{110,-9,110},{110,-100,110}};assert(std::abs(camera::traceReticle(down,100).y+20)<.1f);
     // A builder jump clears one grid block; the normal game's impulse remains unchanged.
     for(int n=0;n<80;++n){jolt_world::moveCharacter({-60,0},n==0,1.0f/60);jolt_world::step(1.0f/60);}
     assert(player.x<79&&std::abs(playerY)<1);
-    player=previousPlayer=center;playerY=-40;jolt_world::teleportCharacter(player,playerY);settle();
+    player=previousPlayer=center;playerY=-20;jolt_world::teleportCharacter(player,playerY);settle();
+    for(int x=4;x<=5;++x)for(int z=4;z<=5;++z)for(int y=-2;y<0;++y)if(!excavation::removed({x,y,z}))assert(builder::mineTerrain({x,y,z}));
+    player=previousPlayer={100,100};playerY=-40;jolt_world::teleportCharacter(player,playerY);settle();
     // Dig down and horizontally beneath a retained roof, including a 200-unit patch boundary.
-    for(builder::Cell c:{builder::Cell{2,-2,2},{3,-2,2},{4,-2,2},{5,-2,2},{6,-2,2}})assert(builder::mineTerrain(c));
+    for(builder::Cell c:{builder::Cell{2,-2,2},{3,-2,2},{4,-2,2},{5,-2,2},{6,-2,2}})assert(mineTerrainVolume(c));
     settle();assert(grounded&&std::abs(playerY+80)<1);
     for(int n=0;n<130;++n){jolt_world::moveCharacter({60,0},false,1.0f/60);jolt_world::step(1.0f/60);}
     std::printf("tunnel capsule %.3f %.3f\n",player.x,playerY);
@@ -58,9 +61,9 @@ void excavationScenarios(){
     assert(terrain::segmentHit({240,-60,100},{240,-20,100},fraction));assert(std::abs(-60+40*fraction+40)<.1f);
     assert(bulletSolidSegment({240,-60,100},{330,-60,100},impact));assert(std::abs(impact.x-280)<.1f);
     Vec3 anchor{};assert(jolt_world::staticAnchor({240,-60,100},{1,0,0},100,anchor));assert(std::abs(anchor.x-280)<.1f);
-    int granite=builder::itemIndex("granite");assert(builder::place({4,-2,2},granite,false));
+    int granite=builder::itemIndex("granite");assert(placeEditVolume({4,-2,2},granite,false));
     for(int n=0;n<100;++n){jolt_world::moveCharacter({-60,0},false,1.0f/60);jolt_world::step(1.0f/60);}
-    assert(player.x>=209&&std::abs(playerY+80)<1);assert(builder::mineBlock({4,-2,2}));
+    assert(player.x>=209&&std::abs(playerY+80)<1);assert(mineEditVolume({4,-2,2}));
     // City pavement triangles above the cut must be removed, with original UVs retained elsewhere.
     std::vector<dx11::Vertex> staticGroups[dx11::MATERIAL_GROUPS];dx11::buildStaticScene(staticGroups);
     for(const auto& group:staticGroups)for(std::size_t i=0;i<group.size();i+=3){
@@ -70,16 +73,16 @@ void excavationScenarios(){
     auto faces=excavation::faces({0,0});bool floor=false,ceiling=false,wall=false;
     for(const auto& face:faces){assert(face.item>=0);auto v=face.vertices[0];floor|=v.ny>.5f;ceiling|=v.ny<-.5f;wall|=std::abs(v.nx)>.5f;}
     assert(floor&&ceiling&&wall);
-    auto snapshot=builder::capture();assert(!builder::restore(snapshot+"Record99999=E 2 -20 2\n"));assert(builder::capture()==snapshot);
+    auto snapshot=builder::capture();assert(!builder::restore(snapshot+"Record99999=E 2 -21 2\n"));assert(builder::capture()==snapshot);
     assert(savegame::save());assert(savegame::load());assert(!builder::active()&&terrain::height(center)==0&&playerY>=0);
-    toggle();assert(terrain::height(center)==-80&&excavation::removed({6,-2,2}));
+    toggle();assert(terrain::height(center)==-80&&removedTerrainVolume({6,-2,2}));
     player=previousPlayer={240,100};playerY=-80;jolt_world::teleportCharacter(player,playerY);settle();assert(std::abs(playerY+80)<1);
     toggle();assert(!builder::active()&&terrain::height(center)==0&&playerY>=0);
     assert(bulletSolidSegment({100,-20,100},{100,-10,100},impact));assert(!builder::mineTerrain(pit));
     toggle();assert(!bulletSolidSegment({100,-20,100},{100,-10,100},impact)&&terrain::height(center)==-80);
     // Deterministic formations and deposits cover all requested rocks plus the ore progression.
     std::set<std::string> deposits;
-    for(int x=20;x<120;++x)for(int z=20;z<120;++z)for(int y=-9;y<=-2;++y){int item=excavation::material({x,y,z});assert(item>=0);deposits.insert(builder::items()[item].id);}
+    for(int x=20;x<120;++x)for(int z=20;z<120;++z)for(int y=-19;y<=-2;++y){int item=excavation::material({x,y,z});assert(item>=0);deposits.insert(builder::items()[item].id);}
     for(const auto& item:builder::items())if(item.craftGroup=="stone-material"&&item.id!="brick"&&item.id!="concrete")assert(deposits.count(item.id));
     for(const char* ore:{"coal-ore","iron-ore","gold-ore","diamond-ore"})assert(deposits.count(ore));
     // A surface pedestrian must not obstruct someone walking beneath its retained roof.
@@ -103,9 +106,9 @@ void excavationScenarios(){
     // An edited mountain cell retains the sloped baseline around its hole.
     player=previousPlayer={13900,1820};float mountain=terrain::baseHeight(player);playerY=mountain;
     jolt_world::teleportCharacter(player,playerY);auto mountainCell=builder::cellAt({player.x,mountain-.01f,player.z});
-    assert(builder::mineTerrain(mountainCell));settle();
-    std::printf("mountain pit capsule %.3f vs %.3f\n",playerY,mountainCell.y*40.0f);
-    assert(grounded&&std::abs(playerY-mountainCell.y*40)<1);
+    assert(builder::mineTerrain(mountainCell));for(int x=-1;x<=1;++x)for(int z=-1;z<=1;++z){builder::Cell c{mountainCell.x+x,mountainCell.y,mountainCell.z+z};if(!excavation::removed(c)&&excavation::validCell(c))assert(excavation::cut(c));}settle();
+    std::printf("mountain pit capsule %.3f vs %.3f\n",playerY,mountainCell.y*builder::BLOCK_SIZE);
+    assert(grounded&&std::abs(playerY-mountainCell.y*builder::BLOCK_SIZE)<1);
     toggle();assert(terrain::height(player)==terrain::baseHeight(player)&&playerY>=mountain-1);
     reset();assert(excavation::cells().empty());buildings.clear();trees.clear();peds.clear();props.clear();vehicles.clear();wildlife::animals.clear();
     player=previousPlayer={100,60};playerY=0;occupied=-1;jolt_world::reset();toggle();
@@ -117,9 +120,9 @@ void excavationScenarios(){
     for(const char* id:{"coal-ore","iron-ore","gold-ore","diamond-ore"})required.insert(id);
     std::map<std::string,builder::Cell> targets;std::set<std::pair<int,int>> columns;
     for(int x=20;x<130&&targets.size()<required.size();++x)for(int z=20;z<130&&targets.size()<required.size();++z){
-        bool flat=true;for(float px:{x*40.0f+.01f,x*40.0f+39.99f})for(float pz:{z*40.0f+.01f,z*40.0f+39.99f})flat&=std::abs(terrain::baseHeight({px,pz}))<.001f;
+        bool flat=true;for(float px:{x*builder::BLOCK_SIZE+.01f,x*builder::BLOCK_SIZE+(builder::BLOCK_SIZE-.01f)})for(float pz:{z*builder::BLOCK_SIZE+.01f,z*builder::BLOCK_SIZE+(builder::BLOCK_SIZE-.01f)})flat&=std::abs(terrain::baseHeight({px,pz}))<.001f;
         if(!flat)continue;
-        for(int y=-8;y<=-2;++y){builder::Cell cell{x,y,z};auto id=builder::items()[excavation::material(cell)].id;
+        for(int y=-18;y<=-2;++y){builder::Cell cell{x,y,z};auto id=builder::items()[excavation::material(cell)].id;
             if(required.count(id)&&!targets.count(id)&&!columns.count({x,z})&&excavation::validCell(cell)){
                 targets[id]=cell;columns.insert({x,z});break;
             }
@@ -130,7 +133,7 @@ void excavationScenarios(){
     int successful=0;
     for(const auto& entry:targets){auto cell=entry.second;
         for(int y=-1;y>cell.y;--y)assert(excavation::cut({cell.x,y,cell.z}));
-        player=previousPlayer={cell.x*40.0f+20,cell.z*40.0f+20};playerY=(cell.y+1)*40.0f;
+        player=previousPlayer={cell.x*builder::BLOCK_SIZE+10,cell.z*builder::BLOCK_SIZE+10};playerY=(cell.y+1)*builder::BLOCK_SIZE;
         jolt_world::teleportCharacter(player,playerY);cameraPitch=-PI/2;cameraYaw=0;
         builder::handleKey('1');builder::update(.01f);assert(builder::target().source==builder::Source::Ground&&builder::target().cell==cell);
         if(entry.first=="diamond-ore"){
@@ -146,7 +149,7 @@ void excavationScenarios(){
     // A full Jolt vehicle falls into a sufficiently wide pit and is recovered on F5 exit.
     builder::reset();buildings.clear();trees.clear();peds.clear();props.clear();vehicles.clear();wildlife::animals.clear();birds::flock.clear();
     player=previousPlayer={140,60};playerY=0;Vehicle car{};car.id="excavation-car";car.kind=Kind::Car;car.p={140,180};vehicles.push_back(car);jolt_world::reset();toggle();
-    for(int x=2;x<=4;++x)for(int z=2;z<=6;++z)for(int y=-2;y<0;++y)assert(builder::mineTerrain({x,y,z}));
+    for(int x=2;x<=4;++x)for(int z=2;z<=6;++z)for(int y=-2;y<0;++y)assert(mineTerrainVolume({x,y,z}));
     for(int n=0;n<240;++n){jolt_world::driveVehicle(0,0,0,1.0f/60,true);jolt_world::step(1.0f/60);}
     assert(std::abs(vehicles[0].rideHeight+80)<12&&jolt_world::wheelContactCount(0)>=2);
     toggle();assert(vehicles[0].rideHeight>=-.1f);

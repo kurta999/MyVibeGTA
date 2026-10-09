@@ -1,0 +1,9 @@
+{
+  "Executable": "MiniCity3D.exe",
+  "ExecutableSHA256": "4E1F2B0205D296242CF0CE59DA044F5280AFD1A0286A11613714A47DE033CDC4",
+  "SettingsSHA256": "5E9FB756A6D078B2FC09F5952747EFA65552019A627670937910C0B195EC666A",
+  "Settings": "benchmark-settings.ini",
+  "Resolution": "1920x1080",
+  "Seed": 1,
+  "Adapter": "AMD Radeon 680M"
+}

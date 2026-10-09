@@ -67,7 +67,7 @@ std::vector<Line> cracks(){std::vector<Line> lines;float progress=builder::minin
     const float pattern[][4]={{0,0,3,4},{3,4,1,8},{1,8,5,12},{0,0,-4,2},{-4,2,-7,0},{-7,0,-12,3},{0,0,2,-4},{2,-4,-1,-8},{-1,-8,3,-13},{3,4,8,5},{8,5,12,9},{-4,2,-5,8},{-5,8,-10,12},{2,-4,8,-5},{8,-5,13,-2},{-1,-8,-7,-9},{-7,-9,-12,-13},{1,8,-2,13},{-7,0,-9,-5},{8,5,13,4}};
     int count=std::min(20,2+int(progress*18));
     for(int i=0;i<count;++i){const auto& path=pattern[i];for(int part=0;part<3;++part){game::Vec3 points[2];bool valid=true;
-        for(int end=0;end<2;++end){float t=float(part+end)/3;auto p=target.point+u*(path[0]+(path[2]-path[0])*t)+v*(path[1]+(path[3]-path[1])*t);valid&=project(target,p,points[end]);}
+        for(int end=0;end<2;++end){float t=float(part+end)/3;float scale=builder::BLOCK_SIZE/40.0f;auto p=target.point+u*((path[0]+(path[2]-path[0])*t)*scale)+v*((path[1]+(path[3]-path[1])*t)*scale);valid&=project(target,p,points[end]);}
         if(valid)lines.push_back({points[0],points[1],.3f+progress*.35f});}}
     return lines;
 }

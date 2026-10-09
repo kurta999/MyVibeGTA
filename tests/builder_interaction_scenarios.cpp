@@ -24,7 +24,7 @@ void fixture(){
     reset();assert(builder::loadCatalog());buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();pickups.clear();bullets.clear();
     wildlife::animals.clear();birds::flock.clear();commerce::shops.clear();commerce::houses.clear();traversal::ladders.clear();traversal::trees.clear();missions.clear();
     player=previousPlayer={400,300};playerY=0;occupied=enteringVehicle=-1;health=PLAYER_MAX_HEALTH;jolt_world::reset();toggle();
-    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(builder::mineTerrain({x,-2,z}));
+    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(mineTerrainVolume({x,-2,z}));
     grounded=true;swimming=false;debug_menu::flyMode=false;
 }
 void playerAt(Vec2 p,float y){player=previousPlayer=p;playerY=y;jolt_world::teleportCharacter(p,y);}
@@ -48,6 +48,20 @@ void heldModel(bool expected){const auto& stack=builder::inventory()[builder::se
 void builderInteractionScenarios(){
     using namespace game;std::setvbuf(stdout,nullptr,_IONBF,0);
     dx11::loadMeshes(L"assets/models/baked");
+    fixture();int pickupWeapon=weapons::indexOf("pistol");assert(pickupWeapon>=0);
+    pickups.push_back({{300,140},pickupWeapon,true,0,"pickup-roof"});
+    pickups.push_back({{12000,14000},pickupWeapon,true,0,"pickup-distant"});
+    pickups.push_back({{12100,14000},pickupWeapon,false,dt*.5f,"pickup-respawn"});
+    playerAt({300,140},-80);update(dt);
+    assert(pickups[0].available&&pickups[1].available&&pickups[2].available);
+    playerAt({300,140},0);update(dt);assert(!pickups[0].available&&unlocked[pickupWeapon]);
+    pickups.push_back({{202,140},pickupWeapon,true,0,"pickup-blocked"});
+    buildings.push_back({193,120,1,40,50,{1,1,1},"pickup-wall"});jolt_world::refreshScenery();
+    playerAt({180,140},0);update(dt);assert(pickups[3].available);
+    buildings.clear();jolt_world::refreshScenery();update(dt);assert(!pickups[3].available);
+    assert(pickups[1].available&&pickups[2].available);
+    std::puts("pickups: roof separation and close obstruction retained, nearby collection works, distant respawn timers advance");
+
     fixture();actor({220,140},0,true);ticks(90);playerAt(peds[0].p+Vec2{-12,0},-80);
     int beforeMoney=money;assert(interactionPrompt().find("LOOT")==std::string::npos&&carryPrompt().empty());interact();carryDrop();
     assert(!peds[0].looted&&!peds[0].carried&&money==beforeMoney);pose(0);
@@ -71,7 +85,7 @@ void builderInteractionScenarios(){
     // Death capsule height remains at the old surface; current physical pose
     // must follow the body falling through a newly removed support.
     fixture();actor({220,140},0,true);
-    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(builder::mineTerrain({x,-1,z}));
+    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(mineTerrainVolume({x,-1,z}));
     ticks(180);contact=pose(-80);assert(contact.y<-60);nearBody(-80);assert(interactionPrompt().find("LOOT")!=std::string::npos);
     carryDrop();assert(peds[0].carried);auto edits=builder::capture();toggle();assert(peds[0].carried&&playerY>-2);toggle();
     assert(peds[0].carried&&builder::capture()==edits);playerAt({200,160},-80);cameraYaw=0;carryDrop();ticks(180);pose(-80);
@@ -88,7 +102,7 @@ void builderInteractionScenarios(){
     std::puts("interactions: blocked release retains carried state; opening space permits retry without losing corpse");
 
     fixture();actor({220,140},-80,true);ticks(120);nearBody(-80);carryDrop();assert(peds[0].carried);playerAt({400,300},0);
-    for(int x=4;x<=8;++x)for(int z=2;z<=5;++z)assert(builder::place({x,0,z},builder::itemIndex("granite"),false));
+    for(int x=4;x<=8;++x)for(int z=2;z<=5;++z)assert(placeEditVolume({x,0,z},builder::itemIndex("granite"),false));
     playerAt({220,140},40);cameraYaw=0;carryDrop();ticks(180);contact=pose(40);assert(contact.y>40&&contact.y<60);
     nearBody(40);assert(carryPrompt().find("CARRY")!=std::string::npos);carryDrop();assert(peds[0].carried);clearCarry();
     std::puts("interactions: corpse release and pickup respect actual placed-block support rather than original terrain");
@@ -118,14 +132,14 @@ void builderInteractionScenarios(){
         for(const auto& shot:bullets){assert(shot.p.y<-50);fired=true;}bullets.clear();}
     std::printf("combat underground: selected %d, fired %d, farthest %.1f, target %.1f %.1f floor %.1f\n",int(selected),int(fired),farthest,guard.target.x,guard.target.z,guard.navigation.goalHeight);
     assert(selected&&fired&&farthest>20);guard.tacticTimer=0;ai::update(dt);jolt_world::step(dt);
-    assert(ped_navigation_surface::hasDestination(guard));auto target=guard.target;auto cell=builder::cellAt({target.x,-79,target.z});
-    assert(builder::place(cell,builder::itemIndex("granite"),false));ai::update(dt);jolt_world::step(dt);checkBudget();
+    assert(ped_navigation_surface::hasDestination(guard));auto target=guard.target;builder::Cell cell{int(target.x/40),-2,int(target.z/40)};
+    assert(placeEditVolume(cell,builder::itemIndex("granite"),false));ai::update(dt);jolt_world::step(dt);checkBudget();
     assert(!ped_navigation_surface::hasDestination(guard)||len(guard.target-target)>8);assert(std::abs(jolt_world::pedHeight(0)+80)<2);
     std::puts("combat: actual armed AI strafes/fires under original building, retains supported floor and replans an edited endpoint within shared budgets");
 
     // An elevated visible threat must not replace the tactical endpoint's
     // lower supported height with the player's height at that same XZ.
-    fixture();for(int x=3;x<=4;++x)for(int z=3;z<=4;++z)assert(builder::place({x,0,z},builder::itemIndex("granite"),false));
+    fixture();for(int x=3;x<=4;++x)for(int z=3;z<=4;++z)assert(placeEditVolume({x,0,z},builder::itemIndex("granite"),false));
     actor({360,140},0);playerAt({140,140},40);peds[0].armed=peds[0].hostile=true;peds[0].state=PedState::Attack;
     peds[0].alertTime=100;peds[0].socialCooldown=999;peds[0].weaponIndex=weapons::indexOf("pistol");start=peds[0].p;selected=false;
     for(int n=0;n<70;++n){ai::update(dt);jolt_world::step(dt);checkBudget();bullets.clear();

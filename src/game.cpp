@@ -35,6 +35,7 @@
 #include "birds.h"
 #include "ordnance.h"
 #include "ped_navigation.h"
+#include "ped_navigation_surface.h"
 #endif
 #include "ai.h"
 #include "content.h"
@@ -1391,9 +1392,17 @@ void update(float dt){
             std::chrono::duration<float,std::milli>(builderEnd-builderBegin).count(),
             std::chrono::duration<float,std::milli>(pedestrianEnd-physicsEnd).count(),
             std::chrono::duration<float,std::milli>(wildlifeEnd-pedestrianEnd).count());logging::write(report);
+#ifdef MINI_CITY_JOLT
+        const auto& nav=ped_navigation_surface::stats();
+        std::snprintf(report,sizeof(report),"Builder navigation: %.3f ms, floor queries %.3f ms, %u queries, %u cache hits, %u plans, %u expanded",nav.navigationMs,nav.floorQueryMs,nav.physicsQueries,nav.floorCacheHits,nav.plans,nav.expanded);
+        logging::write(report);
+#endif
     }
     for(auto& pickup:pickups){
         if(!pickup.available){pickup.respawn-=dt;if(pickup.respawn<=0)pickup.available=true;continue;}
+        // Distant pickups cannot be collected. Reject them before builder
+        // column/visibility queries; respawn timers above still run everywhere.
+        if(occupied>=0||!(len(player-pickup.p)<24))continue;
         bool reachable=true;
 #ifdef MINI_CITY_JOLT
         if(builder::active()){
@@ -1401,7 +1410,7 @@ void update(float dt){
             reachable=playerY<y+24&&playerY+37>y&&clearLineAtHeight({player.x,playerY+18,player.z},{pickup.p.x,y+16,pickup.p.z});
         }
 #endif
-        if(occupied<0&&len(player-pickup.p)<24&&reachable){
+        if(reachable){
             pickup.available=false;pickup.respawn=45;
             unlocked[pickup.weapon]=true;
             if(weapons::stats(pickup.weapon).melee||weapons::stats(pickup.weapon).grapple){

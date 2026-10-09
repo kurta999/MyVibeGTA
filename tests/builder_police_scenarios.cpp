@@ -20,7 +20,7 @@ constexpr float dt=1.0f/60;
 void toggle(){bool next=!builder::active();assert(builder::requestToggle()&&finishBuilderTransition()&&builder::active()==next);}
 void fixture(bool wide=false){reset();assert(builder::loadCatalog());buildings.clear();trees.clear();peds.clear();vehicles.clear();props.clear();pickups.clear();
     wildlife::animals.clear();birds::flock.clear();bullets.clear();police::reset();player=previousPlayer={400,700};playerY=0;health=PLAYER_MAX_HEALTH;
-    jolt_world::reset();toggle();for(int x=2;x<=(wide?32:12);++x)for(int z=wide?4:2;z<=(wide?12:6);++z)assert(builder::mineTerrain({x,-2,z}));
+    jolt_world::reset();toggle();for(int x=2;x<=(wide?32:12);++x)for(int z=wide?4:2;z<=(wide?12:6);++z)assert(mineTerrainVolume({x,-2,z}));
     weapon=weapons::indexOf("knife");assert(weapon>=0);unlocked[weapon]=true;fireCooldown=0;
 }
 void playerAt(Vec2 p,float y){player=previousPlayer=p;playerY=y;jolt_world::teleportCharacter(p,y);}
@@ -56,7 +56,7 @@ void builderPoliceScenarios(bool before){using namespace game;std::setvbuf(stdou
         fixture();actor({220,140},-80);actor({220,220},-80,PI/2);playerAt({195,140},-80);
         stealthKill();policeTicks(100);assert(!peds[0].alive&&police::wantedLevel()==0);
         fixture();actor({220,140},-80);actor({220,220},-80,-PI/2);playerAt({195,140},-80);
-        assert(builder::place({5,-2,4},builder::itemIndex("granite"),false));stealthKill();policeTicks(100);
+        assert(placeEditVolume({5,-2,4},builder::itemIndex("granite"),false));stealthKill();policeTicks(100);
         assert(!peds[0].alive&&police::wantedLevel()==0);
         std::puts("stealth: same-floor facing witness reports; rear-facing and block-occluded witnesses remain silent");
 
@@ -65,7 +65,7 @@ void builderPoliceScenarios(bool before){using namespace game;std::setvbuf(stdou
         buildings.push_back(wall);jolt_world::refreshScenery();assert(stealthTarget()<0);stealthKill();assert(peds[0].alive);
         buildings.clear();jolt_world::refreshScenery();playerAt({170,140},-80);assert(stealthTarget()<0);
         playerAt({245,140},-80);assert(stealthTarget()<0);playerAt({195,140},-60);assert(stealthTarget()<0);
-        fixture();for(int x=4;x<=5;++x)assert(builder::place({x,0,3},builder::itemIndex("granite"),false));
+        fixture();for(int x=4;x<=5;++x)assert(placeEditVolume({x,0,3},builder::itemIndex("granite"),false));
         actor({220,140},40);playerAt({195,140},0);assert(stealthTarget()<0);playerAt({195,140},40);assert(stealthTarget()==0);
         stealthKill();assert(!peds[0].alive);std::puts("stealth: wall, range, behind cone and vertical checks; takedown allowed on placed elevated support");
 
@@ -94,11 +94,11 @@ void builderPoliceScenarios(bool before){using namespace game;std::setvbuf(stdou
         buildings.push_back(divider);jolt_world::refreshScenery();ped_navigation::beginFrame();
         assert(!ped_navigation_surface::reachable({300,-80,300},{640,-80,300}));budget();
         buildings.clear();jolt_world::refreshScenery();ped_navigation::beginFrame();assert(ped_navigation_surface::reachable({300,-80,300},{640,-80,300}));
-        assert(builder::mineTerrain({12,-3,7}));assert(!ped_navigation_surface::supported({479,300},-80,feet,2.5f));budget();
+        assert(mineTerrainVolume({12,-3,7}));assert(!ped_navigation_surface::supported({479,300},-80,feet,2.5f));budget();
         std::puts("dispatch: full endpoint required across sealed divider; removing divider enables route; edited floor edge rejects support");
 
         fixture();playerAt({300,180},-80);cameraYaw=PI;police::setWantedLevel(1);ped_navigation::beginFrame();police::update(dt);budget();
-        assert(peds.empty());for(int x=13;x<=25;++x)for(int z=3;z<=5;++z)assert(builder::mineTerrain({x,-2,z}));
+        assert(peds.empty());for(int x=13;x<=25;++x)for(int z=3;z<=5;++z)assert(mineTerrainVolume({x,-2,z}));
         policeTicks(130);assert(peds.size()==1&&peds[0].police&&std::abs(jolt_world::pedHeight(0)+80)<2);
         std::puts("dispatch: sealed small room defers; newly excavated reachable corridor enables cooldown retry");
 

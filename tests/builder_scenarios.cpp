@@ -7,6 +7,7 @@
 #include "../src/savegame.h"
 #include "../src/dx11_assets.h"
 #include "../src/terrain.h"
+#include "../src/excavation.h"
 #include "../src/camera.h"
 #include "../src/wildlife.h"
 #ifdef NDEBUG
@@ -24,11 +25,11 @@ void toggle(){bool next=!builder::active();assert(builder::requestToggle());bool
 void toolInteractions(){
     using namespace game;
     reset();buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();
-    const builder::Cell cell{10,0,10};auto low=builder::cellLow(cell);
+    const builder::Cell cell{20,1,20};auto low=builder::cellLow(cell);
     const int granite=builder::itemIndex("granite"),diamondOre=builder::itemIndex("diamond-ore");
     auto setup=[&](int material,int equipment,int durability=-1,float distance=35){
-        builder::reset();player=previousPlayer={low.x-distance,low.z+20};playerY=0;cameraYaw=cameraPitch=0;
-        occupied=-1;crouched=false;toggle();
+        builder::reset();player=previousPlayer={low.x-distance,low.z+10};playerY=0;cameraYaw=cameraPitch=0;
+        occupied=-1;crouched=false;toggle();cameraPitch=-.001f;
         if(equipment>=0)assert(builder::addItem(equipment,1,durability));
         assert(builder::place(cell,material,false));builder::update(.01f);
         assert(builder::target().source==builder::Source::Block&&builder::target().cell==cell);
@@ -87,14 +88,14 @@ void toolInteractions(){
     assert(builder::inventory()[1].item==granite&&builder::inventory()[1].count==1);
     assert(!builder::addItem(pick,1,0)); // Broken tools cannot be introduced through pickup or restore.
     // Held use repeats at a bounded cadence and stops at the player's occupied cell.
-    setup(granite,granite,-1,95);assert(builder::addItem(granite,31));
+    setup(granite,granite,-1,55);assert(builder::addItem(granite,31));
     builder::setUseHeld(true);assert(builder::blocks().size()==2&&builder::inventory()[0].count==31);
     builder::update(.1f);assert(builder::blocks().size()==2);
     builder::update(.11f);assert(builder::blocks().size()==3&&builder::inventory()[0].count==30);
     builder::update(.3f);assert(builder::blocks().size()==3&&builder::inventory()[0].count==30);
     builder::setUseHeld(false);assert(!rightMouse);builder::update(1);
     assert(builder::blocks().size()==3&&builder::inventory()[0].count==30);
-    setup(builder::itemIndex("chest"),granite,-1,95);builder::setUseHeld(true);
+    setup(builder::itemIndex("chest"),granite,-1,55);builder::setUseHeld(true);
     assert(builder::inventoryOpen());builder::closeInventory();builder::update(1);
     assert(builder::blocks().size()==1); // Closing a chest does not resume a stale held press.
     keys[VK_SHIFT]=true;builder::update(.01f);assert(crouched);
@@ -102,6 +103,32 @@ void toolInteractions(){
     keys[VK_SHIFT]=false;builder::setUseHeld(false);builder::update(.01f);assert(!crouched);
     toggle();assert(!builder::active());toggle();builder::update(1);assert(builder::blocks().size()==2);
     reset();
+}
+void stacking(){
+    using namespace game;
+    reset();buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();
+    player=previousPlayer={400,410};playerY=0;cameraYaw=0;cameraPitch=-std::atan2(20.0f,90.0f);
+    jolt_world::reset();toggle();int soil=builder::itemIndex("soil");
+    assert(builder::BLOCK_SIZE==20&&builder::addItem(soil,3));
+    const builder::Cell base{24,0,20},upper{24,1,20};assert(builder::place(base,soil));
+    auto pose=camera::compute(player,playerY,false,-1);assert(pose.eye.y==40);
+    builder::update(.01f);assert(builder::target().source==builder::Source::Block);
+    assert(builder::target().cell==base&&builder::target().normal.y>.9f&&builder::target().adjacent==upper);
+    builder::setUseHeld(true);builder::setUseHeld(false);
+    assert(builder::blocks().size()==2&&builder::blocks().count(upper)&&builder::inventory()[0].count==1);
+    jolt_world::refreshScenery();player=previousPlayer={490,410};playerY=45;jolt_world::teleportCharacter(player,playerY);
+    for(int n=0;n<120;++n){jolt_world::moveCharacter({},false,1.0f/60);jolt_world::step(1.0f/60);}
+    assert(grounded&&std::abs(playerY-40)<1);
+    auto saved=builder::capture();assert(builder::restore(saved));toggle();assert(builder::blocks().size()==2);
+    // Version 1 uses the old 40-unit placed grid. Keep its world positions,
+    // inventory and excavation while adopting smaller blocks on reload.
+    reset();std::string legacy="Version=1\nInitialized=0\nSelected=0\nRecord0=P 12 0 10 \"soil\" 0";
+    for(int n=0;n<27;++n)legacy+=" \"none\" 0 0";
+    legacy+="\nRecord1=E 10 -1 10\n";
+    assert(builder::restore(legacy));assert(builder::blocks().count(base));
+    assert(builder::cellLow(base).x==480&&builder::cellLow({20,-2,20}).x==400);
+    assert(builder::capture().find("Version=2\n")==0&&excavation::cells().size()==8);
+    reset();std::puts("builder: live reticle stacks two half-size blocks, Jolt supports their top, save migration preserves world coordinates");
 }
 }
 void builderScenarios(){
@@ -128,7 +155,7 @@ void builderScenarios(){
     // Find a valid empty site in reach of the starting player without editing actors.
     builder::Cell cell{};bool found=false;
     for(int dx=-3;dx<=3&&!found;++dx)for(int dz=-3;dz<=3&&!found;++dz){cell=builder::cellAt({player.x+dx*40,0,player.z+dz*40});if(builder::place(cell,granite,false))found=true;}
-    assert(found);auto low=builder::cellLow(cell);auto center=low+Vec3{20,20,20};
+    assert(found);auto low=builder::cellLow(cell);auto center=low+Vec3{10,10,10};
     assert(builder::contains(center));float entry=0;assert(builder::segment(center+Vec3{-70,0,0},center+Vec3{70,0,0},entry));
     Vec3 impact{};assert(bulletSolidSegment(center+Vec3{-70,0,0},center+Vec3{70,0,0},impact));assert(std::abs(impact.x-low.x)<.01f);
     jolt_world::step(1.0f/60);assert(jolt_world::activeBuilderColliderCount()>0);
@@ -160,12 +187,12 @@ void builderScenarios(){
     // Chest model, placement and inventory transfer interface are present.
     assert(chest>=0&&builder::place(cell,chest,false));
     toggle();assert(!builder::contains(center));toggle();assert(builder::contains(center));
-    player=previousPlayer={low.x-35,low.z+20};playerY=low.y;cameraYaw=0;cameraPitch=0;
+    player=previousPlayer={low.x-35,low.z+10};playerY=low.y;cameraYaw=0;cameraPitch=-std::atan2(30.0f,45.0f);
     jolt_world::teleportCharacter(player,playerY);builder::use();assert(builder::inventoryOpen()&&builder::chest());
     r=builder::slotRect(0,screenW,screenH);int stored=builder::inventory()[0].count;assert(stored>0);
     builder::mouse(r.x+3,r.y+3,false,true);assert(builder::inventory()[0].item==-1&&(*builder::chest())[0].count==stored);
     auto chestSave=builder::capture();builder::closeInventory();assert(builder::restore(chestSave));toggle();
-    player=previousPlayer={low.x-35,low.z+20};playerY=low.y;cameraYaw=0;cameraPitch=0;builder::update(.3f);builder::use();
+    player=previousPlayer={low.x-35,low.z+10};playerY=low.y;cameraYaw=0;cameraPitch=-std::atan2(30.0f,45.0f);builder::update(.3f);builder::use();
     assert(builder::chest()&&(*builder::chest())[0].count==stored);builder::closeInventory();
     int dropsBefore=int(builder::drops().size());builder::blast(center,80,10000);assert(!builder::contains(center));
     assert(int(builder::drops().size())==dropsBefore+2);builder::blast(center,80,10000);assert(int(builder::drops().size())==dropsBefore+2);
@@ -190,6 +217,6 @@ void builderScenarios(){
     // A furnace is required for processing; placing the station enables the recipe.
     found=false;for(int dx=-3;dx<=3&&!found;++dx)for(int dz=-3;dz<=3&&!found;++dz){auto c=builder::cellAt({player.x+dx*40,0,player.z+dz*40});if(builder::place(c,builder::itemIndex("furnace"),false))found=true;}assert(found);
     assert(builder::canCraft(smelt)&&builder::craft(smelt));
-    reset();toolInteractions();
+    reset();toolInteractions();stacking();
     std::puts("builder layer, inventory, persistence, textured assets and Jolt isolation scenarios passed");
 }

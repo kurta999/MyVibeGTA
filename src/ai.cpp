@@ -12,6 +12,8 @@
 #include "ped_navigation.h"
 #include "ped_navigation_surface.h"
 #include "builder.h"
+#include "excavation.h"
+#include "terrain.h"
 #endif
 #include <algorithm>
 #include <cmath>
@@ -72,7 +74,7 @@ bool findCover(Ped& ped,Vec2 threat,Vec2& destination){
                 if(len(p-ped.p)<260)candidates.push_back(p);
         };
         for(const auto& building:buildings)corners(building.x,building.z,building.w,building.d);
-        for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);corners(low.x,low.z,40,40);}
+        for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);corners(low.x,low.z,builder::BLOCK_SIZE,builder::BLOCK_SIZE);}
         std::sort(candidates.begin(),candidates.end(),[&](Vec2 a,Vec2 b){return len(a-ped.p)<len(b-ped.p);});
         Vec3 eye{threat.x,originHeight(threat)+22,threat.z};
         for(Vec2 candidate:candidates){Vec3 feet{};
@@ -477,12 +479,29 @@ void update(float dt,bool beginNavigationFrame){
             else{ped.state=PedState::Wander;ped.hostile=false;}
         }
 #ifdef MINI_CITY_JOLT
-        if(builder::active()&&ped.state==PedState::Wander&&
-           (len(ped.target-ped.p)<7||!ped_navigation_surface::hasDestination(ped)||randi(3000)==0)){
+        if(builder::active()&&ped.state==PedState::Wander){
+          auto surfaceRevision=builder::revision()^(excavation::revision()<<32);
+          if((ped.navigation.surfaceRevision!=surfaceRevision||ped.navigation.repath<=0||ped.navigation.planned)&&
+             (len(ped.target-ped.p)<7||!ped_navigation_surface::hasDestination(ped)||randi(3000)==0)){
             bool selected=false;
-            for(int n=0;n<15&&!selected;++n){Vec2 target=ped.p+Vec2{randf(-170,170),randf(-170,170)};Vec3 feet{};
+            for(int n=0;n<15&&!selected;++n){
+                const auto& budget=ped_navigation_surface::stats();
+                // No floor/footprint probes when this tick cannot plan a route.
+                if(budget.plans>=4||budget.physicsQueries>=18000)break;
+                Vec2 target=ped.p+Vec2{randf(-170,170),randf(-170,170)};Vec3 feet{};
+                // A casual wander target follows the actor's current floor
+                // relative to terrain. Reject building roofs, sealed surface
+                // columns above tunnels, and drops before an expensive route
+                // search. Combat/cover still use unrestricted multi-floor goals.
+                float targetHeight=jolt_world::pedHeight(ped)+terrain::baseHeight(target)-terrain::baseHeight(ped.p);
+                if(!ped_navigation_surface::supported(target,targetHeight,feet,5.1f))continue;
                 if(ped_navigation_surface::destination(ped,target,feet)){ped.target={feet.x,feet.z};selected=true;}}
-            if(!selected){ped.target=ped.p;ped.navigation={};}
+            if(!selected){ped.target=ped.p;auto& nav=ped.navigation;nav={};
+                nav.surfaceMode=true;nav.surfaceRevision=surfaceRevision;nav.previous=ped.p;nav.previousHeight=jolt_world::pedHeight(ped);
+                // Failed/budget-deferred wander requests retry at different
+                // ticks, instead of the first actors exhausting every frame.
+                nav.repath=.25f+float((&ped-peds.data())%8)*.035f;}
+          }
         }else
 #endif
         if(ped.state==PedState::Wander&&(len(ped.target-ped.p)<7||randi(3000)==0)){

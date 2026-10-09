@@ -1,0 +1,2 @@
+[1/2] Building CXX object CMakeFiles\simulation_smoke.dir\tests\scenery_scenarios.cpp.obj
+[2/2] Linking CXX executable simulation_smoke.exe

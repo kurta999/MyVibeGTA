@@ -26,7 +26,7 @@ void fixture(){
     occupied=enteringVehicle=-1;health=PLAYER_MAX_HEALTH;debug_menu::flyMode=false;swimming=false;grounded=true;
     jolt_world::reset();toggle();
 }
-void room(bool roof=true){for(int x=2;x<=12;++x)for(int z=2;z<=6;++z){assert(builder::mineTerrain({x,-2,z}));if(!roof)assert(builder::mineTerrain({x,-1,z}));}}
+void room(bool roof=true){for(int x=2;x<=12;++x)for(int z=2;z<=6;++z){assert(mineTerrainVolume({x,-2,z}));if(!roof)assert(mineTerrainVolume({x,-1,z}));}}
 wildlife::Animal animal(int kind,Vec2 p,float y){wildlife::Animal a;a.id="builder-wildlife-"+std::to_string(kind);
     a.species=kind;a.p=a.home=a.target=p;a.health=wildlife::species()[kind].health;a.timer=100;
     a.elevation=y;a.elevationAt=p;a.elevationKnown=a.elevationMode=true;return a;}
@@ -62,14 +62,14 @@ void builderWildlifeScenarios(){
     assert(wildlife::meleeTarget(50)==0&&wildlife::hit({220,-65,140},1,player,true));
     tick(2);assert(health<hp);wildlife::animals[0].state=wildlife::State::Idle;health=PLAYER_MAX_HEALTH;
     assert(!wildlife::mount(0)); // Tiger fits, but its standing rider does not.
-    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(builder::mineTerrain({x,-1,z}));
+    for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(mineTerrainVolume({x,-1,z}));
     assert(wildlife::mount(0));cameraYaw=0;keys['W']=true;Vec2 start=player;
     for(int n=0;n<120;++n){wildlife::updateRider(dt);wildlife::update(dt);jolt_world::step(dt);
         assert(std::abs(wildlife::originHeight(wildlife::animals[0])+80)<2&&playerY<-50);}
     keys['W']=false;assert(len(player-start)>100);rendered(wildlife::animals[0]);assert(wildlife::dismount());assert(std::abs(playerY+80)<2);
     std::puts("wildlife: underground attacks, tiger mount movement, shared model height and supported dismount passed");
 
-    fixture();room();for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(builder::mineTerrain({x,-3,z}));
+    fixture();room();for(int x=2;x<=12;++x)for(int z=2;z<=6;++z)assert(mineTerrainVolume({x,-3,z}));
     wildlife::animals={animal(1,{240,160},-120)};playerAt({180,160},-120);
     assert(!wildlife::mount(0)); // Elephant fits, but elephant plus rider exceeds the 80-unit room.
     assert(!wildlife::riding());
@@ -85,14 +85,14 @@ void builderWildlifeScenarios(){
     std::puts("wildlife: actual gravity pit fall, kinematic contact body, immediate normal F5 resurface and builder re-entry fall passed");
 
     fixture();wildlife::animals={animal(4,{220,140},40)};
-    assert(builder::place({5,0,3},builder::itemIndex("granite"),false));tick(30);
+    assert(placeEditVolume({5,0,3},builder::itemIndex("granite"),false));tick(30);
     assert(std::abs(wildlife::originHeight(wildlife::animals[0])-40)<2);rendered(wildlife::animals[0]);
-    assert(builder::mineBlock({5,0,3}));tick(60);assert(std::abs(wildlife::originHeight(wildlife::animals[0]))<2);
+    assert(mineEditVolume({5,0,3}));tick(60);assert(std::abs(wildlife::originHeight(wildlife::animals[0]))<2);
     std::puts("wildlife: placed block support and removal use the same physics and rendered height");
 
     fixture();room();wildlife::animals={animal(4,{140,140},-80)};
     auto& walker=wildlife::animals[0];walker.state=wildlife::State::Wander;walker.target={440,140};walker.timer=100;
-    assert(builder::place({6,-2,3},builder::itemIndex("granite"),false));tick(1200);
+    assert(placeEditVolume({6,-2,3},builder::itemIndex("granite"),false));tick(1200);
     std::printf("wildlife: underground walker detours a placed block, final %.1f %.1f %.1f\n",walker.p.x,wildlife::originHeight(walker),walker.p.z);
     assert(walker.p.x>320&&std::abs(wildlife::originHeight(walker)+80)<2);
 
@@ -119,8 +119,8 @@ void builderWildlifeScenarios(){
     std::puts("wildlife: actual swept game projectile hits small underground animal at its collision/render height");
 
     fixture();room();wildlife::animals={animal(4,{260,140},-80)};
-    jolt_world::preparePedNavigation();assert(!builder::canPlace({6,-2,3},builder::itemIndex("granite")));
-    assert(builder::canPlace({6,0,3},builder::itemIndex("granite"))); // Above the retained roof.
+    jolt_world::preparePedNavigation();assert(!canPlaceEditVolume({6,-2,3},builder::itemIndex("granite")));
+    assert(canPlaceEditVolume({6,0,3},builder::itemIndex("granite"))); // Above the retained roof.
     camera::Pose aim{{210,-70,140},{310,-70,140}};
     auto hit=camera::traceReticle(aim,100);assert(hit.x>240&&hit.x<260&&std::abs(hit.y+70)<1);
     assert(builder::trace(aim.eye,{1,0,0}).source==builder::Source::None);
@@ -129,7 +129,7 @@ void builderWildlifeScenarios(){
     fixture();room();const int pistol=weapons::indexOf("pistol");pickups={{{220,140},pistol,true,0,"builder-height-pickup"}};
     playerAt({220,140},-80);update(dt);assert(pickups[0].available&&pickupOriginHeight(pickups[0])==0);
     playerAt({220,140},0);update(dt);assert(!pickups[0].available);
-    pickups[0].available=true;playerAt({400,300},0);assert(builder::place({5,0,3},builder::itemIndex("granite"),false));
+    pickups[0].available=true;playerAt({400,300},0);assert(placeEditVolume({5,0,3},builder::itemIndex("granite"),false));
     assert(pickupOriginHeight(pickups[0])==40);playerAt({220,140},-80);update(dt);assert(pickups[0].available);
     playerAt({220,140},40);update(dt);assert(!pickups[0].available);
     toggle();assert(pickupOriginHeight(pickups[0])==0);

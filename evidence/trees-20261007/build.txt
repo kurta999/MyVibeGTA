@@ -1,0 +1,7 @@
+[1/7] Building CXX object CMakeFiles\asset_smoke.dir\tests\asset_smoke.cpp.obj
+[2/7] Building CXX object CMakeFiles\asset_smoke.dir\src\dx11_assets.cpp.obj
+[3/7] Linking CXX executable asset_smoke.exe
+[4/7] Building CXX object CMakeFiles\MiniCity3D.dir\src\dx11_assets.cpp.obj
+[5/7] Building CXX object CMakeFiles\simulation_smoke.dir\src\dx11_assets.cpp.obj
+[6/7] Linking CXX executable simulation_smoke.exe
+[7/7] Linking CXX executable MiniCity3D.exe

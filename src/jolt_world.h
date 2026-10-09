@@ -28,6 +28,7 @@ void teleportPed(std::size_t index,game::Vec2 position,float height);
 // Navigation uses the live static collision, including multiple walkable
 // floors at the same XZ and the exact pedestrian capsule's head clearance.
 void preparePedNavigation();
+std::uint64_t staticCollisionRevision();
 std::vector<float> pedestrianFloors(game::Vec2 point,unsigned* queryCount=nullptr,unsigned queryLimit=~0u);
 bool pedestrianClear(game::Vec3 feet,bool includeDynamic=false);
 bool standingCharacterClear(game::Vec3 feet);

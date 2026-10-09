@@ -52,7 +52,11 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
         Vec2 seat=focus;
         if(helicopter)seat=seat+forward(vehicles[occupied].angle)*(22*scale);
         Vec3 eye{seat.x+(occupied>=0?right.x*8*scale:0),
-            playerHeight+(occupied>=0?29.0f+(helicopter?3.0f:9.0f)*(scale-1):31.0f-stance),
+            playerHeight+(occupied>=0?29.0f+(helicopter?3.0f:9.0f)*(scale-1):31.0f-stance
+#ifdef MINI_CITY_JOLT
+                +(builder::active()?9.0f:0.0f)
+#endif
+),
             seat.z+(occupied>=0?right.z*8*scale:0)};
         float cosine=std::cos(cameraPitch);
         Vec3 direction{f.x*cosine,std::sin(cameraPitch),f.z*cosine};
@@ -70,7 +74,7 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
 #ifdef MINI_CITY_JOLT
     // The builder inspection view must show the model in the right hand;
     // a centered rear view hides forward-pointing tool heads behind the body.
-    if(builder::active()&&occupied<0&&!aiming&&!overview){distance=95;shoulder=35;height=playerHeight+52-stance;}
+    if(builder::active()&&occupied<0&&!aiming&&!overview){distance=95;shoulder=35;height=playerHeight+72-stance;}
 #endif
     float lookDistance=overview?15.0f:aiming?240.0f:55.0f;
     float lookHeight=(overview?18.0f:aiming?16.0f+std::tan(cameraPitch)*240.0f:

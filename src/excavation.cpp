@@ -10,7 +10,7 @@ using game::Vec3;using dx11::Vertex;using Polygon=std::vector<Vertex>;
 std::set<builder::Cell> cuts;
 std::map<Patch,std::uint64_t> changed;
 std::uint64_t generation=1,maskGeneration=1;
-Patch patchOf(builder::Cell c){return {c.x/5,c.z/5};}
+Patch patchOf(builder::Cell c){return {c.x/int(PATCH_SIZE/builder::BLOCK_SIZE),c.z/int(PATCH_SIZE/builder::BLOCK_SIZE)};}
 Vec3 position(const Vertex& v){return {v.x,v.y,v.z};}
 Vertex mix(const Vertex& a,const Vertex& b,float t){
     return {a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t,
@@ -32,7 +32,7 @@ void triangles(const Polygon& polygon,std::vector<Vertex>& out){
             for(const auto& v:{polygon[0],polygon[i],polygon[i+1]})out.push_back(v);
 }
 std::vector<Polygon> subtract(const Polygon& original,builder::Cell cell){
-    auto low=builder::cellLow(cell),high=low+Vec3{40,40.5f,40};
+    auto low=builder::cellLow(cell),high=low+Vec3{builder::BLOCK_SIZE,(builder::BLOCK_SIZE+.5f),builder::BLOCK_SIZE};
     Polygon remaining=original;std::vector<Polygon> outside;
     for(int plane=0;plane<6&&!remaining.empty();++plane){
         auto distance=[&](const Vertex& v){const float p[]={v.x,v.y,v.z},lo[]={low.x,low.y,low.z},hi[]={high.x,high.y,high.z};
@@ -77,16 +77,16 @@ void belowSurface(const Polygon& face,Vec3 outward,std::vector<Vertex>& output){
 }
 void clear(){cuts.clear();changed.clear();++generation;++maskGeneration;}
 bool validCell(builder::Cell cell){
-    if(cell.x<0||cell.z<0||cell.x>=420||cell.z>=420||cell.y<-10||cell.y>=75)return false;
-    auto lo=builder::cellLow(cell);game::Vec2 center{lo.x+20,lo.z+20};
+    if(cell.x<0||cell.z<0||cell.x>=int(regions::WIDTH/builder::BLOCK_SIZE)||cell.z>=int(regions::DEPTH/builder::BLOCK_SIZE)||cell.y<int(-400/builder::BLOCK_SIZE)||cell.y>=int(3000/builder::BLOCK_SIZE))return false;
+    auto lo=builder::cellLow(cell);game::Vec2 center{lo.x+builder::BLOCK_SIZE*.5f,lo.z+builder::BLOCK_SIZE*.5f};
     if(regions::waterAt(center))return false;
     float highest=-10000;
-    for(float x:{lo.x+.01f,lo.x+20,lo.x+39.99f})for(float z:{lo.z+.01f,lo.z+20,lo.z+39.99f}){
+    for(float x:{lo.x+.01f,lo.x+builder::BLOCK_SIZE*.5f,lo.x+(builder::BLOCK_SIZE-.01f)})for(float z:{lo.z+.01f,lo.z+builder::BLOCK_SIZE*.5f,lo.z+(builder::BLOCK_SIZE-.01f)}){
         if(regions::waterAt({x,z}))return false;highest=std::max(highest,terrain::baseHeight({x,z}));}
     return highest>lo.y+.001f;
 }
 bool cut(builder::Cell cell){
-    if(!builder::active()||cuts.size()>=16384||!validCell(cell)||!cuts.insert(cell).second)return false;
+    if(!builder::active()||cuts.size()>=131072||!validCell(cell)||!cuts.insert(cell).second)return false;
     auto p=patchOf(cell);if(!changed.count(p)){changed[p]=0;++maskGeneration;}
     ++generation;
     for(int x=p.x-1;x<=p.x+1;++x)for(int z=p.z-1;z<=p.z+1;++z){auto found=changed.find({x,z});if(found!=changed.end())found->second=generation;}
@@ -103,7 +103,7 @@ float floorBelow(Vec3 p){
     float baseline=terrain::baseHeight({p.x,p.z});if(!builder::active()||cuts.empty())return baseline;
     float candidate=p.y<baseline-.001f?p.y+.001f:baseline-.001f;auto cell=builder::cellAt({p.x,candidate,p.z});
     if(!removed(cell))return baseline;
-    do {candidate=cell.y*40.0f;--cell.y;}while(removed(cell));return candidate;
+    do {candidate=cell.y*builder::BLOCK_SIZE;--cell.y;}while(removed(cell));return candidate;
 }
 Vec3 surfaceNormal(Vec3 p,Vec3 direction){
     if(builder::active()&&!cuts.empty()){
@@ -116,7 +116,7 @@ Vec3 surfaceNormal(Vec3 p,Vec3 direction){
     }return terrain::normal({p.x,p.z});
 }
 int material(builder::Cell cell){
-    auto center=builder::cellLow(cell)+Vec3{20,20,20};float depth=terrain::baseHeight({center.x,center.z})-center.y;
+    auto center=builder::cellLow(cell)+Vec3{builder::BLOCK_SIZE*.5f,builder::BLOCK_SIZE*.5f,builder::BLOCK_SIZE*.5f};float depth=terrain::baseHeight({center.x,center.z})-center.y;
     if(depth<45){auto biome=regions::biomeAt({center.x,center.z});return builder::itemIndex(
         biome==regions::Biome::Snow?"snow":biome==regions::Biome::Desert?"sand":"soil");}
     unsigned hash=unsigned(cell.x)*73856093u^unsigned(cell.z)*19349663u^unsigned(cell.y)*83492791u;
@@ -135,16 +135,16 @@ void clipTriangle(const std::array<Vertex,3>& triangle,std::vector<Vertex>& outp
     float minX=triangle[0].x,maxX=minX,minY=triangle[0].y,maxY=minY,minZ=triangle[0].z,maxZ=minZ;
     for(const auto& v:triangle){minX=std::min(minX,v.x);maxX=std::max(maxX,v.x);minY=std::min(minY,v.y);maxY=std::max(maxY,v.y);minZ=std::min(minZ,v.z);maxZ=std::max(maxZ,v.z);}
     std::vector<Polygon> pieces{Polygon(triangle.begin(),triangle.end())};
-    for(int x=int(std::floor(minX/40));x<=int(std::floor((maxX-.0001f)/40));++x)
-        for(int z=int(std::floor(minZ/40));z<=int(std::floor((maxZ-.0001f)/40));++z)
-            for(int y=int(std::floor((minY-.5f)/40));y<=int(std::floor(maxY/40));++y)if(cuts.count({x,y,z})){
+    for(int x=int(std::floor(minX/builder::BLOCK_SIZE));x<=int(std::floor((maxX-.0001f)/builder::BLOCK_SIZE));++x)
+        for(int z=int(std::floor(minZ/builder::BLOCK_SIZE));z<=int(std::floor((maxZ-.0001f)/builder::BLOCK_SIZE));++z)
+            for(int y=int(std::floor((minY-.5f)/builder::BLOCK_SIZE));y<=int(std::floor(maxY/builder::BLOCK_SIZE));++y)if(cuts.count({x,y,z})){
                 std::vector<Polygon> next;for(const auto& p:pieces){auto parts=subtract(p,{x,y,z});next.insert(next.end(),parts.begin(),parts.end());}pieces=std::move(next);}
     for(const auto& piece:pieces)triangles(piece,output);
 }
 std::vector<Face> faces(Patch patch){
     std::vector<Face> output;if(!builder::active())return output;
     for(auto cell:cuts){if(patchOf(cell).x!=patch.x||patchOf(cell).z!=patch.z)continue;
-        auto low=builder::cellLow(cell),high=low+Vec3{40,40,40};
+        auto low=builder::cellLow(cell),high=low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE};
         for(int axis=0;axis<3;++axis)for(int sign:{-1,1}){
             builder::Cell adjacent=cell;Vec3 outward{};
             if(axis==0){adjacent.x+=sign;outward.x=float(sign);}else if(axis==1){adjacent.y+=sign;outward.y=float(sign);}else{adjacent.z+=sign;outward.z=float(sign);}

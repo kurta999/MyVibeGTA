@@ -30,7 +30,7 @@ void fixture(){
     reset();assert(builder::loadCatalog());buildings.clear();trees.clear();vehicles.clear();peds.clear();props.clear();wildlife::animals.clear();birds::flock.clear();bullets.clear();
     player=previousPlayer={400,300};playerY=0;health=PLAYER_MAX_HEALTH;occupied=enteringVehicle=-1;jolt_world::reset();toggle();
 }
-void tunnel(int layer,int z0=2,int z1=4){for(int x=2;x<=12;++x)for(int z=z0;z<=z1;++z)assert(builder::mineTerrain({x,layer,z}));}
+void tunnel(int layer,int z0=2,int z1=4){for(int x=2;x<=12;++x)for(int z=z0;z<=z1;++z)assert(mineTerrainVolume({x,layer,z}));}
 void addPed(Vec2 p,float y){Ped ped{};ped.id="builder-nav-"+std::to_string(peds.size());ped.p=ped.target=p;ped.speed=65;peds.push_back(ped);jolt_world::addPed();jolt_world::teleportPed(peds.size()-1,p,y);}
 Vec2 step(std::size_t index,Vec3 goal){
     ped_navigation::beginFrame();auto before=peds[index].p;auto v=ped_navigation::velocityAtHeight(peds[index],goal,65,dt);
@@ -42,6 +42,22 @@ bool reached(std::size_t index,Vec3 goal){return len(peds[index].p-Vec2{goal.x,g
 }
 void builderNavigationScenarios(){
     using namespace game;std::setvbuf(stdout,nullptr,_IONBF,0);
+    fixture();Vec3 cachedFeet{};
+    ped_navigation::beginFrame();assert(ped_navigation_surface::supported({140,140},0,cachedFeet,2.5f));
+    unsigned coldQueries=ped_navigation_surface::stats().physicsQueries;
+    for(int n=0;n<60;++n){ped_navigation::beginFrame();
+        assert(ped_navigation_surface::supported({140,140},0,cachedFeet,2.5f));
+        assert(ped_navigation_surface::stats().floorCacheHits>=9);
+        assert(ped_navigation_surface::stats().physicsQueries==1);}
+    // Static collision invalidates cached headroom even without a builder edit.
+    buildings.push_back({120,120,40,40,60,{1,1,1},"cached-floor-wall"});jolt_world::refreshScenery();
+    ped_navigation::beginFrame();assert(!ped_navigation_surface::supported({140,140},0,cachedFeet,2.5f));
+    buildings.clear();jolt_world::refreshScenery();ped_navigation::beginFrame();
+    assert(ped_navigation_surface::supported({140,140},0,cachedFeet,2.5f));
+    assert(mineTerrainVolume({3,-1,3}));
+    assert(!ped_navigation_surface::supported({140,140},0,cachedFeet,2.5f));
+    std::printf("builder navigation: unchanged floor checks reuse nine columns (cold %u, warm 1 query); collision refresh and same-frame mining invalidate them\n",coldQueries);
+
     fixture();tunnel(-2);addPed({100,100},-80);addPed({300,100},0);
     player=previousPlayer={300,100};playerY=0;jolt_world::teleportCharacter(player,playerY);
     ped_navigation::beginFrame();auto floors=jolt_world::pedestrianFloors({300,100});bool surface=false,underground=false;
@@ -55,10 +71,10 @@ void builderNavigationScenarios(){
     // within the same underground level, rather than a surface-height shortcut.
     jolt_world::teleportPed(0,{100,100},-80);player=previousPlayer={400,300};playerY=0;jolt_world::teleportCharacter(player,playerY);
     for(int n=0;n<30;++n)step(0,goal);
-    assert(builder::place({6,-2,2},builder::itemIndex("granite"),false));bool detour=false;
+    assert(placeEditVolume({6,-2,2},builder::itemIndex("granite"),false));bool detour=false;
     for(int n=0;n<540&&!reached(0,goal);++n){step(0,goal);detour|=peds[0].p.z>128;assert(std::abs(jolt_world::pedHeight(0)+80)<2);}
     std::printf("underground detour: %.1f remaining; %.1f height\n",len(peds[0].p-Vec2{goal.x,goal.z}),jolt_world::pedHeight(0));assert(detour&&reached(0,goal));
-    assert(builder::mineBlock({6,-2,2}));jolt_world::teleportPed(0,{100,100},-80);
+    assert(mineEditVolume({6,-2,2}));jolt_world::teleportPed(0,{100,100},-80);
     for(int n=0;n<420&&!reached(0,goal);++n){step(0,goal);assert(std::abs(peds[0].p.z-100)<2);}assert(reached(0,goal));
 
     fixture();tunnel(-2);tunnel(-4);addPed({100,100},-80);addPed({440,100},-160);
@@ -71,7 +87,7 @@ void builderNavigationScenarios(){
     }
     assert(crossed&&reached(0,{440,-80,100})&&reached(1,{100,-160,100}));std::puts("builder navigation: stacked passages retain distinct floors and allow independent crossing");
 
-    fixture();for(int x=5;x<=7;++x)for(int z=2;z<=4;++z)assert(builder::mineTerrain({x,-1,z}));addPed({150,140},0);
+    fixture();for(int x=5;x<=7;++x)for(int z=2;z<=4;++z)assert(mineTerrainVolume({x,-1,z}));addPed({150,140},0);
     goal={370,0,140};bool avoided=false;
     for(int n=0;n<600&&!reached(0,goal);++n){step(0,goal);avoided|=peds[0].p.z<75||peds[0].p.z>205;assert(jolt_world::pedHeight(0)>-2);}
     std::printf("pit detour: %.1f remaining; %.1f height\n",len(peds[0].p-Vec2{goal.x,goal.z}),jolt_world::pedHeight(0));assert(avoided&&reached(0,goal));
@@ -117,12 +133,17 @@ void builderNavigationScenarios(){
     assert(police::report(police::Crime::Assault,player,true,false));
     ai::update(dt);assert(!bullets.empty()&&std::abs(bullets.back().p.y+62)<2);
     bullets.clear();attacker.armed=false;attacker.fireCooldown=0;jolt_world::teleportPed(0,{240,100},-80);hp=health;ai::update(dt);assert(health<hp);
+    // Dispatch now requires a reachable, concealed spawn at least 130 units
+    // away. Extend the passage to a rear spawn instead of relying on the old
+    // surface-spawn fallback above this sealed tunnel.
+    for(int x=13;x<=18;++x)for(int z=2;z<=4;++z)assert(mineTerrainVolume({x,-2,z}));
+    cameraYaw=PI;ped_navigation::beginFrame();
     police::setWantedLevel(1);police::update(.01f);bool officerFound=false;
     for(const auto& ped:peds)if(ped.police){officerFound=true;assert(std::abs(ped.lastKnownHeight+80)<1);}
     assert(officerFound);police::setWantedLevel(0);
     std::puts("builder navigation: actual actor heights prevent roof-through sight, talk and melee; underground sight, talk and attacks work");
 
-    fixture();for(int x=2;x<=36;++x)for(int z=2;z<=4;++z)assert(builder::mineTerrain({x,-2,z}));addPed({100,100},-80);
+    fixture();for(int x=2;x<=36;++x)for(int z=2;z<=4;++z)assert(mineTerrainVolume({x,-2,z}));addPed({100,100},-80);
     // Actual AI at a distance formerly handled by the flat, 420-unit fallback.
     player=previousPlayer={850,300};playerY=0;jolt_world::teleportCharacter(player,playerY);
     peds[0].state=PedState::Investigate;peds[0].target={1000,100};peds[0].alertTime=30;
@@ -139,7 +160,7 @@ void builderNavigationScenarios(){
     assert(peds[0].p.x>beforeStreaming.x+80&&jolt_world::activePedCharacterCount()==1);
     std::puts("builder streaming: real far AI walks underground; unloaded pose stays on its floor and resumes without a surface teleport");
 
-    fixture();for(int x=2;x<=4;++x)for(int z=2;z<=4;++z)for(int y=-2;y<=-1;++y)assert(builder::mineTerrain({x,y,z}));addPed({140,140},0);
+    fixture();for(int x=2;x<=4;++x)for(int z=2;z<=4;++z)for(int y=-2;y<=-1;++y)assert(mineTerrainVolume({x,y,z}));addPed({140,140},0);
     for(int n=0;n<12;++n){jolt_world::movePed(0,{},dt);jolt_world::step(dt);}
     float fallHeight=jolt_world::pedHeight(0),fallVelocity=peds[0].elevationVelocity;assert(fallHeight<-5&&fallHeight>-70&&fallVelocity<-50);
     player=previousPlayer={1800,300};jolt_world::teleportCharacter(player,0);assert(jolt_world::activePedCharacterCount()==0);
@@ -184,7 +205,7 @@ void builderNavigationScenarios(){
     fixture();player=previousPlayer={400.1f,400.1f};playerY=0;
     Building edgeBuilding{};edgeBuilding.id="builder-nav-cell-edge";edgeBuilding.x=1600;edgeBuilding.z=1600;edgeBuilding.w=edgeBuilding.d=80;edgeBuilding.h=80;
     buildings.push_back(edgeBuilding);jolt_world::refreshScenery();jolt_world::teleportCharacter(player,0);
-    assert(builder::place({43,0,38},builder::itemIndex("granite"),false));jolt_world::preparePedNavigation();
+    assert(placeEditVolume({43,0,38},builder::itemIndex("granite"),false));jolt_world::preparePedNavigation();
     player=previousPlayer={799.9f,799.9f};jolt_world::teleportCharacter(player,0);
     assert(jolt_world::staticAnchor({1560,20,1640},{1,0,0},100,anchor));
     assert(jolt_world::staticAnchor({1680,20,1540},{1,0,0},100,anchor));
@@ -207,8 +228,8 @@ void builderNavigationScenarios(){
     player=previousPlayer={450,140};playerY=-80;jolt_world::teleportCharacter(player,playerY);traffic::provoke(peds[0],player);peds[0].carSearchCooldown=0;
     jolt_world::teleportVehicle(0,car.p,car.angle,0);traffic::updatePed(peds[0],dt);assert(peds[0].seekingVehicle<0);
     jolt_world::teleportVehicle(0,car.p,car.angle,-80);peds[0].carSearchCooldown=0;
-    assert(builder::place({5,-2,3},builder::itemIndex("granite"),false));traffic::updatePed(peds[0],dt);assert(peds[0].seekingVehicle<0);
-    assert(builder::mineBlock({5,-2,3}));peds[0].carSearchCooldown=0;
+    assert(placeEditVolume({5,-2,3},builder::itemIndex("granite"),false));traffic::updatePed(peds[0],dt);assert(peds[0].seekingVehicle<0);
+    assert(mineEditVolume({5,-2,3}));peds[0].carSearchCooldown=0;
     for(int n=0;n<240&&peds[0].drivingVehicle<0;++n){ped_navigation::beginFrame();traffic::updatePed(peds[0],dt);jolt_world::step(dt);}
     std::printf("underground boarding: ped %.1f %.1f y %.1f, car %.1f %.1f y %.1f, state %d seeking %d\n",peds[0].p.x,peds[0].p.z,jolt_world::pedHeight(0),vehicles[0].p.x,vehicles[0].p.z,vehicles[0].rideHeight,int(peds[0].state),peds[0].seekingVehicle);
     assert(peds[0].drivingVehicle==0&&std::abs(jolt_world::pedHeight(0)-vehicles[0].rideHeight)<.01f);
@@ -218,7 +239,7 @@ void builderNavigationScenarios(){
     assert(traffic::canPlayerEnter(0));player=previousPlayer={225.5f,140};jolt_world::teleportCharacter(player,playerY);
     // Place while both actors are clear, then bring the narrow side of the
     // chassis beside it. The legal block now separates an in-reach player.
-    assert(builder::place({6,-2,3},builder::itemIndex("granite"),false));jolt_world::teleportVehicle(0,{310,140},PI/2,-80);
+    assert(placeEditVolume({6,-2,3},builder::itemIndex("granite"),false));jolt_world::teleportVehicle(0,{310,140},PI/2,-80);
     assert(!traffic::canPlayerEnter(0));
     occupied=0;player=previousPlayer=vehicles[0].p;playerY=vehicles[0].rideHeight;enterExit();
     assert(occupied<0&&player.x>340&&std::abs(playerY+80)<2);
@@ -245,7 +266,7 @@ void builderDestinationScenarios(){
     std::printf("builder destinations: underground wander %.1f units, %d supported lower-floor targets beneath original building\n",farthest,undergroundTargets);
     assert(farthest>40&&undergroundTargets>120);
 
-    fixture();for(int x=5;x<=7;++x)for(int z=2;z<=4;++z)assert(builder::mineTerrain({x,-1,z}));addPed({150,140},0);
+    fixture();for(int x=5;x<=7;++x)for(int z=2;z<=4;++z)assert(mineTerrainVolume({x,-1,z}));addPed({150,140},0);
     player=previousPlayer={100,140};playerY=0;jolt_world::teleportCharacter(player,playerY);ped_navigation::beginFrame();
     assert(ai::notifyThreat(player,0)==1&&peds[0].state==PedState::Flee);bool detour=false;
     for(int n=0;n<240;++n){ai::update(dt);jolt_world::step(dt);detour|=peds[0].p.z<75||peds[0].p.z>205;
@@ -256,7 +277,7 @@ void builderDestinationScenarios(){
     fixture();addPed({100,140},0);ped_navigation::beginFrame();
     assert(ped_navigation_surface::destination(peds[0],{260,140},chosen));peds[0].target={chosen.x,chosen.z};
     assert(ped_navigation_surface::hasDestination(peds[0])&&std::abs(chosen.y)<2);
-    assert(builder::mineTerrain({6,-1,3}));assert(!ped_navigation_surface::hasDestination(peds[0]));
+    assert(mineTerrainVolume({6,-1,3}));assert(!ped_navigation_surface::hasDestination(peds[0]));
     // No beginFrame here: an edit between a player action and AI notification
     // must invalidate cached floor samples in that same frame.
     assert(ped_navigation_surface::destination(peds[0],{260,140},chosen));
@@ -268,7 +289,7 @@ void builderDestinationScenarios(){
     // Cover can be an actual player-placed block beneath a retained roof.
     // Both upper/lower body sight lines, the reachable floor and approach are
     // checked; the original ground-height line is clear and is misleading.
-    fixture();tunnel(-2,2,5);assert(builder::place({6,-2,3},builder::itemIndex("granite"),false));addPed({360,140},-80);
+    fixture();tunnel(-2,2,5);assert(placeEditVolume({6,-2,3},builder::itemIndex("granite"),false));addPed({360,140},-80);
     player=previousPlayer={160,140};playerY=-80;jolt_world::teleportCharacter(player,playerY);
     auto& guard=peds[0];guard.armed=true;guard.weaponIndex=weapons::indexOf("pistol");guard.tacticTimer=10;
     ped_navigation::beginFrame();ai::reactToHit(guard,player);
@@ -286,7 +307,7 @@ void builderDestinationScenarios(){
     // endpoint; it must not force an unnecessary eight-unit relocation.
     guard.tacticTimer=10;ped_navigation::beginFrame();ai::reactToHit(guard,player);
     assert(guard.state==PedState::TakeCover);ai::update(dt);jolt_world::step(dt);assert(guard.state==PedState::Defend);
-    auto formerCover=guard.target;assert(builder::mineBlock({6,-2,3}));ai::update(dt);jolt_world::step(dt);
+    auto formerCover=guard.target;assert(mineEditVolume({6,-2,3}));ai::update(dt);jolt_world::step(dt);
     assert(guard.state==PedState::Attack);
     // Removing cover can now immediately select a supported Attack endpoint
     // in this same AI update; the former cover route must not remain stale.
@@ -294,7 +315,7 @@ void builderDestinationScenarios(){
         assert(jolt_world::pedestrianClear({guard.target.x,guard.navigation.goalHeight,guard.target.z}));}
     std::puts("builder destinations: cover persists beyond sight memory, expires on the investigation timer, can be retained when already sheltered, and removal permits only valid supported Attack routes");
 
-    fixture();tunnel(-2,2,5);assert(builder::place({6,-2,3},builder::itemIndex("granite"),false));addPed({360,140},-80);
+    fixture();tunnel(-2,2,5);assert(placeEditVolume({6,-2,3},builder::itemIndex("granite"),false));addPed({360,140},-80);
     player=previousPlayer={160,140};playerY=-80;jolt_world::teleportCharacter(player,playerY);
     peds[0].armed=true;peds[0].weaponIndex=weapons::indexOf("pistol");peds[0].fireCooldown=100;
     ped_navigation::beginFrame();ai::notifyGunshot(player);assert(peds[0].state==PedState::TakeCover&&peds[0].tacticTimer==0);
@@ -317,15 +338,15 @@ void builderDestinationScenarios(){
 
 void builderNavigationRestartSave(){
     using namespace game;fixture();tunnel(-2);
-    for(int x=5;x<=7;++x)for(int z=6;z<=8;++z)assert(builder::mineTerrain({x,-1,z}));
-    assert(builder::place({6,-2,2},builder::itemIndex("granite"),false));
+    for(int x=5;x<=7;++x)for(int z=6;z<=8;++z)assert(mineTerrainVolume({x,-1,z}));
+    assert(placeEditVolume({6,-2,2},builder::itemIndex("granite"),false));
     assert(savegame::save());std::filesystem::copy_file(runtimeFile("savegame.ini"),runtimeFile("builder-navigation-restart.ini"),std::filesystem::copy_options::overwrite_existing);
     jolt_world::shutdown();std::puts("builder navigation restart: edited tunnel, pit and placed obstacle saved; process exits");
 }
 
 void builderNavigationRestartLoad(){
     using namespace game;std::filesystem::copy_file(runtimeFile("builder-navigation-restart.ini"),runtimeFile("savegame.ini"),std::filesystem::copy_options::overwrite_existing);
-    assert(savegame::load()&&!builder::active()&&excavation::cells().size()==42&&builder::blocks().size()==1);
+    assert(savegame::load()&&!builder::active()&&excavation::cells().size()==336&&builder::blocks().size()==8);
     assert(builder::blocks().begin()->second.item==builder::itemIndex("granite"));
     // Recreate the same controlled surroundings; the edited cells/block are
     // read only from the previous process's save, never rebuilt by this phase.
@@ -337,6 +358,6 @@ void builderNavigationRestartLoad(){
     for(int n=0;n<600&&!reached(1,goal);++n){step(1,goal);detour|=peds[1].p.z<235||peds[1].p.z>365;assert(jolt_world::pedHeight(1)>-2);}
     assert(detour&&reached(1,goal));toggle();jolt_world::teleportPed(1,{150,280},0);
     for(int n=0;n<250&&!reached(1,goal);++n){step(1,goal);assert(std::abs(peds[1].p.z-280)<2);}assert(reached(1,goal));
-    toggle();assert(excavation::cells().size()==42&&builder::blocks().size()==1);
+    toggle();assert(excavation::cells().size()==336&&builder::blocks().size()==8);
     reset();assert(savegame::save());jolt_world::shutdown();std::puts("builder navigation restart: fresh process walks saved tunnel/block and pit detours; F5 restores the direct normal route and saved edits");
 }

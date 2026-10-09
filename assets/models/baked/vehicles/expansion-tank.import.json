@@ -330,5 +330,31 @@
       "spin": 1
     }
   ],
-  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies"
+  "conversion": "evaluated source geometry; original UVs, normals, colors and PBR base maps; rigid assemblies",
+  "surface_geometry_sha256": {
+    "expansion-tank-barrel.m3d": "4e6eeb682f300ef2aae022ecfdb0f1f80ad7f5ef92ed591947a9bf159480a43c",
+    "expansion-tank-body-0.m3d": "8144e068cd0b052c23c65d391a52480a4a1f1888045f9740a5d118ac49807c64",
+    "expansion-tank-body-1.m3d": "dceed8ff97fd784afe7b7d0d9a413357fde60c8ea62f77da35561a9129a2fc6a",
+    "expansion-tank-body-2.m3d": "778f5fb9e9b825087a6aaeec917341eecc378974855f83b56d797f2b77b5a24a",
+    "expansion-tank-body-3.m3d": "c420326a43f3d016040621569a95db19ed7bce58ca8a012395965db3686e1d91",
+    "expansion-tank-body-5.m3d": "b38aec2a62fe3b025b0849e8e38bbff2042221ea7b53d5d47e074cab246d4a04",
+    "expansion-tank-turret.m3d": "bc4182e15d6cf5f8aa6f36545640d3f0762885fef3159765eb568f10a765a99a",
+    "expansion-tank-wheel-0.m3d": "261c09bf4072cbd24d4f209703a8fa1369e3a64701fcebc9fe91c296e7bae6e2",
+    "expansion-tank-wheel-1.m3d": "0f6b20ead268697df63a8dc9fc8a62772ec7f59d316c4ee9032ac0d347fb2462",
+    "expansion-tank-wheel-10.m3d": "65dbebbaf07542aa3137f21315b343a2b0c11b6d66f4ba5f67cc5e783290c185",
+    "expansion-tank-wheel-11.m3d": "bc9042f7bb7724be35aa8816094ca60258620c0ab5c814d954e1147274852d8a",
+    "expansion-tank-wheel-12.m3d": "9edfddee958b309c85c10c186df0a0a61b9672672d29ca59792d5557f43933c2",
+    "expansion-tank-wheel-13.m3d": "f79689f480373dfc3d0caaafb63ad5cd7b60ab4df6e9638a95947e08bcc1de66",
+    "expansion-tank-wheel-14.m3d": "840239352fcad68b3daa4f97e7a4cf51c00c2cc9bef414be25080021f3a3e98d",
+    "expansion-tank-wheel-15.m3d": "dc072cfcd75c7be7c21646162c8f762189fc438dd5e5baf97bd13821cb61e2bf",
+    "expansion-tank-wheel-2.m3d": "5cfe896646e395cea427d1cbdc648ce81299613c3ec00b2d75ef0318501d68d4",
+    "expansion-tank-wheel-3.m3d": "bae65dcaf2eb81c3ad6b1724bb257fd0d921107e3df5d4266d41386ff5c8d348",
+    "expansion-tank-wheel-4.m3d": "a3cfb830b5cb7cc252b8c5685f74c853035eb4fae37f964d06cca008c46a6866",
+    "expansion-tank-wheel-5.m3d": "9deb67552d22c89a758a7f19244b6b57ef38643313b6b9ef9bf666a8e5d3c963",
+    "expansion-tank-wheel-6.m3d": "368f0c3d492061b755384b1be4ebcafc1e3a57b9062b5f1be3eae8ed7c7a3894",
+    "expansion-tank-wheel-7.m3d": "e99524ffd5dfe8edc4c36c0b16d189bb0b41794cd38367f73f50fdac301087e4",
+    "expansion-tank-wheel-8.m3d": "4003be212a1a3db49134cd86518422aea7dd844ffabc077a98e809816d98221c",
+    "expansion-tank-wheel-9.m3d": "f1c28c4f70eef3faaa02699573c3ec251b9ae077bc16c947f0e7798627c0aa77"
+  },
+  "surface_modifications": "Original project-authored livery/material details and mechanical maps; projected UVs. Source geometry and rigid pivots unchanged. tank"
 }
