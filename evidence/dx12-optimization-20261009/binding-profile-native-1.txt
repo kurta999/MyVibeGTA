@@ -1,0 +1,651 @@
+2026-10-9 9:51:43  Application started
+2026-10-9 9:51:43  Startup: Starting Mini City 3D took 0.005 s
+2026-10-9 9:51:43  Startup: Starting native Direct3D 12
+2026-10-9 9:51:43  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-9 9:51:43  Startup: Starting native Direct3D 12 took 0.245 s
+2026-10-9 9:51:43  Startup: Compiling graphics shaders
+2026-10-9 9:51:45  Shader loading: workers 4, peak active 4, completed 19/19, wall 1.808 s, CPU 2.635 s
+2026-10-9 9:51:45  Startup: Compiling graphics shaders took 1.811 s
+2026-10-9 9:51:45  Startup: Creating graphics buffers and shadows
+2026-10-9 9:51:47  Startup: Creating graphics buffers and shadows took 2.211 s
+2026-10-9 9:51:47  Startup: Loading surface textures
+2026-10-9 9:51:47  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.443 s, decode CPU 0.274 s, mip CPU 0.689 s, upload 0.050 s
+2026-10-9 9:51:47  Startup: Loading surface textures took 0.444 s
+2026-10-9 9:51:47  Startup: Loading city models and animations
+2026-10-9 9:51:48  Startup: Loading city models and animations took 0.767 s
+2026-10-9 9:51:48  Startup: Preparing city geometry
+2026-10-9 9:51:48  Startup: Preparing city geometry took 0.002 s
+2026-10-9 9:51:48  Startup: Preparing regional textures
+2026-10-9 9:51:53  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 5.035 s, decode CPU 2.299 s, mip CPU 12.247 s, upload 0.696 s
+2026-10-9 9:51:53  Startup: Preparing regional textures took 5.035 s
+2026-10-9 9:51:53  Startup: Uploading regional graphics
+2026-10-9 9:51:53  Startup: Uploading regional graphics took 0.325 s
+2026-10-9 9:51:53  Startup: Loading HDR lighting
+2026-10-9 9:51:53  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 9:51:53  CPU scene workers: 4
+2026-10-9 9:51:54  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 9:51:54  Renderer initialized
+2026-10-9 9:51:54  Startup: Loading HDR lighting took 0.050 s
+2026-10-9 9:51:54  Startup: Starting audio and loading settings
+2026-10-9 9:51:54  Startup: Starting audio and loading settings took 0.440 s
+2026-10-9 9:51:54  Startup: Loading gameplay data
+2026-10-9 9:51:54  Startup: Loading gameplay data took 0.030 s
+2026-10-9 9:51:54  Startup: Building the city and physics world
+2026-10-9 9:51:54  Startup: Building the city and physics world took 0.086 s
+2026-10-9 9:51:54  Startup: Loading saved progress
+2026-10-9 9:51:54  Startup: Loading saved progress took 0.000 s
+2026-10-9 9:51:54  Startup: Preparing the first frame
+2026-10-9 9:51:54  GPU skinning: 21 poses including procedural/aim/rigid attachments, 339702 vertices; shared color/shadow buffer
+2026-10-9 9:51:56  HUD profile: 7.926 ms
+2026-10-9 9:51:56  Render profile: scene 181.237 ms, upload/cull 628.299 ms, draw/HUD 1481.558 ms, present 4.924 ms, draws 1242
+2026-10-9 9:51:56  DX12 cumulative binds: 1242 draws, 33 pipeline lookups, 34 pipeline binds, 2 heap binds, 1256 constant binds
+2026-10-9 9:51:56  Simulation profile: builder 0.026 ms, pedestrians/police 2.005 ms, wildlife/birds 0.058 ms
+2026-10-9 9:51:56  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:56  HUD profile: 7.085 ms
+2026-10-9 9:51:57  Render profile: scene 1.257 ms, upload/cull 5.379 ms, draw/HUD 11.512 ms, present 137.292 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 2480 draws, 66 pipeline lookups, 68 pipeline binds, 3 heap binds, 2508 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.016 ms, pedestrians/police 0.703 ms, wildlife/birds 0.022 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 5.150 ms
+2026-10-9 9:51:57  Render profile: scene 0.969 ms, upload/cull 4.045 ms, draw/HUD 8.387 ms, present 24.088 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 3718 draws, 99 pipeline lookups, 102 pipeline binds, 4 heap binds, 3760 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.017 ms, pedestrians/police 1.609 ms, wildlife/birds 0.052 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 7.608 ms
+2026-10-9 9:51:57  Render profile: scene 1.546 ms, upload/cull 7.568 ms, draw/HUD 12.008 ms, present 10.999 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 4956 draws, 132 pipeline lookups, 136 pipeline binds, 5 heap binds, 5012 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.015 ms, pedestrians/police 1.849 ms, wildlife/birds 0.058 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 5.777 ms
+2026-10-9 9:51:57  Render profile: scene 1.002 ms, upload/cull 4.978 ms, draw/HUD 9.082 ms, present 18.438 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 6194 draws, 165 pipeline lookups, 170 pipeline binds, 6 heap binds, 6264 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.016 ms, pedestrians/police 1.328 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.511 ms
+2026-10-9 9:51:57  Render profile: scene 1.497 ms, upload/cull 8.511 ms, draw/HUD 19.106 ms, present 5.414 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 7434 draws, 198 pipeline lookups, 204 pipeline binds, 7 heap binds, 7518 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.019 ms, pedestrians/police 1.975 ms, wildlife/birds 0.052 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 8.741 ms
+2026-10-9 9:51:57  Render profile: scene 1.742 ms, upload/cull 8.371 ms, draw/HUD 13.843 ms, present 8.183 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 8674 draws, 231 pipeline lookups, 238 pipeline binds, 8 heap binds, 8772 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.010 ms, pedestrians/police 1.750 ms, wildlife/birds 0.051 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.510 ms
+2026-10-9 9:51:57  Render profile: scene 1.855 ms, upload/cull 10.966 ms, draw/HUD 18.815 ms, present 2.453 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 9912 draws, 264 pipeline lookups, 272 pipeline binds, 9 heap binds, 10024 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.020 ms, pedestrians/police 1.946 ms, wildlife/birds 0.055 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.171 ms
+2026-10-9 9:51:57  Render profile: scene 2.053 ms, upload/cull 10.882 ms, draw/HUD 18.842 ms, present 0.386 ms, draws 1236
+2026-10-9 9:51:57  DX12 cumulative binds: 11148 draws, 297 pipeline lookups, 306 pipeline binds, 10 heap binds, 11274 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.010 ms, pedestrians/police 1.950 ms, wildlife/birds 0.055 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 10.728 ms
+2026-10-9 9:51:57  Render profile: scene 1.917 ms, upload/cull 10.702 ms, draw/HUD 16.832 ms, present 0.363 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 12386 draws, 330 pipeline lookups, 340 pipeline binds, 11 heap binds, 12526 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.013 ms, pedestrians/police 0.951 ms, wildlife/birds 0.027 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.381 ms
+2026-10-9 9:51:57  Render profile: scene 1.057 ms, upload/cull 6.186 ms, draw/HUD 18.516 ms, present 0.408 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 13624 draws, 363 pipeline lookups, 374 pipeline binds, 12 heap binds, 13778 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.019 ms, pedestrians/police 1.953 ms, wildlife/birds 0.057 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.855 ms
+2026-10-9 9:51:57  Render profile: scene 2.208 ms, upload/cull 10.815 ms, draw/HUD 19.135 ms, present 0.423 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 14864 draws, 396 pipeline lookups, 408 pipeline binds, 13 heap binds, 15032 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.014 ms, pedestrians/police 1.895 ms, wildlife/birds 0.054 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 9.328 ms
+2026-10-9 9:51:57  Render profile: scene 1.808 ms, upload/cull 9.310 ms, draw/HUD 14.284 ms, present 0.393 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 16104 draws, 429 pipeline lookups, 442 pipeline binds, 14 heap binds, 16286 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.012 ms, pedestrians/police 1.133 ms, wildlife/birds 0.036 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 6.990 ms
+2026-10-9 9:51:57  Render profile: scene 1.273 ms, upload/cull 5.913 ms, draw/HUD 10.945 ms, present 8.239 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 17344 draws, 462 pipeline lookups, 476 pipeline binds, 15 heap binds, 17540 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.018 ms, pedestrians/police 1.609 ms, wildlife/birds 0.047 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.883 ms
+2026-10-9 9:51:57  Render profile: scene 1.798 ms, upload/cull 10.702 ms, draw/HUD 19.166 ms, present 0.480 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 18582 draws, 495 pipeline lookups, 510 pipeline binds, 16 heap binds, 18792 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.015 ms, pedestrians/police 1.920 ms, wildlife/birds 0.069 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.271 ms
+2026-10-9 9:51:57  Render profile: scene 2.011 ms, upload/cull 10.814 ms, draw/HUD 18.325 ms, present 0.384 ms, draws 1236
+2026-10-9 9:51:57  DX12 cumulative binds: 19818 draws, 528 pipeline lookups, 544 pipeline binds, 17 heap binds, 20042 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.010 ms, pedestrians/police 1.240 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 7.698 ms
+2026-10-9 9:51:57  Render profile: scene 1.258 ms, upload/cull 6.512 ms, draw/HUD 12.501 ms, present 5.128 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 21056 draws, 561 pipeline lookups, 578 pipeline binds, 18 heap binds, 21294 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.017 ms, pedestrians/police 1.484 ms, wildlife/birds 0.075 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 13.380 ms
+2026-10-9 9:51:57  Render profile: scene 1.782 ms, upload/cull 10.835 ms, draw/HUD 19.611 ms, present 0.522 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 22294 draws, 594 pipeline lookups, 612 pipeline binds, 19 heap binds, 22546 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.014 ms, pedestrians/police 1.884 ms, wildlife/birds 0.060 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 10.673 ms
+2026-10-9 9:51:57  Render profile: scene 2.019 ms, upload/cull 11.044 ms, draw/HUD 16.669 ms, present 0.311 ms, draws 1242
+2026-10-9 9:51:57  DX12 cumulative binds: 23536 draws, 627 pipeline lookups, 646 pipeline binds, 20 heap binds, 23802 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.016 ms, pedestrians/police 0.993 ms, wildlife/birds 0.032 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 6.824 ms
+2026-10-9 9:51:57  Render profile: scene 1.040 ms, upload/cull 5.433 ms, draw/HUD 10.545 ms, present 10.731 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 24776 draws, 660 pipeline lookups, 680 pipeline binds, 21 heap binds, 25056 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.016 ms, pedestrians/police 1.481 ms, wildlife/birds 0.052 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.574 ms
+2026-10-9 9:51:57  Render profile: scene 1.832 ms, upload/cull 10.801 ms, draw/HUD 18.776 ms, present 0.455 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 26016 draws, 693 pipeline lookups, 714 pipeline binds, 22 heap binds, 26310 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.015 ms, pedestrians/police 1.905 ms, wildlife/birds 0.056 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 11.104 ms
+2026-10-9 9:51:57  Render profile: scene 2.065 ms, upload/cull 10.977 ms, draw/HUD 17.075 ms, present 0.301 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 27254 draws, 726 pipeline lookups, 748 pipeline binds, 23 heap binds, 27562 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.009 ms, pedestrians/police 0.979 ms, wildlife/birds 0.032 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 6.566 ms
+2026-10-9 9:51:57  Render profile: scene 1.133 ms, upload/cull 5.373 ms, draw/HUD 10.120 ms, present 8.819 ms, draws 1236
+2026-10-9 9:51:57  DX12 cumulative binds: 28490 draws, 759 pipeline lookups, 782 pipeline binds, 24 heap binds, 28812 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.009 ms, pedestrians/police 1.465 ms, wildlife/birds 0.047 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 8.019 ms
+2026-10-9 9:51:57  Render profile: scene 1.440 ms, upload/cull 7.414 ms, draw/HUD 13.204 ms, present 3.667 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 29728 draws, 792 pipeline lookups, 816 pipeline binds, 25 heap binds, 30064 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.013 ms, pedestrians/police 1.375 ms, wildlife/birds 0.037 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 8.180 ms
+2026-10-9 9:51:57  Render profile: scene 1.349 ms, upload/cull 6.911 ms, draw/HUD 13.340 ms, present 5.333 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 30966 draws, 825 pipeline lookups, 850 pipeline binds, 26 heap binds, 31316 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.018 ms, pedestrians/police 2.010 ms, wildlife/birds 0.074 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 7.844 ms
+2026-10-9 9:51:57  Render profile: scene 1.421 ms, upload/cull 6.861 ms, draw/HUD 12.719 ms, present 4.894 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 32206 draws, 858 pipeline lookups, 884 pipeline binds, 27 heap binds, 32570 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.009 ms, pedestrians/police 1.494 ms, wildlife/birds 0.045 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.375 ms
+2026-10-9 9:51:57  Render profile: scene 1.617 ms, upload/cull 10.442 ms, draw/HUD 18.422 ms, present 0.437 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 33446 draws, 891 pipeline lookups, 918 pipeline binds, 28 heap binds, 33824 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.011 ms, pedestrians/police 1.888 ms, wildlife/birds 0.073 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.402 ms
+2026-10-9 9:51:57  Render profile: scene 1.976 ms, upload/cull 10.943 ms, draw/HUD 18.642 ms, present 0.372 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 34684 draws, 924 pipeline lookups, 952 pipeline binds, 29 heap binds, 35076 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.008 ms, pedestrians/police 1.184 ms, wildlife/birds 0.034 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 8.012 ms
+2026-10-9 9:51:57  Render profile: scene 1.416 ms, upload/cull 6.162 ms, draw/HUD 12.799 ms, present 5.902 ms, draws 1238
+2026-10-9 9:51:57  DX12 cumulative binds: 35922 draws, 957 pipeline lookups, 986 pipeline binds, 30 heap binds, 36328 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.021 ms, pedestrians/police 1.262 ms, wildlife/birds 0.038 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:57  HUD profile: 12.237 ms
+2026-10-9 9:51:57  Render profile: scene 1.321 ms, upload/cull 9.126 ms, draw/HUD 18.293 ms, present 0.444 ms, draws 1240
+2026-10-9 9:51:57  DX12 cumulative binds: 37162 draws, 990 pipeline lookups, 1020 pipeline binds, 31 heap binds, 37582 constant binds
+2026-10-9 9:51:57  Simulation profile: builder 0.011 ms, pedestrians/police 1.945 ms, wildlife/birds 0.056 ms
+2026-10-9 9:51:57  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 11.448 ms
+2026-10-9 9:51:58  Render profile: scene 1.933 ms, upload/cull 10.881 ms, draw/HUD 17.490 ms, present 0.316 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 38400 draws, 1023 pipeline lookups, 1054 pipeline binds, 32 heap binds, 38834 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 1.024 ms, wildlife/birds 0.038 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 6.873 ms
+2026-10-9 9:51:58  Render profile: scene 1.271 ms, upload/cull 5.564 ms, draw/HUD 10.635 ms, present 8.584 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 39638 draws, 1056 pipeline lookups, 1088 pipeline binds, 33 heap binds, 40086 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.010 ms, pedestrians/police 1.447 ms, wildlife/birds 0.050 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.273 ms
+2026-10-9 9:51:58  Render profile: scene 1.421 ms, upload/cull 7.248 ms, draw/HUD 13.453 ms, present 4.718 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 40878 draws, 1089 pipeline lookups, 1122 pipeline binds, 34 heap binds, 41340 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.011 ms, pedestrians/police 1.525 ms, wildlife/birds 0.107 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 10.961 ms
+2026-10-9 9:51:58  Render profile: scene 1.789 ms, upload/cull 11.455 ms, draw/HUD 16.755 ms, present 0.335 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 42118 draws, 1122 pipeline lookups, 1156 pipeline binds, 35 heap binds, 42594 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 1.149 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 6.796 ms
+2026-10-9 9:51:58  Render profile: scene 1.320 ms, upload/cull 6.078 ms, draw/HUD 10.728 ms, present 9.751 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 43356 draws, 1155 pipeline lookups, 1190 pipeline binds, 36 heap binds, 43846 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.010 ms, pedestrians/police 1.439 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.387 ms
+2026-10-9 9:51:58  Render profile: scene 1.549 ms, upload/cull 7.731 ms, draw/HUD 13.541 ms, present 3.333 ms, draws 1236
+2026-10-9 9:51:58  DX12 cumulative binds: 44592 draws, 1188 pipeline lookups, 1224 pipeline binds, 37 heap binds, 45096 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 1.406 ms, wildlife/birds 0.042 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.294 ms
+2026-10-9 9:51:58  Render profile: scene 1.420 ms, upload/cull 6.717 ms, draw/HUD 11.690 ms, present 8.188 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 45830 draws, 1221 pipeline lookups, 1258 pipeline binds, 38 heap binds, 46348 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.018 ms, pedestrians/police 1.343 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.358 ms
+2026-10-9 9:51:58  Render profile: scene 1.501 ms, upload/cull 6.748 ms, draw/HUD 12.459 ms, present 4.602 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 47068 draws, 1254 pipeline lookups, 1292 pipeline binds, 39 heap binds, 47600 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 1.244 ms, wildlife/birds 0.046 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.444 ms
+2026-10-9 9:51:58  Render profile: scene 1.370 ms, upload/cull 6.542 ms, draw/HUD 12.234 ms, present 5.777 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 48308 draws, 1287 pipeline lookups, 1326 pipeline binds, 40 heap binds, 48854 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.017 ms, pedestrians/police 1.356 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.108 ms
+2026-10-9 9:51:58  Render profile: scene 1.433 ms, upload/cull 7.346 ms, draw/HUD 13.313 ms, present 4.452 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 49548 draws, 1320 pipeline lookups, 1360 pipeline binds, 41 heap binds, 50108 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.013 ms, pedestrians/police 1.298 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.511 ms
+2026-10-9 9:51:58  Render profile: scene 1.304 ms, upload/cull 6.995 ms, draw/HUD 12.641 ms, present 5.207 ms, draws 1242
+2026-10-9 9:51:58  DX12 cumulative binds: 50790 draws, 1353 pipeline lookups, 1394 pipeline binds, 42 heap binds, 51364 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.015 ms, pedestrians/police 1.344 ms, wildlife/birds 0.041 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.831 ms
+2026-10-9 9:51:58  Render profile: scene 1.486 ms, upload/cull 7.043 ms, draw/HUD 13.183 ms, present 4.219 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 52028 draws, 1386 pipeline lookups, 1428 pipeline binds, 43 heap binds, 52616 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.016 ms, pedestrians/police 1.120 ms, wildlife/birds 0.034 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.654 ms
+2026-10-9 9:51:58  Render profile: scene 1.212 ms, upload/cull 6.113 ms, draw/HUD 11.938 ms, present 6.658 ms, draws 1236
+2026-10-9 9:51:58  DX12 cumulative binds: 53264 draws, 1419 pipeline lookups, 1462 pipeline binds, 44 heap binds, 53866 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.020 ms, pedestrians/police 1.306 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.233 ms
+2026-10-9 9:51:58  Render profile: scene 1.354 ms, upload/cull 7.003 ms, draw/HUD 13.130 ms, present 4.179 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 54502 draws, 1452 pipeline lookups, 1496 pipeline binds, 45 heap binds, 55118 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.023 ms, pedestrians/police 1.268 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.068 ms
+2026-10-9 9:51:58  Render profile: scene 1.293 ms, upload/cull 6.767 ms, draw/HUD 13.164 ms, present 4.632 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 55740 draws, 1485 pipeline lookups, 1530 pipeline binds, 46 heap binds, 56370 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 1.275 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.017 ms
+2026-10-9 9:51:58  Render profile: scene 1.398 ms, upload/cull 6.867 ms, draw/HUD 11.256 ms, present 8.837 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 56979 draws, 1518 pipeline lookups, 1564 pipeline binds, 47 heap binds, 57623 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.016 ms, pedestrians/police 1.240 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.538 ms
+2026-10-9 9:51:58  Render profile: scene 1.332 ms, upload/cull 6.726 ms, draw/HUD 12.249 ms, present 5.816 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 58218 draws, 1551 pipeline lookups, 1598 pipeline binds, 48 heap binds, 58876 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.016 ms, pedestrians/police 1.299 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 12.578 ms
+2026-10-9 9:51:58  Render profile: scene 8.216 ms, upload/cull 10.103 ms, draw/HUD 18.739 ms, present 1.901 ms, draws 1241
+2026-10-9 9:51:58  DX12 cumulative binds: 59459 draws, 1584 pipeline lookups, 1632 pipeline binds, 49 heap binds, 60132 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.016 ms, pedestrians/police 1.834 ms, wildlife/birds 0.067 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 10.288 ms
+2026-10-9 9:51:58  Render profile: scene 1.790 ms, upload/cull 10.109 ms, draw/HUD 16.356 ms, present 0.334 ms, draws 1238
+2026-10-9 9:51:58  DX12 cumulative binds: 60697 draws, 1617 pipeline lookups, 1666 pipeline binds, 50 heap binds, 61385 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.008 ms, pedestrians/police 0.933 ms, wildlife/birds 0.054 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 6.757 ms
+2026-10-9 9:51:58  Render profile: scene 1.102 ms, upload/cull 5.151 ms, draw/HUD 10.816 ms, present 9.441 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 61936 draws, 1650 pipeline lookups, 1700 pipeline binds, 51 heap binds, 62639 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.021 ms, pedestrians/police 1.370 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.743 ms
+2026-10-9 9:51:58  Render profile: scene 1.434 ms, upload/cull 7.475 ms, draw/HUD 13.020 ms, present 5.774 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 63175 draws, 1683 pipeline lookups, 1734 pipeline binds, 52 heap binds, 63893 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.025 ms, pedestrians/police 1.347 ms, wildlife/birds 0.045 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.803 ms
+2026-10-9 9:51:58  Render profile: scene 1.599 ms, upload/cull 7.285 ms, draw/HUD 12.925 ms, present 4.101 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 64414 draws, 1716 pipeline lookups, 1768 pipeline binds, 53 heap binds, 65147 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.017 ms, pedestrians/police 1.092 ms, wildlife/birds 0.041 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 12.428 ms
+2026-10-9 9:51:58  Render profile: scene 1.360 ms, upload/cull 9.186 ms, draw/HUD 18.501 ms, present 0.446 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 65654 draws, 1749 pipeline lookups, 1802 pipeline binds, 54 heap binds, 66402 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.010 ms, pedestrians/police 1.868 ms, wildlife/birds 0.055 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 12.822 ms
+2026-10-9 9:51:58  Render profile: scene 2.012 ms, upload/cull 10.888 ms, draw/HUD 18.878 ms, present 0.460 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 66894 draws, 1782 pipeline lookups, 1836 pipeline binds, 55 heap binds, 67657 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.016 ms, pedestrians/police 1.909 ms, wildlife/birds 0.056 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 11.754 ms
+2026-10-9 9:51:58  Render profile: scene 2.159 ms, upload/cull 10.815 ms, draw/HUD 17.668 ms, present 0.317 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 68133 draws, 1815 pipeline lookups, 1870 pipeline binds, 56 heap binds, 68911 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.013 ms, pedestrians/police 1.060 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.191 ms
+2026-10-9 9:51:58  Render profile: scene 1.305 ms, upload/cull 5.887 ms, draw/HUD 11.079 ms, present 8.950 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 69372 draws, 1848 pipeline lookups, 1904 pipeline binds, 57 heap binds, 70165 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.020 ms, pedestrians/police 1.613 ms, wildlife/birds 0.047 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 9.250 ms
+2026-10-9 9:51:58  Render profile: scene 1.794 ms, upload/cull 8.410 ms, draw/HUD 14.273 ms, present 2.307 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 70611 draws, 1881 pipeline lookups, 1938 pipeline binds, 58 heap binds, 71419 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.014 ms, pedestrians/police 1.331 ms, wildlife/birds 0.073 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 7.093 ms
+2026-10-9 9:51:58  Render profile: scene 1.369 ms, upload/cull 6.493 ms, draw/HUD 11.283 ms, present 8.389 ms, draws 1239
+2026-10-9 9:51:58  DX12 cumulative binds: 71850 draws, 1914 pipeline lookups, 1972 pipeline binds, 59 heap binds, 72673 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.021 ms, pedestrians/police 1.356 ms, wildlife/birds 0.041 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 8.591 ms
+2026-10-9 9:51:58  Render profile: scene 1.685 ms, upload/cull 8.132 ms, draw/HUD 13.958 ms, present 3.080 ms, draws 1241
+2026-10-9 9:51:58  DX12 cumulative binds: 73091 draws, 1947 pipeline lookups, 2006 pipeline binds, 60 heap binds, 73929 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.010 ms, pedestrians/police 1.370 ms, wildlife/birds 0.044 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 13.120 ms
+2026-10-9 9:51:58  Render profile: scene 1.464 ms, upload/cull 8.599 ms, draw/HUD 19.403 ms, present 0.500 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 74331 draws, 1980 pipeline lookups, 2040 pipeline binds, 61 heap binds, 75184 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.019 ms, pedestrians/police 1.864 ms, wildlife/birds 0.054 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:58  HUD profile: 12.547 ms
+2026-10-9 9:51:58  Render profile: scene 1.966 ms, upload/cull 9.699 ms, draw/HUD 18.598 ms, present 0.474 ms, draws 1240
+2026-10-9 9:51:58  DX12 cumulative binds: 75571 draws, 2013 pipeline lookups, 2074 pipeline binds, 62 heap binds, 76439 constant binds
+2026-10-9 9:51:58  Simulation profile: builder 0.012 ms, pedestrians/police 1.945 ms, wildlife/birds 0.064 ms
+2026-10-9 9:51:58  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 10.097 ms
+2026-10-9 9:51:59  Render profile: scene 2.032 ms, upload/cull 10.768 ms, draw/HUD 15.678 ms, present 0.299 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 76811 draws, 2046 pipeline lookups, 2108 pipeline binds, 63 heap binds, 77694 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.009 ms, pedestrians/police 1.000 ms, wildlife/birds 0.030 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 6.759 ms
+2026-10-9 9:51:59  Render profile: scene 1.160 ms, upload/cull 5.518 ms, draw/HUD 10.885 ms, present 10.344 ms, draws 1238
+2026-10-9 9:51:59  DX12 cumulative binds: 78049 draws, 2079 pipeline lookups, 2142 pipeline binds, 64 heap binds, 78947 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.020 ms, pedestrians/police 1.408 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.312 ms
+2026-10-9 9:51:59  Render profile: scene 1.482 ms, upload/cull 7.429 ms, draw/HUD 13.440 ms, present 4.272 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 79289 draws, 2112 pipeline lookups, 2176 pipeline binds, 65 heap binds, 80202 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.018 ms, pedestrians/police 1.249 ms, wildlife/birds 0.036 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.980 ms
+2026-10-9 9:51:59  Render profile: scene 1.303 ms, upload/cull 7.958 ms, draw/HUD 14.327 ms, present 3.069 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 80529 draws, 2145 pipeline lookups, 2210 pipeline binds, 66 heap binds, 81457 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.014 ms, pedestrians/police 1.371 ms, wildlife/birds 0.071 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.217 ms
+2026-10-9 9:51:59  Render profile: scene 1.492 ms, upload/cull 7.312 ms, draw/HUD 13.458 ms, present 4.353 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 81770 draws, 2178 pipeline lookups, 2244 pipeline binds, 67 heap binds, 82713 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.019 ms, pedestrians/police 1.322 ms, wildlife/birds 0.041 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.700 ms
+2026-10-9 9:51:59  Render profile: scene 1.434 ms, upload/cull 8.422 ms, draw/HUD 18.601 ms, present 0.426 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 83011 draws, 2211 pipeline lookups, 2278 pipeline binds, 68 heap binds, 83969 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.018 ms, pedestrians/police 1.872 ms, wildlife/birds 0.052 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.575 ms
+2026-10-9 9:51:59  Render profile: scene 2.278 ms, upload/cull 10.669 ms, draw/HUD 18.838 ms, present 0.412 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 84252 draws, 2244 pipeline lookups, 2312 pipeline binds, 69 heap binds, 85225 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.011 ms, pedestrians/police 1.261 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.790 ms
+2026-10-9 9:51:59  Render profile: scene 1.446 ms, upload/cull 6.898 ms, draw/HUD 12.719 ms, present 5.991 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 85492 draws, 2277 pipeline lookups, 2346 pipeline binds, 70 heap binds, 86480 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.020 ms, pedestrians/police 1.468 ms, wildlife/birds 0.044 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.610 ms
+2026-10-9 9:51:59  Render profile: scene 1.995 ms, upload/cull 10.930 ms, draw/HUD 18.642 ms, present 0.432 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 86732 draws, 2310 pipeline lookups, 2380 pipeline binds, 71 heap binds, 87735 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.013 ms, pedestrians/police 1.861 ms, wildlife/birds 0.053 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 10.562 ms
+2026-10-9 9:51:59  Render profile: scene 2.270 ms, upload/cull 10.881 ms, draw/HUD 16.081 ms, present 0.330 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 87972 draws, 2343 pipeline lookups, 2414 pipeline binds, 72 heap binds, 88990 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.009 ms, pedestrians/police 1.048 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 6.779 ms
+2026-10-9 9:51:59  Render profile: scene 1.323 ms, upload/cull 5.807 ms, draw/HUD 10.675 ms, present 9.827 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 89212 draws, 2376 pipeline lookups, 2448 pipeline binds, 73 heap binds, 90245 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.018 ms, pedestrians/police 1.507 ms, wildlife/birds 0.050 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.711 ms
+2026-10-9 9:51:59  Render profile: scene 2.179 ms, upload/cull 10.844 ms, draw/HUD 18.964 ms, present 0.478 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 90453 draws, 2409 pipeline lookups, 2482 pipeline binds, 74 heap binds, 91501 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.016 ms, pedestrians/police 1.937 ms, wildlife/birds 0.056 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 11.919 ms
+2026-10-9 9:51:59  Render profile: scene 1.982 ms, upload/cull 10.967 ms, draw/HUD 17.843 ms, present 0.356 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 91694 draws, 2442 pipeline lookups, 2516 pipeline binds, 75 heap binds, 92757 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.014 ms, pedestrians/police 1.114 ms, wildlife/birds 0.049 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.059 ms
+2026-10-9 9:51:59  Render profile: scene 1.350 ms, upload/cull 5.991 ms, draw/HUD 11.307 ms, present 7.697 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 92935 draws, 2475 pipeline lookups, 2550 pipeline binds, 76 heap binds, 94013 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.009 ms, pedestrians/police 1.454 ms, wildlife/birds 0.052 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 13.080 ms
+2026-10-9 9:51:59  Render profile: scene 1.988 ms, upload/cull 10.914 ms, draw/HUD 19.197 ms, present 0.512 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 94175 draws, 2508 pipeline lookups, 2584 pipeline binds, 77 heap binds, 95268 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.016 ms, pedestrians/police 1.898 ms, wildlife/birds 0.053 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 10.687 ms
+2026-10-9 9:51:59  Render profile: scene 2.088 ms, upload/cull 10.960 ms, draw/HUD 16.634 ms, present 0.340 ms, draws 1242
+2026-10-9 9:51:59  DX12 cumulative binds: 95417 draws, 2541 pipeline lookups, 2618 pipeline binds, 78 heap binds, 96525 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.008 ms, pedestrians/police 1.017 ms, wildlife/birds 0.034 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 6.975 ms
+2026-10-9 9:51:59  Render profile: scene 1.115 ms, upload/cull 5.601 ms, draw/HUD 11.106 ms, present 9.485 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 96657 draws, 2574 pipeline lookups, 2652 pipeline binds, 79 heap binds, 97780 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.010 ms, pedestrians/police 1.519 ms, wildlife/birds 0.048 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.244 ms
+2026-10-9 9:51:59  Render profile: scene 1.618 ms, upload/cull 7.708 ms, draw/HUD 13.629 ms, present 3.826 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 97897 draws, 2607 pipeline lookups, 2686 pipeline binds, 80 heap binds, 99035 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.008 ms, pedestrians/police 1.341 ms, wildlife/birds 0.043 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.058 ms
+2026-10-9 9:51:59  Render profile: scene 1.480 ms, upload/cull 7.070 ms, draw/HUD 13.160 ms, present 5.412 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 99138 draws, 2640 pipeline lookups, 2720 pipeline binds, 81 heap binds, 100291 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.016 ms, pedestrians/police 1.424 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.744 ms
+2026-10-9 9:51:59  Render profile: scene 1.454 ms, upload/cull 7.446 ms, draw/HUD 13.005 ms, present 4.540 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 100379 draws, 2673 pipeline lookups, 2754 pipeline binds, 82 heap binds, 101547 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.015 ms, pedestrians/police 1.259 ms, wildlife/birds 0.065 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.562 ms
+2026-10-9 9:51:59  Render profile: scene 1.337 ms, upload/cull 6.497 ms, draw/HUD 12.376 ms, present 5.599 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 101619 draws, 2706 pipeline lookups, 2788 pipeline binds, 83 heap binds, 102802 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.009 ms, pedestrians/police 1.347 ms, wildlife/birds 0.035 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.553 ms
+2026-10-9 9:51:59  Render profile: scene 1.594 ms, upload/cull 6.519 ms, draw/HUD 11.805 ms, present 9.461 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 102859 draws, 2739 pipeline lookups, 2822 pipeline binds, 84 heap binds, 104057 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.009 ms, pedestrians/police 1.686 ms, wildlife/birds 0.057 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.914 ms
+2026-10-9 9:51:59  Render profile: scene 1.667 ms, upload/cull 8.127 ms, draw/HUD 14.272 ms, present 3.946 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 104099 draws, 2772 pipeline lookups, 2856 pipeline binds, 85 heap binds, 105312 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.017 ms, pedestrians/police 1.569 ms, wildlife/birds 0.057 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 9.161 ms
+2026-10-9 9:51:59  Render profile: scene 1.521 ms, upload/cull 7.804 ms, draw/HUD 14.219 ms, present 2.786 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 105339 draws, 2805 pipeline lookups, 2890 pipeline binds, 86 heap binds, 106567 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.016 ms, pedestrians/police 1.369 ms, wildlife/birds 0.041 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.053 ms
+2026-10-9 9:51:59  Render profile: scene 1.527 ms, upload/cull 7.126 ms, draw/HUD 13.111 ms, present 5.444 ms, draws 1240
+2026-10-9 9:51:59  DX12 cumulative binds: 106579 draws, 2838 pipeline lookups, 2924 pipeline binds, 87 heap binds, 107822 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.018 ms, pedestrians/police 1.535 ms, wildlife/birds 0.046 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 8.318 ms
+2026-10-9 9:51:59  Render profile: scene 1.674 ms, upload/cull 7.976 ms, draw/HUD 13.642 ms, present 3.429 ms, draws 1241
+2026-10-9 9:51:59  DX12 cumulative binds: 107820 draws, 2871 pipeline lookups, 2958 pipeline binds, 88 heap binds, 109078 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.017 ms, pedestrians/police 1.419 ms, wildlife/birds 0.037 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.701 ms
+2026-10-9 9:51:59  Render profile: scene 1.378 ms, upload/cull 7.233 ms, draw/HUD 12.673 ms, present 6.380 ms, draws 1243
+2026-10-9 9:51:59  DX12 cumulative binds: 109063 draws, 2904 pipeline lookups, 2992 pipeline binds, 89 heap binds, 110336 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.015 ms, pedestrians/police 1.370 ms, wildlife/birds 0.045 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.877 ms
+2026-10-9 9:51:59  Render profile: scene 1.644 ms, upload/cull 7.360 ms, draw/HUD 13.069 ms, present 4.098 ms, draws 1239
+2026-10-9 9:51:59  DX12 cumulative binds: 110302 draws, 2937 pipeline lookups, 3026 pipeline binds, 90 heap binds, 111590 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.015 ms, pedestrians/police 1.306 ms, wildlife/birds 0.039 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.585 ms
+2026-10-9 9:51:59  Render profile: scene 1.735 ms, upload/cull 10.750 ms, draw/HUD 18.813 ms, present 0.494 ms, draws 1237
+2026-10-9 9:51:59  DX12 cumulative binds: 111539 draws, 2970 pipeline lookups, 3060 pipeline binds, 91 heap binds, 112842 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.013 ms, pedestrians/police 1.863 ms, wildlife/birds 0.057 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 12.213 ms
+2026-10-9 9:51:59  Render profile: scene 2.066 ms, upload/cull 11.123 ms, draw/HUD 18.359 ms, present 0.369 ms, draws 1239
+2026-10-9 9:51:59  DX12 cumulative binds: 112778 draws, 3003 pipeline lookups, 3094 pipeline binds, 92 heap binds, 114096 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.016 ms, pedestrians/police 1.169 ms, wildlife/birds 0.047 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:51:59  HUD profile: 7.608 ms
+2026-10-9 9:51:59  Render profile: scene 1.414 ms, upload/cull 6.949 ms, draw/HUD 12.033 ms, present 6.042 ms, draws 1239
+2026-10-9 9:51:59  DX12 cumulative binds: 114017 draws, 3036 pipeline lookups, 3128 pipeline binds, 93 heap binds, 115350 constant binds
+2026-10-9 9:51:59  Simulation profile: builder 0.008 ms, pedestrians/police 1.186 ms, wildlife/birds 0.040 ms
+2026-10-9 9:51:59  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 7.261 ms
+2026-10-9 9:52:0  Render profile: scene 1.260 ms, upload/cull 6.379 ms, draw/HUD 11.698 ms, present 6.707 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 115257 draws, 3069 pipeline lookups, 3162 pipeline binds, 94 heap binds, 116605 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.009 ms, pedestrians/police 1.478 ms, wildlife/birds 0.059 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 8.638 ms
+2026-10-9 9:52:0  Render profile: scene 1.634 ms, upload/cull 7.793 ms, draw/HUD 13.950 ms, present 3.857 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 116497 draws, 3102 pipeline lookups, 3196 pipeline binds, 95 heap binds, 117860 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.019 ms, pedestrians/police 1.382 ms, wildlife/birds 0.036 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 8.216 ms
+2026-10-9 9:52:0  Render profile: scene 1.408 ms, upload/cull 6.874 ms, draw/HUD 13.016 ms, present 6.214 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 117737 draws, 3135 pipeline lookups, 3230 pipeline binds, 96 heap binds, 119115 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.019 ms, pedestrians/police 1.368 ms, wildlife/birds 0.043 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 13.058 ms
+2026-10-9 9:52:0  Render profile: scene 1.777 ms, upload/cull 10.301 ms, draw/HUD 19.279 ms, present 0.438 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 118976 draws, 3168 pipeline lookups, 3264 pipeline binds, 97 heap binds, 120369 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.016 ms, pedestrians/police 1.947 ms, wildlife/birds 0.055 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 11.026 ms
+2026-10-9 9:52:0  Render profile: scene 2.015 ms, upload/cull 11.079 ms, draw/HUD 17.241 ms, present 0.331 ms, draws 1237
+2026-10-9 9:52:0  DX12 cumulative binds: 120213 draws, 3201 pipeline lookups, 3298 pipeline binds, 98 heap binds, 121621 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.008 ms, pedestrians/police 1.127 ms, wildlife/birds 0.063 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 11.843 ms
+2026-10-9 9:52:0  Render profile: scene 1.567 ms, upload/cull 6.505 ms, draw/HUD 16.889 ms, present 3.297 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 121452 draws, 3234 pipeline lookups, 3332 pipeline binds, 99 heap binds, 122875 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.010 ms, pedestrians/police 2.754 ms, wildlife/birds 0.081 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 10.927 ms
+2026-10-9 9:52:0  Render profile: scene 1.941 ms, upload/cull 10.676 ms, draw/HUD 17.121 ms, present 0.465 ms, draws 1241
+2026-10-9 9:52:0  DX12 cumulative binds: 122693 draws, 3267 pipeline lookups, 3366 pipeline binds, 100 heap binds, 124131 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.015 ms, pedestrians/police 1.019 ms, wildlife/birds 0.039 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 6.690 ms
+2026-10-9 9:52:0  Render profile: scene 1.244 ms, upload/cull 5.673 ms, draw/HUD 10.400 ms, present 8.816 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 123933 draws, 3300 pipeline lookups, 3400 pipeline binds, 101 heap binds, 125386 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.016 ms, pedestrians/police 1.581 ms, wildlife/birds 0.042 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.332 ms
+2026-10-9 9:52:0  Render profile: scene 1.521 ms, upload/cull 10.089 ms, draw/HUD 18.424 ms, present 0.623 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 125173 draws, 3333 pipeline lookups, 3434 pipeline binds, 102 heap binds, 126641 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.018 ms, pedestrians/police 1.854 ms, wildlife/birds 0.051 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.113 ms
+2026-10-9 9:52:0  Render profile: scene 2.119 ms, upload/cull 10.934 ms, draw/HUD 18.285 ms, present 0.400 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 126413 draws, 3366 pipeline lookups, 3468 pipeline binds, 103 heap binds, 127896 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.015 ms, pedestrians/police 1.219 ms, wildlife/birds 0.040 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 7.472 ms
+2026-10-9 9:52:0  Render profile: scene 1.369 ms, upload/cull 6.587 ms, draw/HUD 12.227 ms, present 5.488 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 127652 draws, 3399 pipeline lookups, 3502 pipeline binds, 104 heap binds, 129150 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.010 ms, pedestrians/police 1.421 ms, wildlife/birds 0.047 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.600 ms
+2026-10-9 9:52:0  Render profile: scene 1.733 ms, upload/cull 10.271 ms, draw/HUD 18.650 ms, present 0.555 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 128891 draws, 3432 pipeline lookups, 3536 pipeline binds, 105 heap binds, 130404 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.013 ms, pedestrians/police 1.843 ms, wildlife/birds 0.068 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 11.794 ms
+2026-10-9 9:52:0  Render profile: scene 2.043 ms, upload/cull 11.045 ms, draw/HUD 17.907 ms, present 0.333 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 130130 draws, 3465 pipeline lookups, 3570 pipeline binds, 106 heap binds, 131658 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.011 ms, pedestrians/police 1.071 ms, wildlife/birds 0.043 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 7.393 ms
+2026-10-9 9:52:0  Render profile: scene 1.357 ms, upload/cull 6.075 ms, draw/HUD 11.670 ms, present 6.894 ms, draws 1241
+2026-10-9 9:52:0  DX12 cumulative binds: 131371 draws, 3498 pipeline lookups, 3604 pipeline binds, 107 heap binds, 132914 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.026 ms, pedestrians/police 1.574 ms, wildlife/birds 0.041 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.509 ms
+2026-10-9 9:52:0  Render profile: scene 1.666 ms, upload/cull 10.179 ms, draw/HUD 18.817 ms, present 0.493 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 132611 draws, 3531 pipeline lookups, 3638 pipeline binds, 108 heap binds, 134169 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.015 ms, pedestrians/police 1.911 ms, wildlife/birds 0.056 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.524 ms
+2026-10-9 9:52:0  Render profile: scene 2.085 ms, upload/cull 11.053 ms, draw/HUD 18.604 ms, present 0.384 ms, draws 1240
+2026-10-9 9:52:0  DX12 cumulative binds: 133851 draws, 3564 pipeline lookups, 3672 pipeline binds, 109 heap binds, 135424 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.011 ms, pedestrians/police 1.269 ms, wildlife/birds 0.040 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 7.666 ms
+2026-10-9 9:52:0  Render profile: scene 1.409 ms, upload/cull 6.875 ms, draw/HUD 12.582 ms, present 4.875 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 135089 draws, 3597 pipeline lookups, 3706 pipeline binds, 110 heap binds, 136677 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.022 ms, pedestrians/police 1.296 ms, wildlife/birds 0.047 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.305 ms
+2026-10-9 9:52:0  Render profile: scene 1.479 ms, upload/cull 9.414 ms, draw/HUD 18.450 ms, present 0.608 ms, draws 1236
+2026-10-9 9:52:0  DX12 cumulative binds: 136325 draws, 3630 pipeline lookups, 3740 pipeline binds, 111 heap binds, 137928 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.043 ms, pedestrians/police 1.872 ms, wildlife/birds 0.062 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.739 ms
+2026-10-9 9:52:0  Render profile: scene 2.086 ms, upload/cull 10.964 ms, draw/HUD 18.964 ms, present 0.414 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 137563 draws, 3663 pipeline lookups, 3774 pipeline binds, 112 heap binds, 139181 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.011 ms, pedestrians/police 1.228 ms, wildlife/birds 0.041 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 7.499 ms
+2026-10-9 9:52:0  Render profile: scene 1.441 ms, upload/cull 6.634 ms, draw/HUD 12.984 ms, present 4.833 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 138801 draws, 3696 pipeline lookups, 3808 pipeline binds, 113 heap binds, 140434 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.010 ms, pedestrians/police 1.352 ms, wildlife/birds 0.041 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.605 ms
+2026-10-9 9:52:0  Render profile: scene 1.345 ms, upload/cull 8.162 ms, draw/HUD 18.770 ms, present 0.446 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 140039 draws, 3729 pipeline lookups, 3842 pipeline binds, 114 heap binds, 141687 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.016 ms, pedestrians/police 1.884 ms, wildlife/birds 0.107 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.516 ms
+2026-10-9 9:52:0  Render profile: scene 1.930 ms, upload/cull 11.023 ms, draw/HUD 18.610 ms, present 0.536 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 141278 draws, 3762 pipeline lookups, 3876 pipeline binds, 115 heap binds, 142941 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.012 ms, pedestrians/police 1.265 ms, wildlife/birds 0.045 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 8.015 ms
+2026-10-9 9:52:0  Render profile: scene 1.424 ms, upload/cull 6.829 ms, draw/HUD 12.920 ms, present 4.002 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 142517 draws, 3795 pipeline lookups, 3910 pipeline binds, 116 heap binds, 144195 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.008 ms, pedestrians/police 1.410 ms, wildlife/birds 0.081 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.153 ms
+2026-10-9 9:52:0  Render profile: scene 1.497 ms, upload/cull 9.554 ms, draw/HUD 18.147 ms, present 0.437 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 143755 draws, 3828 pipeline lookups, 3944 pipeline binds, 117 heap binds, 145448 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.011 ms, pedestrians/police 1.817 ms, wildlife/birds 0.054 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.634 ms
+2026-10-9 9:52:0  Render profile: scene 1.959 ms, upload/cull 10.929 ms, draw/HUD 18.920 ms, present 0.367 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 144993 draws, 3861 pipeline lookups, 3978 pipeline binds, 118 heap binds, 146701 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.010 ms, pedestrians/police 1.305 ms, wildlife/birds 0.048 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 8.054 ms
+2026-10-9 9:52:0  Render profile: scene 1.560 ms, upload/cull 7.118 ms, draw/HUD 13.009 ms, present 5.520 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 146231 draws, 3894 pipeline lookups, 4012 pipeline binds, 119 heap binds, 147954 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.008 ms, pedestrians/police 1.248 ms, wildlife/birds 0.048 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 12.311 ms
+2026-10-9 9:52:0  Render profile: scene 1.586 ms, upload/cull 9.937 ms, draw/HUD 18.329 ms, present 0.467 ms, draws 1238
+2026-10-9 9:52:0  DX12 cumulative binds: 147469 draws, 3927 pipeline lookups, 4046 pipeline binds, 120 heap binds, 149207 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.012 ms, pedestrians/police 1.833 ms, wildlife/birds 0.056 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 13.021 ms
+2026-10-9 9:52:0  Render profile: scene 2.134 ms, upload/cull 10.989 ms, draw/HUD 19.340 ms, present 0.433 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 148708 draws, 3960 pipeline lookups, 4080 pipeline binds, 121 heap binds, 150461 constant binds
+2026-10-9 9:52:0  Simulation profile: builder 0.012 ms, pedestrians/police 1.372 ms, wildlife/birds 0.051 ms
+2026-10-9 9:52:0  Builder navigation: 0.000 ms, floor queries 0.000 ms, 0 queries, 0 cache hits, 0 plans, 0 expanded
+2026-10-9 9:52:0  HUD profile: 8.453 ms
+2026-10-9 9:52:0  Render profile: scene 1.520 ms, upload/cull 7.432 ms, draw/HUD 13.803 ms, present 3.453 ms, draws 1239
+2026-10-9 9:52:0  DX12 cumulative binds: 149947 draws, 3993 pipeline lookups, 4114 pipeline binds, 122 heap binds, 151715 constant binds
+2026-10-9 9:52:0  Benchmark 1920x1080: avg 34.03 ms (sim 3.99, physics 2.21, render 30.04), p95 38.02 ms, p99 42.62 ms, max 159.69 ms, draws 1239, active AI 43 over 120 frames, 0 flames, RAM 937 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 9:52:0  GPU timing: shadow 6.37 ms, scene 12.34 ms, post/HUD 11.16 ms (119 nonblocking samples); submitted triangles 4952015/frame
+2026-10-9 9:52:0  CPU scene work: deformation 0.000 ms (0 vertices/frame), grass rebuild 0.000 ms, 0.00 parallel batches/frame
+2026-10-9 9:52:0  CPU rendering: scene 1.654 ms, upload/cull 8.341 ms, draw/HUD 14.987 ms, present 4.946 ms (seed 1)
+2026-10-9 9:52:0  Startup: Preparing the first frame took 6.382 s
+2026-10-9 9:52:0  Startup: Ready
+2026-10-9 9:52:0  Startup ready in 17.832 s
+2026-10-9 9:52:0  DX12 GPU deformation: 1.194 ms (119 nonblocking samples; additional to shadow/scene/post timing)
+2026-10-9 9:52:1  Smoke render completed
+2026-10-9 9:52:1  Application stopped

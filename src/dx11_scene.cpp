@@ -45,6 +45,7 @@ using game::Color;using game::Vec2;using game::Vec3;using game::RagdollPart;
 std::vector<Vertex>* buckets=nullptr;
 std::vector<ModelInstance>* modelInstances=nullptr;
 std::vector<SkinInstance>* skinInstances=nullptr;
+bool extendedSkinning=false;
 Vec3 lodEye{};
 float lodPixelScale=1;
 cpu::Pool* sceneJobs=nullptr;
@@ -383,12 +384,14 @@ bool skinnedCharacter(const std::string& name,Vec3 position,Vec3 size,float yaw,
             position.z-si*x+co*z};
         pitchArm(*rightHand,1.0f);
     }
-    if(skinInstances&&motion==0&&std::abs(aimPitch)<0.001f&&
+    if(skinInstances&&(extendedSkinning||(motion==0&&std::abs(aimPitch)<0.001f))&&
        skin->jointCount<=MAX_GPU_SKIN_JOINTS){
         SkinInstance instance;
         instance.source=skin;instance.identity=identity;instance.palette=std::move(palette);
         instance.scale={sx,sy,sz,0};instance.origin={centerX,bounds->minY,centerZ,0};
         instance.transform={position.x,position.y,position.z,0};instance.yaw={co,si,0,0};
+        instance.deformation.motion={float(motion),waveSin,waveCos,rising};
+        instance.deformation.parameters={bodyHeight,aimPitch,size.y,0};
         skinInstances->push_back(std::move(instance));
         return true;
     }
@@ -1318,6 +1321,7 @@ void vehicles(){
             Vec2 seat=v.p+facing*longitudinal;
             if(v.kind==game::Kind::Car||v.kind==game::Kind::SportCar){Vec2 side{-facing.z,facing.x};seat=seat-side*10;}
             std::size_t first=buckets[5].size();
+            std::size_t firstSkin=skinInstances?skinInstances->size():0;
             skinnedCharacter(std::string("characters/")+names[style%4],
                 {seat.x,v.rideHeight+bottom,seat.z},{14,v.kind==game::Kind::Car||v.kind==game::Kind::SportCar?40.0f:v.kind==game::Kind::Bike?38.0f:v.kind==game::Kind::Airplane?26.0f:34.0f,14},yaw,0,0,nullptr,0,
                 v.kind==game::Kind::Skateboard?-1:(v.kind==game::Kind::Bicycle||v.kind==game::Kind::Bike)?5:4,0);
@@ -1326,6 +1330,11 @@ void vehicles(){
             correction.qx=v.qx*c-v.qz*s;correction.qy=v.qw*s+v.qy*c;
             correction.qz=v.qz*c+v.qx*s;correction.qw=v.qw*c-v.qy*s;
             Vec3 origin{v.p.x,v.rideHeight+physics::vehicleRestHeight(v.kind),v.p.z};
+            if(skinInstances)for(std::size_t n=firstSkin;n<skinInstances->size();++n){
+                auto& deformation=(*skinInstances)[n].deformation;
+                deformation.attachmentOrigin={origin.x,origin.y,origin.z,0};
+                deformation.attachmentRotation={correction.qx,correction.qy,correction.qz,correction.qw};
+            }
             for(std::size_t n=first;n<buckets[5].size();++n){auto& vertex=buckets[5][n];
                 auto point=origin+rotateBy(correction,Vec3{vertex.x,vertex.y,vertex.z}-origin);
                 auto normal=rotateBy(correction,{vertex.nx,vertex.ny,vertex.nz});
@@ -1449,6 +1458,21 @@ void ragdollMesh(const RagdollPart* bodies){
     float cx=(bounds->minX+bounds->maxX)*0.5f;
     float cz=(bounds->minZ+bounds->maxZ)*0.5f;
     float co=std::cos(bodies[0].yaw),si=std::sin(bodies[0].yaw);
+    if(skinInstances&&extendedSkinning&&skin->jointCount<=MAX_GPU_SKIN_JOINTS){
+        SkinInstance instance;instance.source=skin;
+        // Ragdoll slots can be removed/reused; reject temporal history until a
+        // persistent physics-body identity is available.
+        instance.palette.assign(idle.palettes.begin(),idle.palettes.begin()+skin->jointCount);
+        instance.scale={sx,sy,sz,0};instance.origin={cx,bounds->minY,cz,0};
+        instance.transform={bodies[0].origin.x,bodies[0].origin.y,bodies[0].origin.z,0};
+        instance.yaw={co,si,0,0};instance.deformation.parameters[3]=1;
+        for(int part=0;part<6;++part){const auto& body=bodies[part];
+            instance.deformation.bodyPosition[part]={body.p.x,body.p.y,body.p.z,0};
+            instance.deformation.bodyRest[part]={body.rest.x,body.rest.y,body.rest.z,0};
+            instance.deformation.bodyRotation[part]={body.qx,body.qy,body.qz,body.qw};
+        }
+        skinInstances->push_back(std::move(instance));return;
+    }
     auto& output=buckets[5];const auto start=output.size();output.resize(start+skin->vertices.size());
     const auto started=std::chrono::steady_clock::now();
     sceneRange(skin->vertices.size(),4096,[&](size_t index){
@@ -1792,7 +1816,8 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
     buildScene(groups,instances,pose.eye.x,pose.eye.y,pose.eye.z);
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
-                float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly,cpu::Pool* jobs){
+                float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly,cpu::Pool* jobs,bool extendedGpuSkins){
+    extendedSkinning=extendedGpuSkins;
     sceneJobs=jobs;workStats={};
     struct ResetJobs {~ResetJobs(){sceneJobs=nullptr;}} resetJobs;
     buckets=groups;modelInstances=&instances;instances.clear();

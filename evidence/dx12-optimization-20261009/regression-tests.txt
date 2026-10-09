@@ -1,0 +1,17 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start  1: dx12_fsr2_smoke
+1/6 Test  #1: dx12_fsr2_smoke ..................   Passed    4.55 sec
+    Start 12: builder_recovery_scenarios
+2/6 Test #12: builder_recovery_scenarios .......   Passed   19.83 sec
+    Start 23: equipment_scenarios
+3/6 Test #23: equipment_scenarios ..............   Passed    4.91 sec
+    Start 27: driver_scenarios
+4/6 Test #27: driver_scenarios .................   Passed    1.53 sec
+    Start 30: scene_jobs_scenarios
+5/6 Test #30: scene_jobs_scenarios .............   Passed    1.84 sec
+    Start 31: grass_scenarios
+6/6 Test #31: grass_scenarios ..................   Passed    1.28 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =  33.95 sec

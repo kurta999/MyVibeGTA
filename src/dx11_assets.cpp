@@ -1,4 +1,5 @@
 #include "dx11_assets.h"
+#include "game.h"
 #include "masonry.h"
 #include <algorithm>
 #include <cmath>
@@ -14,6 +15,7 @@ namespace {
 std::unordered_map<std::string,Mesh> meshes;
 std::unordered_map<std::string,SkinMesh> skins;
 std::unordered_map<std::string,LodChain> lodChains;
+std::unordered_map<const Mesh*,LodChain> shadowLods;
 std::vector<std::string> issues;
 Mesh distantNature(const Mesh& original,bool tree){
     Mesh lod;
@@ -363,6 +365,7 @@ void loadMeshes(const std::wstring& folder){
     struct Catalog {std::string base;std::array<std::string,4> names;std::array<float,4> minPixels;};
     std::vector<Catalog> catalogs;
     lodChains.clear();
+    shadowLods.clear();
     issues.clear();
     for(const char* name:fixedNames){
         std::ifstream file(std::filesystem::path(folder)/(std::string(name)+".lod"));
@@ -731,6 +734,38 @@ void loadMeshes(const std::wstring& folder){
         if(valid)lodChains.emplace(catalog.base,chain);
         else issues.push_back("Rejected LOD chain with missing meshes, incompatible bounds or nondecreasing geometry: "+catalog.base);
     }
+    auto elements=[](const Mesh* m){return m->indices.empty()?m->vertices.size():m->indices.size();};
+    auto compatible=[](const Mesh* a,const Mesh* b){return
+        std::abs(a->minX-b->minX)<.001f&&std::abs(a->maxX-b->maxX)<.001f&&
+        std::abs(a->minY-b->minY)<.001f&&std::abs(a->maxY-b->maxY)<.001f&&
+        std::abs(a->minZ-b->minZ)<.001f&&std::abs(a->maxZ-b->maxZ)<.001f;};
+    for(const auto& entry:meshes){const Mesh* source=&entry.second;
+        auto found=meshes.find(entry.first+"-lod");
+        if(found==meshes.end()||!source->castsShadow||source->transparent)continue;
+        const Mesh* coarse=&found->second;
+        if(!coarse->castsShadow||coarse->transparent||!compatible(source,coarse)||elements(coarse)>=elements(source))continue;
+        // Generated silhouette proxies are reserved for small shadow footprints.
+        shadowLods[source]={{source,coarse,coarse,coarse},{32,0,0,0}};
+    }
+    for(const auto& entry:lodChains){const auto& chain=entry.second;
+        for(unsigned first=0;first<4;++first){const Mesh* source=chain.meshes[first];
+            if(!source->castsShadow||source->transparent)continue;
+            LodChain shadow{};shadow.meshes.fill(source);
+            for(unsigned level=0;level<4;++level){const Mesh* candidate=chain.meshes[std::max(first,level)];
+                if(candidate->castsShadow&&!candidate->transparent&&elements(candidate)<=elements(source))shadow.meshes[level]=candidate;
+                // Retain more detail than the camera LOD at the same footprint.
+                shadow.minPixels[level]=chain.minPixels[level]*.5f;
+            }
+            shadowLods[source]=shadow;
+        }
+    }
+}
+const Mesh* shadowLodMesh(const Mesh* source,float texels){
+    if(!source)return nullptr;
+    if(source->shadowProxy)return source->shadowProxy;
+    auto found=shadowLods.find(source);if(found==shadowLods.end())return source;
+    const auto& chain=found->second;
+    return chain.meshes[chooseLodLevel(texels,chain.minPixels,false,0)];
 }
 const Mesh* mesh(const std::string& name){auto it=meshes.find(name);return it==meshes.end()?nullptr:&it->second;}
 std::vector<const Mesh*> regionalMeshes(){
@@ -756,28 +791,137 @@ unsigned chooseLodLevel(float pixels,const std::array<float,4>& minPixels,
     return level;
 }
 void deformSkinCpu(const SkinInstance& instance,std::vector<Vertex>& output){
+    using game::Vec3;
     const auto& skin=*instance.source;
-    output.reserve(output.size()+skin.vertices.size());
     const auto& s=instance.scale;const auto& o=instance.origin;
     const auto& t=instance.transform;const auto& yaw=instance.yaw;
+    const auto& deform=instance.deformation;
+    int motion=int(deform.motion[0]);float waveSin=deform.motion[1],waveCos=deform.motion[2],rising=deform.motion[3];
+    float bodyHeight=deform.parameters[0],centerZ=o[2],minY=o[1];
+    float tilt=motion==1?1.05f:motion==2?0.10f:motion==3?0.12f:0.0f;
+    float coTilt=std::cos(tilt),siTilt=std::sin(tilt);
+    auto applyMotion=[&](Vec3& p,Vec3& n,const float parts[6]){
+        if(motion==0)return;
+        if(motion>=4&&motion<=7){
+            // Articulate the idle skin around hips, knees and shoulders. Keep
+            // the original character's clothes, face and skin weights.
+            bool bike=motion>=5;
+            auto bend=[&](Vec3 point,float pivotY,float pivotZ,float angle){
+                float y=point.y-pivotY,z=point.z-pivotZ;
+                return Vec3{point.x,pivotY+std::cos(angle)*y+std::sin(angle)*z,
+                    pivotZ-std::sin(angle)*y+std::cos(angle)*z};
+            };
+            float hip=minY+bodyHeight*0.50f;
+            float knee=minY+bodyHeight*0.27f;
+            float thigh=bike?1.05f:1.45f;
+            Vec3 leg=bend(p,hip,centerZ,thigh);
+            Vec3 bentKnee=bend({p.x,knee,centerZ},hip,centerZ,thigh);
+            float legAngle=thigh;
+            if(p.y<knee){leg=bend(leg,bentKnee.y,bentKnee.z,-thigh);legAngle=0;}
+            if(bike)leg.x+=(parts[5]-parts[4])*bodyHeight*
+                (motion==7?0.30f:motion==6?0.16f:0.055f);
+            float legWeight=std::clamp(parts[4]+parts[5],0.0f,1.0f);
+            Vec3 original=p;p=p+(leg-p)*legWeight;
+            Vec3 legNormal=bend(n,0,0,legAngle);n=n+(legNormal-n)*legWeight;
+            float armWeight=std::clamp(parts[2]+parts[3],0.0f,1.0f);
+            float shoulder=minY+bodyHeight*0.77f;
+            float armAngle=bike?0.95f:1.25f;
+            Vec3 arm=bend(original,shoulder,centerZ,armAngle);
+            p=p+(arm-original)*armWeight;
+            Vec3 armNormal=bend(n,0,0,armAngle);n=n+(armNormal-n)*armWeight;
+            if(motion==5){
+                p=bend(p,hip,centerZ,-0.22f);
+                n=bend(n,0,0,-0.22f);
+            }
+            return;
+        }
+        float left=waveSin,right=-left;
+        float armWave=parts[2]*left+parts[3]*right;
+        float legWave=parts[4]*right+parts[5]*left;
+        if(motion==8){
+            float arms=parts[2]+parts[3];
+            p.y+=bodyHeight*arms*(0.12f+0.06f*waveSin);
+            p.z+=bodyHeight*arms*(0.12f+0.04f*waveCos);
+            p.x+=bodyHeight*(parts[2]-parts[3])*0.035f*waveCos;
+            return;
+        }
+        if(motion==1){
+            p.x+=bodyHeight*0.17f*(parts[3]*(0.5f-0.5f*waveSin)-
+                parts[2]*(0.5f+0.5f*waveSin));
+            p.z+=bodyHeight*(0.18f*armWave+0.10f*legWave);
+            p.y+=bodyHeight*(0.08f*(parts[2]+parts[3])*waveCos+
+                0.07f*legWave);
+        }else if(motion==2){
+            float armWeight=parts[2]+parts[3];
+            float shoulderY=minY+bodyHeight*0.77f;
+            p.y+=armWeight*std::max(0.0f,shoulderY-p.y)*1.85f+
+                bodyHeight*(0.07f*armWave+0.13f*legWave);
+            p.z+=bodyHeight*(0.09f*armWeight-0.05f*legWave);
+        }else if(motion==3){
+            p.y+=bodyHeight*(0.14f*(parts[2]+parts[3])+
+                0.10f*rising*(parts[4]+parts[5]));
+            p.z+=bodyHeight*(0.09f*rising*(parts[4]+parts[5])-0.04f*armWave);
+        }
+        float pivot=minY+bodyHeight*0.45f;
+        float vertical=p.y-pivot;
+        float depth=p.z-centerZ;
+        p.y=pivot+coTilt*vertical-siTilt*depth;
+        p.z=centerZ+siTilt*vertical+coTilt*depth;
+        float ny=n.y,nz=n.z;
+        n.y=coTilt*ny-siTilt*nz;
+        n.z=siTilt*ny+coTilt*nz;
+    };
+
+    auto rotate=[](const std::array<float,4>& q,Vec3 v){
+        Vec3 cross{q[1]*v.z-q[2]*v.y,q[2]*v.x-q[0]*v.z,q[0]*v.y-q[1]*v.x};
+        Vec3 nested{q[1]*cross.z-q[2]*cross.y,q[2]*cross.x-q[0]*cross.z,q[0]*cross.y-q[1]*cross.x};
+        return v+(cross*q[3]+nested)*2.0f;
+    };
+    output.reserve(output.size()+skin.vertices.size());
     for(const auto& input:skin.vertices){
-        float p[3]{},n[3]{};
-        const auto& v=input.base;
+        Vec3 p{},n{};float parts[6]{};const auto& v=input.base;
         for(int influence=0;influence<4;++influence){
             float weight=input.weights[influence];unsigned joint=input.joints[influence];
             if(weight<=0||joint>=instance.palette.size())continue;
+            unsigned part=joint<skin.bodyPartForJoint.size()?skin.bodyPartForJoint[joint]:0;
+            if(part>=6)part=0;parts[part]+=weight;
             const auto& m=instance.palette[joint];
-            for(int axis=0;axis<3;++axis){
-                p[axis]+=weight*(m[axis]*v.x+m[axis+4]*v.y+m[axis+8]*v.z+m[axis+12]);
-                n[axis]+=weight*(m[axis]*v.nx+m[axis+4]*v.ny+m[axis+8]*v.nz);
+            Vec3 point{m[0]*v.x+m[4]*v.y+m[8]*v.z+m[12],m[1]*v.x+m[5]*v.y+m[9]*v.z+m[13],m[2]*v.x+m[6]*v.y+m[10]*v.z+m[14]};
+            Vec3 normal{m[0]*v.nx+m[4]*v.ny+m[8]*v.nz,m[1]*v.nx+m[5]*v.ny+m[9]*v.nz,m[2]*v.nx+m[6]*v.ny+m[10]*v.nz};
+            if(deform.parameters[3]!=0){
+                float x=(point.x-o[0])*s[0],z=(point.z-o[2])*s[2];
+                Vec3 rest{t[0]+yaw[0]*x+yaw[1]*z,t[1]+(point.y-o[1])*s[1],t[2]-yaw[1]*x+yaw[0]*z};
+                const auto& r=deform.bodyRest[part];const auto& b=deform.bodyPosition[part];
+                point=Vec3{b[0],b[1],b[2]}+rotate(deform.bodyRotation[part],rest-Vec3{r[0],r[1],r[2]});
+                normal={normal.x/s[0],normal.y/s[1],normal.z/s[2]};
+                normal=rotate(deform.bodyRotation[part],{yaw[0]*normal.x+yaw[1]*normal.z,normal.y,-yaw[1]*normal.x+yaw[0]*normal.z});
+            }
+            p=p+point*weight;n=n+normal*weight;
+        }
+        Vec3 world,normal;
+        if(deform.parameters[3]!=0){world=p;normal=game::norm(n);}
+        else{
+            applyMotion(p,n,parts);
+            float x=(p.x-o[0])*s[0],z=(p.z-o[2])*s[2];
+            float nx=n.x/s[0],ny=n.y/s[1],nz=n.z/s[2];
+            float length=std::max(0.0001f,std::sqrt(nx*nx+ny*ny+nz*nz));
+            world={t[0]+yaw[0]*x+yaw[1]*z,t[1]+(p.y-o[1])*s[1],t[2]-yaw[1]*x+yaw[0]*z};
+            normal={(yaw[0]*nx+yaw[1]*nz)/length,ny/length,(-yaw[1]*nx+yaw[0]*nz)/length};
+            float aimPitch=deform.parameters[1],weight=parts[2]+parts[3];
+            if(weight>0&&std::abs(aimPitch)>=0.001f){
+                float pitch=aimPitch*std::clamp(weight,0.0f,1.0f);
+                Vec3 forward{yaw[1],0,yaw[0]},pivot{t[0]+forward.x*3,t[1]+deform.parameters[2]*0.77f,t[2]+forward.z*3};
+                float depth=(world.x-pivot.x)*forward.x+(world.z-pivot.z)*forward.z,vertical=world.y-pivot.y;
+                float rotated=std::cos(pitch)*depth-std::sin(pitch)*vertical;
+                world.x+=forward.x*(rotated-depth);world.z+=forward.z*(rotated-depth);
+                world.y=pivot.y+std::sin(pitch)*depth+std::cos(pitch)*vertical;
             }
         }
-        float x=(p[0]-o[0])*s[0],z=(p[2]-o[2])*s[2];
-        float nx=n[0]/s[0],ny=n[1]/s[1],nz=n[2]/s[2];
-        float length=std::max(0.0001f,std::sqrt(nx*nx+ny*ny+nz*nz));
-        output.push_back({t[0]+yaw[0]*x+yaw[1]*z,t[1]+(p[1]-o[1])*s[1],
-            t[2]-yaw[1]*x+yaw[0]*z,(yaw[0]*nx+yaw[1]*nz)/length,ny/length,
-            (-yaw[1]*nx+yaw[0]*nz)/length,v.u,v.v,v.r,v.g,v.b,v.a});
+        const auto& anchor=deform.attachmentOrigin;
+        Vec3 pivot{anchor[0],anchor[1],anchor[2]};
+        world=pivot+rotate(deform.attachmentRotation,world-pivot);
+        normal=rotate(deform.attachmentRotation,normal);
+        output.push_back({world.x,world.y,world.z,normal.x,normal.y,normal.z,v.u,v.v,v.r,v.g,v.b,v.a});
     }
 }
 }

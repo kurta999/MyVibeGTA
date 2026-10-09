@@ -1,0 +1,59 @@
+2026-10-9 10:26:7  Application started
+2026-10-9 10:26:7  Startup: Starting Mini City 3D took 0.005 s
+2026-10-9 10:26:7  Startup: Starting native Direct3D 12
+2026-10-9 10:26:8  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-9 10:26:8  Startup: Starting native Direct3D 12 took 0.138 s
+2026-10-9 10:26:8  Startup: Compiling graphics shaders
+2026-10-9 10:26:10  Shader loading: workers 4, peak active 4, completed 19/19, wall 2.018 s, CPU 2.920 s
+2026-10-9 10:26:10  Startup: Compiling graphics shaders took 2.021 s
+2026-10-9 10:26:10  Startup: Creating graphics buffers and shadows
+2026-10-9 10:26:12  Startup: Creating graphics buffers and shadows took 2.675 s
+2026-10-9 10:26:12  Startup: Loading surface textures
+2026-10-9 10:26:13  ID3D12Device::CreateSampler2: ComparisonFunc is D3D12_COMPARISON_FUNC_ALWAYS, but D3D12_FILTER_MIN_MAG_MIP_LINEAR is not a comparison filter. This is OK, as the ComparisonFunc will simply be ignored, but is was likely not the intent.
+2026-10-9 10:26:13  ID3D12CommandList::ClearRenderTargetView: The application did not pass any clear value to resource creation. The clear operation is typically slower as a result; but will still clear to the desired value.
+2026-10-9 10:26:13  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.540 s, decode CPU 0.357 s, mip CPU 0.905 s, upload 0.048 s
+2026-10-9 10:26:13  Startup: Loading surface textures took 0.541 s
+2026-10-9 10:26:13  Startup: Loading city models and animations
+2026-10-9 10:26:14  Startup: Loading city models and animations took 0.964 s
+2026-10-9 10:26:14  Startup: Preparing city geometry
+2026-10-9 10:26:14  Startup: Preparing city geometry took 0.002 s
+2026-10-9 10:26:14  Startup: Preparing regional textures
+2026-10-9 10:26:21  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 7.195 s, decode CPU 2.715 s, mip CPU 18.087 s, upload 0.466 s
+2026-10-9 10:26:21  Startup: Preparing regional textures took 7.195 s
+2026-10-9 10:26:21  Startup: Uploading regional graphics
+2026-10-9 10:26:21  Startup: Uploading regional graphics took 0.324 s
+2026-10-9 10:26:21  Startup: Loading HDR lighting
+2026-10-9 10:26:21  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 10:26:21  CPU scene workers: 4
+2026-10-9 10:26:21  DX12 command recording workers: 1
+2026-10-9 10:26:21  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 10:26:21  Renderer initialized
+2026-10-9 10:26:21  Startup: Loading HDR lighting took 0.053 s
+2026-10-9 10:26:21  Startup: Starting audio and loading settings
+2026-10-9 10:26:22  Startup: Starting audio and loading settings took 0.461 s
+2026-10-9 10:26:22  Startup: Loading gameplay data
+2026-10-9 10:26:22  Startup: Loading gameplay data took 0.029 s
+2026-10-9 10:26:22  Startup: Building the city and physics world
+2026-10-9 10:26:22  Startup: Building the city and physics world took 0.086 s
+2026-10-9 10:26:22  Startup: Loading saved progress
+2026-10-9 10:26:22  Startup: Loading saved progress took 0.000 s
+2026-10-9 10:26:22  Startup: Preparing the first frame
+2026-10-9 10:26:22  GPU skinning: 3 poses including procedural/aim/rigid attachments, 56958 vertices; shared color/shadow buffer
+2026-10-9 10:26:22  GPU skin validation: PASS; frame 1, 56958 vertices, 3 poses, 0 prior poses, max error 0.00097656
+2026-10-9 10:26:22  Screenshot saved: screenshots/MiniCity3D-20261009-102622-781-30640-0.png
+2026-10-9 10:26:24  GPU skin validation: PASS; frame 30, 56958 vertices, 3 poses, 1 prior poses, max error 0.00097656
+2026-10-9 10:26:27  GPU skin validation: PASS; frame 60, 56958 vertices, 3 poses, 1 prior poses, max error 0.00097656
+2026-10-9 10:26:31  Benchmark 1920x1080: avg 70.70 ms (sim 3.70, physics 2.64, render 67.00), p95 74.84 ms, p99 104.75 ms, max 109.31 ms, draws 493, active AI 27 over 120 frames, 0 flames, RAM 978 MiB, nearby trees 389/8483, decorations 454/6574
+2026-10-9 10:26:31  GPU timing: shadow 34.71 ms, scene 23.92 ms, post/HUD 9.74 ms (120 nonblocking samples); submitted triangles 25618206/frame
+2026-10-9 10:26:31  CPU scene work: deformation 0.000 ms (0 vertices/frame), grass rebuild 0.087 ms, 0.03 parallel batches/frame
+2026-10-9 10:26:31  CPU rendering: scene 7.135 ms, upload/cull 5.662 ms, draw/HUD 21.421 ms, present 32.766 ms (seed 1)
+2026-10-9 10:26:31  Startup: Preparing the first frame took 8.982 s
+2026-10-9 10:26:31  Startup: Ready
+2026-10-9 10:26:31  Startup ready in 23.476 s
+2026-10-9 10:26:31  DX12 validation errors: 0
+2026-10-9 10:26:31  DX12 worker recording: 0 batches, 0 lists, 0 draws, peak 0 workers, 0.000 ms total worker CPU, 0.000 ms total join wait
+2026-10-9 10:26:31  DX12 GPU deformation: 2.429 ms (119 nonblocking samples; additional to shadow/scene/post timing)
+2026-10-9 10:26:31  DX12 GPU post stages: bloom 0.833, reflections 1.710, composition (clouds/SSAO) 5.014, tone 1.234, temporal/display 0.420, HUD upload/draw 0.537 ms (119 nonblocking samples)
+2026-10-9 10:26:31  DX12 geometry: 20189444 shadow + 5428790 scene triangles/frame, 12853.4 sun caster candidates, 793.8 receiver-culled, 0.0 shadow-LOD instances/frame (121 frames)
+2026-10-9 10:26:31  Smoke render completed
+2026-10-9 10:26:31  Application stopped

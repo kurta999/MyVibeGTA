@@ -103,6 +103,9 @@ int main(){
     double clearOpacity=1-average(clear,3),cloudOpacity=1-average(overcast,3);
     std::printf("Sky GPU readback: clear opacity %.4f, overcast %.4f\n",clearOpacity,cloudOpacity);
     assert(cloudOpacity>clearOpacity+.15&&cloudOpacity>.2);
+    state.weather[2]=0;auto noMarch=render(state);
+    assert(average(noMarch,3)>.99999); // Profiling bypass must not divide by zero.
+    state.weather[2]=48;
     state.weather[0]=2100;state.weather[1]=800;auto moved=render(state);
     double difference=0;for(size_t i=0;i<moved.size();i+=4)difference+=std::abs(moved[i]-overcast[i]);
     assert(difference/(width*height)>.01);

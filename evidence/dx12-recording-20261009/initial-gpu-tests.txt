@@ -1,0 +1,7 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 1: dx12_fsr2_smoke
+1/1 Test #1: dx12_fsr2_smoke ..................   Passed    9.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   9.02 sec

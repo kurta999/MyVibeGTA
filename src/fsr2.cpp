@@ -34,6 +34,7 @@ View* Fsr2::dispatch(Device& device,Resource* color,Resource* depth,Resource* mo
     desc.jitterOffset={jitterX,jitterY};desc.motionVectorScale={-float(renderWidth),-float(renderHeight)};
     desc.renderSize={uint32_t(renderWidth),uint32_t(renderHeight)};desc.enableSharpening=sharpness>0;desc.sharpness=std::clamp(sharpness,0.0f,1.0f);desc.frameTimeDelta=std::clamp(deltaMs,1.0f,1000.0f);desc.preExposure=1;desc.reset=reset;desc.cameraNear=nearPlane;desc.cameraFar=farPlane;desc.cameraFovAngleVertical=fov;desc.viewSpaceToMetersFactor=1;
     checked(ffxFsr2ContextDispatch(&context,&desc));
+    if(device.context)device.context->invalidateBindings();
     // AMD restores external resources to these states; the next graphics pass
     // explicitly rebinds the native root signature, descriptor heaps and PSO.
     return outputView;

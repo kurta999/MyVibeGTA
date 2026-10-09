@@ -11,6 +11,10 @@
 #include <unordered_map>
 #include <memory>
 #include <unordered_set>
+#include <atomic>
+#include <future>
+
+namespace cpu {class Pool;}
 
 namespace dx12 {
 using Microsoft::WRL::ComPtr;
@@ -28,6 +32,8 @@ struct MappedData {void* pData=nullptr;UINT RowPitch=0,DepthPitch=0;};
 struct QueryDesc {QueryType Query=Timestamp;UINT MiscFlags=0;};
 struct TimestampInfo {UINT64 Frequency=0;BOOL Disjoint=FALSE;};
 struct Ref {
+    inline static std::atomic<UINT64> nextIdentity{0};
+    const UINT64 identity=++nextIdentity;
     unsigned refs=1;
     virtual ~Ref()=default;
     void AddRef(){++refs;}
@@ -79,6 +85,7 @@ struct Device;
 struct Context:Ref {
     Device* owner;
     explicit Context(Device* d):owner(d){}
+    ~Context();
     Shader *vs=nullptr,*ps=nullptr,*hs=nullptr,*ds=nullptr,*cs=nullptr;
     InputLayout* layout=nullptr;
     RasterizerState* raster=nullptr;DepthStencilState* depth=nullptr;BlendState* blend=nullptr;
@@ -92,6 +99,35 @@ struct Context:Ref {
     std::array<View*,8> targets{};UINT targetCount=0;View* depthTarget=nullptr;
     D3D_PRIMITIVE_TOPOLOGY topology=D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     D3D12_VIEWPORT viewport{};
+    // Native command-list state is distinct from the desired API state above.
+    // Reset after submission and any external recorder (e.g. FSR2).
+    struct Applied {
+        bool heaps=false,roots[2]{},graphics=false;
+        ID3D12PipelineState* pipeline=nullptr;
+        UINT64 cb[2][4]{},textures[2]{},samplers=0;
+        std::array<D3D12_VERTEX_BUFFER_VIEW,8> vertices{};
+        D3D12_INDEX_BUFFER_VIEW indices{};
+        std::array<D3D12_CPU_DESCRIPTOR_HANDLE,8> targets{};
+        std::array<UINT64,8> targetIdentities{};UINT64 depthIdentity=0;
+        D3D12_CPU_DESCRIPTOR_HANDLE depth{};UINT targetCount=0;
+        D3D12_VIEWPORT viewport{};
+        D3D_PRIMITIVE_TOPOLOGY topology=D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    } applied;
+    struct BindStats {UINT64 draws=0,pipelineLookups=0,pipelineBinds=0,heapBinds=0,constantBinds=0;} bindStats;
+    void invalidateBindings(){applied={};}
+    std::array<UINT64,18> lastPipelineKey{};
+    ID3D12PipelineState* lastPipeline=nullptr;
+    std::unordered_map<std::string,ComPtr<ID3D12PipelineState>> pipelineCache;
+    struct DrawPacket {Applied state;UINT count=0,instances=0,start=0,first=0;INT base=0;bool indexed=false;};
+    cpu::Pool* recordPool=nullptr;
+    Applied prepared;
+    std::vector<DrawPacket> drawPackets;
+    // Resource transitions, descriptor copies and immutable packets are built
+    // on the owner thread. Only native command emission runs on workers.
+    void beginParallel(cpu::Pool* pool);
+    void endParallel();
+    static void emitGraphics(ID3D12GraphicsCommandList*,ID3D12RootSignature*,ID3D12DescriptorHeap*,ID3D12DescriptorHeap*,
+        const Applied&,Applied&,BindStats&);
     void VSSetShader(Shader* s,void*,UINT){vs=s;}void PSSetShader(Shader* s,void*,UINT){ps=s;}
     void HSSetShader(Shader* s,void*,UINT){hs=s;}void DSSetShader(Shader* s,void*,UINT){ds=s;}
     void CSSetShader(Shader* s,void*,UINT){cs=s;}
@@ -149,6 +185,10 @@ struct Device:Ref {
         std::vector<ComPtr<ID3D12Resource>> resources;
         std::vector<std::shared_ptr<UploadPage>> uploads;
         UINT64 fence=0;
+        struct Recording {ComPtr<ID3D12CommandAllocator> allocator;ComPtr<ID3D12GraphicsCommandList> commands;};
+        std::vector<ComPtr<ID3D12GraphicsCommandList>> primaryLists;
+        std::vector<Recording> workerLists;
+        size_t primaryCursor=0,workerCursor=0;
     };
     std::array<Frame,frameCount> frames;
     UINT frameIndex=0;
@@ -170,6 +210,17 @@ struct Device:Ref {
     std::unordered_map<std::string,D3D12_GPU_DESCRIPTOR_HANDLE> textureTables;
     D3D12_CPU_DESCRIPTOR_HANDLE nullTexture{};
     Context* context=nullptr;
+    std::vector<ID3D12CommandList*> pendingLists;
+    struct RecordingResult {Context::BindStats binds;double cpuMs=0;};
+    std::vector<std::future<RecordingResult>> recordingJobs;
+    std::vector<View*> recordingViews;
+    std::unordered_set<View*> recordingViewSet;
+    struct RecordingStats {UINT64 batches=0,lists=0,draws=0;double cpuMs=0,waitMs=0;unsigned peakActive=0;} recordingStats;
+    std::atomic<unsigned> activeRecorders{0},peakRecorders{0};
+    void leaseRecordingView(View* view);
+    void recordDraws(cpu::Pool&,std::vector<Context::DrawPacket>&&);
+    void joinRecordings();
+    void nextPrimary();
     ~Device();
     HRESULT initialize(HWND,UINT,UINT);
     // Explicit readback, resize and teardown drain the queue; Present does not.

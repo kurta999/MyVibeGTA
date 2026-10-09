@@ -138,6 +138,27 @@ int main(){
     }
     for(const auto& issue:dx11::assetIssues())std::fprintf(stderr,"%s\n",issue.c_str());
     assert(dx11::assetIssues().empty());
+    {
+        unsigned reduced=0;
+        auto elements=[](const dx11::Mesh* m){return m->indices.empty()?m->vertices.size():m->indices.size();};
+        for(const char* name:{"modern/coastal-office","modern/terrace-apartments","modern/compact-pistol",
+                "vehicles/sedan","nature/tree_1","buildings/urban-00"}){
+            const auto* source=dx11::mesh(name);if(!source)continue;
+            for(float texels:{0.0f,8.0f,31.0f,32.0f,80.0f,256.0f,4096.0f}){
+                const auto* selected=dx11::shadowLodMesh(source,texels);assert(selected&&selected->castsShadow&&!selected->transparent);
+                assert(elements(selected)<=elements(source));
+                assert(std::abs(selected->minX-source->minX)<.001f&&std::abs(selected->maxX-source->maxX)<.001f);
+                assert(std::abs(selected->minY-source->minY)<.001f&&std::abs(selected->maxY-source->maxY)<.001f);
+                assert(std::abs(selected->minZ-source->minZ)<.001f&&std::abs(selected->maxZ-source->maxZ)<.001f);
+                if(selected!=source)++reduced;
+            }
+        }
+        const auto* chain=dx11::lodChain("modern/coastal-office");assert(chain);
+        assert(dx11::shadowLodMesh(chain->meshes[0],0)==chain->meshes[3]);
+        assert(dx11::shadowLodMesh(chain->meshes[3],10000)==chain->meshes[3]);
+        assert(reduced>10);
+        std::printf("Shadow LOD selection: %u reduced samples, preserved transform bounds, no finer replacement\n",reduced);
+    }
     for(const char* id:{"c4","remote-trigger","grenade","smoke-grenade","molotov","flashbang","timed-bomb"}){
         const auto* asset=dx11::mesh(std::string("weapons/")+id);
         assert(asset&&!asset->vertices.empty()&&asset->maxY>asset->minY);

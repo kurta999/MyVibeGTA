@@ -1,0 +1,47 @@
+2026-10-9 10:51:21  Application started
+2026-10-9 10:51:21  Startup: Starting Mini City 3D took 0.007 s
+2026-10-9 10:51:21  Startup: Starting native Direct3D 12
+2026-10-9 10:51:21  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-9 10:51:21  Startup: Starting native Direct3D 12 took 0.130 s
+2026-10-9 10:51:21  Startup: Compiling graphics shaders
+2026-10-9 10:51:23  Shader loading: workers 4, peak active 4, completed 19/19, wall 2.087 s, CPU 3.070 s
+2026-10-9 10:51:23  Startup: Compiling graphics shaders took 2.090 s
+2026-10-9 10:51:23  Startup: Creating graphics buffers and shadows
+2026-10-9 10:51:26  Startup: Creating graphics buffers and shadows took 2.909 s
+2026-10-9 10:51:26  Startup: Loading surface textures
+2026-10-9 10:51:27  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.512 s, decode CPU 0.317 s, mip CPU 0.814 s, upload 0.046 s
+2026-10-9 10:51:27  Startup: Loading surface textures took 0.512 s
+2026-10-9 10:51:27  Startup: Loading city models and animations
+2026-10-9 10:51:27  Startup: Loading city models and animations took 0.841 s
+2026-10-9 10:51:27  Startup: Preparing city geometry
+2026-10-9 10:51:27  Startup: Preparing city geometry took 0.003 s
+2026-10-9 10:51:27  Startup: Preparing regional textures
+2026-10-9 10:51:33  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 5.395 s, decode CPU 2.475 s, mip CPU 13.385 s, upload 0.430 s
+2026-10-9 10:51:33  Startup: Preparing regional textures took 5.395 s
+2026-10-9 10:51:33  Startup: Uploading regional graphics
+2026-10-9 10:51:33  Startup: Uploading regional graphics took 0.307 s
+2026-10-9 10:51:33  Startup: Loading HDR lighting
+2026-10-9 10:51:33  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 10:51:33  CPU scene workers: 4
+2026-10-9 10:51:33  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 10:51:33  Renderer initialized
+2026-10-9 10:51:33  Startup: Loading HDR lighting took 0.049 s
+2026-10-9 10:51:33  Startup: Starting audio and loading settings
+2026-10-9 10:51:34  Startup: Starting audio and loading settings took 0.476 s
+2026-10-9 10:51:34  Startup: Loading gameplay data
+2026-10-9 10:51:34  Startup: Loading gameplay data took 0.034 s
+2026-10-9 10:51:34  Startup: Building the city and physics world
+2026-10-9 10:51:34  Startup: Building the city and physics world took 0.094 s
+2026-10-9 10:51:34  Startup: Loading saved progress
+2026-10-9 10:51:34  Startup: Loading saved progress took 0.000 s
+2026-10-9 10:51:34  Startup: Preparing the first frame
+2026-10-9 10:51:34  GPU skinning: 6 ordinary poses, 92046 vertices; shared color/shadow buffer
+2026-10-9 10:51:39  Benchmark 1920x1080: avg 36.97 ms (sim 2.58, physics 1.48, render 34.39), p95 47.04 ms, p99 50.77 ms, max 54.88 ms, draws 1243, active AI 43 over 120 frames, 0 flames, RAM 918 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 10:51:39  GPU timing: shadow 6.73 ms, scene 12.60 ms, post/HUD 11.30 ms (119 nonblocking samples); submitted triangles 4952015/frame
+2026-10-9 10:51:39  CPU scene work: deformation 8.560 ms (247656 vertices/frame), grass rebuild 0.000 ms, 15.00 parallel batches/frame
+2026-10-9 10:51:39  CPU rendering: scene 13.264 ms, upload/cull 6.954 ms, draw/HUD 12.806 ms, present 1.357 ms (seed 1)
+2026-10-9 10:51:39  Startup: Preparing the first frame took 5.199 s
+2026-10-9 10:51:39  Startup: Ready
+2026-10-9 10:51:39  Startup ready in 18.045 s
+2026-10-9 10:51:39  Smoke render completed
+2026-10-9 10:51:39  Application stopped

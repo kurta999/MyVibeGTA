@@ -10,6 +10,8 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <algorithm>
+#include <cmath>
 
 namespace {
 struct Frame {
@@ -50,7 +52,22 @@ void matchingFrame(cpu::Pool& pool){
     ui::grassDistance=distance+1;capture(scratch,nullptr);ui::grassDistance=distance;
     capture(parallel,&pool);
     assert(dx11::sceneWorkStats().jobBatches>0);
+    if(game::rightMouse)assert(dx11::sceneWorkStats().skinVertices>4096);
     compare(serial,parallel);
+    // The opt-in DX12 path must remove the fallback vertices without changing
+    // character geometry. Compare against the original scene deformation.
+    Frame extended,reference;
+    dx11::buildScene(reference.groups,reference.models,game::player.x,70,game::player.z-100,nullptr,false,&pool);
+    dx11::buildScene(extended.groups,extended.models,game::player.x,70,game::player.z-100,&extended.skins,false,&pool,true);
+    assert(dx11::sceneWorkStats().skinVertices==0);
+    assert(extended.groups[5].empty());
+    for(const auto& skin:extended.skins)dx11::deformSkinCpu(skin,extended.groups[5]);
+    auto& expected=reference.groups[5];auto& actual=extended.groups[5];
+    assert(expected.size()==actual.size());
+    for(size_t i=0;i<actual.size();++i){
+        float a[12],b[12];std::memcpy(a,&actual[i],sizeof(a));std::memcpy(b,&expected[i],sizeof(b));
+        for(int field=0;field<12;++field)assert(std::abs(a[field]-b[field])<(field<3?.003f:.00003f));
+    }
 }
 }
 void sceneJobScenarios(){
@@ -70,7 +87,6 @@ void sceneJobScenarios(){
     }
     rightMouse=true;cameraPitch=0.55f; // CPU pitched aiming plus ordinary GPU poses.
     matchingFrame(pool);
-    assert(dx11::sceneWorkStats().skinVertices>4096);
     auto& corpse=peds[4];corpse.p={200,170};corpse.alive=false;
     jolt_world::spawnRagdoll(corpse,{30,10,0});jolt_world::step(1.0f/60);
     assert(!ragdollParts.empty());rightMouse=false;cameraPitch=0;gameHour=22;

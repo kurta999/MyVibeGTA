@@ -1,0 +1,117 @@
+UpdateCTestConfiguration  from :C:/GIT_local/MyVibeGTA/build-msvc-ninja/DartConfiguration.tcl
+Parse Config file:C:/GIT_local/MyVibeGTA/build-msvc-ninja/DartConfiguration.tcl
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start  1: dx12_fsr2_smoke
+
+1: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\dx12_fsr2_smoke.exe "--dx12-debug"
+1: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+1: Test timeout computed to be: 120
+1: PASS shadow receiver culling: 32000 known receiver/caster pairs, off-screen/behind-eye casters, low sun, camera rotations, aspect ratios, radial cascade bounds
+1: PASS GPU skin readback: 9 procedural modes, aiming, ragdoll, previous poses; max error 0.00001526
+1: PASS cached draw-state pixels: repeated draws, shader switches, remapped constants, recycled RTV handles, external state invalidation and frame recycling
+1: PASS parallel native recording: 12 frame pairs, exact color/depth pixels, indexed/instanced draws, target-to-SRV dependencies, RTV leases, allocator recycling; peak 4 recorders
+1: PASS cloud GPU: 21 volume cases, 1x1/odd/even sizes, clear/overcast/wind/night/inside/above, sky/surface edges and depth rejection; max split error 0.0004882
+1: PASS 12 asynchronous submissions preserve transient uploads and resources
+1: PASS long-lived constant buffer survives upload-page recycling
+1: PASS Quality 426x240 -> 640x360, temporal reset and GPU readback
+1: PASS Balanced 376x211 -> 640x360, temporal reset and GPU readback
+1: PASS Performance 320x180 -> 640x360, temporal reset and GPU readback
+1: PASS Ultra Performance 213x120 -> 640x360, temporal reset and GPU readback
+1: PASS Quality 533x300 -> 800x450, temporal reset and GPU readback
+1: PASS Balanced 470x264 -> 800x450, temporal reset and GPU readback
+1: PASS Performance 400x225 -> 800x450, temporal reset and GPU readback
+1: PASS Ultra Performance 266x150 -> 800x450, temporal reset and GPU readback
+1: PASS native DX12 resource lifetime, resizing, all FSR2 modes; validation errors: 0
+1/8 Test  #1: dx12_fsr2_smoke ..................   Passed    4.48 sec
+test 2
+    Start  2: sky_smoke
+
+2: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\sky_smoke.exe
+2: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+2: Test timeout computed to be: 30
+2: Sky GPU readback: clear opacity 0.0065, overcast 0.9111
+2: Sky shader, periodic noise, coverage, wind, night, inside/above/below layers passed.
+2/8 Test  #2: sky_smoke ........................   Passed    1.15 sec
+test 23
+    Start 23: equipment_scenarios
+
+23: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\simulation_smoke.exe "--equipment-only"
+23: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+23: Test timeout computed to be: 60
+23: Minigun rounds in 2s: 51
+23: Equipment scenarios passed: flight, collisions, weapons, animation, grapple, transient corpses.
+3/8 Test #23: equipment_scenarios ..............   Passed    5.02 sec
+test 27
+    Start 27: driver_scenarios
+
+27: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\simulation_smoke.exe "--drivers-only"
+27: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+27: Test timeout computed to be: 1500
+27: Bike kind 2 pelvis: height 13.163, along -11.332, samples 260
+27: Bike kind 2 pelvis: height 13.163, along -11.333, samples 260
+27: Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+27: Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+27: Driver scenarios passed: real entry, road acceleration, seated geometry, vehicle rotation, exit cleanup.
+4/8 Test #27: driver_scenarios .................   Passed    1.49 sec
+test 28
+    Start 28: vehicle_collision_scenarios
+
+28: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\simulation_smoke.exe "--vehicle-collisions-only"
+28: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+28: Test timeout computed to be: 1500
+28: Empty-road vehicle 0: peak speed 500.0, damage 0.000
+28: Empty-road vehicle 1: peak speed 500.0, damage 0.000
+28: Empty-road vehicle 2: peak speed 500.0, damage 0.000
+28: Tree strike distance 80: peak 71.3, destroyed 0, fragments 0
+28: Tree strike distance 450: peak 260.3, destroyed 1, fragments 11
+28: Coasting vehicle 0: 428.3 -> 0.00, travel 590.3
+28: Coasting vehicle 1: 500.0 -> 0.00, travel 681.8
+28: Coasting vehicle 2: 499.3 -> 0.00, travel 650.3
+28: Vehicle collision scenarios passed: empty-road braking/turning/drifting and real wall damage.
+5/8 Test #28: vehicle_collision_scenarios ......   Passed    1.17 sec
+test 29
+    Start 29: ped_scenarios
+
+29: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\simulation_smoke.exe "--peds-only"
+29: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+29: Test timeout computed to be: 1500
+29: Ped scenarios passed: camera-fired kill, contact, talking, and fighting.
+6/8 Test #29: ped_scenarios ....................   Passed    0.99 sec
+test 30
+    Start 30: scene_jobs_scenarios
+
+30: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\simulation_smoke.exe "--scene-jobs-only"
+30: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+30: Test timeout computed to be: 60
+30: Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+7/8 Test #30: scene_jobs_scenarios .............   Passed    1.75 sec
+test 36
+    Start 36: asset_smoke
+
+36: Test command: C:\GIT_local\MyVibeGTA\build-msvc-ninja\asset_smoke.exe
+36: Working Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+36: Test timeout computed to be: 1500
+36: Shadow LOD selection: 17 reduced samples, preserved transform bounds, no finer replacement
+36: asset smoke passed
+8/8 Test #36: asset_smoke ......................   Passed    0.93 sec
+
+The following tests passed:
+	dx12_fsr2_smoke
+	sky_smoke
+	equipment_scenarios
+	driver_scenarios
+	vehicle_collision_scenarios
+	ped_scenarios
+	scene_jobs_scenarios
+	asset_smoke
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) =  17.00 sec

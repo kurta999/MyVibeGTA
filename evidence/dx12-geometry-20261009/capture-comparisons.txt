@@ -1,0 +1,6 @@
+city cull-only 1920x1080: RGB MAE 0.000000/255, RMS 0.000000/255, max 0, changed 0.0000%, >2 0.0000%, >16 0.0000%
+city optimized 1920x1080: RGB MAE 0.000479/255, RMS 0.045782/255, max 21, changed 0.0255%, >2 0.0100%, >16 0.0002%
+woods-sunrise cull-only 1920x1080: RGB MAE 0.000000/255, RMS 0.000000/255, max 0, changed 0.0000%, >2 0.0000%, >16 0.0000%
+woods-sunrise optimized 1920x1080: RGB MAE 0.000000/255, RMS 0.000000/255, max 0, changed 0.0000%, >2 0.0000%, >16 0.0000%
+street-medium cull-only 1920x1080: RGB MAE 0.000026/255, RMS 0.020432/255, max 24, changed 0.0006%, >2 0.0001%, >16 0.0001%
+street-medium optimized 1920x1080: RGB MAE 0.005601/255, RMS 0.144887/255, max 36, changed 0.4062%, >2 0.0809%, >16 0.0010%

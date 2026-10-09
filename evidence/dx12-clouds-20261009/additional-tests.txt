@@ -1,0 +1,9 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 12: builder_recovery_scenarios
+1/2 Test #12: builder_recovery_scenarios .......   Passed   20.25 sec
+    Start 31: grass_scenarios
+2/2 Test #31: grass_scenarios ..................   Passed    1.32 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =  21.59 sec

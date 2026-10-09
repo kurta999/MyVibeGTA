@@ -6,13 +6,23 @@
 #include <stdexcept>
 
 void require(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
+void dx12SkinScenarios(dx12::Device& device,dx12::Context& commands);
+void dx12StateScenarios(dx12::Device& device,dx12::Context& commands);
+void dx12RecordingScenarios(dx12::Device& device,dx12::Context& commands);
+void dx12VisibilityScenarios();
+void dx12CloudScenarios(dx12::Device& device,dx12::Context& commands);
 int main(){
     logging::initialize();
     WNDCLASSW wc{};wc.lpfnWndProc=DefWindowProcW;wc.hInstance=GetModuleHandleW(nullptr);wc.lpszClassName=L"DX12FSR2Test";RegisterClassW(&wc);
     HWND window=CreateWindowW(wc.lpszClassName,L"DX12 test",WS_OVERLAPPEDWINDOW,0,0,640,360,nullptr,nullptr,wc.hInstance,nullptr);
     try{
+        dx12VisibilityScenarios();
         dx12::Device device;dx12::Context commands(&device);device.context=&commands;
         require(SUCCEEDED(device.initialize(window,640,360)),"native device creation");
+        dx12SkinScenarios(device,commands);
+        dx12StateScenarios(device,commands);
+        dx12RecordingScenarios(device,commands);
+        dx12CloudScenarios(device,commands);
         dx12::BufferDesc persistentDesc{};persistentDesc.ByteWidth=256;persistentDesc.Usage=dx12::Dynamic;persistentDesc.BindFlags=dx12::Constant;
         std::array<unsigned,64> persistentData{};persistentData.fill(0xABCDEF01);
         dx12::InitialData persistentInitial{persistentData.data()};dx12::Resource* persistent=nullptr;

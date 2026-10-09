@@ -1,0 +1,51 @@
+2026-10-9 10:22:51  Application started
+2026-10-9 10:22:51  Startup: Starting Mini City 3D took 0.005 s
+2026-10-9 10:22:51  Startup: Starting native Direct3D 12
+2026-10-9 10:22:51  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-9 10:22:51  Startup: Starting native Direct3D 12 took 0.128 s
+2026-10-9 10:22:51  Startup: Compiling graphics shaders
+2026-10-9 10:22:53  Shader loading: workers 4, peak active 4, completed 19/19, wall 1.926 s, CPU 2.783 s
+2026-10-9 10:22:53  Startup: Compiling graphics shaders took 1.929 s
+2026-10-9 10:22:53  Startup: Creating graphics buffers and shadows
+2026-10-9 10:22:56  Startup: Creating graphics buffers and shadows took 2.527 s
+2026-10-9 10:22:56  Startup: Loading surface textures
+2026-10-9 10:22:56  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.602 s, decode CPU 0.359 s, mip CPU 0.997 s, upload 0.050 s
+2026-10-9 10:22:56  Startup: Loading surface textures took 0.602 s
+2026-10-9 10:22:56  Startup: Loading city models and animations
+2026-10-9 10:22:57  Startup: Loading city models and animations took 0.861 s
+2026-10-9 10:22:57  Startup: Preparing city geometry
+2026-10-9 10:22:57  Startup: Preparing city geometry took 0.002 s
+2026-10-9 10:22:57  Startup: Preparing regional textures
+2026-10-9 10:23:4  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 6.981 s, decode CPU 2.668 s, mip CPU 18.225 s, upload 0.504 s
+2026-10-9 10:23:4  Startup: Preparing regional textures took 6.981 s
+2026-10-9 10:23:4  Startup: Uploading regional graphics
+2026-10-9 10:23:5  Startup: Uploading regional graphics took 0.303 s
+2026-10-9 10:23:5  Startup: Loading HDR lighting
+2026-10-9 10:23:5  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 10:23:5  CPU scene workers: 4
+2026-10-9 10:23:5  DX12 command recording workers: 1
+2026-10-9 10:23:5  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 10:23:5  Renderer initialized
+2026-10-9 10:23:5  Startup: Loading HDR lighting took 0.050 s
+2026-10-9 10:23:5  Startup: Starting audio and loading settings
+2026-10-9 10:23:5  Startup: Starting audio and loading settings took 0.456 s
+2026-10-9 10:23:5  Startup: Loading gameplay data
+2026-10-9 10:23:5  Startup: Loading gameplay data took 0.029 s
+2026-10-9 10:23:5  Startup: Building the city and physics world
+2026-10-9 10:23:5  Startup: Building the city and physics world took 0.089 s
+2026-10-9 10:23:5  Startup: Loading saved progress
+2026-10-9 10:23:5  Startup: Loading saved progress took 0.000 s
+2026-10-9 10:23:5  Startup: Preparing the first frame
+2026-10-9 10:23:5  GPU skinning: 21 poses including procedural/aim/rigid attachments, 339702 vertices; shared color/shadow buffer
+2026-10-9 10:23:10  Benchmark 1920x1080: avg 32.32 ms (sim 3.73, physics 2.10, render 28.60), p95 38.11 ms, p99 39.12 ms, max 43.92 ms, draws 1239, active AI 43 over 120 frames, 0 flames, RAM 900 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 10:23:10  GPU timing: shadow 5.97 ms, scene 11.57 ms, post/HUD 11.29 ms (119 nonblocking samples); submitted triangles 4952015/frame
+2026-10-9 10:23:10  CPU scene work: deformation 0.000 ms (0 vertices/frame), grass rebuild 0.000 ms, 0.00 parallel batches/frame
+2026-10-9 10:23:10  CPU rendering: scene 1.602 ms, upload/cull 8.059 ms, draw/HUD 14.291 ms, present 4.636 ms (seed 1)
+2026-10-9 10:23:10  Startup: Preparing the first frame took 4.585 s
+2026-10-9 10:23:10  Startup: Ready
+2026-10-9 10:23:10  Startup ready in 18.547 s
+2026-10-9 10:23:10  DX12 worker recording: 0 batches, 0 lists, 0 draws, peak 0 workers, 0.000 ms total worker CPU, 0.000 ms total join wait
+2026-10-9 10:23:10  DX12 GPU deformation: 1.133 ms (119 nonblocking samples; additional to shadow/scene/post timing)
+2026-10-9 10:23:10  DX12 GPU post stages: bloom 0.228, reflections 0.935, composition (clouds/SSAO) 8.369, tone 0.875, temporal/display 0.361, HUD upload/draw 0.520 ms (119 nonblocking samples)
+2026-10-9 10:23:10  Smoke render completed
+2026-10-9 10:23:10  Application stopped

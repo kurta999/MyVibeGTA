@@ -76,7 +76,7 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
-  add_executable(dx12_fsr2_smoke tests/dx12_fsr2_smoke.cpp src/dx12_backend.cpp src/fsr2.cpp src/logging.cpp)
+  add_executable(dx12_fsr2_smoke tests/dx12_fsr2_smoke.cpp tests/dx12_skin_scenarios.cpp tests/dx12_state_scenarios.cpp tests/dx12_recording_scenarios.cpp tests/dx12_visibility_scenarios.cpp tests/dx12_cloud_scenarios.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_sky.cpp src/dx12_backend.cpp src/fsr2.cpp src/logging.cpp)
   target_compile_features(dx12_fsr2_smoke PRIVATE cxx_std_17)
   target_compile_definitions(dx12_fsr2_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   target_include_directories(dx12_fsr2_smoke PRIVATE third_party/FidelityFX-FSR2/src/ffx-fsr2-api)

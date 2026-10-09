@@ -1,3 +1,4 @@
+#include "dx12_skin_shader.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -6,6 +7,8 @@
 #include <gdiplus.h>
 #include "physics.h"
 #include "dx12_backend.h"
+#include "dx12_visibility.h"
+#include "dx12_cloud_shader.h"
 #include "fsr2.h"
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
@@ -53,6 +56,7 @@ IDXGISwapChain* swapChain=nullptr;
 dx12::Device* device=nullptr;
 dx12::Context* context=nullptr;
 std::unique_ptr<cpu::Pool> scenePool;
+std::unique_ptr<cpu::Pool> recordPool;
 dx12::RenderTargetView* target=nullptr;
 dx12::Texture2D* sceneTexture=nullptr;
 dx12::RenderTargetView* sceneTarget=nullptr;
@@ -89,6 +93,10 @@ dx12::DomainShader* sceneDS=nullptr;
 dx12::VertexShader* hudVS=nullptr;
 dx12::PixelShader* hudPS=nullptr;
 dx12::PixelShader* postPS=nullptr;
+dx12::PixelShader* cloudPS=nullptr;
+dx12::Texture2D *cloudVolumeTexture=nullptr,*cloudGuideTexture=nullptr;
+dx12::RenderTargetView *cloudVolumeTarget=nullptr,*cloudGuideTarget=nullptr;
+dx12::ShaderResourceView *cloudVolumeView=nullptr,*cloudGuideView=nullptr;
 dx12::PixelShader* bloomPS=nullptr;
 dx12::PixelShader* reflectionPS=nullptr;
 dx12::PixelShader* motionPS=nullptr;
@@ -156,14 +164,7 @@ std::unordered_map<const dx11::SkinMesh*,dx12::ShaderResourceView*> skinSources;
 std::vector<dx11::SkinInstance> gpuSkins;
 size_t skinCapacity=0,skinVertexCount=0;
 bool skinValidationDone=false;
-struct SkinConstants {
-    std::array<float,16> palette[dx11::MAX_GPU_SKIN_JOINTS];
-    std::array<float,16> previousPalette[dx11::MAX_GPU_SKIN_JOINTS];
-    std::array<float,4> scale,origin,transform,yaw;
-    std::array<float,4> previousScale,previousOrigin,previousTransform,previousYaw;
-    UINT count,start,joints,padding;
-};
-static_assert(sizeof(SkinConstants)%16==0);
+using SkinConstants=Dx12SkinConstants;
 std::unordered_map<const dx11::Mesh*,dx12::Buffer*> meshBuffers;
 std::unordered_map<const dx11::Mesh*,dx12::Buffer*> meshIndexBuffers;
 std::unordered_map<const dx11::Mesh*,std::uint64_t> meshRevisions;
@@ -218,17 +219,22 @@ std::vector<InstanceBatch> instanceBatches;
 std::array<std::vector<InstanceBatch>,3> shadowInstanceBatches;
 std::vector<InstanceBatch> headlightShadowInstanceBatches;
 std::vector<InstanceBatch> streetShadowInstanceBatches;
+struct GeometryStats {std::uint64_t frames=0,shadowTriangles=0,sceneTriangles=0,casterCandidates=0,receiverCulled=0,lodInstances=0;} geometryStats;
 std::vector<unsigned char> hudPixels;
 unsigned int screenshotSequence=0;
 bool deviceLost=false;
 struct GpuQueries {
     dx12::Query *disjoint=nullptr,*begin=nullptr,*shadowEnd=nullptr,
-        *sceneEnd=nullptr,*postEnd=nullptr;
+        *sceneEnd=nullptr,*postEnd=nullptr,*skinBegin=nullptr,*skinEnd=nullptr;
     bool pending=false;
+    std::array<dx12::Query*,6> postStages{};
 };
 std::array<GpuQueries,8> gpuQueries{};
 GpuQueries* currentGpu=nullptr;
 unsigned gpuCursor=0;
+double gpuSkinTotalMs=0;unsigned gpuSkinSamples=0;
+std::array<double,7> gpuPostStageTotals{};
+unsigned gpuPostStageSamples=0;
 struct SceneConstants {
     XMFLOAT4X4 viewProjection;
     XMFLOAT4X4 shadowViewProjection[3];
@@ -251,19 +257,20 @@ struct SceneConstants {
     XMFLOAT4 temporalInfo;
     XMFLOAT4X4 previousViewProjection;
 };
-struct PostConstants {XMFLOAT4X4 viewProjection,inverseViewProjection;
-    XMFLOAT4 cameraEye,pixelSize,grade,effects,skyTop,skyHorizon,debug;
-    XMFLOAT4X4 previousViewProjection;
-    XMFLOAT4 temporal,sunDirection,sunScreen,skyWeather;};
+using PostConstants=dx12::cloud::Constants;
 template<class T> void release(T*& object){if(object){object->Release();object=nullptr;}}
 void releaseGpuQueries(){
     for(auto& frame:gpuQueries){
         release(frame.disjoint);release(frame.begin);release(frame.shadowEnd);
         release(frame.sceneEnd);release(frame.postEnd);frame.pending=false;
+        release(frame.skinBegin);release(frame.skinEnd);
+        for(auto*& query:frame.postStages)release(query);
     }
     currentGpu=nullptr;gpuCursor=0;
 }
 bool createGpuQueries(){
+    geometryStats={};
+    gpuSkinTotalMs=0;gpuSkinSamples=0;gpuPostStageTotals={};gpuPostStageSamples=0;
     dx12::QueryDesc desc{};
     for(auto& frame:gpuQueries){
         desc.Query=dx12::TimestampFrequency;
@@ -272,9 +279,12 @@ bool createGpuQueries(){
         if(FAILED(device->CreateQuery(&desc,&frame.begin))||
            FAILED(device->CreateQuery(&desc,&frame.shadowEnd))||
            FAILED(device->CreateQuery(&desc,&frame.sceneEnd))||
-           FAILED(device->CreateQuery(&desc,&frame.postEnd))){
+           FAILED(device->CreateQuery(&desc,&frame.postEnd))||
+           FAILED(device->CreateQuery(&desc,&frame.skinBegin))||
+           FAILED(device->CreateQuery(&desc,&frame.skinEnd))){
             releaseGpuQueries();return false;
         }
+        for(auto*& query:frame.postStages)if(FAILED(device->CreateQuery(&desc,&query))){releaseGpuQueries();return false;}
     }
     return true;
 }
@@ -283,11 +293,13 @@ void pollGpuQueries(){
         dx12::TimestampInfo data{};
         if(context->GetData(frame.disjoint,&data,sizeof(data),
             0)!=S_OK)continue;
-        UINT64 timestamps[4]{};
-        dx12::Query* queries[]={frame.begin,frame.shadowEnd,frame.sceneEnd,frame.postEnd};
+        UINT64 timestamps[12]{};
+        dx12::Query* queries[]={frame.begin,frame.shadowEnd,frame.sceneEnd,frame.postEnd,frame.skinBegin,frame.skinEnd};
         bool ready=true;
-        for(int i=0;i<4;++i)if(context->GetData(queries[i],timestamps+i,
+        for(int i=0;i<6;++i)if(context->GetData(queries[i],timestamps+i,
             sizeof(UINT64),0)!=S_OK){ready=false;break;}
+        for(int i=0;i<6&&ready;++i)if(context->GetData(frame.postStages[i],timestamps+6+i,
+            sizeof(UINT64),0)!=S_OK)ready=false;
         if(!ready)continue;
         frame.pending=false;
         if(data.Disjoint||!data.Frequency)continue;
@@ -295,6 +307,11 @@ void pollGpuQueries(){
         gpuShadowMs=float((timestamps[1]-timestamps[0])*scale);
         gpuSceneMs=float((timestamps[2]-timestamps[1])*scale);
         gpuPostMs=float((timestamps[3]-timestamps[2])*scale);
+        gpuSkinTotalMs+=(timestamps[5]-timestamps[4])*scale;++gpuSkinSamples;
+        UINT64 previous=timestamps[2];
+        for(int i=0;i<7;++i){UINT64 next=i<6?timestamps[6+i]:timestamps[3];
+            gpuPostStageTotals[i]+=(next-previous)*scale;previous=next;}
+        ++gpuPostStageSamples;
     }
 }
 void beginGpuQueries(){
@@ -302,7 +319,7 @@ void beginGpuQueries(){
     auto& frame=gpuQueries[gpuCursor++%gpuQueries.size()];
     if(!frame.disjoint||frame.pending)return;
     context->Begin(frame.disjoint);
-    context->End(frame.begin);
+    context->End(frame.skinBegin);
     currentGpu=&frame;
 }
 void endGpuQueries(){
@@ -458,52 +475,7 @@ bool compile(const char* source,const char* entry,const char* profile,ID3DBlob**
     }
     release(errors);return SUCCEEDED(status);
 }
-const char* skinShader=R"HLSL(
-struct SkinVertex {float3 position;float3 normal;float2 uv;float4 color;
-    uint packedJoints;float4 weights;};
-StructuredBuffer<SkinVertex> source:register(t0);
-RWByteAddressBuffer destination:register(u0);
-RWByteAddressBuffer previousDestination:register(u1);
-cbuffer Skin:register(b0){
-    column_major float4x4 palette[256];
-    column_major float4x4 previousPalette[256];
-    float4 scale,origin,translation,yaw;
-    float4 previousScale,previousOrigin,previousTranslation,previousYaw;
-    uint vertexCount,vertexStart,jointCount,padding;
-};
-[numthreads(64,1,1)]
-void CS(uint3 id:SV_DispatchThreadID){
-    if(id.x>=vertexCount)return;
-    SkinVertex input=source[id.x];
-    float3 position=0,normal=0,previousPosition=0;
-    [unroll]for(uint influence=0;influence<4;++influence){
-        uint joint=(input.packedJoints>>(8*influence))&255;
-        float weight=input.weights[influence];
-        if(weight>0&&joint<jointCount){
-            position+=weight*mul(palette[joint],float4(input.position,1)).xyz;
-            normal+=weight*mul(palette[joint],float4(input.normal,0)).xyz;
-            previousPosition+=weight*mul(previousPalette[joint],float4(input.position,1)).xyz;
-        }
-    }
-    position=(position-origin.xyz)*scale.xyz;
-    float3 world=translation.xyz+float3(yaw.x*position.x+yaw.y*position.z,
-        position.y,-yaw.y*position.x+yaw.x*position.z);
-    normal/=scale.xyz;
-    float magnitude=max(0.0001,length(normal));
-    float3 worldNormal=float3(yaw.x*normal.x+yaw.y*normal.z,normal.y,
-        -yaw.y*normal.x+yaw.x*normal.z)/magnitude;
-    uint address=(vertexStart+id.x)*48;
-    destination.Store3(address,asuint(world));
-    destination.Store3(address+12,asuint(worldNormal));
-    destination.Store2(address+24,asuint(input.uv));
-    destination.Store4(address+32,asuint(input.color));
-    previousPosition=(previousPosition-previousOrigin.xyz)*previousScale.xyz;
-    float3 previousWorld=previousTranslation.xyz+float3(
-        previousYaw.x*previousPosition.x+previousYaw.y*previousPosition.z,
-        previousPosition.y,-previousYaw.y*previousPosition.x+previousYaw.x*previousPosition.z);
-    previousDestination.Store4((vertexStart+id.x)*16,asuint(float4(previousWorld,float(padding))));
-}
-)HLSL";
+const char* skinShader=dx12SkinShader;
 bool createSkinResources(){
     ID3DBlob* code=nullptr;
     if(!compile(skinShader,"CS","cs_5_0",&code)){release(code);return false;}
@@ -521,12 +493,21 @@ bool cacheSkin(const dx11::SkinMesh* skin){
     if(skin->jointCount==0||skin->jointCount>dx11::MAX_GPU_SKIN_JOINTS||
        skin->vertices.empty()||skin->vertices.size()>300000)return false;
     static_assert(sizeof(dx11::SkinVertex)==68&&sizeof(dx11::Vertex)==48);
+    struct ComputeVertex {dx11::SkinVertex skin;UINT parts=0;};
+    static_assert(sizeof(ComputeVertex)==72);
+    std::vector<ComputeVertex> source;source.reserve(skin->vertices.size());
+    for(const auto& vertex:skin->vertices){ComputeVertex v{vertex};
+        for(unsigned i=0;i<4;++i){unsigned joint=vertex.joints[i];
+            unsigned part=joint<skin->bodyPartForJoint.size()?skin->bodyPartForJoint[joint]:0;
+            v.parts|=(part<6?part:0)<<(i*8);
+        }source.push_back(v);
+    }
     dx12::BufferDesc desc{};
-    desc.ByteWidth=UINT(skin->vertices.size()*sizeof(dx11::SkinVertex));
+    desc.ByteWidth=UINT(source.size()*sizeof(ComputeVertex));
     desc.Usage=dx12::Immutable;desc.BindFlags=dx12::ShaderInput;
     desc.MiscFlags=dx12::Structured;
-    desc.StructureByteStride=sizeof(dx11::SkinVertex);
-    dx12::InitialData data{};data.pSysMem=skin->vertices.data();
+    desc.StructureByteStride=sizeof(ComputeVertex);
+    dx12::InitialData data{};data.pSysMem=source.data();
     dx12::Buffer* buffer=nullptr;dx12::ShaderResourceView* view=nullptr;
     HRESULT result=device->CreateBuffer(&desc,&data,&buffer);
     if(SUCCEEDED(result))result=device->CreateShaderResourceView(buffer,nullptr,&view);
@@ -641,6 +622,7 @@ void prepareSkins(){
             std::copy(instance.palette.begin(),instance.palette.end(),constants.palette);
             constants.scale=instance.scale;constants.origin=instance.origin;
             constants.transform=instance.transform;constants.yaw=instance.yaw;
+            constants.deformation=instance.deformation;
             constants.count=UINT(instance.source->vertices.size());constants.start=start;
             constants.joints=instance.source->jointCount;
             auto prior=previousSkins.find(instance.identity);
@@ -658,6 +640,7 @@ void prepareSkins(){
             std::copy(previous.palette.begin(),previous.palette.end(),constants.previousPalette);
             constants.previousScale=previous.scale;constants.previousOrigin=previous.origin;
             constants.previousTransform=previous.transform;constants.previousYaw=previous.yaw;
+            constants.previousDeformation=previous.deformation;
             constants.padding=valid?1:0;
             if(validate){priorPoses.push_back(previous);priorValidity.push_back(constants.padding);}
             context->UpdateSubresource(skinConstants,0,nullptr,&constants,0,0);
@@ -672,7 +655,7 @@ void prepareSkins(){
         context->CSSetShader(nullptr,nullptr,0);
         if(!skinValidationDone){
             char line[140]{};
-            std::snprintf(line,sizeof(line),"GPU skinning: %zu ordinary poses, %zu vertices; shared color/shadow buffer",
+            std::snprintf(line,sizeof(line),"GPU skinning: %zu poses including procedural/aim/rigid attachments, %zu vertices; shared color/shadow buffer",
                 gpuSkins.size(),skinVertexCount);logging::write(line);
             skinValidationDone=true;
         }
@@ -1271,25 +1254,14 @@ Output VS(uint id:SV_VertexID){
 }
 float4 PS(Output input):SV_TARGET{return image.Sample(linearSampler,input.uv);}
 )HLSL";
-const std::string postShader=std::string(R"HLSL(
-cbuffer Post : register(b0){
-    row_major float4x4 viewProjection;
-    row_major float4x4 inverseViewProjection;
-    float4 cameraEye;float4 pixelSize;float4 grade;float4 effects;
-    float4 skyTop;float4 skyHorizon;float4 debug;
-    row_major float4x4 previousViewProjection;
-    float4 temporal;float4 sunDirection;float4 sunScreen;float4 skyWeather;
-};
+const std::string postShader=dx12::cloud::prelude+dx12::cloud::reconstruction+R"HLSL(
 Texture2D sceneColor : register(t0);
-Texture2D sceneDepth : register(t1);
 Texture2D sceneSurface : register(t2);
 Texture2D bloomHalf : register(t3);
 Texture2D bloomQuarter : register(t4);
 Texture2D bloomEighth : register(t5);
 Texture2D reflectionDelta : register(t6);
 Texture2D sceneIndirect : register(t7);
-SamplerState linearSampler : register(s0);
-)HLSL")+dx11::sky::shader+R"HLSL(
 struct Input {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
 float luminance(float3 c){return dot(c,float3(0.2126,0.7152,0.0722));}
 float solarVisibility(){
@@ -1402,10 +1374,12 @@ float4 PS(Input input):SV_TARGET{
     if(d<.9999&&cameraEye.y>1600){
         float4 world=mul(float4(uv.x*2-1,1-uv.y*2,d,1),inverseViewProjection);
         float sceneDistance=length(world.xyz/world.w-cameraEye.xyz);
-        center=volumetricSky(skyRay,input.position.xy,sceneDistance,center,false).rgb;
+        float4 cloud=resolveClouds(uv,skyRay,input.position.xy,sceneDistance,false);
+        center=cloud.rgb+center*cloud.a;
     }
     if(d>=0.9999){
-        float4 sky=volumetricSky(skyRay,input.position.xy);
+        float4 cloud=resolveClouds(uv,skyRay,input.position.xy,50000,true);
+        float4 sky=float4(cloud.rgb+skyBackground(skyRay,0,true)*cloud.a,cloud.a);
         center=sky.rgb;
         if(sunDirection.w>0){
             float disk=1-smoothstep(.00465-sunFootprint,.00465+sunFootprint,sunSeparation);
@@ -1621,7 +1595,8 @@ bool createShaders(){
         {reflectionSource,"PS","ps_5_0"},{motionShader,"PS","ps_5_0"},
         {temporalShader,"PS","ps_5_0"},{dx11::tone::shader,"CopyPS","ps_5_0"},
         {dx11::tone::shader,"MeterPS","ps_5_0"},{dx11::tone::shader,"ReducePS","ps_5_0"},
-        {dx11::tone::shader,"ExposurePS","ps_5_0"},{dx11::tone::shader,"TonePS","ps_5_0"}};
+        {dx11::tone::shader,"ExposurePS","ps_5_0"},{dx11::tone::shader,"TonePS","ps_5_0"},
+        {dx12::cloud::prelude+dx12::cloud::pass,"CloudPS","ps_5_0"}};
     std::vector<dx11::shader::Compiled> compiled;dx11::shader::Stats stats;
     bool ok=dx11::shader::compileBatch(requests,loadingWorkers(),[](size_t done,size_t total){
         return startup::report(5+int(25*done/std::max(size_t(1),total)),"Compiling graphics shaders");
@@ -1648,10 +1623,10 @@ bool createShaders(){
         std::snprintf(timing,sizeof(timing),"Shader checksum: %016llx",static_cast<unsigned long long>(checksum));logging::write(timing);
     }
     ID3DBlob *skinned=nullptr,*vs=nullptr,*instanced=nullptr,*ps=nullptr,*shadowAlpha=nullptr,*hull=nullptr,*domain=nullptr,*hudVertex=nullptr,*hudPixel=nullptr,*postPixel=nullptr,*bloomPixel=nullptr,*reflectionPixel=nullptr,*motionPixel=nullptr,*temporalPixel=nullptr,*temporalCopyPixel=nullptr;
-    ID3DBlob *meterPixel=nullptr,*reducePixel=nullptr,*exposurePixel=nullptr,*tonePixel=nullptr;
+    ID3DBlob *meterPixel=nullptr,*reducePixel=nullptr,*exposurePixel=nullptr,*tonePixel=nullptr,*cloudPixel=nullptr;
     ID3DBlob** destinations[]={&skinned,&vs,&ps,&instanced,&shadowAlpha,&hull,&domain,&hudVertex,&hudPixel,
         &postPixel,&bloomPixel,&reflectionPixel,&motionPixel,&temporalPixel,&temporalCopyPixel,
-        &meterPixel,&reducePixel,&exposurePixel,&tonePixel};
+        &meterPixel,&reducePixel,&exposurePixel,&tonePixel,&cloudPixel};
     for(size_t i=0;i<compiled.size();++i){*destinations[i]=compiled[i].blob.get();(*destinations[i])->AddRef();}
     HRESULT result=device->CreateVertexShader(vs->GetBufferPointer(),vs->GetBufferSize(),nullptr,&sceneVS);
     if(SUCCEEDED(result))result=device->CreateVertexShader(skinned->GetBufferPointer(),skinned->GetBufferSize(),nullptr,&skinVS);
@@ -1672,6 +1647,7 @@ bool createShaders(){
     if(SUCCEEDED(result))result=device->CreatePixelShader(reducePixel->GetBufferPointer(),reducePixel->GetBufferSize(),nullptr,&meterReducePS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(exposurePixel->GetBufferPointer(),exposurePixel->GetBufferSize(),nullptr,&exposurePS);
     if(SUCCEEDED(result))result=device->CreatePixelShader(tonePixel->GetBufferPointer(),tonePixel->GetBufferSize(),nullptr,&tonePS);
+    if(SUCCEEDED(result))result=device->CreatePixelShader(cloudPixel->GetBufferPointer(),cloudPixel->GetBufferSize(),nullptr,&cloudPS);
     D3D12_INPUT_ELEMENT_DESC layout[]={
         {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
         {"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
@@ -1698,7 +1674,7 @@ bool createShaders(){
     release(vs);release(instanced);release(ps);release(shadowAlpha);release(hull);release(domain);
     release(hudVertex);release(hudPixel);release(postPixel);release(bloomPixel);
     release(reflectionPixel);release(motionPixel);release(temporalPixel);
-    release(temporalCopyPixel);release(meterPixel);release(reducePixel);release(exposurePixel);release(tonePixel);
+    release(temporalCopyPixel);release(meterPixel);release(reducePixel);release(exposurePixel);release(tonePixel);release(cloudPixel);
     release(skinned);
     return SUCCEEDED(result);
 }
@@ -1879,6 +1855,18 @@ bool createTargets(int width,int height){
     if(SUCCEEDED(result))result=device->CreateShaderResourceView(
         reflectionTexture,nullptr,&reflectionView);
     if(FAILED(result))return false;
+    sceneDescription.Width=UINT(std::max(1,(width+1)/2));
+    sceneDescription.Height=UINT(std::max(1,(height+1)/2));
+    sceneDescription.Format=DXGI_FORMAT_R16G16B16A16_FLOAT;
+    result=device->CreateTexture2D(&sceneDescription,nullptr,&cloudVolumeTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(cloudVolumeTexture,nullptr,&cloudVolumeTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(cloudVolumeTexture,nullptr,&cloudVolumeView);
+    sceneDescription.Format=DXGI_FORMAT_R32_FLOAT;
+    if(SUCCEEDED(result))result=device->CreateTexture2D(&sceneDescription,nullptr,&cloudGuideTexture);
+    if(SUCCEEDED(result))result=device->CreateRenderTargetView(cloudGuideTexture,nullptr,&cloudGuideTarget);
+    if(SUCCEEDED(result))result=device->CreateShaderResourceView(cloudGuideTexture,nullptr,&cloudGuideView);
+    if(FAILED(result))return false;
+    sceneDescription.Format=DXGI_FORMAT_R16G16B16A16_FLOAT;
     sceneDescription.Width=UINT(width);
     sceneDescription.Height=UINT(height);
     result=device->CreateTexture2D(&sceneDescription,nullptr,&postTexture);
@@ -2029,6 +2017,15 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
     headlightShadowInstanceBatches.clear();
     streetShadowInstanceBatches.clear();
     const bool disableCulling=std::strstr(GetCommandLineA(),"--no-frustum-cull")!=nullptr;
+    const bool receiverCull=!disableCulling&&!std::strstr(GetCommandLineA(),"--legacy-shadow-culling");
+    const bool shadowLod=!std::strstr(GetCommandLineA(),"--legacy-shadow-lod");
+    const dx12::ShadowReceivers receivers(constants.viewProjection,{pose.eye.x,pose.eye.y,pose.eye.z},
+        {constants.sun.x,constants.sun.y,constants.sun.z});
+    std::vector<dx11::BoundingSphere> bounds;bounds.reserve(models.size());
+    for(const auto& model:models)bounds.push_back(dx11::instanceBounds(model));
+    auto modelBounds=[&](const dx11::ModelInstance& model)->const dx11::BoundingSphere&{return bounds[&model-models.data()];};
+    std::unordered_set<const dx11::Mesh*> cachedThisFrame;
+    auto ensureCached=[&](const dx11::Mesh* source){return !cachedThisFrame.insert(source).second||cacheModel(source);};
     XMVECTOR eye=XMVectorSet(pose.eye.x,pose.eye.y,pose.eye.z,1);
     XMVECTOR forward=XMVector3Normalize(XMVectorSet(
         pose.target.x-pose.eye.x,pose.target.y-pose.eye.y,
@@ -2084,10 +2081,11 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
             XMVectorGetZ(clip)>=-radius&&XMVectorGetZ(clip)<=w+radius;
     };
     auto append=[&](const dx11::ModelInstance& model,
-                    std::vector<InstanceBatch>& batches,bool separate){
-        if(batches.empty()||separate||batches.back().mesh!=model.source||
+                    std::vector<InstanceBatch>& batches,bool separate,const dx11::Mesh* selected=nullptr){
+        if(!selected)selected=model.source;
+        if(batches.empty()||separate||batches.back().mesh!=selected||
            batches.back().material!=model.material)
-            batches.push_back({model.source,model.material,UINT(instanceData.size()),0});
+            batches.push_back({selected,model.material,UINT(instanceData.size()),0});
         ++batches.back().count;
         instanceData.push_back({{model.scaleX,model.scaleY,model.scaleZ,model.cosYaw},
             {model.sinYaw,model.x,model.y,model.z},
@@ -2096,31 +2094,52 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
             {model.qx,model.qy,model.qz,model.qw}});
     };
     for(const auto& model:models){
-        if(!disableCulling&&!visibleInCamera(dx11::instanceBounds(model)))continue;
-        if(!cacheModel(model.source))return false;
+        if(!disableCulling&&!visibleInCamera(modelBounds(model)))continue;
+        if(!ensureCached(model.source))return false;
         append(model,instanceBatches,model.source->transparent);
     }
     if(constants.params.w>0){
+        std::vector<std::pair<const dx11::ModelInstance*,const dx11::Mesh*>> casters;casters.reserve(models.size());
         for(int cascade=0;cascade<shadowCascadeCount;++cascade){
+            casters.clear();
+            const float extent=shadowCascadeCount>1?shadowCascadeExtent(cascade):1800.0f*ui::drawDistanceScale();
+            // The shader chooses cascades by radial distance and blends across
+            // each split. The last cascade has no radial cutoff in the shader.
+            const float receiverRange=shadowCascadeCount<2||cascade==2?std::numeric_limits<float>::infinity():
+                cascade==0?constants.shadowInfo.y*1.08f:constants.shadowInfo.z*1.06f;
+            const float padding=4*extent/std::max(1,shadowSize);
             for(const auto& model:models){
                 if(!model.source->castsShadow||
                    (!disableCulling&&
-                    !visibleInShadow(dx11::instanceBounds(model),cascade)))continue;
-                if(!cacheModel(model.source))return false;
-                if(model.source->shadowProxy&&!cacheModel(model.source->shadowProxy))return false;
-                append(model,shadowInstanceBatches[cascade],false);
+                    !visibleInShadow(modelBounds(model),cascade)))continue;
+                ++geometryStats.casterCandidates;
+                const auto& sphere=modelBounds(model);
+                if(receiverCull&&!receivers.reaches(sphere,receiverRange,padding)){++geometryStats.receiverCulled;continue;}
+                const auto* selected=shadowLod?dx11::shadowLodMesh(model.source,2*sphere.radius*shadowSize/extent):
+                    model.source->shadowProxy?model.source->shadowProxy:model.source;
+                if(selected!=model.source&&selected!=model.source->shadowProxy)++geometryStats.lodInstances;
+                if(!ensureCached(selected))return false;
+                casters.emplace_back(&model,selected);
             }
+            // Camera LODs can collapse to the same shadow mesh. Regroup after
+            // selection so those instances share one draw even when their
+            // camera batches were separated by other meshes.
+            std::stable_sort(casters.begin(),casters.end(),[](const auto& a,const auto& b){
+                if(a.first->material!=b.first->material)return a.first->material<b.first->material;
+                return std::less<const dx11::Mesh*>{}(a.second,b.second);
+            });
+            for(const auto& caster:casters)append(*caster.first,shadowInstanceBatches[cascade],false,caster.second);
         }
     }
     if(constants.headlightShadowInfo.z>0.5f){
         for(const auto& model:models){
             if(!model.source->castsShadow||
                (!disableCulling&&
-                !visibleInLocal(dx11::instanceBounds(model),
+                !visibleInLocal(modelBounds(model),
                     headlightMatrix,145.0f)))continue;
-            if(!cacheModel(model.source))return false;
+            if(!ensureCached(model.source))return false;
             if(model.source->shadowProxy&&
-               !cacheModel(model.source->shadowProxy))return false;
+               !ensureCached(model.source->shadowProxy))return false;
             append(model,headlightShadowInstanceBatches,false);
         }
     }
@@ -2128,11 +2147,11 @@ bool prepareInstances(const camera::Pose& pose,const SceneConstants& constants){
         for(const auto& model:models){
             if(!model.source->castsShadow||
                (!disableCulling&&
-                !visibleInLocal(dx11::instanceBounds(model),
+                !visibleInLocal(modelBounds(model),
                     streetMatrix,130.0f)))continue;
-            if(!cacheModel(model.source))return false;
+            if(!ensureCached(model.source))return false;
             if(model.source->shadowProxy&&
-               !cacheModel(model.source->shadowProxy))return false;
+               !ensureCached(model.source->shadowProxy))return false;
             append(model,streetShadowInstanceBatches,false);
         }
     }
@@ -2218,6 +2237,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
     const auto& batches=localShadow==1?headlightShadowInstanceBatches:
         localShadow==2?streetShadowInstanceBatches:
         shadow?shadowInstanceBatches[cascade]:instanceBatches;
+    if(!transparent&&batches.size()>=64)context->beginParallel(recordPool.get());
     for(const auto& batch:batches){
         if(batch.mesh->transparent!=transparent)continue;
         if(shadow&&!batch.mesh->castsShadow)continue;
@@ -2296,6 +2316,7 @@ void drawInstances(bool shadow,SceneConstants& constants,bool transparent=false,
             triangleCount+=std::uint64_t(elementCount/3)*batch.count;
         }
     }
+    context->endParallel();
     context->PSSetSamplers(2,1,&modelSampler);
 }
 bool createStates(){
@@ -2497,6 +2518,8 @@ void releaseTargets(){
     }
     exposureValid=false;
     release(reflectionView);release(reflectionTarget);release(reflectionTexture);
+    release(cloudVolumeView);release(cloudVolumeTarget);release(cloudVolumeTexture);
+    release(cloudGuideView);release(cloudGuideTarget);release(cloudGuideTexture);
     for(int level=0;level<3;++level){
         release(bloomView[level]);release(bloomTarget[level]);release(bloomTexture[level]);
     }
@@ -2932,6 +2955,13 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
     logging::write(textureSummary);
     scenePool=std::make_unique<cpu::Pool>(sceneWorkers());
     logging::write(("CPU scene workers: "+std::to_string(scenePool->concurrency())).c_str());
+    // Correctness is verified, but this GPU-bound fixture has not established
+    // a throughput win from splitting native lists. Keep the measured serial
+    // default until larger batches/hardware justify enabling worker recording.
+    unsigned recordWorkers=1;
+    if(const char* option=std::strstr(GetCommandLineA(),"--record-workers="))recordWorkers=unsigned(std::clamp(std::atoi(option+17),1,8));
+    recordPool=std::make_unique<cpu::Pool>(recordWorkers);
+    logging::write(("DX12 command recording workers: "+std::to_string(recordWorkers)).c_str());
     return createProbes();
 }
 void render(){
@@ -2974,9 +3004,11 @@ void render(){
             origin.z+directions[face].z};
     }
     dx11::buildScene(groups,models,pose.eye.x,pose.eye.y,pose.eye.z,
-        skinCS?&gpuSkins:nullptr,probeBakeActive,scenePool.get());
+        skinCS?&gpuSkins:nullptr,probeBakeActive,scenePool.get(),true);
+    beginGpuQueries();
     if(skinCS)prepareSkins();
     else {gpuSkins.clear();skinVertexCount=0;}
+    if(currentGpu)context->End(currentGpu->skinEnd);
     auto sceneBuilt=std::chrono::steady_clock::now();
     size_t vertexCount=0,starts[dx11::MATERIAL_GROUPS]{},counts[dx11::MATERIAL_GROUPS]{};
     for(int group=0;group<dx11::MATERIAL_GROUPS;++group){starts[group]=vertexCount;counts[group]=groups[group].size();vertexCount+=counts[group];}
@@ -3037,7 +3069,7 @@ void render(){
     context->VSSetConstantBuffers(0,1,&sceneBuffer);
     context->HSSetConstantBuffers(0,1,&sceneBuffer);
     context->DSSetConstantBuffers(0,1,&sceneBuffer);
-    beginGpuQueries();
+    if(currentGpu)context->End(currentGpu->begin);
     if(constants.params.w>0){
         dx12::ShaderResourceView* empty=nullptr;
         context->PSSetShaderResources(4,1,&empty);
@@ -3124,6 +3156,7 @@ void render(){
         drawInstances(true,shadowConstants,false,0,2);
     }
     if(currentGpu)context->End(currentGpu->shadowEnd);
+    const auto shadowTriangles=triangleCount;
     float clearColor[]={constants.fogColor.x,constants.fogColor.y,constants.fogColor.z,1};
     dx12::RenderTargetView* opaqueTargets[5]={sceneTarget,surfaceTarget,indirectTarget,objectMotionTarget,reflectionResponseTarget};
     context->OMSetRenderTargets(5,opaqueTargets,depthView);
@@ -3184,9 +3217,12 @@ void render(){
     context->OMSetDepthStencilState(nullptr,0);
     setTessellation(-1);
     if(currentGpu)context->End(currentGpu->sceneEnd);
+    ++geometryStats.frames;geometryStats.shadowTriangles+=shadowTriangles;
+    geometryStats.sceneTriangles+=triangleCount-shadowTriangles;
     if(probeBakeActive){
         probeBakeFailed=!captureProbe(constants);
         if(probeBakeFailed)logging::write("HDR probe capture failed");
+        if(currentGpu)for(auto* query:currentGpu->postStages)context->End(query);
         endGpuQueries();return;
     }
     if(ui::graphicsQuality>0){
@@ -3216,6 +3252,7 @@ void render(){
             context->PSSetShaderResources(0,1,&empty);
         }
     }
+    if(currentGpu)context->End(currentGpu->postStages[0]);
     PostConstants post{};
     post.viewProjection=constants.viewProjection;
     XMStoreFloat4x4(&post.inverseViewProjection,
@@ -3256,6 +3293,7 @@ void render(){
         temporalAA?0.0f:ui::antiAliasingQuality==0?0.75f:
             float(ui::antiAliasingQuality),
         ui::graphicsQuality>0?float(ui::reflectionQuality):0.0f};
+    if(std::strstr(commandLine,"--profile-no-ssao"))post.effects.x=0;
     const bool probeDebug=std::strstr(commandLine,"--probe-view")||
         std::strstr(commandLine,"--probe-weight-view");
     if(probeDebug)post.effects={0,0,0,0};
@@ -3287,6 +3325,8 @@ void render(){
     post.skyWeather={worldTime*weather::current().wind.x*18,
         worldTime*weather::current().wind.z*18,
         ui::graphicsQuality==0?24.0f:ui::graphicsQuality==1?36.0f:48.0f,daylight};
+    if(std::strstr(commandLine,"--profile-no-clouds"))post.skyWeather.z=0;
+    post.temporal.z=!std::strstr(commandLine,"--full-res-clouds")&&!post.debug.x&&!post.debug.w?1.0f:0.0f;
     context->UpdateSubresource(postBuffer,0,nullptr,&post,0,0);
     if(post.effects.w>0.5f){
         D3D12_VIEWPORT reflectionViewport{};
@@ -3308,6 +3348,21 @@ void render(){
         dx12::ShaderResourceView* empty[4]{};
         context->PSSetShaderResources(0,4,empty);
     }
+    if(currentGpu)context->End(currentGpu->postStages[1]);
+    dx12::ShaderResourceView* emptyVolume[2]{};
+    context->PSSetShaderResources(9,2,emptyVolume);
+    if(post.temporal.z>.5f){
+        D3D12_VIEWPORT viewport{};viewport.Width=float((bufferW+1)/2);viewport.Height=float((bufferH+1)/2);viewport.MaxDepth=1;
+        context->RSSetViewports(1,&viewport);
+        dx12::RenderTargetView* targets[2]={cloudVolumeTarget,cloudGuideTarget};
+        context->OMSetRenderTargets(2,targets,nullptr);context->OMSetDepthStencilState(noDepth,0);
+        context->IASetInputLayout(nullptr);context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        context->VSSetShader(hudVS,nullptr,0);context->PSSetShader(cloudPS,nullptr,0);
+        context->PSSetConstantBuffers(0,1,&postBuffer);context->PSSetSamplers(0,1,&clampSampler);context->PSSetSamplers(1,1,&cloudSampler);
+        context->PSSetShaderResources(1,1,&depthViewSRV);context->PSSetShaderResources(8,1,&cloudNoiseView);
+        context->Draw(4,0);++drawCalls;
+    }
+    if(currentGpu)context->End(currentGpu->postStages[2]);
     D3D12_VIEWPORT postViewport{};
     postViewport.Width=float(bufferW);postViewport.Height=float(bufferH);
     postViewport.MaxDepth=1;context->RSSetViewports(1,&postViewport);
@@ -3322,12 +3377,16 @@ void render(){
         bloomView[0],bloomView[1],bloomView[2],reflectionView,indirectView};
     context->PSSetShaderResources(0,8,postInputs);
     context->PSSetShaderResources(8,1,&cloudNoiseView);
+    dx12::ShaderResourceView* volumeInputs[2]={post.temporal.z>.5f?cloudVolumeView:nullptr,post.temporal.z>.5f?cloudGuideView:nullptr};
+    context->PSSetShaderResources(9,2,volumeInputs);
     context->PSSetSamplers(1,1,&cloudSampler);
     context->Draw(4,0);++drawCalls;
     dx12::ShaderResourceView* emptyCloud=nullptr;
     context->PSSetShaderResources(8,1,&emptyCloud);
+    context->PSSetShaderResources(9,2,emptyVolume);
     dx12::ShaderResourceView* emptyInputs[8]{};
     context->PSSetShaderResources(0,8,emptyInputs);
+    if(currentGpu)context->End(currentGpu->postStages[3]);
     dx11::tone::Constants tone;
     tone.grade[0]=post.grade.x;tone.grade[1]=post.grade.y;
     tone.grade[2]=post.grade.z;tone.grade[3]=post.grade.w;
@@ -3371,6 +3430,7 @@ void render(){
     context->Draw(4,0);++drawCalls;
     context->PSSetShaderResources(0,2,toneEmpty);
     dx12::ShaderResourceView* displayImage=postView;
+    if(currentGpu)context->End(currentGpu->postStages[4]);
     if(temporalAA||motionDebug){
         context->OMSetRenderTargets(1,&motionTarget,nullptr);
         context->PSSetShader(motionPS,nullptr,0);
@@ -3427,6 +3487,7 @@ void render(){
         }
     }
     ++exposureFrame;
+    if(currentGpu)context->End(currentGpu->postStages[5]);
     auto hudBegin=std::chrono::steady_clock::now();
     dx11::buildHud(hudPixels.data(),displayW,displayH);
     if(GetEnvironmentVariableA("MINICITY_CPU_PROFILE",nullptr,0)){
@@ -3475,6 +3536,9 @@ void render(){
     if(GetEnvironmentVariableA("MINICITY_CPU_PROFILE",nullptr,0)){
         char timing[240]{};std::snprintf(timing,sizeof(timing),"Render profile: scene %.3f ms, upload/cull %.3f ms, draw/HUD %.3f ms, present %.3f ms, draws %d",
             renderSceneMs,renderUploadMs,renderDrawMs,renderPresentMs,drawCalls);logging::write(timing);
+        const auto& binds=context->bindStats;
+        std::snprintf(timing,sizeof(timing),"DX12 cumulative binds: %llu draws, %llu pipeline lookups, %llu pipeline binds, %llu heap binds, %llu constant binds",
+            binds.draws,binds.pipelineLookups,binds.pipelineBinds,binds.heapBinds,binds.constantBinds);logging::write(timing);
     }
     if(std::strstr(GetCommandLineA(),"--benchmark-travel")&&
        std::chrono::duration<float,std::milli>(afterPresent-renderBegin).count()>30){
@@ -3518,10 +3582,21 @@ void shutdownRenderer(){
     if(device&&device->infoQueue){char validation[100];std::snprintf(validation,sizeof(validation),"DX12 validation errors: %u",device->validationErrors);logging::write(validation);}
     release(reactivePS);
     scenePool.reset();
+    recordPool.reset();
     dx11::shutdownHud();
     if(device&&device->commands)device->submit();
+    if(device){const auto& stats=device->recordingStats;char info[260];
+        std::snprintf(info,sizeof(info),"DX12 worker recording: %llu batches, %llu lists, %llu draws, peak %u workers, %.3f ms total worker CPU, %.3f ms total join wait",
+            stats.batches,stats.lists,stats.draws,stats.peakActive,stats.cpuMs,stats.waitMs);logging::write(info);}
     if(context)context->ClearState();
     release(cloudNoiseView);release(cloudSampler);
+    if(gpuSkinSamples){char info[160];std::snprintf(info,sizeof(info),"DX12 GPU deformation: %.3f ms (%u nonblocking samples; additional to shadow/scene/post timing)",gpuSkinTotalMs/gpuSkinSamples,gpuSkinSamples);logging::write(info);}
+    if(gpuPostStageSamples){char info[320];auto& t=gpuPostStageTotals;double n=gpuPostStageSamples;
+        std::snprintf(info,sizeof(info),"DX12 GPU post stages: bloom %.3f, reflections %.3f, cloud volume %.3f, composition/SSAO %.3f, tone %.3f, temporal/display %.3f, HUD upload/draw %.3f ms (%u nonblocking samples)",
+            t[0]/n,t[1]/n,t[2]/n,t[3]/n,t[4]/n,t[5]/n,t[6]/n,gpuPostStageSamples);logging::write(info);}
+    if(geometryStats.frames){char info[300];const auto& g=geometryStats;double n=g.frames;
+        std::snprintf(info,sizeof(info),"DX12 geometry: %.0f shadow + %.0f scene triangles/frame, %.1f sun caster candidates, %.1f receiver-culled, %.1f shadow-LOD instances/frame (%llu frames)",
+            g.shadowTriangles/n,g.sceneTriangles/n,g.casterCandidates/n,g.receiverCulled/n,g.lodInstances/n,g.frames);logging::write(info);}
     releaseGpuQueries();
     releaseTargets();
     release(shadowView);
@@ -3561,7 +3636,7 @@ void shutdownRenderer(){
     pbrTextures.clear();
     loadedTextureBytes=loadedDdsBytes=0;loadedTextureCount=loadedDdsCount=0;
     release(sceneVS);release(instanceVS);release(scenePS);release(alphaShadowPS);release(sceneHS);release(sceneDS);
-    release(hudVS);release(hudPS);release(postPS);release(bloomPS);release(reflectionPS);
+    release(hudVS);release(hudPS);release(postPS);release(cloudPS);release(bloomPS);release(reflectionPS);
     release(motionPS);release(temporalPS);release(temporalCopyPS);
     release(meterPS);release(meterReducePS);release(exposurePS);release(tonePS);
     if(swapChain)swapChain->SetFullscreenState(FALSE,nullptr);

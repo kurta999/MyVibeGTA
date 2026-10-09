@@ -46,6 +46,8 @@ struct LodChain {
     std::array<float,4> minPixels{};
 };
 const LodChain* lodChain(const std::string& name);
+// Shadow-map texel diameter, independent of the camera-selected mesh LOD.
+const Mesh* shadowLodMesh(const Mesh* source,float texels);
 const std::vector<std::string>& assetIssues();
 unsigned chooseLodLevel(float pixels,const std::array<float,4>& minPixels,
                         bool hasPrevious,unsigned previousLevel);
@@ -54,6 +56,12 @@ struct SkinClip {std::string name;float duration=1;std::vector<std::array<float,
 struct SkinMesh {std::vector<SkinVertex> vertices;std::vector<SkinClip> clips;
     std::vector<std::uint8_t> bodyPartForJoint;unsigned jointCount=0;};
 constexpr unsigned MAX_GPU_SKIN_JOINTS=256;
+struct SkinDeformation {
+    // Motion kind, phase sine/cosine, rising speed; mesh height and aim pitch.
+    std::array<float,4> motion{},parameters{};
+    std::array<std::array<float,4>,6> bodyPosition{},bodyRest{},bodyRotation{};
+    std::array<float,4> attachmentOrigin{},attachmentRotation{0,0,0,1};
+};
 struct SkinInstance {
     const SkinMesh* source=nullptr;
     std::uint64_t identity=0;
@@ -61,6 +69,7 @@ struct SkinInstance {
     // Scale, origin in the source mesh, yaw and world translation.
     std::array<float,4> scale{},origin{},transform{};
     std::array<float,4> yaw{};
+    SkinDeformation deformation{};
 };
 void deformSkinCpu(const SkinInstance& instance,std::vector<Vertex>& output);
 struct ModelInstance {
@@ -86,7 +95,8 @@ const SkinMesh* skinMesh(const std::string& name);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances);
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
                 float cameraX,float cameraY,float cameraZ,
-                std::vector<SkinInstance>* gpuSkins=nullptr,bool staticOnly=false,cpu::Pool* jobs=nullptr);
+                std::vector<SkinInstance>* gpuSkins=nullptr,bool staticOnly=false,cpu::Pool* jobs=nullptr,
+                bool extendedGpuSkins=false);
 struct SceneWorkStats {std::size_t skinVertices=0;unsigned jobBatches=0;double skinMs=0,grassMs=0;};
 const SceneWorkStats& sceneWorkStats();
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]);

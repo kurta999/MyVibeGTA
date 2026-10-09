@@ -55,7 +55,7 @@ float cloudDensity(float3 p,bool detail){
     }
     return density;
 }
-float4 volumetricSky(float3 ray,float2 pixel,float maxDistance,float3 scene,bool isSky){
+float3 skyBackground(float3 ray,float3 scene,bool isSky){
     float3 background=isSky?atmosphere(ray):scene;
     // Distant cirrus: stretched fine noise, independently drifting above cumulus.
     if(isSky&&ray.y>.025){
@@ -83,6 +83,11 @@ float4 volumetricSky(float3 ray,float2 pixel,float maxDistance,float3 scene,bool
         background+=float3(.62,.69,.8)*disk*craters*night;
         background+=float3(.1,.15,.22)*exp(-separation*separation/.001)*night;
     }
+    return background;
+}
+// Separate radiance/transmission from the full-resolution atmosphere, cirrus,
+// stars and moon so callers can reconstruct just the expensive volume pass.
+float4 cloudScattering(float3 ray,float2 pixel,float maxDistance){
     const float planet=250000;
     float3 origin=float3(cameraEye.x-5000,cameraEye.y+planet,cameraEye.z-5000);
     float2 outer=cloudSphere(origin,ray,planet+2700),inner=cloudSphere(origin,ray,planet+1800);
@@ -90,7 +95,7 @@ float4 volumetricSky(float3 ray,float2 pixel,float maxDistance,float3 scene,bool
     float start=radius<planet+1800?inner.y:max(0,outer.x);
     float end=radius>=planet+1800&&inner.x>0?inner.x:outer.y;
     end=min(end,min(50000,maxDistance));
-    if(start>=end||end<=0||skyTop.w<.001)return float4(background,1);
+    if(start>=end||end<=0||skyTop.w<.001||skyWeather.z<1)return float4(0,0,0,1);
     int steps=(int)skyWeather.z;
     float stepSize=(end-start)/steps;
     float jitter=frac(52.9829189*frac(dot(pixel,float2(.06711056,.00583715))));
@@ -118,7 +123,12 @@ float4 volumetricSky(float3 ray,float2 pixel,float maxDistance,float3 scene,bool
             if(transmission<.008)break;
         }
     }
-    return float4(scattering+background*transmission,transmission);
+    return float4(scattering,transmission);
+}
+float4 volumetricSky(float3 ray,float2 pixel,float maxDistance,float3 scene,bool isSky){
+    float3 background=skyBackground(ray,scene,isSky);
+    float4 cloud=cloudScattering(ray,pixel,maxDistance);
+    return float4(cloud.rgb+background*cloud.a,cloud.a);
 }
 float4 volumetricSky(float3 ray,float2 pixel){
     return volumetricSky(ray,pixel,50000,float3(0,0,0),true);
