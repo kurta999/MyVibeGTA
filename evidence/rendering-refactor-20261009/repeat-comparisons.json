@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "repeat-pair",
+    "ChangedPixels": 0.0,
+    "MeanDifference": 0.0,
+    "MaxDifference": 0.0,
+    "Bounds": [
+      1920.0,
+      1080.0,
+      -1.0,
+      -1.0
+    ]
+  },
+  {
+    "Name": "baseline-repeat",
+    "ChangedPixels": 0.0,
+    "MeanDifference": 0.0,
+    "MaxDifference": 0.0,
+    "Bounds": [
+      1920.0,
+      1080.0,
+      -1.0,
+      -1.0
+    ]
+  },
+  {
+    "Name": "candidate-repeat",
+    "ChangedPixels": 5.0,
+    "MeanDifference": 1.2056327160493826E-05,
+    "MaxDifference": 13.0,
+    "Bounds": [
+      973.0,
+      318.0,
+      973.0,
+      325.0
+    ]
+  }
+]

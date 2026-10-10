@@ -1,0 +1,96 @@
+Application started
+2026-10-9 12:20:5  Startup: Starting Mini City 3D took 0.005 s
+2026-10-9 12:20:5  Startup: Starting Direct3D 11
+2026-10-9 12:20:5  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-10-9 12:20:5  Startup: Starting Direct3D 11 took 0.079 s
+2026-10-9 12:20:5  Startup: Compiling graphics shaders
+2026-10-9 12:20:7  Shader loading: workers 4, peak active 4, completed 19/19, wall 1.912 s, CPU 2.799 s
+2026-10-9 12:20:7  Shader checksum: 471d9211342f84e8
+2026-10-9 12:20:7  Startup: Compiling graphics shaders took 1.921 s
+2026-10-9 12:20:7  Startup: Creating graphics buffers and shadows
+2026-10-9 12:20:9  Startup: Creating graphics buffers and shadows took 1.711 s
+2026-10-9 12:20:9  Startup: Loading surface textures
+2026-10-9 12:20:10  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.689 s, decode CPU 0.383 s, mip CPU 0.922 s, upload 0.293 s
+2026-10-9 12:20:10  Texture checksum: Loading surface textures c3f452d70d1b5bf2
+2026-10-9 12:20:10  Startup: Loading surface textures took 0.689 s
+2026-10-9 12:20:10  Startup: Loading city models and animations
+2026-10-9 12:20:11  Startup: Loading city models and animations took 0.862 s
+2026-10-9 12:20:11  Startup: Preparing city geometry
+2026-10-9 12:20:11  Startup: Preparing city geometry took 0.002 s
+2026-10-9 12:20:11  Startup: Preparing regional textures
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:15  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 99, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 83, 12 mips: passed
+2026-10-9 12:20:16  DDS GPU mip verification: 2048x2048, format 98, 12 mips: passed
+2026-10-9 12:20:19  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 8.858 s, decode CPU 2.837 s, mip CPU 18.642 s, upload 3.521 s
+2026-10-9 12:20:19  Texture checksum: Preparing regional textures f0c8715c5461bb1e
+2026-10-9 12:20:19  Startup: Preparing regional textures took 8.857 s
+2026-10-9 12:20:19  Startup: Uploading regional graphics
+2026-10-9 12:20:20  Startup: Uploading regional graphics took 0.086 s
+2026-10-9 12:20:20  Startup: Loading HDR lighting
+2026-10-9 12:20:20  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 12:20:20  CPU scene workers: 4
+2026-10-9 12:20:20  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 12:20:20  Renderer initialized
+2026-10-9 12:20:20  Startup: Loading HDR lighting took 0.013 s
+2026-10-9 12:20:20  Startup: Starting audio and loading settings
+2026-10-9 12:20:20  Startup: Starting audio and loading settings took 0.480 s
+2026-10-9 12:20:20  Startup: Loading gameplay data
+2026-10-9 12:20:20  Startup: Loading gameplay data took 0.029 s
+2026-10-9 12:20:20  Startup: Building the city and physics world
+2026-10-9 12:20:20  Startup: Building the city and physics world took 0.091 s
+2026-10-9 12:20:20  Startup: Loading saved progress
+2026-10-9 12:20:20  Startup: Loading saved progress took 0.000 s
+2026-10-9 12:20:20  Startup: Preparing the first frame
+2026-10-9 12:20:20  GPU skinning: 6 ordinary poses, 92046 vertices; shared color/shadow buffer
+2026-10-9 12:20:20  GPU skin validation: PASS; frame 1, 92046 vertices, 6 poses, 0 prior poses, max error 0.00006104
+2026-10-9 12:20:21  Screenshot saved: screenshots/MiniCity3D-20261009-122021-261-31360-0.png
+2026-10-9 12:20:22  GPU skin validation: PASS; frame 30, 92046 vertices, 6 poses, 6 prior poses, max error 0.00006104
+2026-10-9 12:20:23  GPU skin validation: PASS; frame 60, 109374 vertices, 7 poses, 7 prior poses, max error 0.00006104
+2026-10-9 12:20:25  Benchmark 1920x1080: avg 35.67 ms (sim 2.35, physics 1.28, render 33.32), p95 44.25 ms, p99 59.80 ms, max 63.74 ms, draws 1280, active AI 43 over 120 frames, 0 flames, RAM 916 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 12:20:25  GPU timing: shadow 6.58 ms, scene 12.68 ms, post/HUD 10.49 ms (120 nonblocking samples); submitted triangles 5938244/frame
+2026-10-9 12:20:25  CPU scene work: deformation 7.905 ms (247656 vertices/frame), grass rebuild 0.000 ms, 15.00 parallel batches/frame
+2026-10-9 12:20:25  CPU rendering: scene 12.674 ms, upload/cull 9.396 ms, draw/HUD 10.583 ms, present 0.662 ms (seed 1)
+2026-10-9 12:20:25  Startup: Preparing the first frame took 4.989 s
+2026-10-9 12:20:25  Startup: Ready
+2026-10-9 12:20:25  Startup ready in 19.815 s
+2026-10-9 12:20:25  Smoke render completed
+2026-10-9 12:20:25  Application stopped

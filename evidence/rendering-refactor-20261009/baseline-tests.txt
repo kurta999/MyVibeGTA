@@ -1,0 +1,85 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+      Start  1: dx12_fsr2_smoke
+ 1/40 Test  #1: dx12_fsr2_smoke ...................   Passed    4.55 sec
+      Start  2: sky_smoke
+ 2/40 Test  #2: sky_smoke .........................   Passed    1.12 sec
+      Start  3: save_jobs_smoke
+ 3/40 Test  #3: save_jobs_smoke ...................   Passed    0.02 sec
+      Start  4: audio_smoke
+ 4/40 Test  #4: audio_smoke .......................   Passed    0.77 sec
+      Start  5: startup_smoke
+ 5/40 Test  #5: startup_smoke .....................   Passed    0.31 sec
+      Start  6: simulation_smoke
+ 6/40 Test  #6: simulation_smoke ..................   Passed   65.74 sec
+      Start  7: builder_scenarios
+ 7/40 Test  #7: builder_scenarios .................   Passed   19.96 sec
+      Start  8: excavation_scenarios
+ 8/40 Test  #8: excavation_scenarios ..............   Passed   12.23 sec
+      Start  9: scenery_scenarios
+ 9/40 Test  #9: scenery_scenarios .................   Passed   29.72 sec
+      Start 10: tool_work_scenarios
+10/40 Test #10: tool_work_scenarios ...............   Passed   56.13 sec
+      Start 11: builder_feedback_scenarios
+11/40 Test #11: builder_feedback_scenarios ........   Passed    7.84 sec
+      Start 12: builder_recovery_scenarios
+12/40 Test #12: builder_recovery_scenarios ........   Passed   19.39 sec
+      Start 13: builder_transition_scenarios
+13/40 Test #13: builder_transition_scenarios ......   Passed    6.79 sec
+      Start 14: builder_progression_scenarios
+14/40 Test #14: builder_progression_scenarios .....   Passed  164.85 sec
+      Start 15: builder_navigation_scenarios
+15/40 Test #15: builder_navigation_scenarios ......   Passed   11.43 sec
+      Start 16: builder_destination_scenarios
+16/40 Test #16: builder_destination_scenarios .....   Passed    6.15 sec
+      Start 17: builder_wildlife_scenarios
+17/40 Test #17: builder_wildlife_scenarios ........   Passed   10.99 sec
+      Start 18: builder_interaction_scenarios
+18/40 Test #18: builder_interaction_scenarios .....   Passed    9.14 sec
+      Start 19: builder_police_scenarios
+19/40 Test #19: builder_police_scenarios ..........   Passed   32.69 sec
+      Start 20: builder_navigation_restart_save
+20/40 Test #20: builder_navigation_restart_save ...   Passed    0.80 sec
+      Start 21: builder_navigation_restart_load
+21/40 Test #21: builder_navigation_restart_load ...   Passed    6.04 sec
+      Start 22: expansion_scenarios
+22/40 Test #22: expansion_scenarios ...............   Passed    6.58 sec
+      Start 23: equipment_scenarios
+23/40 Test #23: equipment_scenarios ...............   Passed    5.08 sec
+      Start 24: ordnance_scenarios
+24/40 Test #24: ordnance_scenarios ................   Passed    1.80 sec
+      Start 25: wildlife_scenarios
+25/40 Test #25: wildlife_scenarios ................   Passed    7.29 sec
+      Start 26: bird_scenarios
+26/40 Test #26: bird_scenarios ....................   Passed    3.27 sec
+      Start 27: driver_scenarios
+27/40 Test #27: driver_scenarios ..................   Passed    1.58 sec
+      Start 28: vehicle_collision_scenarios
+28/40 Test #28: vehicle_collision_scenarios .......   Passed    1.22 sec
+      Start 29: ped_scenarios
+29/40 Test #29: ped_scenarios .....................   Passed    1.01 sec
+      Start 30: scene_jobs_scenarios
+30/40 Test #30: scene_jobs_scenarios ..............   Passed    1.84 sec
+      Start 31: grass_scenarios
+31/40 Test #31: grass_scenarios ...................   Passed    1.27 sec
+      Start 32: terrain_scenarios
+32/40 Test #32: terrain_scenarios .................   Passed    3.79 sec
+      Start 33: autosave_scenarios
+33/40 Test #33: autosave_scenarios ................   Passed   15.30 sec
+      Start 34: traffic_scenarios
+34/40 Test #34: traffic_scenarios .................   Passed    4.26 sec
+      Start 35: navigation_scenarios
+35/40 Test #35: navigation_scenarios ..............   Passed    0.44 sec
+      Start 36: asset_smoke
+36/40 Test #36: asset_smoke .......................   Passed    1.00 sec
+      Start 37: texture_mips_smoke
+37/40 Test #37: texture_mips_smoke ................   Passed    0.02 sec
+      Start 38: texture_loading_smoke
+38/40 Test #38: texture_loading_smoke .............   Passed    0.43 sec
+      Start 39: shader_loading_smoke
+39/40 Test #39: shader_loading_smoke ..............   Passed    0.04 sec
+      Start 40: probe_smoke
+40/40 Test #40: probe_smoke .......................   Passed    0.16 sec
+
+100% tests passed, 0 tests failed out of 40
+
+Total Test time (real) = 523.11 sec

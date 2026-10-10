@@ -1,0 +1,27 @@
+[1/27] Building CXX object CMakeFiles\gpu_profiler_scenarios.dir\tests\gpu_profiler_scenarios.cpp.obj
+[2/27] Linking CXX executable gpu_profiler_scenarios.exe
+[3/27] Building CXX object CMakeFiles\resource_cache_scenarios.dir\tests\resource_cache_scenarios.cpp.obj
+[4/27] Linking CXX executable resource_cache_scenarios.exe
+[5/27] C:\Windows\system32\cmd.exe /C "cd /D C:\GIT_local\MyVibeGTA\build-msvc-ninja && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/assets C:/GIT_local/MyVibeGTA/build-msvc-ninja/assets && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/data C:/GIT_local/MyVibeGTA/build-msvc-ninja/data"
+[6/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\renderer_dx12.cpp.obj
+[7/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\targets.cpp.obj
+[8/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\probes.cpp.obj
+[9/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\skinning.cpp.obj
+[10/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\shaders.cpp.obj
+[11/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\geometry.cpp.obj
+[12/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\capture.cpp.obj
+[13/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\renderer_dx11.cpp.obj
+[14/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\lighting.cpp.obj
+[15/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\probes.cpp.obj
+[16/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\lifecycle.cpp.obj
+[17/27] Building CXX object CMakeFiles\MiniCity3D.dir\src\rendering\dx12\frame.cpp.obj
+[18/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\skinning.cpp.obj
+[19/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\targets.cpp.obj
+[20/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\shaders.cpp.obj
+[21/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\capture.cpp.obj
+[22/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\lighting.cpp.obj
+[23/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\geometry.cpp.obj
+[24/27] Linking CXX executable MiniCity3D.exe
+[25/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\lifecycle.cpp.obj
+[26/27] Building CXX object CMakeFiles\MiniCity3D-DX11-benchmark.dir\src\rendering\dx11\frame.cpp.obj
+[27/27] Linking CXX executable MiniCity3D-DX11-benchmark.exe

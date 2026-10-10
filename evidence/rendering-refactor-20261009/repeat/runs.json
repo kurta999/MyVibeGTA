@@ -1,0 +1,32 @@
+[
+  {
+    "ExecutableSha256": "5234B288A9C2386238384F3D7E7991DED19EB9383237A1D4258CDC7B56317586",
+    "ExitCode": 0,
+    "Name": "dx12-baseline",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExecutableSha256": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52",
+    "ExitCode": 0,
+    "Name": "dx12-candidate",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--dx12-debug"
+    ]
+  }
+]

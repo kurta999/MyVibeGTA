@@ -1,0 +1,21 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start  1: resource_cache_scenarios
+1/8 Test  #1: resource_cache_scenarios .........   Passed    0.03 sec
+    Start  2: gpu_profiler_scenarios
+2/8 Test  #2: gpu_profiler_scenarios ...........   Passed    0.02 sec
+    Start  3: dx12_fsr2_smoke
+3/8 Test  #3: dx12_fsr2_smoke ..................   Passed    6.89 sec
+    Start  4: sky_smoke
+4/8 Test  #4: sky_smoke ........................   Passed    1.25 sec
+    Start 38: asset_smoke
+5/8 Test #38: asset_smoke ......................   Passed    1.24 sec
+    Start 39: texture_mips_smoke
+6/8 Test #39: texture_mips_smoke ...............   Passed    0.02 sec
+    Start 40: texture_loading_smoke
+7/8 Test #40: texture_loading_smoke ............   Passed    4.14 sec
+    Start 41: shader_loading_smoke
+8/8 Test #41: shader_loading_smoke .............   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) =  14.00 sec

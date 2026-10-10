@@ -4,6 +4,8 @@ A playable Windows city sandbox written in C++17, with **native Direct3D 12**, *
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
+The ongoing codebase refactor and current module boundaries are documented in [Architecture](ARCHITECTURE.md).
+
 For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices from asset files through Direct3D 11 rendering, mipmaps, lighting, animation, camera movement, and collision, with graphics concepts explained for experienced programmers new to the subject.
 
 ## Contents

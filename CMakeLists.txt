@@ -33,36 +33,45 @@ add_subdirectory(third_party/JoltPhysics/Build third_party/JoltPhysics-build)
 set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp audio.cpp ui.cpp physics.cpp weapons.cpp
     savegame.cpp camera.cpp props.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp)
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
+# Each backend owns its session; implementation files follow render responsibilities.
+set(RENDERER_MODULES probes skinning shaders targets geometry lighting capture lifecycle frame)
+set(DX11_RENDERER_SOURCES src/renderer_dx11.cpp)
+set(DX12_RENDERER_SOURCES src/renderer_dx12.cpp)
+set(SHARED_RENDERER_SOURCES src/rendering/loading.cpp src/rendering/screenshot_writer.cpp)
+foreach(module IN LISTS RENDERER_MODULES)
+  list(APPEND DX11_RENDERER_SOURCES "src/rendering/dx11/${module}.cpp")
+  list(APPEND DX12_RENDERER_SOURCES "src/rendering/dx12/${module}.cpp")
+endforeach()
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
+    ${SHARED_RENDERER_SOURCES}
     src/startup.cpp assets/app/minicity.rc
-    src/renderer_dx12.cpp src/dx12_backend.cpp src/fsr2.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
+    ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_DX12)
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
 target_link_libraries(MiniCity3D PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
 target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
-add_custom_command(TARGET MiniCity3D POST_BUILD
+# Both Direct3D executables use the same runtime directory. One copy operation
+# avoids concurrent writes when both backends are built in parallel.
+add_custom_target(MiniCityRuntimeAssets
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data")
+add_dependencies(MiniCity3D MiniCityRuntimeAssets)
 
 option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
 option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for performance comparisons" OFF)
 if(MINI_CITY_BUILD_DX11_BENCHMARK)
   get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
-  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES src/renderer_dx12.cpp src/dx12_backend.cpp src/fsr2.cpp)
-  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} src/renderer_dx11.cpp)
+  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp)
+  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES})
   target_compile_features(MiniCity3D-DX11-benchmark PRIVATE cxx_std_17)
   target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(MiniCity3D-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
   target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
-  add_custom_command(TARGET MiniCity3D-DX11-benchmark POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D-DX11-benchmark>/assets"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D-DX11-benchmark>/data")
+  add_dependencies(MiniCity3D-DX11-benchmark MiniCityRuntimeAssets)
 endif()
 if(MINI_CITY_BUILD_OPENGL)
   add_executable(MiniCity3DGL WIN32 ${COMMON_SOURCES} src/renderer.cpp src/textures.cpp)
@@ -76,6 +85,16 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(resource_cache_scenarios tests/resource_cache_scenarios.cpp
+    src/dx11_texture_loading.cpp src/dx11_texture_mips.cpp src/logging.cpp)
+  target_compile_features(resource_cache_scenarios PRIVATE cxx_std_17)
+  target_compile_definitions(resource_cache_scenarios PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_link_libraries(resource_cache_scenarios PRIVATE gdiplus ole32)
+  add_test(NAME resource_cache_scenarios COMMAND resource_cache_scenarios)
+  add_executable(gpu_profiler_scenarios tests/gpu_profiler_scenarios.cpp)
+  target_compile_features(gpu_profiler_scenarios PRIVATE cxx_std_17)
+  target_compile_definitions(gpu_profiler_scenarios PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME gpu_profiler_scenarios COMMAND gpu_profiler_scenarios)
   add_executable(dx12_fsr2_smoke tests/dx12_fsr2_smoke.cpp tests/dx12_skin_scenarios.cpp tests/dx12_state_scenarios.cpp tests/dx12_recording_scenarios.cpp tests/dx12_visibility_scenarios.cpp tests/dx12_cloud_scenarios.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_sky.cpp src/dx12_backend.cpp src/fsr2.cpp src/logging.cpp)
   target_compile_features(dx12_fsr2_smoke PRIVATE cxx_std_17)
   target_compile_definitions(dx12_fsr2_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)

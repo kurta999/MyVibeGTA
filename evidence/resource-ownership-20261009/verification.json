@@ -1,0 +1,82 @@
+[
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx11-baseline",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx11-candidate",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-baseline",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-candidate",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-fsr2-baseline",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-fsr2-candidate",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-workers-baseline",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  },
+  {
+    "ValidationErrorsZero": true,
+    "DdsMipsPassed": 42,
+    "Name": "dx12-workers-candidate",
+    "SkinPosesPassed": 3,
+    "TextureChecksums": [
+      "Texture checksum: Loading surface textures c3f452d70d1b5bf2",
+      "Texture checksum: Preparing regional textures f0c8715c5461bb1e"
+    ]
+  }
+]

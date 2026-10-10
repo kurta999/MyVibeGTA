@@ -1,0 +1,14 @@
+[
+  {
+    "Path": "C:\\GIT_local\\MyVibeGTA\\MiniCity3D.exe",
+    "Hash": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52"
+  },
+  {
+    "Path": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\MiniCity3D.exe",
+    "Hash": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52"
+  },
+  {
+    "Path": "C:\\GIT_local\\MyVibeGTA\\savegame.ini",
+    "Hash": "F08F802789628E832E4DDE74C1D7E2F8A735C2A178AFD72BCA0171D8D9BAF8BF"
+  }
+]

@@ -1,0 +1,70 @@
+[
+  {
+    "Width": 1920.0,
+    "Height": 1080.0,
+    "ChangedPixels": 5.0,
+    "MeanAbsoluteRgbDifference": 1.2377829218106996E-05,
+    "MaximumChannelDifference": 14.0,
+    "DifferenceBounds": [
+      973.0,
+      318.0,
+      973.0,
+      325.0
+    ],
+    "RootMeanSquareDifference": 0.011190399967844279,
+    "PixelsOver2": 4.0,
+    "PixelsOver16": 0.0,
+    "Configuration": "dx11"
+  },
+  {
+    "Width": 1920.0,
+    "Height": 1080.0,
+    "ChangedPixels": 5.0,
+    "MeanAbsoluteRgbDifference": 1.2056327160493826E-05,
+    "MaximumChannelDifference": 13.0,
+    "DifferenceBounds": [
+      973.0,
+      318.0,
+      973.0,
+      325.0
+    ],
+    "RootMeanSquareDifference": 0.010928770031585997,
+    "PixelsOver2": 4.0,
+    "PixelsOver16": 0.0,
+    "Configuration": "dx12"
+  },
+  {
+    "Width": 1920.0,
+    "Height": 1080.0,
+    "ChangedPixels": 0.0,
+    "MeanAbsoluteRgbDifference": 0.0,
+    "MaximumChannelDifference": 0.0,
+    "DifferenceBounds": [
+      1920.0,
+      1080.0,
+      -1.0,
+      -1.0
+    ],
+    "RootMeanSquareDifference": 0.0,
+    "PixelsOver2": 0.0,
+    "PixelsOver16": 0.0,
+    "Configuration": "dx12-fsr2"
+  },
+  {
+    "Width": 1920.0,
+    "Height": 1080.0,
+    "ChangedPixels": 0.0,
+    "MeanAbsoluteRgbDifference": 0.0,
+    "MaximumChannelDifference": 0.0,
+    "DifferenceBounds": [
+      1920.0,
+      1080.0,
+      -1.0,
+      -1.0
+    ],
+    "RootMeanSquareDifference": 0.0,
+    "PixelsOver2": 0.0,
+    "PixelsOver16": 0.0,
+    "Configuration": "dx12-workers"
+  }
+]

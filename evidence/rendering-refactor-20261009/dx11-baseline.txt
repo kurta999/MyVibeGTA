@@ -1,0 +1,51 @@
+Application started
+2026-10-9 11:55:30  Startup: Starting Mini City 3D took 0.005 s
+2026-10-9 11:55:30  Startup: Starting Direct3D 11
+2026-10-9 11:55:30  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-10-9 11:55:30  Startup: Starting Direct3D 11 took 0.092 s
+2026-10-9 11:55:30  Startup: Compiling graphics shaders
+2026-10-9 11:55:32  Shader loading: workers 4, peak active 4, completed 19/19, wall 1.925 s, CPU 2.805 s
+2026-10-9 11:55:32  Startup: Compiling graphics shaders took 1.935 s
+2026-10-9 11:55:32  Startup: Creating graphics buffers and shadows
+2026-10-9 11:55:33  Startup: Creating graphics buffers and shadows took 1.621 s
+2026-10-9 11:55:33  Startup: Loading surface textures
+2026-10-9 11:55:34  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.450 s, decode CPU 0.288 s, mip CPU 0.670 s, upload 0.076 s
+2026-10-9 11:55:34  Startup: Loading surface textures took 0.451 s
+2026-10-9 11:55:34  Startup: Loading city models and animations
+2026-10-9 11:55:35  Startup: Loading city models and animations took 0.808 s
+2026-10-9 11:55:35  Startup: Preparing city geometry
+2026-10-9 11:55:35  Startup: Preparing city geometry took 0.002 s
+2026-10-9 11:55:35  Startup: Preparing regional textures
+2026-10-9 11:55:39  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 4.873 s, decode CPU 2.423 s, mip CPU 11.775 s, upload 0.324 s
+2026-10-9 11:55:39  Startup: Preparing regional textures took 4.873 s
+2026-10-9 11:55:39  Startup: Uploading regional graphics
+2026-10-9 11:55:40  Startup: Uploading regional graphics took 0.132 s
+2026-10-9 11:55:40  Startup: Loading HDR lighting
+2026-10-9 11:55:40  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-9 11:55:40  CPU scene workers: 4
+2026-10-9 11:55:40  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-9 11:55:40  Renderer initialized
+2026-10-9 11:55:40  Startup: Loading HDR lighting took 0.022 s
+2026-10-9 11:55:40  Startup: Starting audio and loading settings
+2026-10-9 11:55:40  Startup: Starting audio and loading settings took 0.470 s
+2026-10-9 11:55:40  Startup: Loading gameplay data
+2026-10-9 11:55:40  Startup: Loading gameplay data took 0.029 s
+2026-10-9 11:55:40  Startup: Building the city and physics world
+2026-10-9 11:55:40  Startup: Building the city and physics world took 0.084 s
+2026-10-9 11:55:40  Startup: Loading saved progress
+2026-10-9 11:55:40  Startup: Loading saved progress took 0.000 s
+2026-10-9 11:55:40  Startup: Preparing the first frame
+2026-10-9 11:55:40  GPU skinning: 6 ordinary poses, 92046 vertices; shared color/shadow buffer
+2026-10-9 11:55:40  GPU skin validation: PASS; frame 1, 92046 vertices, 6 poses, 0 prior poses, max error 0.00006104
+2026-10-9 11:55:41  Screenshot saved: screenshots/MiniCity3D-20261009-115541-307-19584-0.png
+2026-10-9 11:55:42  GPU skin validation: PASS; frame 30, 92046 vertices, 6 poses, 6 prior poses, max error 0.00006104
+2026-10-9 11:55:43  GPU skin validation: PASS; frame 60, 109374 vertices, 7 poses, 7 prior poses, max error 0.00006104
+2026-10-9 11:55:45  Benchmark 1920x1080: avg 37.04 ms (sim 2.29, physics 1.29, render 34.75), p95 47.03 ms, p99 62.02 ms, max 119.78 ms, draws 1280, active AI 43 over 120 frames, 0 flames, RAM 975 MiB, nearby trees 6/8483, decorations 0/6574
+2026-10-9 11:55:45  GPU timing: shadow 6.69 ms, scene 12.91 ms, post/HUD 10.29 ms (120 nonblocking samples); submitted triangles 5938244/frame
+2026-10-9 11:55:45  CPU scene work: deformation 7.768 ms (247656 vertices/frame), grass rebuild 0.000 ms, 15.00 parallel batches/frame
+2026-10-9 11:55:45  CPU rendering: scene 12.539 ms, upload/cull 10.008 ms, draw/HUD 11.550 ms, present 0.644 ms (seed 1)
+2026-10-9 11:55:45  Startup: Preparing the first frame took 5.201 s
+2026-10-9 11:55:45  Startup: Ready
+2026-10-9 11:55:45  Startup ready in 15.725 s
+2026-10-9 11:55:45  Smoke render completed
+2026-10-9 11:55:45  Application stopped

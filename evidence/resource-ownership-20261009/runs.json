@@ -1,0 +1,128 @@
+[
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "366B92E089D963EE7EFF5EF7D046C873FBD0089390B746C549130DA89BB9683E",
+    "Name": "dx11-baseline",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--validate-loading"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "9B5EF6D52725DA95FBA2463DAC19C4041A00D42EA17724AD325FCB102EE6AC40",
+    "Name": "dx11-candidate",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--validate-loading"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52",
+    "Name": "dx12-baseline",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "4CB9455707B7CAE06D2C93B0C37F47769F9F894FDBF1914F57EF9303384B3503",
+    "Name": "dx12-candidate",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52",
+    "Name": "dx12-fsr2-baseline",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=1",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "4CB9455707B7CAE06D2C93B0C37F47769F9F894FDBF1914F57EF9303384B3503",
+    "Name": "dx12-fsr2-candidate",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=1",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "635DE429F4334F1679BCE999E8901F03C75FFF4712E33BDB1996F8AC742BEB52",
+    "Name": "dx12-workers-baseline",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--record-workers=4",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  },
+  {
+    "ExitCode": 0,
+    "ExecutableSha256": "4CB9455707B7CAE06D2C93B0C37F47769F9F894FDBF1914F57EF9303384B3503",
+    "Name": "dx12-workers-candidate",
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--record-workers=4",
+      "--validate-loading",
+      "--dx12-debug"
+    ]
+  }
+]
