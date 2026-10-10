@@ -6,14 +6,18 @@ The project is an evolving prototype. Implementation and verification status are
 
 The ongoing codebase refactor and current module boundaries are documented in [Architecture](ARCHITECTURE.md).
 
-For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices from asset files through Direct3D 11 rendering, mipmaps, lighting, animation, camera movement, and collision, with graphics concepts explained for experienced programmers new to the subject.
+For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices through the retained Direct3D 11 pipeline, mipmaps, lighting, animation, camera movement, and collision. For the current DX12 backend and shared renderer components, see [Architecture](ARCHITECTURE.md).
 
 ## Contents
 
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Build and run](#build-and-run)
+- [Native DX12 and AMD FSR2](#native-dx12-and-amd-fsr2)
+- [DX12 diagnostics and performance](#dx12-diagnostics-and-performance)
 - [Controls](#controls)
+- [Builder mode](#builder-mode)
+- [Saves and runtime files](#saves-and-runtime-files)
 - [Animals and destructible trees](#animals-and-destructible-trees)
 - [Tests and visual previews](#tests-and-visual-previews)
 - [Packaging](#packaging)
@@ -28,7 +32,8 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 
 - **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
 - **Rendering:** imported textured meshes, PBR material ranges, compressed DDS materials and mipmaps, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections with local-probe fallback, filmic tone mapping with bounded automatic exposure, and selectable FXAA/TAA. Supported scenery uses GPU instancing and geometry LOD.
-- **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls.
+- **AMD FSR2:** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
+- **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls. DX12 also deforms procedural, aimed, attached and ragdoll humanoid vertices on the GPU, with previous-pose motion vectors for supported stable identities.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
 - **Vehicles:** 13 authored vehicle kinds, including cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with independently aimed turrets and barrels, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles show dirt and paint scratches and break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
 - **Audio and radio:** continuous recorded engine loops, distinct weapon effects, and ten live SomaFM presets. Mouse-wheel scrolling switches stations while driving; `data/radio.ini` accepts additional direct MP3/AAC stream URLs.
@@ -39,9 +44,10 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - **Environment:** changing weather, volumetric cumulus clouds, cirrus, stars and moon, rain and snow, fire spread, burning trees and vehicles, swimming with dive/surface controls, ladders, and tree climbing.
 - **Grass:** textured 2K foliage with curved blades, wind, and distinct lawn, meadow, savanna, desert, snow, and coastal variants. **Esc → Graphics → Grass distance** controls the radius from **Off** to **800 world units** (default **230**). The separate **Grass LOD** slider extends detailed blades from **40 to 800 units** (default **95**) and pushes the next LOD transition farther out. Its visible extent is capped by Grass distance. Vegetation density selects Off/Medium/High independently; both distance controls are saved automatically. Larger detail radii draw more blade geometry and near grass shadows.
 - **Persistence:** saved progression, inventory, ownership, living wildlife damage and position, tree destruction, and graphics/control/audio settings.
+- **Builder mode:** F5 switches to a separately saved layer of blocks, building/tree edits and excavated terrain. Mine 20 rock materials and ores, use 22 tools, craft recipes, repair equipment, and store items in chests. The layer has its own inventory/hotbar, terrain collision, tool animations and contact effects; the wider builder roadmap remains in progress.
 - **Debug tools:** F4 provides god mode, flight, health and equipment actions, infinite ammo, cash grants, wanted reset, and ammo grants. F3 shows performance information and F11 captures screenshots.
 
-The latest additions are documented in the [vehicle](#vehicle-expansion-controls-and-configuration) and [explosives](#explosives-hiding-and-underwater-controls) sections. Recorded verification from **2026-10-04** includes all **23 CTest entries passing** and inspected DX11 captures for [explosives and underwater controls](evidence/ordnance-20261004/README.md) and [masonry debris and tank aiming](evidence/masonry-tank-20261004/README.md). These are tested milestones within an unfinished prototype; see [current limitations](#current-limitations).
+Recent milestones cover [native DX12 and FSR2](evidence/dx12-fsr2-20261009/README.md), [DX12 deformation, shadows and clouds](evidence/dx12-clouds-20261009/README.md), and [shared rendering resource ownership](evidence/resource-ownership-20261009/README.md). The resource checkpoint passed eight targeted suites and matched DX11, native DX12, FSR2 and four-worker game checks; these are bounded checks within an unfinished prototype, not a claim that every roadmap item is complete. See [current limitations](#current-limitations).
 
 ## Screenshots
 
@@ -79,10 +85,11 @@ Grass source credits and reproducible import steps are in [GRASS.md](assets/mode
 
 ### Requirements
 
-- Windows with a Direct3D 11-capable graphics device.
+- Windows with a Direct3D 12-capable graphics device and driver for the main executable. The integrated FSR2 shaders require Shader Model 6.2. The optional DX11 comparison target requires a Direct3D 11-capable device.
 - Visual Studio 2022 or 2026 with **Desktop development with C++** and a Windows SDK, or a compatible LLVM/Clang toolchain with Ninja.
 - CMake 3.20 or newer. The build script can use the CMake installation bundled with Visual Studio.
 - Git and the pinned **Jolt Physics v5.6.0** submodule.
+- Internet access on the first build to restore the pinned AMD FSR2 source through CMake.
 
 ### Quick start
 
@@ -112,17 +119,22 @@ Create the destination directory first and keep `assets/` and `data/` beside a r
 
 ### Native DX12 and AMD FSR2
 
-`MiniCity3D` creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The older DX11 source remains for reference; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+`MiniCity3D` creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. DX11 remains runnable through the optional `MiniCity3D-DX11-benchmark` target; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
 
-In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100%. Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`.
+In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
-| Mode | Render resolution at 1920 × 1080 | Linear scale |
+```powershell
+./MiniCity3D.exe --fsr2=1  # Quality
+./MiniCity3D.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
+```
+
+| ID / mode | Render resolution at 1920 × 1080 | Linear scale |
 | --- | --- | --- |
-| Off | 1920 × 1080 | Native |
-| Quality (default) | 1280 × 720 | 1.5× |
-| Balanced | 1129 × 635 | 1.7× |
-| Performance | 960 × 540 | 2× |
-| Ultra Performance | 640 × 360 | 3× |
+| 0 — Off | 1920 × 1080 | Native |
+| 1 — Quality (default) | 1280 × 720 | 1.5× |
+| 2 — Balanced | 1129 × 635 | 1.7× |
+| 3 — Performance | 960 × 540 | 2× |
+| 4 — Ultra Performance | 640 × 360 | 3× |
 
 FSR2 uses jittered scene color, depth, motion vectors, and a reactive mask. It replaces FXAA/TAA while enabled; HUD and menus are composed afterward at display resolution. Quality/resolution changes and camera cuts reset temporal history. This is temporal upscaling, not frame generation. Native DX12 preserves the existing shadow, HDR, post-processing, GPU skinning, instancing and LOD passes.
 
@@ -130,9 +142,26 @@ CMake fetches AMD's MIT-licensed **FSR2 2.2.1**, pinned at `1680d1edd5c034f88ebb
 
 `dx12_fsr2_smoke` verifies all quality modes, resize/history reset, and reconstructed GPU pixels using the real AMD dispatch. `--dx12-debug` enables the D3D12 debug layer when Windows Graphics Tools is installed. Game checks accept `--fsr2=0` through `--fsr2=4`, `--fsr2-cycle`, and `--capture-converged` (with `--smoke --benchmark --benchmark-short`).
 
-DX12 overlaps CPU preparation with GPU execution using two fence-protected recording slots. Upload memory is reused after both GPU work and live buffer references release it; texture descriptor tables are cached, and scene vertices copy directly into upload memory using the CPU worker pool. `--scene-workers=1` selects the serial preparation path; command-list recording remains on the main thread. `--dx12-sync` restores a full GPU wait per frame for diagnostics.
+### DX12 diagnostics and performance
+
+DX12 overlaps CPU preparation with GPU execution using two fence-protected recording slots. Upload memory is reused after both GPU work and live buffer references release it; texture descriptor tables and native draw state are cached, and scene vertices copy directly into upload memory using the CPU worker pool. Receiver-aware shadow culling, shadow-specific LOD and regrouped instances reduce submitted geometry. Cloud volumes use half width/height with depth-guided reconstruction; other post passes retain their existing resolution.
+
+| Option | Purpose |
+| --- | --- |
+| `--scene-workers=1..8` | CPU scene preparation; `1` selects the serial reference |
+| `--record-workers=1..8` | Native command-list recording for eligible shadow/opaque batches; default `1` |
+| `--cpu-skinning` | CPU deformation reference path |
+| `--validate-gpu-skinning` | GPU pose readback checks at frames 1, 30 and 60 |
+| `--validate-loading` | Prepared texture/shader checksums and compressed GPU mip readback |
+| `--dx12-debug` | D3D12 debug-layer checks; requires Windows Graphics Tools |
+| `--dx12-sync` | Full GPU wait per frame for synchronization diagnostics |
+| `--full-res-clouds` | Full-resolution cloud-volume reference path |
+
+Worker recording is opt-in: each worker has its own native list, allocator and state cache, with ordered submission and fence-protected storage. Correctness checks pass, but repeated measurements did not establish a consistent speedup, so the default remains one recorder. Material/descriptor preparation and HUD work remain serial. Separate GPU timers report deformation and individual post stages in `MiniCity3D.log`.
 
 For matched API benchmarks, configure with `-DMINI_CITY_BUILD_DX11_BENCHMARK=ON` and build the optional `MiniCity3D-DX11-benchmark` target. Run both executables from the same build directory with `--smoke --benchmark`, adding `--fsr2=0` to DX12 for native-resolution comparisons. Keep settings identical and disable debug validation and screenshots while measuring. Results and remaining limits are in [DX12 performance evidence](evidence/dx12-performance-20261009/README.md).
+
+The subsequent combined DX12 optimization fixture measured median mean frame time **35.78 → 26.44 ms** at native 1080p on a Radeon 680M. This is a local 120-frame fixture comparison, not an expected result for every scene or GPU, and FSR2 is not guaranteed to improve a CPU-bound scene. See the [recorded optimization results and limits](evidence/dx12-clouds-20261009/README.md).
 
 ### CMake directly
 
@@ -163,7 +192,7 @@ To repeat matched startup measurements (three interleaved runs per worker count)
 
 `-Route` runs the six-scene 3,600-frame 1080p benchmark, while `-Travel` checks regional jumps. Smoke runs use a fixed random seed. The benchmark reports scene preparation, CPU deformation, grass rebuilds, uploads/culling, draw/HUD submission, and presentation separately.
 
-During gameplay a persistent pool also handles large CPU character/ragdoll deformation loops and grass-cache rebuild rows. Workers read the frame's unchanged world state and write separate preallocated output slots or private rows. The main thread joins them before merging results, uploading, or updating simulation again. Small deformation loops remain inline; ordinary humanoid clip deformation still runs on the GPU. `--scene-workers=1` selects serial scene preparation, and overrides accept 1–8 workers. Jolt physics and gameplay updates remain single threaded.
+During gameplay a persistent pool handles grass-cache rebuild rows and CPU deformation in the retained DX11 or CPU-reference paths. Workers read the frame's unchanged world state and write separate preallocated output slots or private rows; the main thread joins them before uploads or the next simulation update. DX12 normally deforms supported humanoid clips, procedural poses and ragdoll vertices on the GPU. CPU joint/socket preparation remains. `--scene-workers=1` selects serial scene preparation, and overrides accept 1–8 workers. Jolt physics and gameplay updates remain single threaded.
 
 To compare runtime scene workers while holding loading at four workers:
 
@@ -212,6 +241,7 @@ These are the default bindings. Movement, sprint, vehicle interaction, sensitivi
 | F1 | Toggle the full controls overlay |
 | F3 | Toggle performance information |
 | F4 | Open the debug menu |
+| F5 | Switch between normal play and the saved builder layer |
 | F11 | Save a PNG screenshot |
 | Alt+Enter | Toggle windowed/borderless display |
 
@@ -229,6 +259,32 @@ Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `saveg
 
 In the DX11 game, autosaves capture a snapshot on the gameplay thread and write it on a dedicated worker. One active write and one pending snapshot bound the queue; newer requests replace an unwritten pending snapshot. The worker writes a complete temporary INI and replaces the destination after flushing it. Manual Save waits for completion, Load waits for pending writes, and normal shutdown drains them. Failed autosaves report a message while preserving the previous save. Sound effects reuse PCM prepared during startup, including four takes for noise-based sounds, and held-weapon graphics are prepared before gameplay. See [pickup hitch measurements](evidence/pickup-hitches-20260928/README.md).
 
+## Builder mode
+
+Press **F5** to enter or leave the builder layer. Normal-world scenery returns when leaving; re-entering restores saved block placements, building/tree cuts and terrain excavation. Transitions wait for the outgoing save to finish; a save failure keeps the current layer active and shows a retry message. Builder edits and inventory share the ordinary save file.
+
+The builder includes 20 rock materials, four ores, pickaxes, axes, shovels, hoes, shears and brushes, crafting benches, furnaces and chests. Tool tier and durability affect harvesting; hoes till suitable soil, shears cut foliage, brushes collect loose deposits, and nearby crafting benches support material-cost repairs. Excavated pits and roofed tunnels update rendered terrain and Jolt collision.
+
+| Input in builder mode | Action |
+| --- | --- |
+| Hold left mouse button | Mine or harvest the targeted surface |
+| Right mouse button | Place the selected block, use a hoe, or open a targeted chest/bench/furnace |
+| 1–9 / mouse wheel | Select a hotbar slot; the wheel scrolls recipes while inventory is open |
+| E | Open/close inventory |
+| Q | Drop one item from the selected stack |
+| C | Switch first-person/third-person builder camera |
+| Shift | Crouch; hold while using a chest to bypass opening it |
+| R in inventory | Repair the selected tool when materials and a nearby bench permit it |
+| Shift + click in inventory | Transfer stacks between inventory/hotbar or an open chest |
+
+Builder controls take precedence over the normal weapon/vehicle shortcuts. The [builder plan](minecraft%20plan.md), [progression checks](evidence/builder-progression-20261006/README.md), and [actor/terrain checks](evidence/builder-interactions-20261006/README.md) describe verified scope. Continuous progression playtesting, dense-build performance and exceptional recovery remain open.
+
+## Saves and runtime files
+
+`savegame.ini` and `settings.ini` live beside the executable. Gameplay requests background saves, the pause menu offers Save/Load, and normal shutdown flushes pending saves. Graphics, controls and audio preferences are stored separately from progression. Back up these files before replacing a build or resetting progress.
+
+`MiniCity3D.log` records startup stages, graphics validation and benchmark results. F11 captures PNGs under `screenshots/` beside the executable. Keep `assets/` and `data/` alongside the game when moving it. Verification scripts that isolate runtime state are preferable to running save/load fixtures against a personal save.
+
 ## Animals and destructible trees
 
 Twenty countryside groves contain tigers, elephants, cats, dogs, pigs, cows, capybaras, bears, goats, donkeys, roe deer, deer, weasels, beavers, and mice. Grove centers use X = 3000/4000/5000/6000/7000 and Z = 1300/3900/6400/9000. Each grove has up to eight animals with stable save IDs; distant wildlife sleeps until approached.
@@ -244,7 +300,7 @@ Animal gait, play, attack, and corpse poses are procedural. The roe-deer model i
 
 To repeat the equipment visuals, run `./tools/verify_equipment.ps1` after building. It writes Direct3D captures to `evidence/equipment-20261003/`. The `equipment_scenarios` CTest checks flight at 30/60 Hz, hover/landing/airborne exits, wall collisions, minigun cadence/reload, shovel damage and poses, grapple cover/reeling/release, and corpse-free legacy save loading.
 
-The Direct3D sky renders at the window's native resolution. It replaces the repeating sky pattern and opaque cloud spheres with an analytic atmosphere, wind-driven volumetric cumulus clouds, thin cirrus, and angular stars/moon. Cloud coverage follows weather, lighting follows time of day, and scene depth clips clouds against geometry when flying into or above the layer. Low/Medium/High graphics quality traces 24/36/48 cloud samples with early opacity termination and three sun-shadow samples. This is an approximation with Rayleigh/Mie-inspired sky coloration, not a complete physical atmosphere or cloud shadow system for terrain. The rendering approach follows [Guerrilla's Horizon cloud presentation](https://www.guerrilla-games.com/read/the-real-time-volumetric-cloudscapes-of-horizon-zero-dawn) and [Epic's volumetric cloud overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-clouds?application_version=4.27).
+The Direct3D sky uses an analytic atmosphere, wind-driven volumetric cumulus clouds, thin cirrus, and angular stars/moon. Sky composition follows scene render resolution; DX12 traces the cloud volume at half width/height and reconstructs it using scene depth, while atmosphere, sun and stars keep the full scene resolution. With FSR2 enabled, the scene is then reconstructed to display resolution before the HUD. Cloud coverage follows weather, lighting follows time of day, and scene depth clips clouds against geometry when flying into or above the layer. Low/Medium/High graphics quality traces 24/36/48 cloud samples with early opacity termination and three sun-shadow samples. This is an approximation with Rayleigh/Mie-inspired sky coloration, not a complete physical atmosphere or cloud shadow system for terrain. The rendering approach follows [Guerrilla's Horizon cloud presentation](https://www.guerrilla-games.com/read/the-real-time-volumetric-cloudscapes-of-horizon-zero-dawn) and [Epic's volumetric cloud overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-clouds?application_version=4.27).
 
 **F4 → Infinite ammo** enables sustained fire without consuming magazines or reserves, including empty weapons. The HUD shows **INFINITE AMMO**; disabling the toggle restores the original inventory. The toggle is session-only and resets when loading/resetting the game. Vehicle destruction and explosive projectiles play a distinct positional blast with a crack, bass impact, and debris tail.
 
@@ -260,16 +316,17 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The 23 CTest entries cover the main simulation, vehicle expansion, equipment, ordnance, wildlife, birds, drivers, vehicle collisions, pedestrians, traffic, navigation, grass, serial/parallel scene jobs, autosaves and background save jobs, assets, texture mips and loading, shader loading, reflection probe data, audio, GPU sky rendering, and loading-window responsiveness, cancellation, lifecycle, and embedded icon sizes. Collision scenarios exercise animal bodies, riding through narrow gaps, old-position recovery, low/high-impact tree crashes, physical fragments, and collider cleanup. Expansion and ordnance scenarios cover independent tank aiming, rubble settling and expiry, building-hole traversal, trailer coupling, flight, explosive devices, hiding, takedown witnesses, and underwater controls. See the [recorded full-suite result](evidence/masonry-tank-20261004/ctest.txt).
+The current build registers **42 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. Registration is not a full-suite pass claim: the latest [resource checkpoint](evidence/resource-ownership-20261009/README.md) records eight targeted passing suites and four validated game configurations.
 
 To rerun focused scenarios after building with Ninja:
 
 ```powershell
 ctest --test-dir build-msvc-ninja -C Release -R 'wildlife_scenarios|vehicle_collision_scenarios' --output-on-failure
 ctest --test-dir build-msvc-ninja -C Release -R 'expansion_scenarios|equipment_scenarios|ordnance_scenarios|grass_scenarios' --output-on-failure
+ctest --test-dir build-msvc-ninja -C Release -R 'dx12_fsr2_smoke|gpu_profiler_scenarios|resource_cache_scenarios' --output-on-failure
 ```
 
-Use the build directory produced by your generator. To reproduce the latest DX11 captures after building:
+Use the build directory produced by your generator. These historical gameplay capture scripts now run the main DX12 executable when used with a current build; their retained evidence directories describe the backend originally tested:
 
 ```powershell
 ./tools/verify_vehicle_expansion.ps1
@@ -286,6 +343,8 @@ Visual smoke flags stage repeatable scenes and exit after rendering:
 ./MiniCity3D.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
 ./MiniCity3D.exe --smoke --night --driver-preview --damaged --screenshot
 ./MiniCity3D.exe --smoke --day --marina --1080p --screenshot
+./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
+./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
 ```
 
 Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MiniCity3D.log`; local measurements do not establish performance on other hardware.
@@ -296,7 +355,7 @@ Smoke mode uses staged test state. To record performance, use `--smoke --benchma
 ./package.ps1
 ```
 
-This builds, copies cooked assets, data, attribution records, and the Jolt license, runs packaged graphical smoke checks, and creates a ZIP under `dist/`. Raw model sources are excluded.
+This builds, copies cooked assets, data, attribution records, and the Jolt and AMD FSR2 licenses, runs packaged graphical smoke checks, and creates a ZIP under `dist/`. Raw model sources are excluded; FSR2 is linked into the executable.
 
 Use `./package.ps1 -SkipBuild` to package an existing build. `-SkipSmoke` skips graphical checks; `-IncludeOpenGL` includes an existing fallback executable.
 
@@ -307,6 +366,9 @@ The [Windows workflow](.github/workflows/windows-release.yml) builds and tests p
 | Path | Purpose |
 | --- | --- |
 | [`src/`](src/) | C++ simulation, rendering, input, audio, and physics |
+| [`src/rendering/`](src/rendering/) | DX11/DX12 renderer sessions, shared shaders/layouts, resource owners, loading and GPU profiling |
+| [`src/dx12_backend.*`](src/dx12_backend.h) | Native DX12 resources, descriptors, queues, barriers and command recording |
+| [`src/fsr2.*`](src/fsr2.h) | AMD FSR2 context, jitter, resize/reset and dispatch integration |
 | [`tests/`](tests/) | Deterministic scenarios and asset/pipeline checks |
 | [`data/`](data/README.md) | Versioned gameplay and world configuration |
 | [`assets/models/`](assets/models/) | Original sources, baked meshes, textures, and provenance |
@@ -314,6 +376,9 @@ The [Windows workflow](.github/workflows/windows-release.yml) builds and tests p
 | [`assets/lighting/`](assets/lighting/README.md) | Cooked reflection probes and lighting data |
 | [`tools/`](tools/) | Asset import, conversion, generation, and cooking scripts |
 | [`third_party/JoltPhysics/`](third_party/JoltPhysics/) | Pinned physics submodule |
+| `third_party/FidelityFX-FSR2/` | Pinned AMD SDK restored by CMake; excluded from Git |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Current renderer boundaries, conventions, ownership and remaining refactor work |
+| [`evidence/`](evidence/) | Recorded test results, captures and measured milestone scope |
 | [`idea.md`](idea.md) | Implementation roadmap and verified milestones |
 | [`graphics-upgrade-plan.md`](graphics-upgrade-plan.md) | Rendering roadmap and open work |
 | [`TECHNICAL_README.md`](TECHNICAL_README.md) | Detailed DX11 engine, asset, rendering, camera, and collision guide |
@@ -332,6 +397,7 @@ Third-party assets have individual licenses; attribution is recorded alongside t
 - [Marina Part provenance](assets/models/MARINA_PART.md) and [showcase sources](assets/models/SHOWCASE_SOURCES.md).
 - [Material licenses](assets/materials/LICENSES.md) and [effect licenses](assets/effects/LICENSES.md).
 - Jolt Physics: MIT license in `third_party/JoltPhysics/LICENSE`, copied into packages.
+- AMD FidelityFX FSR2 2.2.1: MIT license in the CMake-restored `third_party/FidelityFX-FSR2/LICENSE.txt`, copied into packages as `AMD-FSR2-LICENSE.txt`.
 
 Most environment and original character/vehicle sources are CC0; consult each record when redistributing assets.
 
@@ -400,11 +466,11 @@ an older save whose vehicle list predates this expansion.
 destruction and airborne plane in Direct3D 11. `--smoke --display-preview`
 checks real window styles and DXGI mode/fallback transitions without saving.
 
-DX11 weapon pickups and the HUD now share 27 transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
+Weapon pickups and the HUD share 27 transparent weapon/tool textures, replacing the cyan pickup spheres. [Icon sources and generation prompt](assets/icons/weapons/README.md) are included. Cars, sports cars, and helicopters render at twice their previous dimensions, with matching Jolt chassis, wheels, lamps, seating, camera framing, entry/exit clearance, and oriented projectile hit volumes. Traffic spacing and intersection yielding account for the larger cars. Fixed-wing flight uses force-based arcade dynamics with thrust, lift, drag, stall and landing gear; it is not a calibrated flight simulator.
 
 ## Explosives, hiding and underwater controls
 
-The Direct3D 11 game has C4, a remote trigger, frag grenades, smoke grenades, molotov cocktails, police flashbangs, and a timed bomb. Buy them at shops, collect their city pickups, or equip them through F4. C4 uses an online CC0 model by Lucian Pavel; provenance is in `assets/models/source/explosives/manifest.json`.
+The game has C4, a remote trigger, frag grenades, smoke grenades, molotov cocktails, police flashbangs, and a timed bomb. Buy them at shops, collect their city pickups, or equip them through F4. C4 uses an online CC0 model by Lucian Pavel; provenance is in `assets/models/source/explosives/manifest.json`.
 
 - LMB throws the selected device. C4 sticks to buildings and follows attached cars, with at most 40 active charges including airborne ones. Equip the remote and click LMB, or press X, to detonate all active C4.
 - Frag grenades bounce and explode after three seconds using RPG building-hole and blast damage. Smoke grenades produce sight-blocking smoke for 24 seconds. Molotovs break on impact and ignite nearby surfaces and actors. Flashbangs stun visible nearby pedestrians for five seconds and briefly flash the player's view.
@@ -433,7 +499,10 @@ The following work is still missing or needs further verification. The integrate
 | Area | Missing work or current boundary |
 | --- | --- |
 | Animal animation | Animal gait, combat, corpse poses and rider seating are procedural. Animal skeletal clips, GPU skinning and animal ragdolls are not implemented. |
-| Humanoid animation | Procedural poses and ragdolls retain CPU deformation. General retargeting, local-TRS/quaternion hierarchy support and motion vectors for all animated objects remain open. |
+| Humanoid animation | DX12 deforms supported procedural/ragdoll vertices on the GPU; CPU joint/socket preparation remains, and the retained DX11 path still uses CPU deformation for those poses. General retargeting, local-TRS/quaternion hierarchy support and motion vectors for all animated objects remain open. |
+| FSR2 and temporal rendering | FSR2 is available in DX12, with no frame generation. Moving rigid/procedural surfaces without per-object vectors use conservative history rejection; broader motion/ghosting tuning and other GPU vendors remain unverified. |
+| Builder mode | Saved blocks, edits and terrain collision are integrated, but continuous progression playtesting, dense-build performance and exceptional reconstruction/interrupted-process recovery remain open. |
+| Architecture | Shared renderer sessions, resource owners and profiling are integrated. Render-target/skinning/probe ownership, named passes, application/simulation boundaries, native DX12 cleanup and the wider naming migration remain unfinished. |
 | World streaming | Nearby physics colliders stream around the player, but world definitions and mutable regional state still load globally. Wildlife navigation uses bounded steering. |
 | Destruction and saves | Building holes, physical rubble, vehicle fragments, active devices, smoke and corpses are session-only and clear on new game/load. Building cuts subtract bounded axis-aligned volumes; structural collapse is not implemented. |
 | Vehicle physics | Handling and fixed-wing flight are arcade-oriented; the motorcycle uses a narrow four-wheel surrogate. Imported vehicle fragments use approximate colliders. |
