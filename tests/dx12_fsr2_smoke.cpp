@@ -77,7 +77,12 @@ int main(){
                 fsr.dispatch(device,color,depth,motion,reactive,frame==0||frame==8,16.667f,2,5000,1.1f,0.2f);device.submit(false);
             }
             auto readDesc=fsr.output->texture;readDesc.Usage=dx12::Readback;readDesc.BindFlags=0;dx12::Resource* readback=nullptr;
-            require(SUCCEEDED(device.CreateTexture2D(&readDesc,nullptr,&readback)),"readback allocation");commands.CopyResource(readback,fsr.output);dx12::MappedData mapped{};require(SUCCEEDED(commands.Map(readback,0,dx12::MapRead,0,&mapped)),"readback mapping");
+            const HRESULT readbackResult=device.CreateTexture2D(&readDesc,nullptr,&readback);
+            if(FAILED(readbackResult)){
+                std::fprintf(stderr,"FSR2 %s %dx%d readback HRESULT=0x%08lX, device removal reason=0x%08lX\n",dx12::fsr2Modes[mode],w,h,readbackResult,device.native->GetDeviceRemovedReason());
+                require(false,"readback allocation");
+            }
+            commands.CopyResource(readback,fsr.output);dx12::MappedData mapped{};require(SUCCEEDED(commands.Map(readback,0,dx12::MapRead,0,&mapped)),"readback mapping");
             for(int y=h/4;y<3*h/4;y+=31)for(int x=w/4;x<3*w/4;x+=31){const auto* pixel=reinterpret_cast<const unsigned short*>(static_cast<const unsigned char*>(mapped.pData)+size_t(y)*mapped.RowPitch)+4*x;
                 for(int c=0;c<3;++c){float value=DirectX::PackedVector::XMConvertHalfToFloat(pixel[c]);require(std::isfinite(value)&&std::abs(value-signal[c])<0.035f,"FSR2 must reconstruct the known color signal");}}
             commands.Unmap(readback,0);readback->Release();cv->Release();mv->Release();rv->Release();dv->Release();color->Release();motion->Release();reactive->Release();depth->Release();

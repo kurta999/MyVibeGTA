@@ -140,7 +140,7 @@ FSR2 uses jittered scene color, depth, motion vectors, and a reactive mask. It r
 
 CMake fetches AMD's MIT-licensed **FSR2 2.2.1**, pinned at `1680d1edd5c034f88ebbbb793d8b88f8842cf804`, and builds its DX12 backend and shader permutations. The first build needs internet access and takes longer to compile the permutations. FSR2 is linked statically; no FSR DLL needs to ship. Packages include `AMD-FSR2-LICENSE.txt`. Use a current Windows SDK and Visual Studio x64 C++ tools; FSR2 needs Shader Model 6.2 support.
 
-`dx12_fsr2_smoke` verifies all quality modes, resize/history reset, and reconstructed GPU pixels using the real AMD dispatch. `--dx12-debug` enables the D3D12 debug layer when Windows Graphics Tools is installed. Game checks accept `--fsr2=0` through `--fsr2=4`, `--fsr2-cycle`, and `--capture-converged` (with `--smoke --benchmark --benchmark-short`).
+`dx12_fsr2_smoke` verifies all quality modes, resize/history reset, and reconstructed GPU pixels using the real AMD dispatch. `dx12_fsr2_warp` repeats the same checks with `--dx12-warp`, forcing Microsoft's software adapter even on machines with a GPU. `--dx12-debug` enables the D3D12 debug layer when Windows Graphics Tools is installed. Game checks accept `--fsr2=0` through `--fsr2=4`, `--fsr2-cycle`, and `--capture-converged` (with `--smoke --benchmark --benchmark-short`).
 
 ### DX12 diagnostics and performance
 
@@ -154,6 +154,7 @@ DX12 overlaps CPU preparation with GPU execution using two fence-protected recor
 | `--validate-gpu-skinning` | GPU pose readback checks at frames 1, 30 and 60 |
 | `--validate-loading` | Prepared texture/shader checksums and compressed GPU mip readback |
 | `--dx12-debug` | D3D12 debug-layer checks; requires Windows Graphics Tools |
+| `--dx12-warp` | Force the Microsoft WARP software adapter for CI reproduction |
 | `--dx12-sync` | Full GPU wait per frame for synchronization diagnostics |
 | `--full-res-clouds` | Full-resolution cloud-volume reference path |
 
@@ -316,14 +317,14 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The current build registers **42 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. Registration is not a full-suite pass claim: the latest [resource checkpoint](evidence/resource-ownership-20261009/README.md) records eight targeted passing suites and four validated game configurations.
+The current build registers **43 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. Registration is not a full-suite pass claim: the latest [resource checkpoint](evidence/resource-ownership-20261009/README.md) records eight targeted passing suites and four validated game configurations.
 
 To rerun focused scenarios after building with Ninja:
 
 ```powershell
 ctest --test-dir build-msvc-ninja -C Release -R 'wildlife_scenarios|vehicle_collision_scenarios' --output-on-failure
 ctest --test-dir build-msvc-ninja -C Release -R 'expansion_scenarios|equipment_scenarios|ordnance_scenarios|grass_scenarios' --output-on-failure
-ctest --test-dir build-msvc-ninja -C Release -R 'dx12_fsr2_smoke|gpu_profiler_scenarios|resource_cache_scenarios' --output-on-failure
+ctest --test-dir build-msvc-ninja -C Release -R 'dx12_fsr2_|gpu_profiler_scenarios|resource_cache_scenarios' --output-on-failure
 ```
 
 Use the build directory produced by your generator. These historical gameplay capture scripts now run the main DX12 executable when used with a current build; their retained evidence directories describe the backend originally tested:
@@ -359,7 +360,7 @@ This builds, copies cooked assets, data, attribution records, and the Jolt and A
 
 Use `./package.ps1 -SkipBuild` to package an existing build. `-SkipSmoke` skips graphical checks; `-IncludeOpenGL` includes an existing fallback executable.
 
-The [Windows workflow](.github/workflows/windows-release.yml) builds and tests pull requests and pushes to `main`. It uploads a downloadable package; successful `main` pushes also publish a prerelease tagged `build-<run number>`. Hosted CI skips graphical package smoke runs. A manual workflow run uploads an artifact without publishing a release.
+The [Windows workflow](.github/workflows/windows-release.yml) builds and tests pull requests and pushes to `main` on `windows-2025`, using its newer inbox D3D12/WARP runtime for FSR2 tests. It retains CTest and graphics logs in the `MiniCity3D-test-diagnostics` artifact, including failed runs. It uploads a downloadable package; successful `main` pushes also publish a prerelease tagged `build-<run number>`. Hosted CI skips graphical package smoke runs. A manual workflow run uploads an artifact without publishing a release.
 
 ## Project layout
 

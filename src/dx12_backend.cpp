@@ -23,7 +23,8 @@ HRESULT Device::initialize(HWND window,UINT width,UINT height){
         ComPtr<ID3D12Debug> debug;if(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))debug->EnableDebugLayer();
     }
     check(CreateDXGIFactory2(0,IID_PPV_ARGS(&factory)));
-    for(UINT i=0;factory->EnumAdapters1(i,&adapter)!=DXGI_ERROR_NOT_FOUND;++i){
+    const bool forceWarp=std::strstr(GetCommandLineA(),"--dx12-warp")!=nullptr;
+    for(UINT i=0;!forceWarp&&factory->EnumAdapters1(i,&adapter)!=DXGI_ERROR_NOT_FOUND;++i){
         DXGI_ADAPTER_DESC1 d{};adapter->GetDesc1(&d);
         if(!(d.Flags&DXGI_ADAPTER_FLAG_SOFTWARE)&&SUCCEEDED(D3D12CreateDevice(adapter.Get(),D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&native))))break;
         adapter.Reset();
@@ -32,6 +33,7 @@ HRESULT Device::initialize(HWND window,UINT width,UINT height){
     native.As(&infoQueue);
     DXGI_ADAPTER_DESC1 ad{};adapter->GetDesc1(&ad);char name[160]{};WideCharToMultiByte(CP_UTF8,0,ad.Description,-1,name,sizeof(name),nullptr,nullptr);
     logging::write((std::string("Native Direct3D 12 adapter: ")+name).c_str());
+    std::printf("Native Direct3D 12 adapter: %s\n",name);
     D3D12_COMMAND_QUEUE_DESC q{};q.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;check(native->CreateCommandQueue(&q,IID_PPV_ARGS(&queue)));
     check(queue->GetTimestampFrequency(&timestampFrequency));
     DXGI_SWAP_CHAIN_DESC1 sd{};sd.Width=width;sd.Height=height;sd.Format=DXGI_FORMAT_B8G8R8A8_UNORM;sd.SampleDesc.Count=1;sd.BufferCount=2;

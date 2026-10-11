@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2022
+    # Exercise FSR2 on the newer inbox D3D12/WARP runtime (26100).
+    runs-on: windows-2025
     steps:
       - name: Check out source and Jolt
         uses: actions/checkout@v6
@@ -27,6 +28,16 @@ jobs:
 
       - name: Run smoke tests
         run: ctest --test-dir build-ci -C Release --output-on-failure
+
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: MiniCity3D-test-diagnostics
+          path: |
+            build-ci/Testing/Temporary/*.log
+            build-ci/Release/MiniCity3D.log
+          if-no-files-found: ignore
 
       - name: Package game
         shell: pwsh
