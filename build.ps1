@@ -12,6 +12,9 @@ if ($OpenGL) {
     Write-Host "Built $target (OpenGL fallback)"
 } else {
     $root = $PSScriptRoot
+    # Backend caches and binaries must not replace the default ImGui build.
+    $buildSuffix = if ($DX12) { '-dx12' } else { '' }
+    $defaultExecutable = if ($DX12) { 'MiniCity3D-DX12.exe' } else { 'MiniCity3D.exe' }
     $backendOption = if ($DX12) { 'ON' } else { 'OFF' }
     $tracyOption = if ($Tracy) { 'ON' } else { 'OFF' }
     $comparisonOption = if ($DX11Benchmark) { 'ON' } else { 'OFF' }
@@ -44,7 +47,7 @@ if ($OpenGL) {
         if (Test-Path -LiteralPath $devShell) { & $devShell -Arch amd64 }
         $ninja = Get-Command ninja -ErrorAction SilentlyContinue
         if ($ninja -and (Get-Command cl -ErrorAction SilentlyContinue)) {
-            $buildDirectory = Join-Path $root 'build-msvc-ninja'
+            $buildDirectory = Join-Path $root ("build-msvc-ninja$buildSuffix")
             $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
             & $cmake -S $root -B $buildDirectory -G Ninja `
                 -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
@@ -52,7 +55,7 @@ if ($OpenGL) {
             $generator = if ($vs2022) { 'Visual Studio 17 2022' }
                 else { 'Visual Studio 18 2026' }
             $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
-            $buildDirectory = Join-Path $root $buildName
+            $buildDirectory = Join-Path $root ("$buildName$buildSuffix")
             $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
             & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
         }
@@ -62,7 +65,7 @@ if ($OpenGL) {
         if (-not $compiler -or -not $ninja) {
             throw 'Install Visual Studio C++ tools, or install both clang++ and Ninja.'
         }
-        $buildDirectory = Join-Path $root 'build-jolt-ninja'
+        $buildDirectory = Join-Path $root ("build-jolt-ninja$buildSuffix")
         $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
         & $cmake -S $root -B $buildDirectory -G Ninja `
             "-DCMAKE_CXX_COMPILER=$($compiler.Source.Replace('\','/'))" `
@@ -97,7 +100,7 @@ if ($OpenGL) {
         } else {
             [System.IO.Path]::GetFullPath((Join-Path $invocationDirectory $OutputPath))
         }
-    } else { Join-Path $root 'MiniCity3D.exe' }
+    } else { Join-Path $root $defaultExecutable }
     $sameExecutable = [string]::Equals($builtExecutable,$target,[System.StringComparison]::OrdinalIgnoreCase)
     # A texture-only refresh need not replace an identical executable that may
     # already be open. Changed binaries still require closing the old process.

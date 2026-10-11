@@ -21,19 +21,9 @@ if ($packageName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
 $packageDirectory = Join-Path $outputDirectory $packageName
 New-Item -ItemType Directory -Path $packageDirectory | Out-Null
 
-$builtDirect3D = @(
-    (Join-Path $PSScriptRoot 'MiniCity3D.exe'),
-    (Join-Path $PSScriptRoot 'build-msvc-ninja\MiniCity3D.exe'),
-    (Join-Path $PSScriptRoot 'build-msvc\Release\MiniCity3D.exe'),
-    (Join-Path $PSScriptRoot 'build-msvc-v18\Release\MiniCity3D.exe'),
-    (Join-Path $PSScriptRoot 'build-jolt-ninja\MiniCity3D.exe')
-) | Where-Object { Test-Path -LiteralPath $_ } |
-    Sort-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } -Descending |
-    Select-Object -First 1
-$direct3DSource = if (-not $SkipBuild -or $Direct3DExecutable -ne 'MiniCity3D.exe') {
-    Join-Path $PSScriptRoot $Direct3DExecutable
-} elseif ($builtDirect3D) { $builtDirect3D }
-else { Join-Path $PSScriptRoot $Direct3DExecutable }
+# Package the requested executable. Timestamp-based discovery can select a
+# different backend from a comparison build instead of the delivered game.
+$direct3DSource = Join-Path $PSScriptRoot $Direct3DExecutable
 Copy-Item -LiteralPath $direct3DSource `
     -Destination (Join-Path $packageDirectory 'MiniCity3D.exe')
 $executables = @('MiniCity3D.exe')

@@ -1,0 +1,27 @@
+[
+  {
+    "Algorithm": "SHA256",
+    "Hash": "921C4A2A5038828EE41B8C68252CA707ED08FD1E98337A628A9CF022CA03C4D6",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\savegame.ini"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "B297CD8FE66BFB7CDBDD7E00340A0E6D4862D89B21DA378EA3F8308493774B32",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\settings.ini"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "F147CCCA687408AA0956B843CA63611B9DE40161FF76C5480B5E2C23298E4E6B",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\MiniCity3D.exe"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "F147CCCA687408AA0956B843CA63611B9DE40161FF76C5480B5E2C23298E4E6B",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\MiniCity3D.exe"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "28DF736CA4F57B9CAD30CA3F82E478A83B680A17223D4B51CB9F84FE5531D89B",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\MiniCity3D-DX12.exe"
+  }
+]

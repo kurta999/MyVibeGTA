@@ -1,0 +1,90 @@
+2026-10-11 23:7:9  Application started
+2026-10-11 23:7:9  Tracy disabled in this build
+2026-10-11 23:7:9  Startup: Starting Mini City 3D took 0.081 s
+2026-10-11 23:7:9  Startup: Starting Direct3D 11
+2026-10-11 23:7:9  DX11 adapter: AMD Radeon(TM) 680M (vendor 1002, device 1681, dedicated 4067 MiB)
+2026-10-11 23:7:9  Startup: Starting Direct3D 11 took 0.087 s
+2026-10-11 23:7:9  Startup: Compiling graphics shaders
+2026-10-11 23:7:11  Shader loading: workers 4, peak active 4, completed 19/19, wall 2.100 s, CPU 3.042 s
+2026-10-11 23:7:12  Startup: Compiling graphics shaders took 2.124 s
+2026-10-11 23:7:12  Startup: Creating graphics buffers and shadows
+2026-10-11 23:7:14  Startup: Creating graphics buffers and shadows took 2.007 s
+2026-10-11 23:7:14  Startup: Loading surface textures
+2026-10-11 23:7:14  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.627 s, decode CPU 0.376 s, mip CPU 1.045 s, upload 0.044 s
+2026-10-11 23:7:14  Startup: Loading surface textures took 0.627 s
+2026-10-11 23:7:14  Startup: Loading city models and animations
+2026-10-11 23:7:15  Startup: Loading city models and animations took 0.993 s
+2026-10-11 23:7:15  Startup: Preparing city geometry
+2026-10-11 23:7:15  Startup: Preparing city geometry took 0.003 s
+2026-10-11 23:7:15  Startup: Preparing regional textures
+2026-10-11 23:7:23  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 7.538 s, decode CPU 3.108 s, mip CPU 19.871 s, upload 0.262 s
+2026-10-11 23:7:23  Startup: Preparing regional textures took 7.538 s
+2026-10-11 23:7:23  Startup: Uploading regional graphics
+2026-10-11 23:7:23  Startup: Uploading regional graphics took 0.085 s
+2026-10-11 23:7:23  Startup: Loading HDR lighting
+2026-10-11 23:7:23  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-11 23:7:23  CPU scene workers: 4
+2026-10-11 23:7:23  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-11 23:7:23  Renderer initialized
+2026-10-11 23:7:23  Startup: Loading HDR lighting took 0.020 s
+2026-10-11 23:7:23  Startup: Starting audio and loading settings
+2026-10-11 23:7:23  Startup: Starting audio and loading settings took 0.473 s
+2026-10-11 23:7:23  Startup: Loading gameplay data
+2026-10-11 23:7:23  Startup: Loading gameplay data took 0.107 s
+2026-10-11 23:7:23  Startup: Building the city and physics world
+2026-10-11 23:7:23  Startup: Building the city and physics world took 0.027 s
+2026-10-11 23:7:23  Startup: Loading saved progress
+2026-10-11 23:7:23  Startup: Loading saved progress took 0.000 s
+2026-10-11 23:7:23  Startup: Preparing the first frame
+2026-10-11 23:7:23  GPU skinning: 8 ordinary poses, 117702 vertices; shared color/shadow buffer
+2026-10-11 23:7:25  Screenshot saved: screenshots/MiniCity3D-20261011-230724-964-27280-0.png
+2026-10-11 23:7:25  Screenshot saved: screenshots/MiniCity3D-20261011-230725-472-27280-1.png
+2026-10-11 23:7:26  Screenshot saved: screenshots/MiniCity3D-20261011-230725-954-27280-2.png
+2026-10-11 23:7:26  Screenshot saved: screenshots/MiniCity3D-20261011-230726-420-27280-3.png
+2026-10-11 23:7:27  Screenshot saved: screenshots/MiniCity3D-20261011-230726-907-27280-4.png
+2026-10-11 23:7:27  ImGui widget open graphics: PASS
+2026-10-11 23:7:28  ImGui widget graphics combo: PASS
+2026-10-11 23:7:29  ImGui widget graphics combo restore: PASS
+2026-10-11 23:7:29  ImGui widget 720p resize: PASS
+2026-10-11 23:7:29  Screenshot saved: screenshots/MiniCity3D-20261011-230729-921-27280-5.png
+2026-10-11 23:7:30  ImGui widget graphics back: PASS
+2026-10-11 23:7:30  ImGui widget open controls: PASS
+2026-10-11 23:7:31  ImGui widget controls checkbox: PASS
+2026-10-11 23:7:32  ImGui widget start rebinding: PASS
+2026-10-11 23:7:32  ImGui widget key binding through Win32 input: PASS
+2026-10-11 23:7:33  ImGui widget open audio: PASS
+2026-10-11 23:7:33  ImGui widget audio slider: PASS
+2026-10-11 23:7:34  ImGui widget resume: PASS
+2026-10-11 23:7:34  ImGui widget open shop: PASS
+2026-10-11 23:7:35  Screenshot saved: screenshots/MiniCity3D-20261011-230735-044-27280-6.png
+2026-10-11 23:7:35  ImGui widget shop purchase: PASS
+2026-10-11 23:7:36  ImGui widget shop close: PASS
+2026-10-11 23:7:36  Screenshot saved: screenshots/MiniCity3D-20261011-230736-545-27280-7.png
+2026-10-11 23:7:37  ImGui widget buy house: PASS
+2026-10-11 23:7:37  Screenshot saved: screenshots/MiniCity3D-20261011-230737-559-27280-8.png
+2026-10-11 23:7:38  ImGui widget store vehicle: PASS
+2026-10-11 23:7:38  ImGui widget fast travel: PASS
+2026-10-11 23:7:39  Screenshot saved: screenshots/MiniCity3D-20261011-230739-186-27280-9.png
+2026-10-11 23:7:39  ImGui widget debug cash: PASS
+2026-10-11 23:7:40  ImGui widget debug close: PASS
+2026-10-11 23:7:40  Screenshot saved: screenshots/MiniCity3D-20261011-230740-863-27280-10.png
+2026-10-11 23:7:41  ImGui widget timer cancel: PASS
+2026-10-11 23:7:42  ImGui widget timer arm: PASS
+2026-10-11 23:7:43  Screenshot saved: screenshots/MiniCity3D-20261011-230743-065-27280-11.png
+2026-10-11 23:7:43  ImGui widget inventory pick up: PASS
+2026-10-11 23:7:44  ImGui widget inventory place: PASS
+2026-10-11 23:7:44  ImGui widget inventory split: PASS
+2026-10-11 23:7:45  ImGui widget inventory merge: PASS
+2026-10-11 23:7:45  ImGui widget craft recipe: PASS
+2026-10-11 23:7:46  ImGui widget inventory close: PASS
+2026-10-11 23:7:46  ImGui widget place chest fixture: PASS
+2026-10-11 23:7:46  ImGui widget open chest: PASS
+2026-10-11 23:7:46  Screenshot saved: screenshots/MiniCity3D-20261011-230746-810-27280-12.png
+2026-10-11 23:7:47  Screenshot saved: screenshots/MiniCity3D-20261011-230747-319-27280-13.png
+2026-10-11 23:7:47  ImGui widget shift transfer to chest: PASS
+2026-10-11 23:7:48  ImGui widget shift transfer from chest: PASS
+2026-10-11 23:7:48  ImGui widget chest close: PASS
+2026-10-11 23:7:49  ImGui widget save game: PASS
+2026-10-11 23:7:53  ImGui widget load game: PASS
+2026-10-11 23:7:53  ImGui native menu review: PASS C:\GIT_local\MyVibeGTA\build-msvc-ninja\imgui-review-27280
+2026-10-11 23:7:53  Application stopped

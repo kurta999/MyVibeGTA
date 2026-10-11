@@ -102,7 +102,7 @@ git submodule update --init --recursive
 ./MiniCity3D.exe
 ```
 
-`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places `MiniCity3D.exe` in the repository root. Close a running root executable before rebuilding it.
+`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the DX11 executable with Dear ImGui menus at `MiniCity3D.exe` in the repository root. Optional `-DX12` builds use a separate build directory with a `-dx12` suffix and deliver `MiniCity3D-DX12.exe`, preserving the default build and executable. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
 
 To build without running tests:
 
@@ -125,8 +125,8 @@ Both Direct3D builds support [Tracy v0.13.1](https://github.com/wolfpld/tracy/re
 ```powershell
 ./build.ps1 -DX12 -Tracy -DX11Benchmark
 ./tools/benchmark_game.ps1 -Executable @(
-    './build-msvc-ninja/MiniCity3D.exe',
-    './build-msvc-ninja/MiniCity3D-DX11-benchmark.exe'
+    './build-msvc-ninja-dx12/MiniCity3D.exe',
+    './build-msvc-ninja-dx12/MiniCity3D-DX11-benchmark.exe'
 ) -Frames 240 -Warmup 60 -Repeats 3
 ```
 
@@ -147,13 +147,13 @@ This waits up to 15 seconds for connection before startup and saves `capture.tra
 
 ### Native DX12 and AMD FSR2
 
-The default `MiniCity3D` build uses Direct3D 11 and Dear ImGui menus. To select the optional native DX12/FSR2 backend, run `./build.ps1 -DX12` (CMake: `-DMINI_CITY_USE_DX12=ON`). That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+The default `MiniCity3D` build uses Direct3D 11 and Dear ImGui menus. To select the optional native DX12/FSR2 backend, run `./build.ps1 -DX12` and launch `./MiniCity3D-DX12.exe` (CMake: `-DMINI_CITY_USE_DX12=ON`, using a separate build directory). DX12 currently retains the previous menu backend. That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
 
 In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
 ```powershell
-./MiniCity3D.exe --fsr2=1  # Quality
-./MiniCity3D.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
+./MiniCity3D-DX12.exe --fsr2=1  # Quality
+./MiniCity3D-DX12.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
 ```
 
 | ID / mode | Render resolution at 1920 × 1080 | Linear scale |
@@ -355,7 +355,7 @@ ctest --test-dir build-msvc-ninja -C Release -R 'expansion_scenarios|equipment_s
 ctest --test-dir build-msvc-ninja -C Release -R 'dx12_fsr2_|gpu_profiler_scenarios|resource_cache_scenarios' --output-on-failure
 ```
 
-Use the build directory produced by your generator. These historical gameplay capture scripts now run the main DX12 executable when used with a current build; their retained evidence directories describe the backend originally tested:
+Use the build directory produced by your generator. These historical gameplay capture scripts run the default DX11 executable; their retained evidence directories describe the backend originally tested:
 
 ```powershell
 ./tools/verify_vehicle_expansion.ps1
@@ -372,8 +372,8 @@ Visual smoke flags stage repeatable scenes and exit after rendering:
 ./MiniCity3D.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
 ./MiniCity3D.exe --smoke --night --driver-preview --damaged --screenshot
 ./MiniCity3D.exe --smoke --day --marina --1080p --screenshot
-./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
-./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
+./MiniCity3D-DX12.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
+./MiniCity3D-DX12.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
 ```
 
 Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MiniCity3D.log`; local measurements do not establish performance on other hardware.

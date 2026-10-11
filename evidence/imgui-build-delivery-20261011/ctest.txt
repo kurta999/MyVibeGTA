@@ -1,0 +1,7 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 13: imgui_menu_scenarios
+1/1 Test #13: imgui_menu_scenarios .............   Passed   44.12 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =  44.14 sec
