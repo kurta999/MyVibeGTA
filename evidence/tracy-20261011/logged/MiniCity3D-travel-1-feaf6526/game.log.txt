@@ -1,0 +1,82 @@
+2026-10-11 20:49:49  Application started
+2026-10-11 20:49:49  Tracy v0.13.1 enabled: CPU, native GPU, named threads and C++ heap; on-demand, system tracing disabled
+2026-10-11 20:49:49  Startup: Starting Mini City 3D took 0.090 s
+2026-10-11 20:49:49  Startup: Starting native Direct3D 12
+2026-10-11 20:49:50  Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+2026-10-11 20:49:50  Startup: Starting native Direct3D 12 took 0.315 s
+2026-10-11 20:49:50  Startup: Compiling graphics shaders
+2026-10-11 20:49:52  Shader loading: workers 4, peak active 4, completed 20/20, wall 2.492 s, CPU 4.859 s
+2026-10-11 20:49:52  Startup: Compiling graphics shaders took 2.495 s
+2026-10-11 20:49:52  Startup: Creating graphics buffers and shadows
+2026-10-11 20:49:55  Startup: Creating graphics buffers and shadows took 2.844 s
+2026-10-11 20:49:55  Startup: Loading surface textures
+2026-10-11 20:49:56  Texture loading: Loading surface textures; workers 4, peak active 4, completed 18/18, pending <= 4, wall 0.643 s, decode CPU 0.373 s, mip CPU 1.094 s, upload 0.050 s
+2026-10-11 20:49:56  Startup: Loading surface textures took 0.644 s
+2026-10-11 20:49:56  Startup: Loading city models and animations
+2026-10-11 20:49:56  Startup: Loading city models and animations took 0.702 s
+2026-10-11 20:49:56  Startup: Preparing city geometry
+2026-10-11 20:49:56  Startup: Preparing city geometry took 0.002 s
+2026-10-11 20:49:56  Startup: Preparing regional textures
+2026-10-11 20:50:4  Texture loading: Preparing regional textures; workers 4, peak active 4, completed 179/179, pending <= 4, wall 7.644 s, decode CPU 2.881 s, mip CPU 20.600 s, upload 0.440 s
+2026-10-11 20:50:4  Startup: Preparing regional textures took 7.644 s
+2026-10-11 20:50:4  Startup: Uploading regional graphics
+2026-10-11 20:50:4  Startup: Uploading regional graphics took 0.316 s
+2026-10-11 20:50:4  Startup: Loading HDR lighting
+2026-10-11 20:50:4  Loaded image textures: 197, 1279.38 MiB payload; block-compressed DDS: 42, 224.00 MiB (excludes HDR probes and render targets)
+2026-10-11 20:50:4  CPU scene workers: 4
+2026-10-11 20:50:4  DX12 command recording workers: 1
+2026-10-11 20:50:4  HDR probes loaded: two local positions, day/dusk/night, nine cubes and BRDF LUT
+2026-10-11 20:50:4  Renderer initialized
+2026-10-11 20:50:4  Startup: Loading HDR lighting took 0.048 s
+2026-10-11 20:50:4  Startup: Starting audio and loading settings
+2026-10-11 20:50:5  Startup: Starting audio and loading settings took 0.463 s
+2026-10-11 20:50:5  Startup: Loading gameplay data
+2026-10-11 20:50:5  Startup: Loading gameplay data took 0.108 s
+2026-10-11 20:50:5  Startup: Building the city and physics world
+2026-10-11 20:50:5  Startup: Building the city and physics world took 0.030 s
+2026-10-11 20:50:5  Startup: Loading saved progress
+2026-10-11 20:50:5  Startup: Loading saved progress took 0.000 s
+2026-10-11 20:50:5  Startup: Preparing the first frame
+2026-10-11 20:50:5  GPU skinning: 4 poses including procedural/aim/rigid attachments, 65286 vertices; shared color/shadow buffer
+2026-10-11 20:50:6  Travel frame at 300,235: scene 90.6 ms, uploads 418.9 ms, draw/HUD 88.3 ms, present 3.6 ms
+2026-10-11 20:50:6  Benchmark configuration: 120 measured frames, 30 warm-up ticks, seed 1, fixed 60 Hz, VSync off
+2026-10-11 20:50:6  Travel frame at 12000,8500: scene 33.3 ms, uploads 22.1 ms, draw/HUD 5.0 ms, present 0.2 ms
+2026-10-11 20:50:7  Travel frame at 7800,8500: scene 26.6 ms, uploads 67.2 ms, draw/HUD 47.9 ms, present 0.3 ms
+2026-10-11 20:50:7  Travel frame at 7800,8500: scene 0.4 ms, uploads 0.3 ms, draw/HUD 5.9 ms, present 49.1 ms
+2026-10-11 20:50:7  Travel frame at 5000,6000: scene 26.2 ms, uploads 22.2 ms, draw/HUD 5.9 ms, present 0.2 ms
+2026-10-11 20:50:7  Travel frame at 5000,6000: scene 1.2 ms, uploads 0.7 ms, draw/HUD 6.0 ms, present 84.3 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 1.7 ms, uploads 1.2 ms, draw/HUD 8.3 ms, present 40.1 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.0 ms, uploads 1.7 ms, draw/HUD 14.1 ms, present 24.8 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.0 ms, uploads 2.0 ms, draw/HUD 15.1 ms, present 20.1 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.0 ms, uploads 1.5 ms, draw/HUD 10.0 ms, present 24.5 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.8 ms, uploads 1.6 ms, draw/HUD 12.6 ms, present 23.5 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.0 ms, uploads 1.9 ms, draw/HUD 14.4 ms, present 20.9 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.9 ms, uploads 1.8 ms, draw/HUD 14.0 ms, present 23.5 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.5 ms, uploads 1.3 ms, draw/HUD 12.1 ms, present 27.9 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.5 ms, uploads 1.3 ms, draw/HUD 10.9 ms, present 32.0 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.1 ms, uploads 1.7 ms, draw/HUD 14.2 ms, present 25.0 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.1 ms, uploads 1.8 ms, draw/HUD 13.8 ms, present 24.3 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.1 ms, uploads 1.8 ms, draw/HUD 14.7 ms, present 19.6 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.1 ms, uploads 1.1 ms, draw/HUD 10.1 ms, present 28.0 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 1.9 ms, uploads 1.1 ms, draw/HUD 10.4 ms, present 27.7 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 5.2 ms, uploads 2.6 ms, draw/HUD 20.5 ms, present 10.0 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.9 ms, uploads 1.9 ms, draw/HUD 14.3 ms, present 20.0 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 2.2 ms, uploads 1.3 ms, draw/HUD 10.0 ms, present 27.2 ms
+2026-10-11 20:50:8  Travel frame at 5000,6000: scene 3.0 ms, uploads 1.9 ms, draw/HUD 14.5 ms, present 18.3 ms
+2026-10-11 20:50:8  Travel frame at 12000,3000: scene 39.8 ms, uploads 21.4 ms, draw/HUD 5.4 ms, present 1.0 ms
+2026-10-11 20:50:9  Travel frame at 12000,14000: scene 20.9 ms, uploads 17.5 ms, draw/HUD 5.7 ms, present 0.3 ms
+2026-10-11 20:50:9  Travel frame at 4000,14000: scene 31.2 ms, uploads 39.5 ms, draw/HUD 5.9 ms, present 0.2 ms
+2026-10-11 20:50:9  Travel frame at 4000,14000: scene 0.4 ms, uploads 0.2 ms, draw/HUD 6.0 ms, present 62.4 ms
+2026-10-11 20:50:10  Benchmark travel 1920x1080: avg 27.68 ms (sim 3.20, physics 2.51, render 24.48), p95 59.69 ms, p99 93.41 ms, max 149.64 ms, draws 302, active AI 18 over 120 frames, 0 flames, RAM 930 MiB, nearby trees 102/8483, decorations 0/6574
+2026-10-11 20:50:10  GPU timing: shadow 4.16 ms, scene 11.08 ms, post/HUD 8.83 ms (120 nonblocking samples); submitted triangles 1440748/frame
+2026-10-11 20:50:10  CPU scene work: deformation 0.000 ms (0 vertices/frame), grass rebuild 0.439 ms, 0.10 parallel batches/frame
+2026-10-11 20:50:10  CPU rendering: scene 2.534 ms, upload/cull 2.089 ms, draw/HUD 10.844 ms, present 8.978 ms (seed 1)
+2026-10-11 20:50:10  Startup: Preparing the first frame took 4.623 s
+2026-10-11 20:50:10  Startup: Ready
+2026-10-11 20:50:10  Startup ready in 20.323 s
+2026-10-11 20:50:10  DX12 worker recording: 0 batches, 0 lists, 0 draws, peak 0 workers, 0.000 ms total worker CPU, 0.000 ms total join wait
+2026-10-11 20:50:10  DX12 GPU deformation: 0.245 ms (148 nonblocking samples; additional to shadow/scene/post timing)
+2026-10-11 20:50:10  DX12 GPU post stages: bloom 0.407, reflections 1.001, cloud volume 3.493, composition/SSAO 1.560, tone 0.715, temporal/display 1.588, HUD upload/draw 0.476 ms (148 nonblocking samples)
+2026-10-11 20:50:10  DX12 geometry: 983210 shadow + 323678 scene triangles/frame, 703.5 sun caster candidates, 223.4 receiver-culled, 0.4 shadow-LOD instances/frame (150 frames)
+2026-10-11 20:50:10  Smoke render completed
+2026-10-11 20:50:10  Application stopped

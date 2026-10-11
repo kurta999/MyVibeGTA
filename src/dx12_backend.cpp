@@ -17,8 +17,14 @@ View* view(Device* owner,Resource* r,D3D12_DESCRIPTOR_HEAP_TYPE type){auto h=own
 }
 View::~View(){if(resource)resource->Release();if(owner)owner->freeDescriptors[heapType].push_back(handle);}
 SamplerState::~SamplerState(){if(owner)owner->freeDescriptors[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].push_back(handle);}
-Device::~Device(){if(queue&&fence&&eventHandle){try{submit();}catch(...){}}if(eventHandle)CloseHandle(eventHandle);}
+Device::~Device(){if(queue&&fence&&eventHandle){try{submit();}catch(...){}}
+#ifdef TRACY_ENABLE
+    tracyEnd();
+    if(tracyContext){TracyD3D12Destroy(tracyContext);}
+#endif
+    if(eventHandle)CloseHandle(eventHandle);}
 HRESULT Device::initialize(HWND window,UINT width,UINT height){
+    CITY_ZONE("DX12 device initialization");
     if(std::strstr(GetCommandLineA(),"--dx12-debug")){
         ComPtr<ID3D12Debug> debug;if(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))debug->EnableDebugLayer();
     }
@@ -36,6 +42,10 @@ HRESULT Device::initialize(HWND window,UINT width,UINT height){
     std::printf("Native Direct3D 12 adapter: %s\n",name);
     D3D12_COMMAND_QUEUE_DESC q{};q.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;check(native->CreateCommandQueue(&q,IID_PPV_ARGS(&queue)));
     check(queue->GetTimestampFrequency(&timestampFrequency));
+#ifdef TRACY_ENABLE
+    tracyContext=TracyD3D12Context(native.Get(),queue.Get());
+    TracyD3D12ContextName(tracyContext,"DX12 direct queue",17);
+#endif
     DXGI_SWAP_CHAIN_DESC1 sd{};sd.Width=width;sd.Height=height;sd.Format=DXGI_FORMAT_B8G8R8A8_UNORM;sd.SampleDesc.Count=1;sd.BufferCount=2;
     sd.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT;sd.SwapEffect=DXGI_SWAP_EFFECT_FLIP_DISCARD;sd.Flags=DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     ComPtr<IDXGISwapChain1> initial;check(factory->CreateSwapChainForHwnd(queue.Get(),window,&sd,nullptr,nullptr,&initial));check(initial.As(&swap));
@@ -65,15 +75,21 @@ HRESULT Device::initialize(HWND window,UINT width,UINT height){
     return S_OK;
 }
 void Device::waitFor(UINT64 value){
+    CITY_ZONE("DX12 fence wait");
     if(fence->GetCompletedValue()<value){check(fence->SetEventOnCompletion(value,eventHandle));if(WaitForSingleObject(eventHandle,30000)!=WAIT_OBJECT_0)throw std::runtime_error("DX12 GPU fence timeout");}
 }
 void Device::submit(bool wait){
+    CITY_ZONE("DX12 submit and recycle");
     if(context)context->endParallel();
     joinRecordings();
+    tracyEnd();
     check(commands->Close());pendingLists.push_back(commands.Get());
     // Submit ordered primary/worker segments together: implicit buffer decay
     // happens between ExecuteCommandLists calls, not between these segments.
     queue->ExecuteCommandLists(UINT(pendingLists.size()),pendingLists.data());pendingLists.clear();
+#ifdef TRACY_ENABLE
+    if(tracyContext){TracyD3D12NewFrame(tracyContext);TracyD3D12Collect(tracyContext);}
+#endif
     check(queue->Signal(fence.Get(),++serial));
     auto& submitted=frames[frameIndex];submitted.fence=serial;submitted.resources.swap(retained);submitted.uploads.swap(activeUploads);
     frameIndex=(frameIndex+1)%frameCount;
@@ -116,12 +132,30 @@ void Device::nextPrimary(){
         frame.primaryLists.push_back(list);
     }else check(frame.primaryLists[index]->Reset(allocator.Get(),nullptr));
     commands=frame.primaryLists[index];if(context)context->invalidateBindings();
+#ifdef TRACY_ENABLE
+    if(tracyContext&&tracySource)tracyZone.emplace(tracyContext,commands.Get(),tracySource,true);
+#endif
+}
+#ifdef TRACY_ENABLE
+void Device::tracyStage(const tracy::SourceLocationData* source){
+    tracyZone.reset();tracySource=source;
+    if(tracyContext&&source)tracyZone.emplace(tracyContext,commands.Get(),source,true);
+}
+#endif
+void Device::tracyEnd(){
+#ifdef TRACY_ENABLE
+    tracyZone.reset();tracySource=nullptr;
+#endif
 }
 void Device::leaseRecordingView(View* view){
     if(view&&recordingViewSet.insert(view).second){view->AddRef();recordingViews.push_back(view);}
 }
 void Device::recordDraws(cpu::Pool& pool,std::vector<Context::DrawPacket>&& draws){
     if(draws.empty())return;
+#ifdef TRACY_ENABLE
+    tracyZone.reset();
+    auto* source=tracySource;
+#endif
     check(commands->Close());pendingLists.push_back(commands.Get());
     auto packets=std::make_shared<std::vector<Context::DrawPacket>>(std::move(draws));
     auto& frame=frames[frameIndex];
@@ -140,7 +174,16 @@ void Device::recordDraws(cpu::Pool& pool,std::vector<Context::DrawPacket>&& draw
         }
         auto* list=frame.workerLists[index].commands.Get();pendingLists.push_back(list);
         size_t first=packets->size()*chunk/chunks,last=packets->size()*(chunk+1)/chunks;
-        recordingJobs.push_back(pool.submit([this,packets,list,rootSignature,viewHeap,samplerHeap,first,last]{
+        recordingJobs.push_back(pool.submit([this,packets,list,rootSignature,viewHeap,samplerHeap,first,last
+#ifdef TRACY_ENABLE
+            ,source
+#endif
+        ]{
+            CITY_ZONE("DX12 worker command recording");
+#ifdef TRACY_ENABLE
+            std::optional<tracy::D3D12ZoneScope> gpuZone;
+            if(tracyContext&&source)gpuZone.emplace(tracyContext,list,source,true);
+#endif
             auto started=std::chrono::steady_clock::now();unsigned active=++activeRecorders,peak=peakRecorders.load();
             while(active>peak&&!peakRecorders.compare_exchange_weak(peak,active)){}
             struct Done {std::atomic<unsigned>& active;~Done(){--active;}} done{activeRecorders};
@@ -150,6 +193,9 @@ void Device::recordDraws(cpu::Pool& pool,std::vector<Context::DrawPacket>&& draw
                 if(draw.indexed)list->DrawIndexedInstanced(draw.count,draw.instances,draw.start,draw.base,draw.first);
                 else list->DrawInstanced(draw.count,draw.instances,draw.start,draw.first);
             }
+#ifdef TRACY_ENABLE
+            gpuZone.reset();
+#endif
             check(list->Close());result.cpuMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-started).count();return result;
         }));
     }

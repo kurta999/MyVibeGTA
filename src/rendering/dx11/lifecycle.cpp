@@ -67,6 +67,7 @@ bool Dx11Renderer::SetExclusiveFullscreen(bool enabled, int width, int height) {
 }
 
 bool Dx11Renderer::InitRenderer() {
+    CITY_ZONE("DX11 renderer initialization");
     if (!startup::report(2, "Starting Direct3D 11"))
         return false;
     DXGI_SWAP_CHAIN_DESC description{};
@@ -116,6 +117,7 @@ bool Dx11Renderer::InitRenderer() {
         logging::write("Streetlight shadow target unavailable; continuing without its shadow");
     if (!m_profiler.Initialize(*m_device))
         logging::write("GPU timestamp queries unavailable");
+    m_tracy.Initialize(m_device, m_context);
     m_dynamicVertices = std::make_unique<::rendering::GrowableBuffer<ResourceApi>>(
         *m_device, sizeof(dx11::Vertex), 100000, 3000000);
     m_dynamicInstances = std::make_unique<::rendering::GrowableBuffer<ResourceApi>>(
@@ -233,7 +235,7 @@ bool Dx11Renderer::InitRenderer() {
                   textureStats.m_compressedCount,
                   double(textureStats.m_compressedBytes) / (1024 * 1024));
     logging::write(textureSummary);
-    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers());
+    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers(),"Scene");
     logging::write(("CPU scene workers: " + std::to_string(m_scenePool->concurrency())).c_str());
     return CreateProbes() && menus::Init(win,m_device,m_context);
 }
@@ -283,6 +285,7 @@ void Dx11Renderer::ShutdownRenderer() {
         m_context->ClearState();
     Release(m_cloudNoiseView);
     Release(m_cloudSampler);
+    m_tracy.Reset();
     m_profiler.Reset();
     ReleaseTargets();
     Release(m_shadowView);

@@ -118,6 +118,33 @@ To choose a different output executable:
 
 Create the destination directory first and keep `assets/` and `data/` beside a relocated executable. The build directory already contains both folders.
 
+### Tracy profiling and logged benchmarks
+
+Both Direct3D builds support [Tracy v0.13.1](https://github.com/wolfpld/tracy/releases/tag/v0.13.1). Build DX11 with `./build.ps1 -Tracy`, or build DX12 and the matching DX11 comparison executable together:
+
+```powershell
+./build.ps1 -DX12 -Tracy -DX11Benchmark
+./tools/benchmark_game.ps1 -Executable @(
+    './build-msvc-ninja/MiniCity3D.exe',
+    './build-msvc-ninja/MiniCity3D-DX11-benchmark.exe'
+) -Frames 240 -Warmup 60 -Repeats 3
+```
+
+CMake equivalents are `-DMINI_CITY_TRACY=ON -DMINI_CITY_USE_DX12=ON -DMINI_CITY_BUILD_DX11_BENCHMARK=ON`. Tracy is pinned to commit `05cceee0df3b8d7c6fa87e9638af311dbabc63cb`, restored on first configuration, and linked statically. Normal builds default to Tracy off. `build.ps1` explicitly selects on/off on every invocation, so a previous profiling configuration cannot silently leave it enabled. The OpenGL target does not link Tracy.
+
+Open the matching upstream `tracy-profiler.exe` and connect to localhost to inspect CPU frame/AI/physics/forest/grass/loading zones, named shader/texture/scene/recording/save threads, native DX11/DX12 GPU passes, and C++ heap allocations/frees with eight-frame allocation callstacks (including aligned allocations). MSVC profiling builds retain PDB symbols. Memory tracking covers `new`/`delete` and STL ownership; C `malloc`, driver allocations and GPU VRAM are outside these hooks. System tracing/ETW is disabled, so this build does not collect OS context switches or require elevation for Tracy. Collection is on demand while a viewer or capture tool is connected. Connect before launch with `--tracy-wait=15` to include startup allocations and loading. Without that option, normal play starts immediately; connecting later includes subsequent events, not an existing heap snapshot. Include the BSD 3-clause notice in `TRACY-LICENSE.txt` when distributing a profiling build; CMake copies it beside the executable.
+
+The benchmark runner defaults to city, dense forest and six-region travel scenarios, fixed seed 1, 60 Hz simulation, 1080p, High shadows/TAA and native rendering (`--fsr2=0`). It runs backends sequentially, alternates order across repeats, uses fresh isolated settings/save directories under `build-benchmarks/`, and leaves runtime copies there for inspection. It saves `game.log.txt`, `benchmark-frames.csv`, `run.json` and a combined `summary.csv` under the selected `-OutputDirectory`. Logs include mean/p95/p99/max frame times, simulation/physics/CPU render work, GPU shadow/scene/post timing, draws, triangles, AI and startup/loading statistics; CSV adds per-frame working set/private memory. GPU CSV values are the latest completed asynchronous samples, may repeat, and use -1 when unavailable. These are local measurements, not cross-hardware performance guarantees.
+
+Choose `-Scenarios forest`, `-Scenarios route -Frames 3600 -Warmup 120`, or `-RecordWorkers 4` for worker recording. `-Validate` enables loading validation and the DX12 debug layer for correctness checks; leave it off for timing comparisons. Benchmark logging works with Tracy disabled. For a saved Tracy trace, download the matching Windows tools from the upstream release and pass the capture executable:
+
+```powershell
+./tools/benchmark_game.ps1 -Scenarios forest -Frames 120 `
+    -CaptureExecutable './build-tools/tracy-0.13.1/tracy-capture.exe'
+```
+
+This waits up to 15 seconds for connection before startup and saves `capture.tracy` plus capture stdout/stderr beside the logs. Capture runs include Tracy overhead and should be compared separately from runs without a connected profiler. `tools/verify_tracy_capture.ps1 -Trace <capture.tracy>` exports CPU/GPU events, checks worker threads/pass timings, and verifies retained allocation data using upstream tools; add `-RequireRecordingWorkers` for a DX12 worker capture. Direct invocation also supports `--smoke --benchmark --benchmark-csv --benchmark-frames=240 --benchmark-warmup=60`; its CSV is written in the working directory. Counts are bounded and malformed values exit with a logged error. `benchmark_options_scenarios` checks those bounds, and profiling builds add `profiling_memory_scenarios` for allocation alignment, cross-thread release and failure contracts.
+
 ### Native DX12 and AMD FSR2
 
 The default `MiniCity3D` build uses Direct3D 11 and Dear ImGui menus. To select the optional native DX12/FSR2 backend, run `./build.ps1 -DX12` (CMake: `-DMINI_CITY_USE_DX12=ON`). That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
@@ -318,7 +345,7 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The current build registers **46 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records the exact verification sequence and retained captures.
+The default DX11 build registers **47 CTest entries (48 with Tracy enabled)** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering, startup and benchmark options. Tracy adds allocation-hook contract tests; the optional DX12 primary build omits the ImGui menu entry. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records that verification sequence; [Tracy evidence](evidence/tracy-20261011/README.md) records its targeted tests and real traces.
 
 To rerun focused scenarios after building with Ninja:
 

@@ -1,5 +1,6 @@
-param([switch]$OpenGL,[switch]$DX12,[string]$OutputPath='',[switch]$RunTests)
+param([switch]$OpenGL,[switch]$DX12,[switch]$Tracy,[switch]$DX11Benchmark,[string]$OutputPath='',[switch]$RunTests)
 $ErrorActionPreference = 'Stop'
+$invocationDirectory = (Get-Location).Path
 $common = @('main.cpp','input.cpp','logging.cpp','game.cpp','ai.cpp','content.cpp','audio.cpp','ui.cpp','physics.cpp','weapons.cpp',
     'savegame.cpp','camera.cpp','props.cpp')
 if ($OpenGL) {
@@ -12,6 +13,9 @@ if ($OpenGL) {
 } else {
     $root = $PSScriptRoot
     $backendOption = if ($DX12) { 'ON' } else { 'OFF' }
+    $tracyOption = if ($Tracy) { 'ON' } else { 'OFF' }
+    $comparisonOption = if ($DX11Benchmark) { 'ON' } else { 'OFF' }
+    $profilingOptions = @("-DMINI_CITY_TRACY=$tracyOption", "-DMINI_CITY_BUILD_DX11_BENCHMARK=$comparisonOption")
     if (-not (Test-Path -LiteralPath (Join-Path $root 'third_party\JoltPhysics\Build\CMakeLists.txt'))) {
         throw 'Jolt is missing. Run git submodule update --init from the repository, then build again.'
     }
@@ -43,14 +47,14 @@ if ($OpenGL) {
             $buildDirectory = Join-Path $root 'build-msvc-ninja'
             $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
             & $cmake -S $root -B $buildDirectory -G Ninja `
-                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
+                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
         } else {
             $generator = if ($vs2022) { 'Visual Studio 17 2022' }
                 else { 'Visual Studio 18 2026' }
             $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
             $buildDirectory = Join-Path $root $buildName
             $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
-            & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
+            & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
         }
     } else {
         $compiler = Get-Command clang++ -ErrorAction SilentlyContinue
@@ -62,11 +66,19 @@ if ($OpenGL) {
         $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
         & $cmake -S $root -B $buildDirectory -G Ninja `
             "-DCMAKE_CXX_COMPILER=$($compiler.Source.Replace('\','/'))" `
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
+    if($Tracy){
+        & $cmake --build $buildDirectory --config Release --target profiling_memory_scenarios --parallel 6
+        if($LASTEXITCODE -ne 0){throw "Allocation hook test build failed ($LASTEXITCODE)."}
+    }
+    if($DX11Benchmark){
+        & $cmake --build $buildDirectory --config Release --target MiniCity3D-DX11-benchmark --parallel 6
+        if($LASTEXITCODE -ne 0){throw "DX11 comparison build failed ($LASTEXITCODE)."}
+    }
     & $cmake --build $buildDirectory --config Release `
-        --target MiniCity3D resource_cache_scenarios gpu_profiler_scenarios dx12_fsr2_smoke simulation_smoke asset_smoke texture_mips_smoke texture_loading_smoke shader_loading_smoke probe_smoke startup_smoke save_jobs_smoke audio_smoke sky_smoke --parallel 6
+        --target MiniCity3D benchmark_options_scenarios resource_cache_scenarios gpu_profiler_scenarios dx12_fsr2_smoke simulation_smoke asset_smoke texture_mips_smoke texture_loading_smoke shader_loading_smoke probe_smoke startup_smoke save_jobs_smoke audio_smoke sky_smoke --parallel 6
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)." }
     # Cooked assets can change without relinking. Refresh the executable's
     # working set before tests even when Ninja reports no work to do.
@@ -83,7 +95,7 @@ if ($OpenGL) {
         if ([System.IO.Path]::IsPathRooted($OutputPath)) {
             [System.IO.Path]::GetFullPath($OutputPath)
         } else {
-            [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $OutputPath))
+            [System.IO.Path]::GetFullPath((Join-Path $invocationDirectory $OutputPath))
         }
     } else { Join-Path $root 'MiniCity3D.exe' }
     $sameExecutable = [string]::Equals($builtExecutable,$target,[System.StringComparison]::OrdinalIgnoreCase)

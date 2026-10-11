@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "dx11_assets.h"
 #include "game.h"
 #include "masonry.h"
@@ -156,6 +157,7 @@ void sortInstancesForRendering(std::vector<ModelInstance>& instances,
 }
 
 void loadMeshes(const std::wstring& folder){
+    CITY_ZONE("Load model meshes");
     meshes.clear();
     skins.clear();
     Mesh boxBase;

@@ -1,0 +1,7 @@
+"Backend","Scenario","Repeat","Frames","MeanMs","P95Ms","P99Ms","MaxMs","Directory","SHA256","TracyCapture"
+"DX12","city","1","120","23.84","24.88","25.31","26.20","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-city-1-34efe265","E45861D182F63E2180C8D6C287C3316F6AD3E6108A97933D5BA3F7A1C646C9FC","False"
+"DX12","forest","1","120","42.61","47.17","48.39","48.42","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-forest-1-11735a90","E45861D182F63E2180C8D6C287C3316F6AD3E6108A97933D5BA3F7A1C646C9FC","False"
+"DX12","travel","1","120","27.68","59.69","93.41","149.64","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-travel-1-feaf6526","E45861D182F63E2180C8D6C287C3316F6AD3E6108A97933D5BA3F7A1C646C9FC","False"
+"DX11","city","1","120","26.42","27.87","28.37","28.50","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-DX11-benchmark-city-1-e1488807","638583B4124F1117012FAEA433FE6A7BD397BC863C9AECEE838EA50269C7F40F","False"
+"DX11","forest","1","120","49.14","52.52","55.27","57.56","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-DX11-benchmark-forest-1-85f0db05","638583B4124F1117012FAEA433FE6A7BD397BC863C9AECEE838EA50269C7F40F","False"
+"DX11","travel","1","120","24.87","47.79","52.63","62.59","C:\GIT_local\MyVibeGTA\evidence\tracy-20261011\logged\MiniCity3D-DX11-benchmark-travel-1-bce8ed4d","638583B4124F1117012FAEA433FE6A7BD397BC863C9AECEE838EA50269C7F40F","False"

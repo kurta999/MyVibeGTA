@@ -3,6 +3,11 @@
 namespace game {
 using ::rendering::GpuStage;
 void Dx12Renderer::Render() {
+    CITY_ZONE("DX12 render frame");
+    profiling::Phase cpuPhase;
+    CITY_CPU_STAGE(cpuPhase, "DX12 prepare scene");
+    // End the final GPU scope even when a target/upload check exits early.
+    struct EndTracy { dx12::Device* device; ~EndTracy(){if(device)device->tracyEnd();} } endTracy{m_device};
     if (m_deviceLost || !m_device || !m_context)
         return;
     if (m_groundRevision != excavation::revision() && !CreateStaticGeometry())
@@ -61,6 +66,7 @@ void Dx12Renderer::Render() {
     dx11::buildScene(m_groups, m_models, pose.eye.x, pose.eye.y, pose.eye.z,
                      m_skinCS ? &m_gpuSkins : nullptr, m_probeBakeActive, m_scenePool.get(), true);
     m_profiler.Begin(*m_context);
+    CITY_DX12_STAGE(m_device, "GPU skin deformation");
     if (m_skinCS)
         PrepareSkins();
     else {
@@ -68,7 +74,9 @@ void Dx12Renderer::Render() {
         m_skinVertexCount = 0;
     }
     m_profiler.Mark(*m_context, GpuStage::SkinEnd);
+    m_device->tracyEnd();
     auto sceneBuilt = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX12 upload and cull");
     size_t vertexCount = 0, starts[dx11::MATERIAL_GROUPS]{}, counts[dx11::MATERIAL_GROUPS]{};
     for (int group = 0; group < dx11::MATERIAL_GROUPS; ++group) {
         starts[group] = vertexCount;
@@ -139,6 +147,7 @@ void Dx12Renderer::Render() {
     if (!PrepareInstances(pose, constants))
         return;
     auto instancesReady = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX12 draw submission");
     UINT stride = sizeof(dx11::Vertex), offset = 0;
     m_context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
     m_context->IASetInputLayout(m_inputLayout);
@@ -148,6 +157,7 @@ void Dx12Renderer::Render() {
     m_context->HSSetConstantBuffers(0, 1, &m_sceneBuffer);
     m_context->DSSetConstantBuffers(0, 1, &m_sceneBuffer);
     m_profiler.Mark(*m_context, GpuStage::SceneBegin);
+    CITY_DX12_STAGE(m_device, "Shadows");
     if (constants.m_params.w > 0) {
         dx12::ShaderResourceView* empty = nullptr;
         m_context->PSSetShaderResources(4, 1, &empty);
@@ -242,6 +252,7 @@ void Dx12Renderer::Render() {
         DrawInstances(true, shadowConstants, false, 0, 2);
     }
     m_profiler.Mark(*m_context, GpuStage::ShadowEnd);
+    CITY_DX12_STAGE(m_device, "Scene and forest");
     const auto shadowTriangles = triangleCount;
     float clearColor[] = {constants.m_fogColor.x, constants.m_fogColor.y, constants.m_fogColor.z,
                           1};
@@ -316,6 +327,7 @@ void Dx12Renderer::Render() {
     m_context->OMSetDepthStencilState(nullptr, 0);
     SetTessellation(-1);
     m_profiler.Mark(*m_context, GpuStage::SceneEnd);
+    CITY_DX12_STAGE(m_device, "Bloom");
     ++m_geometryStats.m_frames;
     m_geometryStats.m_shadowTriangles += shadowTriangles;
     m_geometryStats.m_sceneTriangles += triangleCount - shadowTriangles;
@@ -357,6 +369,7 @@ void Dx12Renderer::Render() {
         }
     }
     m_profiler.Mark(*m_context, GpuStage::BloomEnd);
+    CITY_DX12_STAGE(m_device, "Reflections");
     PostConstants post{};
     post.viewProjection = constants.m_viewProjection;
     XMStoreFloat4x4(&post.inverseViewProjection,
@@ -474,6 +487,7 @@ void Dx12Renderer::Render() {
         m_context->PSSetShaderResources(0, 4, empty);
     }
     m_profiler.Mark(*m_context, GpuStage::ReflectionsEnd);
+    CITY_DX12_STAGE(m_device, "Volumetric clouds");
     dx12::ShaderResourceView* emptyVolume[2]{};
     m_context->PSSetShaderResources(9, 2, emptyVolume);
     if (post.temporal.z > .5f) {
@@ -498,6 +512,7 @@ void Dx12Renderer::Render() {
         ++drawCalls;
     }
     m_profiler.Mark(*m_context, GpuStage::CloudsEnd);
+    CITY_DX12_STAGE(m_device, "Composition and SSAO");
     D3D12_VIEWPORT postViewport{};
     postViewport.Width = float(m_bufferW);
     postViewport.Height = float(m_bufferH);
@@ -529,6 +544,7 @@ void Dx12Renderer::Render() {
     dx12::ShaderResourceView* emptyInputs[8]{};
     m_context->PSSetShaderResources(0, 8, emptyInputs);
     m_profiler.Mark(*m_context, GpuStage::CompositionEnd);
+    CITY_DX12_STAGE(m_device, "Tone mapping");
     dx11::tone::Constants tone;
     tone.grade[0] = post.grade.x;
     tone.grade[1] = post.grade.y;
@@ -585,6 +601,7 @@ void Dx12Renderer::Render() {
     m_context->PSSetShaderResources(0, 2, toneEmpty);
     dx12::ShaderResourceView* displayImage = m_postView;
     m_profiler.Mark(*m_context, GpuStage::ToneEnd);
+    CITY_DX12_STAGE(m_device, "Temporal AA and FSR2");
     if (temporalAA || motionDebug) {
         m_context->OMSetRenderTargets(1, &m_motionTarget, nullptr);
         m_context->PSSetShader(m_motionPS, nullptr, 0);
@@ -667,6 +684,7 @@ void Dx12Renderer::Render() {
     }
     ++m_exposureFrame;
     m_profiler.Mark(*m_context, GpuStage::TemporalEnd);
+    CITY_DX12_STAGE(m_device, "HUD");
     auto hudBegin = std::chrono::steady_clock::now();
     dx11::buildHud(m_hudPixels.data(), m_displayW, m_displayH);
     if (GetEnvironmentVariableA("MINICITY_CPU_PROFILE", nullptr, 0)) {
@@ -694,13 +712,16 @@ void Dx12Renderer::Render() {
         m_context->OMSetDepthStencilState(nullptr, 0);
     }
     m_profiler.End(*m_context);
+    m_device->tracyEnd();
     if (std::strstr(commandLine, "--capture-converged") && m_temporalFrame == 18)
         screenshotRequested = true;
     CaptureIfRequested();
     auto beforePresent = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX12 present");
     m_device->transition(m_target->resource, D3D12_RESOURCE_STATE_PRESENT);
     HRESULT presentResult =
         m_device->present(std::strstr(GetCommandLineA(), "--benchmark") ? 0 : 1);
+    CITY_FRAME();
     Release(m_target);
     dx12::Texture2D* nextBack = nullptr;
     if (SUCCEEDED(m_device->backBuffer(&nextBack))) {

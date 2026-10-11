@@ -13,6 +13,16 @@
 #include <unordered_set>
 #include <atomic>
 #include <future>
+#include "profiling.h"
+#ifdef TRACY_ENABLE
+#include <tracy/TracyD3D12.hpp>
+#include <optional>
+#define CITY_DX12_STAGE(device, name) do { \
+    static constexpr tracy::SourceLocationData source{name, __FUNCTION__, __FILE__, __LINE__, 0}; \
+    (device)->tracyStage(&source); } while(false)
+#else
+#define CITY_DX12_STAGE(device, name) ((void)0)
+#endif
 
 namespace cpu {class Pool;}
 
@@ -221,6 +231,15 @@ struct Device:Ref {
     void recordDraws(cpu::Pool&,std::vector<Context::DrawPacket>&&);
     void joinRecordings();
     void nextPrimary();
+#ifdef TRACY_ENABLE
+    // Close profiling scopes before closing a list; resume on its successor.
+    // This also covers primary/worker splits without writing to a closed list.
+    TracyD3D12Ctx tracyContext=nullptr;
+    const tracy::SourceLocationData* tracySource=nullptr;
+    std::optional<tracy::D3D12ZoneScope> tracyZone;
+    void tracyStage(const tracy::SourceLocationData* source);
+#endif
+    void tracyEnd();
     ~Device();
     HRESULT initialize(HWND,UINT,UINT);
     // Explicit readback, resize and teardown drain the queue; Present does not.

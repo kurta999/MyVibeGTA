@@ -17,6 +17,29 @@ target_link_libraries(MiniCityImGui PUBLIC d3d11 d3dcompiler dwmapi)
 
 # AMD FSR2 2.2.1: pinned upstream source, native DX12 backend and offline shaders.
 include(FetchContent)
+option(MINI_CITY_TRACY "Enable Tracy CPU, GPU, thread and C++ allocation profiling" OFF)
+if(MINI_CITY_TRACY)
+  FetchContent_Declare(tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG 05cceee0df3b8d7c6fa87e9638af311dbabc63cb # v0.13.1
+    GIT_SUBMODULES ""
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/tracy")
+  set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy client" FORCE)
+  set(TRACY_ON_DEMAND ON CACHE BOOL "Collect only while a profiler is connected" FORCE)
+  set(TRACY_NO_SYSTEM_TRACING ON CACHE BOOL "No elevated ETW session required" FORCE)
+  set(TRACY_STATIC ON CACHE BOOL "Static Tracy client" FORCE)
+  FetchContent_MakeAvailable(tracy)
+endif()
+function(minicity_enable_tracy target)
+  if(MINI_CITY_TRACY)
+    target_sources(${target} PRIVATE src/profiling_memory.cpp)
+    target_link_libraries(${target} PRIVATE Tracy::TracyClient)
+    if(MSVC)
+      target_compile_options(${target} PRIVATE /Zi)
+      target_link_options(${target} PRIVATE /DEBUG)
+    endif()
+  endif()
+endfunction()
 FetchContent_Declare(fsr2
   GIT_REPOSITORY https://github.com/GPUOpen-Effects/FidelityFX-FSR2.git
   GIT_TAG 1680d1edd5c034f88ebbbb793d8b88f8842cf804
@@ -67,6 +90,7 @@ add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     ${PRIMARY_RENDERER_SOURCES} src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
+minicity_enable_tracy(MiniCity3D)
 target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 if(MINI_CITY_USE_DX12)
   target_compile_definitions(MiniCity3D PRIVATE MINI_CITY_DX12)
@@ -85,7 +109,9 @@ add_custom_target(MiniCityRuntimeAssets
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-  "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data")
+  "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  "${CMAKE_CURRENT_SOURCE_DIR}/TRACY-LICENSE.txt" "$<TARGET_FILE_DIR:MiniCity3D>/TRACY-LICENSE.txt")
 add_dependencies(MiniCity3D MiniCityRuntimeAssets)
 
 option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
@@ -93,8 +119,10 @@ option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for perf
 if(MINI_CITY_BUILD_DX11_BENCHMARK)
   get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
   list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} ${DX11_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp src/imgui_menus.cpp)
+  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES src/profiling_memory.cpp)
   add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} src/imgui_menus.cpp)
   target_compile_features(MiniCity3D-DX11-benchmark PRIVATE cxx_std_17)
+  minicity_enable_tracy(MiniCity3D-DX11-benchmark)
   target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_IMGUI)
   target_include_directories(MiniCity3D-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
   target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE MiniCityImGui MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
@@ -112,6 +140,15 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(benchmark_options_scenarios tests/benchmark_options_scenarios.cpp)
+  target_compile_features(benchmark_options_scenarios PRIVATE cxx_std_17)
+  add_test(NAME benchmark_options_scenarios COMMAND benchmark_options_scenarios)
+  if(MINI_CITY_TRACY)
+    add_executable(profiling_memory_scenarios tests/profiling_memory_scenarios.cpp src/profiling_memory.cpp)
+    target_compile_features(profiling_memory_scenarios PRIVATE cxx_std_17)
+    target_link_libraries(profiling_memory_scenarios PRIVATE Tracy::TracyClient)
+    add_test(NAME profiling_memory_scenarios COMMAND profiling_memory_scenarios)
+  endif()
   add_executable(resource_cache_scenarios tests/resource_cache_scenarios.cpp
     src/dx11_texture_loading.cpp src/dx11_texture_mips.cpp src/logging.cpp)
   target_compile_features(resource_cache_scenarios PRIVATE cxx_std_17)

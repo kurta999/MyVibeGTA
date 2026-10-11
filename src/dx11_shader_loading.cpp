@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "dx11_shader_loading.h"
 #include "cpu_jobs.h"
 #include <atomic>
@@ -12,12 +13,13 @@ bool compileBatch(const std::vector<Request>& requests,unsigned workers,
     stats={};stats.workers=std::clamp(workers,1u,8u);outputs.clear();outputs.resize(requests.size());
     struct Finish {Stats& stats;Clock::time_point start;~Finish(){stats.wallSeconds=std::chrono::duration<double>(Clock::now()-start).count();}} finish{stats,started};
     std::atomic<bool> cancelled{false};std::atomic<unsigned> active{0},peak{0};
-    cpu::Pool pool(stats.workers);
+    cpu::Pool pool(stats.workers,"Shader loading");
     struct Cancel {std::atomic<bool>& flag;~Cancel(){flag=true;}} cancelOnExit{cancelled};
     std::vector<std::future<Compiled>> jobs;
     try{
         if(!progress(0,requests.size()))return false;
         for(std::size_t i=0;i<requests.size();++i)jobs.push_back(pool.submit([&,i]{
+            CITY_ZONE("Compile shader");
             Compiled result;if(cancelled.load())return result;
             auto concurrent=active.fetch_add(1)+1,oldPeak=peak.load();
             while(oldPeak<concurrent&&!peak.compare_exchange_weak(oldPeak,concurrent)){}

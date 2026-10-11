@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include <windows.h>
 #include <objidl.h>
 #include <gdiplus.h>
@@ -72,6 +73,7 @@ unsigned defaultLoadingWorkers(){
     return std::min(4u,hardware>1?hardware-1:1u);
 }
 Prepared prepare(const Request& request,const std::atomic<bool>* cancel){
+    CITY_ZONE("Texture decode and mip preparation");
     Prepared result;
     if(stopped(cancel))return result;
     auto extension=std::filesystem::path(request.file).extension().wstring();
@@ -111,7 +113,7 @@ bool prepareBatch(const std::vector<Request>& requests,unsigned workers,
     struct Finish {LoadingStats& stats;Clock::time_point started;~Finish(){stats.wallSeconds=seconds(started);}} finish{stats,started};
     std::atomic<bool> cancel{false};
     std::atomic<unsigned> active{0},peak{0};
-    cpu::Pool pool(stats.workers);
+    cpu::Pool pool(stats.workers,"Texture loading");
     // Declare the guard after the pool so cancellation is signalled before join.
     struct Cancel {std::atomic<bool>& flag;~Cancel(){flag=true;}} cancelOnExit{cancel};
     std::deque<std::future<Prepared>> pending;

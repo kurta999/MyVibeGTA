@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "mission_script.h"
 #include "dx11_assets.h"
 #include "dx11_terrain.h"
@@ -763,6 +764,7 @@ void buildings(){
 }
 struct GrassTuft {Vec2 p;float width,height,yaw;Color tint;grass::Surface surface;int ring;std::uint32_t seed;};
 void texturedGrass(){
+    CITY_ZONE("Grass preparation");
     const float radius=ui::grassDistanceUnits();
     const float detailRadius=ui::grassLodDistanceUnits();
     const float midRadius=std::max(260.0f,detailRadius*(260.0f/95.0f));
@@ -834,6 +836,7 @@ void texturedGrass(){
     }
 }
 void vegetation(){
+    CITY_ZONE("Forest vegetation and LOD");
     if(ui::vegetationDensity==0)return;
     texturedGrass();
     auto bushName=[](int variant){
@@ -1716,6 +1719,7 @@ void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelIns
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances,
                 float cameraX,float cameraY,float cameraZ,std::vector<SkinInstance>* gpuSkins,bool staticOnly,cpu::Pool* jobs,bool extendedGpuSkins){
+    CITY_ZONE("Build render scene");
     extendedSkinning=extendedGpuSkins;
     sceneJobs=jobs;workStats={};
     struct ResetJobs {~ResetJobs(){sceneJobs=nullptr;}} resetJobs;

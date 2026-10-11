@@ -1,0 +1,16 @@
+{
+  "Executable": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\MiniCity3D.exe",
+  "SHA256": "E45861D182F63E2180C8D6C287C3316F6AD3E6108A97933D5BA3F7A1C646C9FC",
+  "Backend": "DX12",
+  "Scenario": "city",
+  "Repeat": 1,
+  "Arguments": "--smoke --benchmark --benchmark-csv --benchmark-frames=120 --benchmark-warmup=30 --1080p --day --high-shadows --high-taa --fsr2=0 --loader-workers=4 --scene-workers=4 --record-workers=1",
+  "Frames": 120,
+  "Warmup": 30,
+  "ExitCode": 0,
+  "RuntimeDirectory": "C:\\GIT_local\\MyVibeGTA\\build-benchmarks\\MiniCity3D-city-1-34efe265",
+  "ProcessSeconds": 20.047651,
+  "TracyCapture": false,
+  "TracyEnabled": true,
+  "GpuCsv": "Latest completed nonblocking timings; -1 means unavailable. Samples may repeat."
+}

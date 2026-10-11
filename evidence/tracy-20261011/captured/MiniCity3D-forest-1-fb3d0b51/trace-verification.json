@@ -1,0 +1,22 @@
+{
+  "Trace": "C:\\GIT_local\\MyVibeGTA\\evidence\\tracy-20261011\\captured\\MiniCity3D-forest-1-fb3d0b51\\capture.tracy",
+  "CPUZones": 27,
+  "CPUEvents": 3901.0,
+  "InstrumentedThreads": 21,
+  "GpuEvents": 1210,
+  "GpuPasses": [
+    "Bloom",
+    "Volumetric clouds",
+    "Shadows",
+    "Tone mapping",
+    "Reflections",
+    "Scene and forest",
+    "Composition and SSAO",
+    "Temporal AA and FSR2",
+    "GPU skin deformation",
+    "HUD"
+  ],
+  "AllocationSectionVerified": true,
+  "MemoryStripReductionBytes": 10173591,
+  "RecordingWorkersRequired": true
+}

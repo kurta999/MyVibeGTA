@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "ai.h"
 #include "regions.h"
 #include "game_internal.h"
@@ -235,6 +236,7 @@ bool vehicleImpact(Ped& ped,const Vehicle& vehicle){
 }
 
 void update(float dt,bool beginNavigationFrame){
+    CITY_ZONE("Pedestrian AI");
     if(dt<=0)return;
 #ifdef MINI_CITY_JOLT
     if(beginNavigationFrame)ped_navigation::beginFrame();

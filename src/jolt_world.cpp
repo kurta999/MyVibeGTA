@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
@@ -1632,6 +1633,7 @@ void refreshScenery(){
 }
 std::size_t activeBuilderColliderCount(){return builderBodies.size();}
 void step(float dt){
+    CITY_ZONE("Jolt physics step");
     if(!world||dt<=0)return;
     syncTerrainColliders();
     syncBuilderColliders(game::player);

@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "police.h"
 #include "data_file.h"
 #include "game_internal.h"
@@ -256,6 +257,7 @@ bool report(Crime crime,game::Vec2 place,bool silent,bool directWitness,bool wit
     quietTime=0;hidingSeconds=0;return true;
 }
 void update(float dt){
+    CITY_ZONE("Police AI");
     dt=std::clamp(dt,0.0f,0.25f);
     spawnTimer=std::max(0.0f,spawnTimer-dt);
     for(float& cooldown:cooldowns)cooldown=std::max(0.0f,cooldown-dt);

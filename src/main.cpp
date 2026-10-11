@@ -4,6 +4,11 @@
 #include <array>
 #include <cmath>
 #include <vector>
+#include <fstream>
+#include <iomanip>
+#include <locale>
+#include "profiling.h"
+#include "benchmark_options.h"
 #include "game.h"
 #include "audio.h"
 #include "ui.h"
@@ -57,6 +62,7 @@
 #include <psapi.h>
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     using namespace game;
+    CITY_THREAD("Game main");
     bool smoke=commandLine&&std::strstr(commandLine,"--smoke")!=nullptr;
     bool benchmark=smoke&&commandLine&&std::strstr(commandLine,"--benchmark")!=nullptr;
     bool benchmarkRoute=benchmark&&commandLine&&
@@ -65,6 +71,26 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         std::strstr(commandLine,"--benchmark-travel")!=nullptr;
     bool fullHd=smoke&&commandLine&&std::strstr(commandLine,"--1080p")!=nullptr;
     logging::initialize();
+    int benchmarkFrames=0,benchmarkWarmup=-1,tracyWait=0;
+    if(!benchmark::ReadCount(commandLine,"--benchmark-frames=",1,36000,benchmarkFrames)||
+       !benchmark::ReadCount(commandLine,"--benchmark-warmup=",0,3600,benchmarkWarmup)||
+       !benchmark::ReadCount(commandLine,"--tracy-wait=",0,60,tracyWait)){
+        logging::write("Invalid benchmark count (frames 1..36000, warmup 0..3600, Tracy wait 0..60 seconds)");
+        logging::shutdown();return 2;
+    }
+#ifdef TRACY_ENABLE
+    logging::write("Tracy v0.13.1 enabled: CPU, native GPU, named threads and C++ heap; on-demand, system tracing disabled");
+    TracyAppInfo("MiniCity3D Tracy v0.13.1",sizeof("MiniCity3D Tracy v0.13.1")-1);
+    if(tracyWait){
+        const auto deadline=GetTickCount64()+1000ull*tracyWait;
+        while(!TracyIsConnected&&GetTickCount64()<deadline)Sleep(10);
+        if(!TracyIsConnected){logging::write("Tracy connection timeout");logging::shutdown();return 3;}
+        logging::write("Tracy profiler connected before startup");
+    }
+#else
+    logging::write("Tracy disabled in this build");
+    if(tracyWait){logging::write("--tracy-wait requires a -Tracy build");logging::shutdown();return 3;}
+#endif
 #ifdef MINI_CITY_JOLT
     startup::Session loading(!smoke);
 #endif
@@ -1471,7 +1497,15 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         }
 #endif
         if(benchmark){
-            const int frames=benchmarkRoute?3600:std::strstr(commandLine,"--benchmark-probe")?3:std::strstr(commandLine,"--benchmark-short")?20:120;
+            const int frames=benchmarkFrames?benchmarkFrames:benchmarkRoute?3600:std::strstr(commandLine,"--benchmark-probe")?3:std::strstr(commandLine,"--benchmark-short")?20:120;
+            const int warmup=benchmarkWarmup>=0?benchmarkWarmup:benchmarkRoute?120:1;
+            std::ofstream csv;
+            if(std::strstr(commandLine,"--benchmark-csv")){
+                csv.open("benchmark-frames.csv",std::ios::trunc);
+                csv.imbue(std::locale::classic());csv<<std::fixed<<std::setprecision(6);
+                if(!csv){logging::write("Could not create benchmark-frames.csv");shutdownRenderer();DestroyWindow(win);logging::shutdown();return 4;}
+                csv<<"frame,frame_ms,simulation_ms,physics_ms,render_ms,scene_cpu_ms,upload_cpu_ms,draw_cpu_ms,present_cpu_ms,gpu_shadow_ms,gpu_scene_ms,gpu_post_ms,draws,triangles,active_ai,working_set_mib,private_mib\n";
+            }
             LARGE_INTEGER frequency{},start{},middle{},end{};
             QueryPerformanceFrequency(&frequency);
             std::vector<double> frameTimes(frames);
@@ -1486,9 +1520,10 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #ifdef MINI_CITY_JOLT
                 jolt_world::teleportCharacter(player,0);
 #endif
-                for(int tick=0;tick<120;++tick){update(1.0f/60.0f);render();}
-                logging::write("Benchmark route v1: 120 warm-up ticks, six 10-second segments, fixed 60 Hz, VSync off");
-            }else render();
+            }
+            for(int tick=0;tick<warmup;++tick){update(1.0f/60.0f);render();}
+            char metadata[200];std::snprintf(metadata,sizeof(metadata),"Benchmark configuration: %d measured frames, %d warm-up ticks, seed 1, fixed 60 Hz, VSync off",frames,warmup);
+            logging::write(metadata);
             double simulationTotal=0,renderTotal=0,physicsTotal=0;
             double drawTotal=0,aiTotal=0,triangleTotal=0;
             double gpuShadowTotal=0,gpuSceneTotal=0,gpuPostTotal=0;
@@ -1498,19 +1533,19 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
             for(int frame=0;frame<frames;++frame){
                 QueryPerformanceCounter(&start);
                 if(benchmarkRoute){
-                    int segment=frame/600;
-                    if(frame%600==0){
+                    int segment=int(6ll*frame/frames);
+                    if(frame==0||segment!=int(6ll*(frame-1)/frames)){
                         player=previousPlayer=routeStops[segment];playerY=0;occupied=-1;
 #ifdef MINI_CITY_JOLT
                         jolt_world::teleportCharacter(player,0);
 #endif
                     }
-                    float progress=float(frame%600)/600.0f;
+                    float progress=float(6ll*frame%frames)/frames;
                     cameraYaw=routeYaw[segment]+0.22f*std::sin(progress*2*PI);
                     keys[ui::bindings[int(ui::Action::Forward)]]=true;
                 }
                 if(benchmarkTravel&&frame%20==0){
-                    player=travelStops[frame/20];playerY=0;occupied=-1;
+                    player=travelStops[(frame/20)%travelStops.size()];playerY=0;occupied=-1;
 #ifdef MINI_CITY_JOLT
                     jolt_world::teleportCharacter(player,0);
 #endif
@@ -1536,11 +1571,27 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
                 QueryPerformanceCounter(&end);
                 frameTimes[frame]=1000.0*(end.QuadPart-start.QuadPart)/
                     double(frequency.QuadPart);
+                const double simMs=1000.0*(middle.QuadPart-start.QuadPart)/double(frequency.QuadPart);
+                const double renderMs=1000.0*(end.QuadPart-middle.QuadPart)/double(frequency.QuadPart);
+                CITY_PLOT("Frame milliseconds",frameTimes[frame]);
+                CITY_PLOT("Active AI",double(activeAi));
+                CITY_PLOT("Submitted triangles",double(triangleCount));
+                if(csv.is_open()){
+                    PROCESS_MEMORY_COUNTERS_EX sample{};sample.cb=sizeof(sample);
+                    GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&sample),sizeof(sample));
+                    csv<<frame<<','<<frameTimes[frame]<<','<<simMs<<','<<physicsMs<<','<<renderMs<<','
+                       <<renderSceneMs<<','<<renderUploadMs<<','<<renderDrawMs<<','<<renderPresentMs<<','
+                       <<gpuShadowMs<<','<<gpuSceneMs<<','<<gpuPostMs<<','<<drawCalls<<','<<triangleCount<<','<<activeAi<<','
+                       <<sample.WorkingSetSize/1048576.0<<','<<sample.PrivateUsage/1048576.0<<'\n';
+                    CITY_PLOT("Working set MiB",sample.WorkingSetSize/1048576.0);
+                    CITY_PLOT("Private memory MiB",sample.PrivateUsage/1048576.0);
+                }
                 simulationTotal+=1000.0*(middle.QuadPart-start.QuadPart)/
                     double(frequency.QuadPart);
                 renderTotal+=1000.0*(end.QuadPart-middle.QuadPart)/
                     double(frequency.QuadPart);
             }
+            if(csv.is_open()){csv.flush();if(!csv){logging::write("Benchmark CSV write failed");shutdownRenderer();DestroyWindow(win);logging::shutdown();return 4;}}
             if(benchmarkRoute)keys[ui::bindings[int(ui::Action::Forward)]]=false;
             double total=0;
             for(double duration:frameTimes)total+=duration;

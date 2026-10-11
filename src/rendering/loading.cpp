@@ -1,3 +1,4 @@
+#include "../profiling.h"
 #include "loading.h"
 #include "../logging.h"
 #include "../startup.h"
@@ -41,6 +42,7 @@ unsigned SceneWorkers() {
 bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
                      const std::function<bool(size_t, const dx11::texture::Prepared&)>& consume,
                      int start, int span, const char* stage) {
+    CITY_ZONE("Preload texture batch");
     dx11::texture::LoadingStats stats;
     const bool validate = std::strstr(GetCommandLineA(), "--validate-loading") != nullptr;
     std::uint64_t checksum = 14695981039346656037ULL;
@@ -82,6 +84,7 @@ bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
 
 bool CompileShader(HWND window, const char* source, const char* entry, const char* profile,
                    ID3DBlob** output) {
+    CITY_ZONE("Compile runtime shader");
     Microsoft::WRL::ComPtr<ID3DBlob> errors;
     HRESULT status = D3DCompile(source, std::strlen(source), "MiniCityShader", nullptr, nullptr,
                                 entry, profile, D3DCOMPILE_ENABLE_STRICTNESS, 0, output, &errors);

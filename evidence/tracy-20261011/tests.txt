@@ -1,0 +1,27 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+      Start  1: benchmark_options_scenarios
+ 1/11 Test  #1: benchmark_options_scenarios ......   Passed    0.02 sec
+      Start  2: profiling_memory_scenarios
+ 2/11 Test  #2: profiling_memory_scenarios .......   Passed    0.29 sec
+      Start  3: resource_cache_scenarios
+ 3/11 Test  #3: resource_cache_scenarios .........   Passed    0.01 sec
+      Start  4: gpu_profiler_scenarios
+ 4/11 Test  #4: gpu_profiler_scenarios ...........   Passed    0.01 sec
+      Start  5: dx12_fsr2_smoke
+ 5/11 Test  #5: dx12_fsr2_smoke ..................   Passed    6.89 sec
+      Start  6: dx12_fsr2_warp
+ 6/11 Test  #6: dx12_fsr2_warp ...................   Passed   12.81 sec
+      Start  8: save_jobs_smoke
+ 7/11 Test  #8: save_jobs_smoke ..................   Passed    0.01 sec
+      Start 10: startup_smoke
+ 8/11 Test #10: startup_smoke ....................   Passed    0.33 sec
+      Start 37: scene_jobs_scenarios
+ 9/11 Test #37: scene_jobs_scenarios .............   Passed    2.40 sec
+      Start 45: texture_loading_smoke
+10/11 Test #45: texture_loading_smoke ............   Passed    0.37 sec
+      Start 46: shader_loading_smoke
+11/11 Test #46: shader_loading_smoke .............   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 11
+
+Total Test time (real) =  23.23 sec

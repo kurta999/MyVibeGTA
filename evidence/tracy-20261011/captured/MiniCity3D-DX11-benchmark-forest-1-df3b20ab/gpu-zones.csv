@@ -1,0 +1,278 @@
+name,src_file,Time from start of program,GPU execution time
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20220800948,20348610
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20268320988,18262680
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20315436938,17437280
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20362861668,18115430
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20409123128,17135000
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20455142018,16907930
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20503489238,16800450
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20570422888,22479840
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20623168658,16463820
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20705108468,23171160
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20760989238,18999880
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20866218368,26416630
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20926547408,20621400
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21055820318,40734480
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21129120768,18711720
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21241149188,34589420
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21307020478,18267520
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21413052388,25923920
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21470769988,18782340
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21569361648,27086200
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21627456558,18706760
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21729575258,37523480
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21808346988,28345860
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21965547418,43352570
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22043997108,19663800
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22177548558,47058610
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22261800358,20982480
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22381709978,31417870
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22447522358,22178440
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22564002418,29891470
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22627118958,19737690
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22731695838,43349640
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22808755088,20577680
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22909323838,30880740
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22974973488,19875720
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23065165388,30746350
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23129007888,24040360
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23189492208,21383620
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23286279168,34556990
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23358721948,23581330
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23468719648,41231000
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23542662588,20376840
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23659450038,37540220
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23729005898,18942800
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23845085268,38631460
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23915924008,19248610
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24025726148,37557090
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24098691208,21457040
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24262464948,43729250
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24336555478,18245650
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24433676208,19034990
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24484625688,23472570
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24558944068,25388080
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24618546208,19130820
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24717566288,25887760
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24777511468,18552920
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24884148318,34991600
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24947400808,17433400
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25048283578,34856240
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25114806158,17018170
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25217705168,36202730
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25284551798,16183840
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25389467668,34817240
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25455585598,15903800
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25554648948,24836490
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25611685458,16546370
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25695316428,34401870
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25759956268,17122560
+Scene and forest,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25865716068,25403800
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20203426468,17374360
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20252478978,15840370
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20299613298,15823520
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20345880278,16981270
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20392800718,16322290
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20438974898,16165040
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20487491138,15997980
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20546499248,23923480
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20604884048,18284490
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20663473578,41634010
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20741188318,19800760
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20808326048,57892040
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20905521528,21024040
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20980697598,75122400
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21109463668,19656140
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21179438168,61710740
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21289569768,17448670
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21356849708,56202440
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21451601948,19167840
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21519315778,50045670
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21608517818,18938420
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21676434458,53140520
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21780471408,27873260
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21879268248,86278850
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22023408418,20587930
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22100240068,77308170
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22239591908,22206690
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22318625718,63083860
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22425644378,21877300
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22502966418,61035720
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22606310878,20805480
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22675799178,55895300
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22789121928,19631760
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22861207618,48115980
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22952958138,22014510
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23021062448,44102660
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23107788648,21219080
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23167821068,21670980
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23242701768,43577120
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23334249258,24472530
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23414158048,54561320
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23523412048,19250260
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23597365958,62083800
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23710133098,18870560
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23780630268,64454200
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23896754458,19167870
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23966455808,59270100
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24077201928,21487760
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24172261008,90203660
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24319687688,16866670
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24387656058,46019990
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24463828448,20796040
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24529920268,29022040
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24597562838,20983210
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24668245108,49320940
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24756769558,20741790
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24829350528,54797550
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24931688808,15711880
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24997340058,50942240
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25096464298,18340260
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25162914198,54790570
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25266867778,17683660
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25332119038,57346550
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25437638108,17947370
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25503546438,51102310
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25591518388,20165070
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25652022278,43293430
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25742339368,17616780
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25808702298,57013570
+Shadows,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25903172538,17137530
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20286583828,9346110
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20332874338,9997120
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20380977218,9700910
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20426258248,10534790
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20472050068,9121200
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20520289808,9467020
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20592902888,10537750
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20639632598,10034160
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20728279748,10895410
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20779989278,10184810
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20892635158,10794180
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20947168968,10596920
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21096554958,10773380
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21147832648,9899500
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21275738728,11773510
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21325288118,10111610
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21438976428,10041070
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21489552488,10201290
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21596448008,10105060
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21646163438,10522790
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21767098938,10930600
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21836693048,12552860
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22008900148,12041310
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22063661068,10964130
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22224607368,12588310
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22282782998,10736590
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22413128008,10100590
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22469700998,11212670
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22593894048,10213810
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22646856808,10023570
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22775045638,11790740
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22829332928,10830080
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22940204778,10481800
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22994849368,10418470
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23095911898,10451340
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23153048448,11415070
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23210875988,10020360
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23320836358,11296820
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23382303438,10583550
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23509950808,11418910
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23563039588,10655750
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23696990418,10811020
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23747948858,10075480
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23883716848,10339160
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23935172778,9874410
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24063284518,11699210
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24120148408,11352980
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24306194318,11446850
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24354801288,12903560
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24452711318,9518780
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24508098418,10957620
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24584332308,10948280
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24637677188,10347580
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24743454168,11147370
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24796064548,10307890
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24919141278,10492880
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24964834328,10296480
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25083139898,10790510
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25131824448,9672990
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25253908018,10498070
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25300735758,9829030
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25424285028,11162160
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25471489518,9928040
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25579485598,9906920
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25628231948,9428000
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25729718418,10521980
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25777078988,10502040
+Post processing and HUD,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25891119988,9882670
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20203397868,28120
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20252342978,130040
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20299503218,106320
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20345738718,130240
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20392685398,111240
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20438858338,110960
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20487354258,131400
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20546356648,137600
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20604766808,112040
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20663334018,134000
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20741058018,128780
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20808104248,218800
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20905389408,124760
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,20980558878,132000
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21109332868,128520
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21179311928,121160
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21289461408,105800
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21356632758,214450
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21451467308,130960
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21519096478,216550
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21608385818,130280
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21676210808,221050
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21780333608,133920
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,21879129808,134040
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22023262138,137840
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22100103188,130200
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22239456988,131360
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22318406318,216500
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22425513658,128200
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22502743668,220350
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22606176918,129200
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22675677698,114960
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22789008208,108560
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22860990318,214800
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,22952808458,140600
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23020918768,140400
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23107671888,113200
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23167704508,112720
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23242547048,147160
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23334113698,128600
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23414026408,125120
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23523287968,121120
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23597228438,130920
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23709996898,128880
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23780495548,129400
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23896613138,139760
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,23966319128,130520
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24077066728,133800
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24172124768,131520
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24319575288,109960
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24387438858,214300
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24463711008,115520
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24529771388,146960
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24597430358,130120
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24668022358,220100
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24756627398,140320
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24829180928,166880
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24931595368,89200
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,24997206018,128480
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25096324938,136720
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25162787558,118240
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25266737938,127560
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25332000398,114600
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25437528948,100560
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25503329788,214050
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25591381508,126760
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25651905118,114400
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25742206848,125920
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25808490648,207950
+GPU skin deformation,C:\GIT_local\MyVibeGTA\src\rendering\dx11\frame.cpp,25903056058,109400

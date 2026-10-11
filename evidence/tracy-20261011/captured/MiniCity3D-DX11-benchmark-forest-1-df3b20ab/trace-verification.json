@@ -1,0 +1,16 @@
+{
+  "Trace": "C:\\GIT_local\\MyVibeGTA\\evidence\\tracy-20261011\\captured\\MiniCity3D-DX11-benchmark-forest-1-df3b20ab\\capture.tracy",
+  "CPUZones": 22,
+  "CPUEvents": 1779.0,
+  "InstrumentedThreads": 17,
+  "GpuEvents": 277,
+  "GpuPasses": [
+    "Scene and forest",
+    "Shadows",
+    "Post processing and HUD",
+    "GPU skin deformation"
+  ],
+  "AllocationSectionVerified": true,
+  "MemoryStripReductionBytes": 14487161,
+  "RecordingWorkersRequired": false
+}

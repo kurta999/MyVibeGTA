@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "birds.h"
 #include "regions.h"
 #include <random>
@@ -126,6 +127,7 @@ bool hit(Vec3 point,int damage){
     return false;
 }
 void update(float dt){
+    CITY_ZONE("Bird AI");
     active=0;
     for(auto& b:flock){
         b.previous=b.p;

@@ -4,6 +4,10 @@
 namespace game {
 using ::rendering::GpuStage;
 void Dx11Renderer::Render() {
+    CITY_ZONE("DX11 render frame");
+    profiling::Phase cpuPhase;
+    struct EndTracy { ::rendering::TracyDx11& profiler; ~EndTracy(){profiler.End();} } endTracy{m_tracy};
+    CITY_CPU_STAGE(cpuPhase, "DX11 prepare scene");
     if (m_deviceLost || !m_device || !m_context)
         return;
     if (m_groundRevision != excavation::revision() && !CreateStaticGeometry())
@@ -48,12 +52,13 @@ void Dx11Renderer::Render() {
     dx11::buildScene(m_groups, m_models, pose.eye.x, pose.eye.y, pose.eye.z,
                      m_skinCS ? &m_gpuSkins : nullptr, m_probeBakeActive, m_scenePool.get());
     if (m_skinCS)
-        PrepareSkins();
+    { CITY_DX11_STAGE(m_tracy, "GPU skin deformation");PrepareSkins();m_tracy.End(); }
     else {
         m_gpuSkins.clear();
         m_skinVertexCount = 0;
     }
     auto sceneBuilt = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX11 upload and cull");
     m_vertices.clear();
     size_t starts[dx11::MATERIAL_GROUPS]{}, counts[dx11::MATERIAL_GROUPS]{};
     for (int group = 0; group < dx11::MATERIAL_GROUPS; ++group) {
@@ -107,6 +112,7 @@ void Dx11Renderer::Render() {
     if (!PrepareInstances(pose, constants))
         return;
     auto instancesReady = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX11 draw submission");
     UINT stride = sizeof(dx11::Vertex), offset = 0;
     m_context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
     m_context->IASetInputLayout(m_inputLayout);
@@ -116,6 +122,7 @@ void Dx11Renderer::Render() {
     m_context->HSSetConstantBuffers(0, 1, &m_sceneBuffer);
     m_context->DSSetConstantBuffers(0, 1, &m_sceneBuffer);
     m_profiler.Begin(*m_context);
+    CITY_DX11_STAGE(m_tracy, "Shadows");
     if (constants.m_params.w > 0) {
         ID3D11ShaderResourceView* empty = nullptr;
         m_context->PSSetShaderResources(4, 1, &empty);
@@ -210,6 +217,7 @@ void Dx11Renderer::Render() {
         DrawInstances(true, shadowConstants, false, 0, 2);
     }
     m_profiler.Mark(*m_context, GpuStage::ShadowEnd);
+    CITY_DX11_STAGE(m_tracy, "Scene and forest");
     float clearColor[] = {constants.m_fogColor.x, constants.m_fogColor.y, constants.m_fogColor.z,
                           1};
     ID3D11RenderTargetView* opaqueTargets[5] = {m_sceneTarget, m_surfaceTarget, m_indirectTarget,
@@ -279,11 +287,13 @@ void Dx11Renderer::Render() {
     m_context->OMSetDepthStencilState(nullptr, 0);
     SetTessellation(-1);
     m_profiler.Mark(*m_context, GpuStage::SceneEnd);
+    CITY_DX11_STAGE(m_tracy, "Post processing and HUD");
     if (m_probeBakeActive) {
         m_probeBakeFailed = !CaptureProbe(constants);
         if (m_probeBakeFailed)
             logging::write("HDR probe capture failed");
         m_profiler.End(*m_context);
+        m_tracy.Collect();
         return;
     }
     if (ui::graphicsQuality > 0) {
@@ -588,10 +598,13 @@ void Dx11Renderer::Render() {
     }
     menus::Draw();
     m_profiler.End(*m_context);
+    m_tracy.Collect();
     CaptureIfRequested();
     auto beforePresent = std::chrono::steady_clock::now();
+    CITY_CPU_STAGE(cpuPhase, "DX11 present");
     HRESULT presentResult =
         m_swapChain->Present(std::strstr(GetCommandLineA(), "--benchmark") ? 0 : 1, 0);
+    CITY_FRAME();
     if (FAILED(presentResult)) {
         char failure[128]{};
         std::snprintf(failure, sizeof(failure),

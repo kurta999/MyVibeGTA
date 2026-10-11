@@ -1,0 +1,9 @@
+Connecting to 127.0.0.1:8086...
+Timer resolution: 0 ns
+
+Frames: 73
+Time span: 25.62 s
+Zones: 1,779
+Elapsed time: 37.54 s
+Saving trace... done!
+Trace size 30.89 MB (16.96% ratio)

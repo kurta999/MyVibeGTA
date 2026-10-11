@@ -1,4 +1,7 @@
 #pragma once
+#include "profiling.h"
+#include <cstdio>
+#include <string>
 #include <algorithm>
 #include <condition_variable>
 #include <functional>
@@ -14,9 +17,11 @@ namespace cpu {
 // Callers bound outstanding jobs; each job owns its output until publication.
 class Pool {
 public:
-    explicit Pool(unsigned concurrency):count(std::max(1u,concurrency)){
+    explicit Pool(unsigned concurrency,const char* role="CPU"):count(std::max(1u,concurrency)){
         try{
-            if(count>1)for(unsigned i=0;i<count;++i)threads.emplace_back([this]{run();});
+            if(count>1)for(unsigned i=0;i<count;++i)threads.emplace_back([this,i,label=std::string(role)]{
+                char name[64];std::snprintf(name,sizeof(name),"%s worker %u",label.c_str(),i);
+                CITY_THREAD(name);run();});
         }catch(...){stop();throw;}
     }
     ~Pool(){stop();}
@@ -49,6 +54,7 @@ private:
                 if(jobs.empty())return;
                 job=std::move(jobs.front());jobs.pop();
             }
+            CITY_ZONE("CPU worker job");
             job();
         }
     }

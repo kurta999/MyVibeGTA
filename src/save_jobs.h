@@ -1,4 +1,5 @@
 #pragma once
+#include "profiling.h"
 #include "save_status.h"
 #include <condition_variable>
 #include <functional>
@@ -36,6 +37,7 @@ public:
     bool takeFailure(){std::lock_guard<std::mutex> lock(mutex);bool result=failed;failed=false;return result;}
 private:
     void run(){
+        CITY_THREAD("Save writer");
         for(;;){
             Snapshot snapshot;
             {
@@ -44,6 +46,7 @@ private:
                 if(!pending)return;
                 snapshot=std::move(*pending);pending.reset();busy=true;
             }
+            CITY_ZONE("Save snapshot to disk");
             bool ok=false;try{ok=write(snapshot.path,snapshot.text);}catch(...){ok=false;}
             {std::lock_guard<std::mutex> lock(mutex);lastResult=ok;failed|=!ok;busy=false;
                 snapshot.receipt.complete(ok?WriteStatus::Succeeded:WriteStatus::Failed);}

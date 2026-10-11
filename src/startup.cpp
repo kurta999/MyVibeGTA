@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "startup.h"
 #include "logging.h"
 #include "resource.h"
@@ -97,6 +98,7 @@ struct Session::State {
         return DefWindowProcA(hwnd,msg,wp,lp);
     }
     void run(){
+        CITY_THREAD("Startup window");
         HINSTANCE instance=GetModuleHandleA(nullptr);
         WNDCLASSA wc{};wc.lpfnWndProc=windowProc;wc.hInstance=instance;
         wc.hCursor=LoadCursor(nullptr,IDC_ARROW);

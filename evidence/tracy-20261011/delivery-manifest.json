@@ -1,0 +1,13 @@
+{
+  "Executables": [
+    {
+      "File": "MiniCity3D.exe",
+      "SHA256": "C7552967D48F81F35E4A85762E085F18B1EEBC2397F39129C94E7E34F2226FEB"
+    },
+    {
+      "File": "MiniCity3D-DX12.exe",
+      "SHA256": "28DF736CA4F57B9CAD30CA3F82E478A83B680A17223D4B51CB9F84FE5531D89B"
+    }
+  ],
+  "PersonalStatePreserved": true
+}

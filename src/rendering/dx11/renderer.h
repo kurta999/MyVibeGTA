@@ -1,4 +1,5 @@
 #pragma once
+#include "../tracy_dx11.h"
 #include "timing_api.h"
 #include "resource_api.h"
 #include "../growable_buffer.h"
@@ -238,6 +239,7 @@ class Dx11Renderer final {
     ::rendering::ScreenshotWriter m_screenshotWriter;
     bool m_deviceLost = false;
     ::rendering::GpuProfiler<::rendering::Dx11TimingApi> m_profiler;
+    ::rendering::TracyDx11 m_tracy;
     using SceneConstants = ::rendering::SceneConstants;
     struct PostConstants {
         XMFLOAT4X4 m_viewProjection, m_inverseViewProjection;

@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include <cstdlib>
 #include <ctime>
 #include <cstdio>
@@ -1114,6 +1115,7 @@ void spawnHitFlash(const Bullet& bullet,Vec3 point,bool person=false){
     hitFlashes.push_back({point,0.22f,tint,person});
 }
 void update(float dt){
+    CITY_ZONE("Simulation tick");
     auto builderBegin=std::chrono::steady_clock::now();
 #ifdef MINI_CITY_JOLT
     if(builder::advance(dt))return;

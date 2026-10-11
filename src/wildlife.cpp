@@ -1,3 +1,4 @@
+#include "profiling.h"
 #include "wildlife.h"
 #include "game_internal.h"
 #include "regions.h"
@@ -372,6 +373,7 @@ bool hit(Vec3 p,int damage,Vec2 origin,bool playerCaused){
     return false;
 }
 void update(float dt){
+    CITY_ZONE("Wildlife AI");
     active=0;
     std::vector<Vec2> before;
     if(builder::active()){
