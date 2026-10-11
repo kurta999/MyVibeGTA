@@ -19,12 +19,20 @@ jobs:
         with:
           submodules: true
 
-      - name: Configure native Direct3D 12 and FSR2 build
-        run: cmake -S . -B build-ci -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
-
-      - name: Build game and tests
-        # Build every configured target so newly registered CTest executables are included.
-        run: cmake --build build-ci --config Release --parallel 4
+      - name: Configure and build game and tests
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $vsInstall) { throw 'No Visual Studio C++ toolchain was found.' }
+          & (Join-Path $vsInstall 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+          # Ninja uses the selected compiler without pinning a Visual Studio release.
+          # Keep configure and build together so both inherit the developer environment.
+          cmake -S . -B build-ci -G 'Ninja Multi-Config' -DCMAKE_CONFIGURATION_TYPES=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release -DBUILD_TESTING=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Build every configured target, including all registered CTest executables.
+          cmake --build build-ci --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run smoke tests
         run: ctest --test-dir build-ci -C Release --output-on-failure
