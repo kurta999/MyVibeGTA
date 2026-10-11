@@ -335,7 +335,9 @@ void syncTerrainColliders(){
                 }
             }else box({game::WORLD_W*.5f,-5,game::SHORE*.5f},{game::WORLD_W*.5f,5,game::SHORE*.5f});
             box({game::WORLD_W*.5f,-20,(game::SHORE+game::WORLD_D)*.5f},{game::WORLD_W*.5f,5,(game::WORLD_D-game::SHORE)*.5f});
-            box({1200,-5,(game::SHORE+game::WORLD_D)*.5f},{60,5,(game::WORLD_D-game::SHORE)*.5f});
+            const auto& causeway=regions::geography().causeway;
+            box({(causeway.x0+causeway.x1)*.5f,-5,(game::SHORE+causeway.z1)*.5f},
+                {(causeway.x1-causeway.x0)*.5f,5,(causeway.z1-game::SHORE)*.5f});
             auto samples=terrain::heights();
             for(unsigned z=0;z<terrain::samples;++z)for(unsigned x=0;x<terrain::samples;++x)
                 if(regions::waterAt({x*50.0f,z*50.0f}))samples[z*terrain::samples+x]=-15;
@@ -508,8 +510,11 @@ void reset(){
     world->SetContactListener(&trafficContacts);
     world->SetGravity(JPH::Vec3(0,-700,0));
     syncTerrainColliders();
-    addStatic({7800,-20,regions::DEPTH*0.5f},{200,5,regions::DEPTH*0.5f});
-    addStatic({7800,-5,8500},{200,5,100});
+    const auto& map=regions::geography();
+    auto mapFloor=[&](const regions::Rect& r,float y){
+        addStatic({(r.x0+r.x1)*.5f,y,(r.z0+r.z1)*.5f},{(r.x1-r.x0)*.5f,5,(r.z1-r.z0)*.5f});
+    };
+    mapFloor(map.river,-20);mapFloor(map.bridge,-5);
     // Vehicles need the same world limit as the character. Without a collider
     // they can leave the physics floor and lose all wheel contact.
     constexpr float border=10.0f;

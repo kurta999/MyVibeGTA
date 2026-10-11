@@ -1,0 +1,21 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start  9: simulation_smoke
+1/5 Test  #9: simulation_smoke .................   Passed   32.84 sec
+    Start 10: mission_script_scenarios
+2/5 Test #10: mission_script_scenarios .........Exit code 0xc0000409***Exception:   0.79 sec
+Assertion failed: mission_script::Next()==-1, file C:\GIT_local\MyVibeGTA\tests\data_scenarios.cpp, line 75
+
+    Start 11: placement_data_scenarios
+3/5 Test #11: placement_data_scenarios .........   Passed    0.55 sec
+    Start 24: builder_interaction_scenarios
+4/5 Test #24: builder_interaction_scenarios ....   Passed   11.07 sec
+    Start 25: builder_police_scenarios
+5/5 Test #25: builder_police_scenarios .........   Passed   33.82 sec
+
+80% tests passed, 1 tests failed out of 5
+
+Total Test time (real) =  79.08 sec
+
+The following tests FAILED:
+	 10 - mission_script_scenarios (Exit code 0xc0000409)
+Errors while running CTest

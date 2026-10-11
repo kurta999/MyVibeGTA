@@ -1,4 +1,4 @@
-param([switch]$OpenGL,[string]$OutputPath='',[switch]$RunTests)
+param([switch]$OpenGL,[switch]$DX12,[string]$OutputPath='',[switch]$RunTests)
 $ErrorActionPreference = 'Stop'
 $common = @('main.cpp','input.cpp','logging.cpp','game.cpp','ai.cpp','content.cpp','audio.cpp','ui.cpp','physics.cpp','weapons.cpp',
     'savegame.cpp','camera.cpp','props.cpp')
@@ -11,6 +11,7 @@ if ($OpenGL) {
     Write-Host "Built $target (OpenGL fallback)"
 } else {
     $root = $PSScriptRoot
+    $backendOption = if ($DX12) { 'ON' } else { 'OFF' }
     if (-not (Test-Path -LiteralPath (Join-Path $root 'third_party\JoltPhysics\Build\CMakeLists.txt'))) {
         throw 'Jolt is missing. Run git submodule update --init from the repository, then build again.'
     }
@@ -42,14 +43,14 @@ if ($OpenGL) {
             $buildDirectory = Join-Path $root 'build-msvc-ninja'
             $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
             & $cmake -S $root -B $buildDirectory -G Ninja `
-                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
         } else {
             $generator = if ($vs2022) { 'Visual Studio 17 2022' }
                 else { 'Visual Studio 18 2026' }
             $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
             $buildDirectory = Join-Path $root $buildName
             $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
-            & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON
+            & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
         }
     } else {
         $compiler = Get-Command clang++ -ErrorAction SilentlyContinue
@@ -61,7 +62,7 @@ if ($OpenGL) {
         $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
         & $cmake -S $root -B $buildDirectory -G Ninja `
             "-DCMAKE_CXX_COMPILER=$($compiler.Source.Replace('\','/'))" `
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption"
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
     & $cmake --build $buildDirectory --config Release `
@@ -99,5 +100,6 @@ if ($OpenGL) {
             throw "Build succeeded at $builtExecutable, but $target could not be replaced. Close the running game and rerun build.ps1."
         }
     }
-    Write-Host "Built $target (native Direct3D 12 + AMD FSR2 + Jolt Physics)"
+    $backendName = if ($DX12) { 'native Direct3D 12 + AMD FSR2' } else { 'Direct3D 11 + Dear ImGui' }
+    Write-Host "Built $target ($backendName + Lua missions + Jolt Physics)"
 }

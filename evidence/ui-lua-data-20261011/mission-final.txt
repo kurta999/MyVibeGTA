@@ -1,0 +1,7 @@
+Test project C:/GIT_local/MyVibeGTA/build-msvc-ninja
+    Start 10: mission_script_scenarios
+1/1 Test #10: mission_script_scenarios .........   Passed    0.23 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.24 sec

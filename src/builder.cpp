@@ -325,7 +325,10 @@ void mouse(int x,int y,bool right,bool shift){
     if(!hasChest&&!right)for(int n=craftScroll;n<std::min(craftScroll+8,int(crafting.size()));++n){auto r=recipeRect(n,game::screenW,game::screenH);
         if(x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h){craft(n);return;}}
     int hit=-1;int total=chest()?63:36;for(int n=0;n<total;++n){auto r=slotRect(n,game::screenW,game::screenH);if(x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h){hit=n;break;}}
-    if(hit<0)return;
+    clickSlot(hit,right,shift);
+}
+void clickSlot(int hit,bool right,bool shift){
+    if(!enabled||!menu||hit<0||hit>=(chest()?63:36))return;
     auto& stack=hit<36?slots[hit]:placed.at(openedChest).contents[hit-36];
     if(shift&&held.item<0&&stack.item>=0){
         auto transfer=[&](Stack& dst){if(stack.item<0)return;int cap=capacity(stack.item);

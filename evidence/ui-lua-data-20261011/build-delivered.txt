@@ -1,0 +1,4 @@
+[0/2] Re-checking globbed directories...
+[1/4] C:\Windows\system32\cmd.exe /C "cd /D C:\GIT_local\MyVibeGTA\build-msvc-ninja && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/assets C:/GIT_local/MyVibeGTA/build-msvc-ninja/assets && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/data C:/GIT_local/MyVibeGTA/build-msvc-ninja/data"
+[2/4] Building CXX object CMakeFiles\MiniCity3D.dir\src\main.cpp.obj
+[3/4] Linking CXX executable MiniCity3D.exe

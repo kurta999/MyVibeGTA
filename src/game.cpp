@@ -39,6 +39,7 @@
 #endif
 #include "ai.h"
 #include "content.h"
+#include "mission_script.h"
 #include "logging.h"
 #include <chrono>
 namespace game {
@@ -272,34 +273,9 @@ void completeMission(){
     activeMission=-1;missionStep=0;
     savegame::request();
 }
-int nextMission(){
-    for(int index=0;index<int(missions.size());++index)if(!missionDone[index])return index;
-    return -1;
-}
-const char* missionObjective(){
-    if(activeMission<0)return "Follow the gold line to the next mission.";
-    const auto& mission=missions[activeMission];
-    if(mission.kind==MissionKind::Finale)return missionStep==0?"Drive a car to the beach approach":
-        missionStep==1?"Exit and shoot the orange beach target":"Pilot a boat to the harbor marker";
-    if(mission.kind==MissionKind::Drive)return "Drive a car through the checkpoints";
-    if(mission.kind==MissionKind::Collect)return "Collect the beach caches on foot";
-    if(mission.kind==MissionKind::Boat)return "Pilot a boat through the harbor";
-    if(mission.kind==MissionKind::Bike)return "Ride a motorcycle through the checkpoints";
-    return "Shoot the orange practice targets";
-}
-void startMission(){
-    if(activeMission>=0||health<=0)return;
-    for(int i=0;i<int(missions.size());++i)if(!missionDone[i]&&
-        len(missions[i].start-player)<75){
-        if(i>0&&i<6&&!missionDone[i-1]){
-            announce(std::string("Finish ")+missions[i-1].name+" to unlock this mission.",4);
-            return;
-        }
-        activeMission=i;missionStep=0;missionTime=missions[i].seconds;
-        missionCard(missions[i].name,missionObjective(),3.5f);
-        announce(std::string("MISSION STARTED: ")+missions[i].name,5);audio::play(audio::Effect::Pickup);return;
-    }
-}
+int nextMission(){return mission_script::Next();}
+const char* missionObjective(){return mission_script::Objective();}
+void startMission(){mission_script::Start();}
 
 bool inside(const Building& b,Vec2 p,float pad){
     return p.x>b.x-pad&&p.x<b.x+b.w+pad&&p.z>b.z-pad&&p.z<b.z+b.d+pad;
@@ -623,10 +599,8 @@ std::vector<Interaction> availableInteractions(){
             if(available)
                 options.push_back({InteractionType::Tree,i});
         }
-    if(activeMission<0)for(int i=0;i<int(missions.size());++i)
-        if(len(player-missions[i].start)<75){
-            options.push_back({InteractionType::Mission,i});break;
-        }
+    int mission=mission_script::StartCandidate();
+    if(mission>=0)options.push_back({InteractionType::Mission,mission});
     return options;
 }
 Interaction chooseInteraction(){
@@ -1499,8 +1473,7 @@ void update(float dt){
                 if(health>0)consider(player,occupied>=0?19.0f:11.0f,
                     playerY+2,playerY+(occupied>=0?43.0f:37));
             }else{
-                if(activeMission>=0&&(missions[activeMission].kind==MissionKind::Targets||
-                   (missions[activeMission].kind==MissionKind::Finale&&missionStep==1))&&
+                if(activeMission>=0&&mission_script::IsTarget()&&
                    missionStep<int(missions[activeMission].goals.size()))
                     consider(missions[activeMission].goals[missionStep],18.0f,0,45);
                 for(const auto& ped:peds)if(ped.alive)
@@ -1610,20 +1583,13 @@ void update(float dt){
                 }
                 continue;
             }
-            if(activeMission>=0&&(missions[activeMission].kind==MissionKind::Targets||
-                (missions[activeMission].kind==MissionKind::Finale&&missionStep==1))&&
+            if(activeMission>=0&&mission_script::IsTarget()&&
                missionStep<int(missions[activeMission].goals.size())&&
                len(Vec2{point.x,point.z}-missions[activeMission].goals[missionStep])<18&&
                point.y>0&&point.y<45){
                 spawnHitFlash(bullet,point);
-                bullet.life=0;++missionStep;
-                if(activeMission>=0&&missionStep<int(missions[activeMission].goals.size()))
-                    missionCard("TARGET HIT",missionObjective(),2);
-                audio::playAt(audio::Effect::Hit,point.x,point.z);
-                if(missionStep==int(missions[activeMission].goals.size()))completeMission();
-                else if(missions[activeMission].kind==MissionKind::Finale)
-                    announce("Target hit! Board a boat and follow the harbor marker.",5);
-                else announce("Target hit! Find the next orange target.",3);
+                bullet.life=0;
+                mission_script::TargetHit();
                 break;
             }
             for(auto& ped:peds)if(ped.alive&&len(Vec2{ped.p.x-point.x,ped.p.z-point.z})<10&&
@@ -1743,32 +1709,7 @@ void update(float dt){
         if(std::abs(v.speed)>70&&std::abs(v.rideHeight-playerY)<37*physics::vehicleScale(v.kind)&&len(v.p-player)<(physics::vehicleScale(v.kind)>1?physics::vehicleRadius(v.kind):25.0f)){applyDamage(30);invulnerable=1;
             audio::play(audio::Effect::Hit);break;}
     }
-    if(activeMission>=0){
-        missionTime-=dt;
-        if(missionTime<=0||health<=0){activeMission=-1;missionStep=0;announce("MISSION FAILED. Return to a marker to retry.",5);
-            missionCard("MISSION FAILED",health<=0?"You were defeated":"Time ran out",4);
-            audio::play(audio::Effect::Fail);}
-        else{
-            const auto& m=missions[activeMission];
-            if(m.kind!=MissionKind::Targets&&
-                !(m.kind==MissionKind::Finale&&missionStep==1)&&missionStep<int(m.goals.size())){
-                bool rightVehicle=m.kind==MissionKind::Collect?occupied<0:
-                    occupied>=0&&((m.kind==MissionKind::Boat||
-                    (m.kind==MissionKind::Finale&&missionStep==2))?vehicles[occupied].kind==Kind::Boat:
-                    m.kind==MissionKind::Bike?vehicles[occupied].kind==Kind::Bike:
-                    (vehicles[occupied].kind==Kind::Car||vehicles[occupied].kind==Kind::SportCar));
-                if(rightVehicle&&len(player-m.goals[missionStep])<45){
-                    ++missionStep;
-                    if(missionStep<int(m.goals.size()))
-                        missionCard("CHECKPOINT REACHED",missionObjective(),2.5f);
-                    if(missionStep==int(m.goals.size()))completeMission();
-                    else if(m.kind==MissionKind::Finale)
-                        announce("Exit the car and shoot the beach target, then take a boat.",5);
-                    else announce("Checkpoint reached! Follow the next map marker.",3);
-                }
-            }
-        }
-    }
+    mission_script::Update(dt);
 }
 
 

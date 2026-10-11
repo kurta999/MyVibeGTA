@@ -24,6 +24,7 @@ std::vector<MenuEntry> menuEntries();
 void openShop(int index);
 void openHouse(int index);
 void handleKey(int key);
+void activate(int index);
 void close();
 int ownedHouseCount();
 bool buyItem(int itemIndex);

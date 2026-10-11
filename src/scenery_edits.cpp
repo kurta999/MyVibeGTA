@@ -1,6 +1,7 @@
 #include "scenery_edits.h"
 #include "dx11_damage.h"
 #include "regions.h"
+#include "world_placements.h"
 #include "terrain.h"
 #include "jolt_world.h"
 #include <objidl.h>
@@ -197,8 +198,11 @@ bool bushForTree(std::size_t index,Object& object){
         {tree.p.x+18,terrain::baseHeight({tree.p.x+18,tree.p.z-15}),tree.p.z-15},{11,10,11},float(index)*.9f+.5f,game::rgb(185,217,176)};return true;
 }
 bool beachBush(int index,Object& object){
-    if(index<0||index>=70||index%4)return false;float x=35+float((index*137)%2280),z=game::BEACH_START+35+float((index*67)%210);int variant=(index*13)%36;
-    object={"beach-bush-"+std::to_string(index),"nature/bush_"+std::string(variant<10?"0":"")+std::to_string(variant),Kind::Plant,index,{x,0,z},{12,12,12},index*.76f};return true;
+    const auto id="beach-bush-"+std::to_string(index);
+    for(const auto& v:world_placements::Data().visuals)if(v.kind==world_placements::VisualKind::Plant&&v.id==id){
+        object={v.id,v.model,Kind::Plant,index,v.a,v.b,v.yaw,v.color};return true;
+    }
+    return false;
 }
 }
 void clear(){cuts.clear();versions.clear();cutCount=0;baselineGeneration=++generation;indexedTrees=indexedDecorations=~std::size_t(0);}
@@ -213,14 +217,21 @@ bool treeObject(std::size_t index,Object& o){
     else{o.model=tree.variant==0?"nature/tree_detailed":"nature/tree_oak";o.size={54*tree.scale,68*tree.scale,54*tree.scale};o.yaw=float(index)*.9f;}
     float wear=std::clamp(tree.health/100.0f,.25f,1.0f);o.tint={wear,wear,wear};return true;
 }
-bool outcropObject(int x,int z,Object& o){
-    if(x<0||z<0||x>=42||z>=42)return false;unsigned hash=unsigned(x)*73856093u^unsigned(z)*19349663u;if(hash%3)return false;
-    game::Vec2 p{(x+.2f+float(hash%50)/100)*400,(z+.2f+float((hash>>8)%50)/100)*400};
-    if(regions::waterAt(p)||regions::roadAt(p))return false;float h=terrain::baseHeight(p);if(h<90||terrain::normal(p).y>.995f)return false;
-    bool cliff=hash%4==0;float width=cliff?100+float(hash%60):22+float(hash%30),height=cliff?35:width*.65f;
-    o={"outcrop:"+std::to_string(x)+":"+std::to_string(z),cliff?"nature/rock_coastal_cliff_02":"nature/rock_namaqualand_boulder_02",Kind::Rock,-1,
-        {p.x,h-height*.22f,p.z},{width,height,width},float(hash%628)/100,regions::biomeAt(p)==regions::Biome::Desert?game::rgb(234,202,166):game::rgb(226,224,207)};return true;
+static bool outcropObject(const world_placements::Outcrop& rock,Object& o){
+    auto p=rock.p;
+    if(regions::waterAt(p)||regions::roadAt(p))return false;
+    float h=terrain::baseHeight(p);if(h<90||terrain::normal(p).y>.995f)return false;
+    o={rock.editId,rock.model,Kind::Rock,-1,{p.x,h-rock.height*.22f,p.z},
+        {rock.width,rock.height,rock.width},rock.yaw,
+        regions::biomeAt(p)==regions::Biome::Desert?game::rgb(234,202,166):game::rgb(226,224,207)};
+    return true;
 }
+bool outcropObject(int x,int z,Object& o){
+    const auto id="outcrop:"+std::to_string(x)+":"+std::to_string(z);
+    for(const auto& rock:world_placements::Data().outcrops)if(rock.editId==id)return outcropObject(rock,o);
+    return false;
+}
+
 bool find(const std::string& id,Object& object){
     if(id.rfind("outcrop:",0)==0){int x=-1,z=-1;char trailing=0;return std::sscanf(id.c_str(),"outcrop:%d:%d%c",&x,&z,&trailing)==2&&outcropObject(x,z,object)&&object.id==id;}
     if(id.rfind("beach-bush-",0)==0){int index=-1;char trailing=0;return std::sscanf(id.c_str(),"beach-bush-%d%c",&index,&trailing)==1&&beachBush(index,object)&&object.id==id;}
@@ -245,10 +256,11 @@ std::vector<Object> nearby(game::Vec2 focus,float radius){
         const auto& prop=regions::decorations()[index];result.push_back({"decoration:"+prop.id,"nature/"+prop.modelId,prop.modelId.find("rock")!=std::string::npos?Kind::Rock:Kind::Plant,index,
             {prop.p.x,terrain::baseHeight(prop.p),prop.p.z},{prop.width,prop.height,prop.depth},index*.73f});
     }
-    int left=std::max(0,int((focus.x-radius-200)/400)),right=std::min(41,int((focus.x+radius+200)/400));
-    int top=std::max(0,int((focus.z-radius-200)/400)),bottom=std::min(41,int((focus.z+radius+200)/400));
-    for(int z=top;z<=bottom;++z)for(int x=left;x<=right;++x)if(outcropObject(x,z,object))result.push_back(object);
-    for(int n=0;n<70;n+=4)if(beachBush(n,object)&&game::len(game::Vec2{object.position.x,object.position.z}-focus)<radius+12)result.push_back(object);
+    for(const auto& rock:world_placements::Data().outcrops)
+        if(game::len(rock.p-focus)<radius+200&&outcropObject(rock,object))result.push_back(object);
+    for(const auto& v:world_placements::Data().visuals)
+        if(v.kind==world_placements::VisualKind::Plant&&game::len(game::Vec2{v.a.x,v.a.z}-focus)<radius+v.b.x)
+            result.push_back({v.id,v.model,Kind::Plant,-1,v.a,v.b,v.yaw,v.color});
     return result;
 }
 bool edited(const std::string& id){auto found=cuts.find(id);return builder::active()&&found!=cuts.end()&&!found->second.empty();}

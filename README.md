@@ -1,12 +1,12 @@
 # Mini City 3D
 
-A playable Windows city sandbox written in C++17, with **native Direct3D 12**, **AMD FSR2**, **Jolt Physics**, and **XAudio2**. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
+A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Dear ImGui**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Native Direct3D 12 with AMD FSR2 remains an optional build. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
 The ongoing codebase refactor and current module boundaries are documented in [Architecture](ARCHITECTURE.md).
 
-For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices through the retained Direct3D 11 pipeline, mipmaps, lighting, animation, camera movement, and collision. For the current DX12 backend and shared renderer components, see [Architecture](ARCHITECTURE.md).
+For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices through the default Direct3D 11 pipeline, mipmaps, lighting, animation, camera movement, and collision. For the optional DX12 backend and shared renderer components, see [Architecture](ARCHITECTURE.md).
 
 ## Contents
 
@@ -30,9 +30,10 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 
 ## Features
 
+- **Menus and authoring:** DX11 pause/settings, shops/houses, debug, bomb timer, inventory, chest storage, crafting and repair use Dear ImGui. Missions are defined and progressed by `data/missions.lua`. Terrain shaping, geographic masks and world placements are editable runtime files; see [gameplay data](data/README.md).
 - **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
 - **Rendering:** imported textured meshes, PBR material ranges, compressed DDS materials and mipmaps, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections with local-probe fallback, filmic tone mapping with bounded automatic exposure, and selectable FXAA/TAA. Supported scenery uses GPU instancing and geometry LOD.
-- **AMD FSR2:** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
+- **AMD FSR2 (optional DX12 build):** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
 - **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls. DX12 also deforms procedural, aimed, attached and ragdoll humanoid vertices on the GPU, with previous-pose motion vectors for supported stable identities.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
 - **Vehicles:** 13 authored vehicle kinds, including cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with independently aimed turrets and barrels, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles show dirt and paint scratches and break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
@@ -85,7 +86,7 @@ Grass source credits and reproducible import steps are in [GRASS.md](assets/mode
 
 ### Requirements
 
-- Windows with a Direct3D 12-capable graphics device and driver for the main executable. The integrated FSR2 shaders require Shader Model 6.2. The optional DX11 comparison target requires a Direct3D 11-capable device.
+- Windows with a Direct3D 11-capable graphics device and driver. The optional DX12/FSR2 build requires Direct3D 12 and Shader Model 6.2.
 - Visual Studio 2022 or 2026 with **Desktop development with C++** and a Windows SDK, or a compatible LLVM/Clang toolchain with Ninja.
 - CMake 3.20 or newer. The build script can use the CMake installation bundled with Visual Studio.
 - Git and the pinned **Jolt Physics v5.6.0** submodule.
@@ -119,7 +120,7 @@ Create the destination directory first and keep `assets/` and `data/` beside a r
 
 ### Native DX12 and AMD FSR2
 
-`MiniCity3D` creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. DX11 remains runnable through the optional `MiniCity3D-DX11-benchmark` target; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+The default `MiniCity3D` build uses Direct3D 11 and Dear ImGui menus. To select the optional native DX12/FSR2 backend, run `./build.ps1 -DX12` (CMake: `-DMINI_CITY_USE_DX12=ON`). That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
 
 In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
@@ -317,7 +318,7 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The current build registers **43 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. Registration is not a full-suite pass claim: the latest [resource checkpoint](evidence/resource-ownership-20261009/README.md) records eight targeted passing suites and four validated game configurations.
+The current build registers **46 CTest entries** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering and startup. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records the exact verification sequence and retained captures.
 
 To rerun focused scenarios after building with Ninja:
 

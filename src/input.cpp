@@ -1,3 +1,6 @@
+#ifdef MINI_CITY_IMGUI
+#include "imgui_menus.h"
+#endif
 #include <windowsx.h>
 #include <algorithm>
 #include <vector>
@@ -65,6 +68,9 @@ void applyMouseDelta(LONG x,LONG y){
 }
 
 LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
+#ifdef MINI_CITY_IMGUI
+    if(menus::HandleMessage(hwnd,msg,wp,lp))return 0;
+#endif
     switch(msg){
     case WM_ACTIVATEAPP:ui::setWindowActive(wp!=0);return 0;
     case WM_SIZE:screenW=std::max(1,int(LOWORD(lp)));screenH=std::max(1,int(HIWORD(lp)));

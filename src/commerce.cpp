@@ -301,6 +301,12 @@ bool fastTravel(int houseIndex){
     game::grounded=true;game::swimming=false;
     close();changed("FAST TRAVEL: "+houses[houseIndex].name);return true;
 }
+void activate(int index){
+    if(currentMenu==Menu::None)return;
+    auto entries=menuEntries();
+    if(index<0||index>=int(entries.size())||!entries[index].available)return;
+    currentSelection=index;handleKey(VK_RETURN);
+}
 void handleKey(int key){
     if(currentMenu==Menu::None)return;
     if(key==VK_ESCAPE){close();return;}

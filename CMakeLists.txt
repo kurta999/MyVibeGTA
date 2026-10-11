@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-project(MiniCity3D LANGUAGES CXX RC)
+project(MiniCity3D LANGUAGES C CXX RC)
+
+# Vendored, pinned Lua 5.4.8 and Dear ImGui 1.92.6; no network at build time.
+file(GLOB LUA_SOURCES CONFIGURE_DEPENDS third_party/lua-5.4.8/src/*.c)
+list(FILTER LUA_SOURCES EXCLUDE REGEX "/(lua|luac)\\.c$")
+add_library(MiniCityLua STATIC ${LUA_SOURCES})
+target_include_directories(MiniCityLua PUBLIC third_party/lua-5.4.8/src)
+add_library(MiniCityImGui STATIC
+  third_party/imgui-1.92.6/imgui.cpp third_party/imgui-1.92.6/imgui_draw.cpp
+  third_party/imgui-1.92.6/imgui_tables.cpp third_party/imgui-1.92.6/imgui_widgets.cpp
+  third_party/imgui-1.92.6/backends/imgui_impl_win32.cpp
+  third_party/imgui-1.92.6/backends/imgui_impl_dx11.cpp)
+target_include_directories(MiniCityImGui PUBLIC third_party/imgui-1.92.6 third_party/imgui-1.92.6/backends)
+target_link_libraries(MiniCityImGui PUBLIC d3d11 d3dcompiler dwmapi)
 
 # AMD FSR2 2.2.1: pinned upstream source, native DX12 backend and offline shaders.
 include(FetchContent)
@@ -30,7 +43,7 @@ set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "Keep Jolt builds straightforwar
 set(ENABLE_INSTALL OFF CACHE BOOL "No Jolt install target" FORCE)
 add_subdirectory(third_party/JoltPhysics/Build third_party/JoltPhysics-build)
 
-set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp audio.cpp ui.cpp physics.cpp weapons.cpp
+set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp mission_script.cpp world_placements.cpp audio.cpp ui.cpp physics.cpp weapons.cpp
     savegame.cpp camera.cpp props.cpp fire.cpp police.cpp commerce.cpp traversal.cpp weather.cpp regions.cpp)
 list(TRANSFORM COMMON_SOURCES PREPEND "src/")
 # Each backend owns its session; implementation files follow render responsibilities.
@@ -42,16 +55,30 @@ foreach(module IN LISTS RENDERER_MODULES)
   list(APPEND DX11_RENDERER_SOURCES "src/rendering/dx11/${module}.cpp")
   list(APPEND DX12_RENDERER_SOURCES "src/rendering/dx12/${module}.cpp")
 endforeach()
+option(MINI_CITY_USE_DX12 "Use the optional native DX12/FSR2 renderer" OFF)
+if(MINI_CITY_USE_DX12)
+  set(PRIMARY_RENDERER_SOURCES ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp)
+else()
+  set(PRIMARY_RENDERER_SOURCES ${DX11_RENDERER_SOURCES} src/imgui_menus.cpp)
+endif()
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     ${SHARED_RENDERER_SOURCES}
     src/startup.cpp assets/app/minicity.rc
-    ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
+    ${PRIMARY_RENDERER_SOURCES} src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
 target_compile_features(MiniCity3D PRIVATE cxx_std_17)
-target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_DX12)
+target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
+if(MINI_CITY_USE_DX12)
+  target_compile_definitions(MiniCity3D PRIVATE MINI_CITY_DX12)
+else()
+  target_compile_definitions(MiniCity3D PRIVATE MINI_CITY_IMGUI)
+  target_link_libraries(MiniCity3D PRIVATE MiniCityImGui d3d11)
+endif()
 target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
-target_link_libraries(MiniCity3D PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
-target_link_libraries(MiniCity3D PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
+if(MINI_CITY_USE_DX12)
+  target_link_libraries(MiniCity3D PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
+endif()
+target_link_libraries(MiniCity3D PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
 # Both Direct3D executables use the same runtime directory. One copy operation
 # avoids concurrent writes when both backends are built in parallel.
 add_custom_target(MiniCityRuntimeAssets
@@ -65,12 +92,12 @@ option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
 option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for performance comparisons" OFF)
 if(MINI_CITY_BUILD_DX11_BENCHMARK)
   get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
-  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp)
-  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES})
+  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} ${DX11_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp src/imgui_menus.cpp)
+  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} src/imgui_menus.cpp)
   target_compile_features(MiniCity3D-DX11-benchmark PRIVATE cxx_std_17)
-  target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
+  target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_IMGUI)
   target_include_directories(MiniCity3D-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
-  target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
+  target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE MiniCityImGui MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
   add_dependencies(MiniCity3D-DX11-benchmark MiniCityRuntimeAssets)
 endif()
 if(MINI_CITY_BUILD_OPENGL)
@@ -131,11 +158,11 @@ if(BUILD_TESTING)
   target_link_libraries(startup_smoke PRIVATE user32 gdi32)
   add_test(NAME startup_smoke COMMAND startup_smoke)
   set_tests_properties(startup_smoke PROPERTIES TIMEOUT 15)
-  set(SIMULATION_SOURCES game.cpp input.cpp ai.cpp content.cpp physics.cpp props.cpp savegame.cpp
+  set(SIMULATION_SOURCES game.cpp input.cpp ai.cpp content.cpp mission_script.cpp world_placements.cpp physics.cpp props.cpp savegame.cpp
       weapons.cpp camera.cpp audio.cpp ui.cpp fire.cpp police.cpp commerce.cpp traversal.cpp
       weather.cpp regions.cpp terrain.cpp builder.cpp builder_feedback.cpp excavation.cpp scenery_edits.cpp surface_work.cpp ordnance.cpp destruction.cpp vehicle_systems.cpp radio.cpp grapple.cpp jolt_world.cpp debug_menu.cpp traffic.cpp ped_navigation.cpp ped_navigation_surface.cpp wildlife.cpp birds.cpp)
   list(TRANSFORM SIMULATION_SOURCES PREPEND "src/")
-  add_executable(simulation_smoke tests/ordnance_scenarios.cpp tests/expansion_scenarios.cpp tests/display_stub.cpp tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
+  add_executable(simulation_smoke tests/data_scenarios.cpp tests/ordnance_scenarios.cpp tests/expansion_scenarios.cpp tests/display_stub.cpp tests/simulation_smoke.cpp tests/traffic_scenarios.cpp
       tests/navigation_scenarios.cpp tests/wildlife_scenarios.cpp tests/bird_scenarios.cpp
       tests/equipment_scenarios.cpp tests/driver_scenarios.cpp tests/vehicle_collision_scenarios.cpp tests/ped_scenarios.cpp tests/scene_jobs_scenarios.cpp tests/grass_scenarios.cpp tests/terrain_scenarios.cpp tests/builder_scenarios.cpp tests/excavation_scenarios.cpp tests/scenery_scenarios.cpp tests/tool_work_scenarios.cpp tests/builder_feedback_scenarios.cpp tests/builder_recovery_scenarios.cpp
       tests/builder_transition_scenarios.cpp
@@ -148,11 +175,19 @@ if(BUILD_TESTING)
   target_compile_features(simulation_smoke PRIVATE cxx_std_17)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(simulation_smoke PRIVATE third_party/JoltPhysics)
-  target_link_libraries(simulation_smoke PRIVATE Jolt user32 gdi32 gdiplus opengl32 ole32 xaudio2 mfplay mfplat mfuuid)
+  target_link_libraries(simulation_smoke PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus opengl32 ole32 xaudio2 mfplay mfplat mfuuid)
   add_custom_command(TARGET simulation_smoke POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:simulation_smoke>/data")
   add_test(NAME simulation_smoke COMMAND simulation_smoke)
+  add_test(NAME mission_script_scenarios COMMAND simulation_smoke --mission-script-only)
+  add_test(NAME placement_data_scenarios COMMAND simulation_smoke --placement-data-only)
+  set_tests_properties(mission_script_scenarios placement_data_scenarios PROPERTIES RUN_SERIAL TRUE)
+  if(NOT MINI_CITY_USE_DX12)
+    add_test(NAME imgui_menu_scenarios COMMAND MiniCity3D --smoke --1080p --imgui-review)
+    set_tests_properties(imgui_menu_scenarios PROPERTIES
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>" TIMEOUT 120 RUN_SERIAL TRUE)
+  endif()
   add_test(NAME builder_scenarios COMMAND simulation_smoke --builder-only)
   add_test(NAME excavation_scenarios COMMAND simulation_smoke --excavation-only)
   add_test(NAME scenery_scenarios COMMAND simulation_smoke --scenery-only)

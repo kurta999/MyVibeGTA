@@ -189,12 +189,7 @@ Material groundAt(game::Vec2 p){
     }
     if(p.z>=game::SHORE)return Material::Water;
     if(p.z>=game::BEACH_START)return Material::Sand;
-    for(int column=0;column<5;++column)
-        if(std::abs(p.x-(300+column*450.0f))<game::ROAD_W*0.5f)
-            return Material::Asphalt;
-    for(int row=0;row<4;++row)
-        if(std::abs(p.z-(250+row*390.0f))<game::ROAD_W*0.5f)
-            return Material::Asphalt;
+    if(regions::downtownRoadAt(p))return Material::Asphalt;
     return Material::Grass;
 }
 Material surfaceAt(game::Vec3 p){

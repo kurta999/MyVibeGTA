@@ -63,6 +63,7 @@ void update(float dt);
 bool handleKey(int key);
 void wheel(int direction);
 void mouse(int x,int y,bool right,bool shift);
+void clickSlot(int index,bool right,bool shift);
 void use();
 // Independent of normal-game aiming; opening menus and mode changes cancel it.
 void setUseHeld(bool down);

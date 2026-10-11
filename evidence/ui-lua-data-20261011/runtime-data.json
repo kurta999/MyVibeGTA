@@ -1,0 +1,112 @@
+[
+  {
+    "file": "data/biome_props.ini",
+    "sha256": "a0113b4bc221bfb07387490c330fa94c83de6d7d4c58302057219dfc8c8b4cad",
+    "build_matches": true
+  },
+  {
+    "file": "data/builder-actions.ini",
+    "sha256": "4d3bdcdfe49cb0f44b4a8fd019254bbbb8d1389c34a88dcf22cca1294f241995",
+    "build_matches": true
+  },
+  {
+    "file": "data/builder-recipes.ini",
+    "sha256": "1b8b082f5ac7569466f85ce751828858f52b77dac2fb65aaa066206a0b224d69",
+    "build_matches": true
+  },
+  {
+    "file": "data/builder.ini",
+    "sha256": "a80654391039f0fcc93dc45c076ec514ad279f5d129f9c2fedde0fc876f33158",
+    "build_matches": true
+  },
+  {
+    "file": "data/commerce.ini",
+    "sha256": "8cee69dc8a18af52e6c564d6ffb53c75b9008408be7ed1c4aa158f7f377ad888",
+    "build_matches": true
+  },
+  {
+    "file": "data/geography.ini",
+    "sha256": "d803bd19d31497e32f685def3400aa3a17af125924a18c3309be2840cde7cb63",
+    "build_matches": true
+  },
+  {
+    "file": "data/missions.lua",
+    "sha256": "cd0c0d0bc6b060a64c78db6fd4397d351a85934cc1d48a371e2c7d0918b5d6f1",
+    "build_matches": true
+  },
+  {
+    "file": "data/police.ini",
+    "sha256": "c658a01adeb8884afa663416271b0dd4f1787612fe1460356c7be80f77a42259",
+    "build_matches": true
+  },
+  {
+    "file": "data/props.ini",
+    "sha256": "fdbce08790d0c9350ec09c1299ea5608027ee3c1325bc3823134e86436901ace",
+    "build_matches": true
+  },
+  {
+    "file": "data/radio.ini",
+    "sha256": "e82b1cb4b2be8a756d5e89c7635a16f467f7592d04aae5bc5ab103d4c251daf4",
+    "build_matches": true
+  },
+  {
+    "file": "data/regional_placements.txt",
+    "sha256": "c1d7434b5d781874d68d885fc0584e7373da896e6c8fee31aff2942575f4c069",
+    "build_matches": true
+  },
+  {
+    "file": "data/regions.ini",
+    "sha256": "b118fd78284638e571a03fa40d6eb6b09d0b528872dead201560518de526cb9f",
+    "build_matches": true
+  },
+  {
+    "file": "data/roads.ini",
+    "sha256": "92282643253ffa30b1268f3ddb7bf9acf2bfdba1382d86157ee130b971b38a8c",
+    "build_matches": true
+  },
+  {
+    "file": "data/surfaces.ini",
+    "sha256": "d9ba25f16727e8dfe39b7e9cb672e9891e13f0b4bb361826d0c034a9cdbf744e",
+    "build_matches": true
+  },
+  {
+    "file": "data/terrain.ini",
+    "sha256": "eec77016e15453b66ecf1a2afd13616d58b54bbdbb91c4c9f5c1388c8220f28f",
+    "build_matches": true
+  },
+  {
+    "file": "data/traversal.ini",
+    "sha256": "f22ee76a9b88b6f4519c6b4ded0f7640fc7ea4951f513c29e3999d979e94e0f5",
+    "build_matches": true
+  },
+  {
+    "file": "data/trees.ini",
+    "sha256": "66c87956777686d9547bcb4251fd1a6371949a7f58e5bfa5d46f329f859dce8b",
+    "build_matches": true
+  },
+  {
+    "file": "data/vehicle-models.ini",
+    "sha256": "14a1a78eac37bdde27e85eb7eec09347ff9a222792f673f7564a593005d5e4b4",
+    "build_matches": true
+  },
+  {
+    "file": "data/vehicles.ini",
+    "sha256": "48462292820296d316000a7c9feaf43b48968fe3dae59a4c8eb9b3a87d1e66d4",
+    "build_matches": true
+  },
+  {
+    "file": "data/weapons.ini",
+    "sha256": "3ee49baee2f5bf7c997d8d3deb27f830fcc8b671edd0f232bf84434c12d1ce9d",
+    "build_matches": true
+  },
+  {
+    "file": "data/weather.ini",
+    "sha256": "790327eb0ac2f2f365b20f9fd2ec0329e6e46fd992295278cf8861576b03b7c9",
+    "build_matches": true
+  },
+  {
+    "file": "data/world.ini",
+    "sha256": "874d74b6573588bee48db8731262d6ff3e14a6565581c9e445acbaddc7a5ad2a",
+    "build_matches": true
+  }
+]

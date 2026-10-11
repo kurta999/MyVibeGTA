@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "world_placements.h"
 
 namespace game {
 Dx11Renderer::SceneConstants Dx11Renderer::ConstantsForFrame(const camera::Pose& pose, float solar,
@@ -107,14 +108,9 @@ Dx11Renderer::SceneConstants Dx11Renderer::ConstantsForFrame(const camera::Pose&
             {{x, y, z, radius}, {r, g, b, brightness}, distance, playerHeadlight, streetLight});
     };
     if (night > 0.1f) {
-        const bool modernLamps = dx11::mesh("modern/street-lamp") != nullptr;
-        for (int column = 0; column < 5; ++column)
-            for (int row = 0; row < 7; ++row)
-                addLight(368.0f + column * 450 - (modernLamps ? 13.1f : 0),
-                         modernLamps ? 44.65f : 43, 115.0f + row * 215, 115, 1.0f, 0.74f, 0.41f,
-                         1.7f * night, false, true);
-        for (int z = 8860; z < 10010; z += 116)
-            addLight(8066.0f, 36, float(z), 95, 1.0f, 0.78f, 0.50f, 1.4f * night, false, true);
+        for(const auto& light:world_placements::Data().lights)
+            addLight(light.p.x,light.p.y,light.p.z,light.radius,light.color.r,light.color.g,light.color.b,
+                     light.brightness*night,false,light.street);
         for (const auto& shop : commerce::shops)
             addLight(shop.p.x, 20, shop.p.z, 65, 0.35f, 0.90f, 1.0f, 0.95f * night);
     }

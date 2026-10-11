@@ -1,0 +1,16 @@
+[0/2] Re-checking globbed directories...
+[1/16] Building CXX object CMakeFiles\simulation_smoke.dir\tests\data_scenarios.cpp.obj
+[2/16] Building CXX object CMakeFiles\simulation_smoke.dir\src\content.cpp.obj
+[3/16] Building CXX object CMakeFiles\simulation_smoke.dir\src\game.cpp.obj
+[4/16] Building CXX object CMakeFiles\simulation_smoke.dir\src\dx11_scene.cpp.obj
+[5/16] Building CXX object CMakeFiles\simulation_smoke.dir\src\mission_script.cpp.obj
+[6/16] C:\Windows\system32\cmd.exe /C "cd /D C:\GIT_local\MyVibeGTA\build-msvc-ninja && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/assets C:/GIT_local/MyVibeGTA/build-msvc-ninja/assets && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E copy_directory C:/GIT_local/MyVibeGTA/data C:/GIT_local/MyVibeGTA/build-msvc-ninja/data"
+[7/16] Building CXX object CMakeFiles\simulation_smoke.dir\tests\simulation_smoke.cpp.obj
+[8/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\mission_script.cpp.obj
+[9/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\imgui_menus.cpp.obj
+[10/16] Linking CXX executable simulation_smoke.exe
+[11/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\content.cpp.obj
+[12/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\game.cpp.obj
+[13/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\dx11_scene.cpp.obj
+[14/16] Building CXX object CMakeFiles\MiniCity3D.dir\src\main.cpp.obj
+[15/16] Linking CXX executable MiniCity3D.exe

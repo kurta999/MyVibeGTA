@@ -13,12 +13,7 @@ Surface surfaceAt(game::Vec2 point){
                            {0,clearance},{0,-clearance}})
         if(regions::roadAt(point+offset)||regions::waterAt(point+offset))return Surface::None;
     if(point.x<game::WORLD_W&&point.z<game::WORLD_D){
-        for(int column=0;column<5;++column)
-            if(std::abs(point.x-(300+column*450.0f))<game::ROAD_W*.5f+clearance)
-                return Surface::None;
-        for(int row=0;row<4;++row)
-            if(std::abs(point.z-(250+row*390.0f))<game::ROAD_W*.5f+clearance)
-                return Surface::None;
+        if(regions::downtownRoadAt(point,clearance))return Surface::None;
         if(point.z>=game::BEACH_START)
             return point.z<game::SHORE-25?Surface::Coastal:Surface::None;
         return Surface::Lawn;
@@ -29,12 +24,13 @@ Surface surfaceAt(game::Vec2 point){
     if(regions::waterAt(tile)||regions::roadAt(tile))return Surface::None;
     const auto* region=regions::at(point);
     if(region&&region->id=="marina-part"){
-        if(point.z>=8810&&point.z<=10015&&point.x>=8040&&point.x<=8137)
+        const auto& map=regions::geography();
+        if(point.z>=map.promenade.z0&&point.z<=map.promenade.z1&&point.x>=map.promenade.x0&&point.x<=map.promenade.x1)
             return Surface::None;
-        if(point.z>=10035&&point.z<=10710){
-            float q=(point.z-10360)/360;
-            float edge=8010+770*std::sqrt(std::max(0.0f,1-q*q));
-            if(point.x>=edge+7&&point.x<=edge+54)return Surface::None;
+        if(point.z>=map.shorelineZ0&&point.z<=map.shorelineZ1){
+            float q=(point.z-map.bayCenter.z)/map.bayRadius.z;
+            float edge=map.bayCenter.x+map.bayRadius.x*std::sqrt(std::max(0.0f,1-q*q));
+            if(point.x>=edge+map.shorelineInner&&point.x<=edge+map.shorelineOuter)return Surface::None;
         }
     }
     switch(regions::biomeAt(tile)){

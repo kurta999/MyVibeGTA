@@ -1,3 +1,4 @@
+#include "../../imgui_menus.h"
 #include "renderer.h"
 
 namespace game {
@@ -234,7 +235,7 @@ bool Dx11Renderer::InitRenderer() {
     logging::write(textureSummary);
     m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers());
     logging::write(("CPU scene workers: " + std::to_string(m_scenePool->concurrency())).c_str());
-    return CreateProbes();
+    return CreateProbes() && menus::Init(win,m_device,m_context);
 }
 
 bool Dx11Renderer::BakeReflectionProbes() {
@@ -275,6 +276,7 @@ bool Dx11Renderer::BakeReflectionProbes() {
 }
 
 void Dx11Renderer::ShutdownRenderer() {
+    menus::Shutdown();
     m_scenePool.reset();
     dx11::shutdownHud();
     if (m_context)

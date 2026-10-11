@@ -1,0 +1,12 @@
+[
+  {
+    "Algorithm": "SHA256",
+    "Hash": "01FE01B66B4DFE7AFC4EECE2D3E19CE2367469C6ADE51F2C9AED2D21C6DA30AF",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\savegame.ini"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "33E2F48B17354CA925536811D81DAC7E119B5B3A73E261AD7F4CBB8279BDE2F9",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\settings.ini"
+  }
+]

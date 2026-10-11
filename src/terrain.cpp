@@ -13,6 +13,13 @@ std::vector<Landform> forms;
 std::vector<float> grid(samples*samples,0);
 std::uint64_t generation=0;
 std::string error;
+struct Shape {
+    float edgeFade=0,roadMargin=0,roadFade=0,hubRadius=0,hubFade=0;
+    float settlementRadius=0,settlementFade=0,riverX=0,riverRadius=0,riverFade=0;
+    float amplitudes[5]{};
+    float waveX=0,waveZ=0,detailWeight=0,detailX=0,detailZ=0;
+    float ridgeBase=0,ridgeWeight=0,ridgeX=0,ridgeZ=0;
+} shape;
 float smooth(float value){value=std::clamp(value,0.0f,1.0f);return value*value*(3-2*value);}
 float distanceToSegment(game::Vec2 p,game::Vec2 a,game::Vec2 b){
     auto delta=b-a;
@@ -24,25 +31,24 @@ float authoredHeight(game::Vec2 p){
     const auto* region=regions::at(p);
     if(!region||region->biome==regions::Biome::City||regions::waterAt(p))return 0;
     float edge=std::min({p.x-region->x0,region->x1-p.x,p.z-region->z0,region->z1-p.z});
-    float mask=smooth(edge/350);
+    float mask=smooth(edge/shape.edgeFade);
     // Broad, smooth road verges retain the existing missions and traffic routes.
     for(const auto& road:regions::roads())
-        mask=std::min(mask,smooth((distanceToSegment(p,road.start,road.end)-road.width*.5f-75)/500));
-    for(const auto& hub:regions::hubs())mask=std::min(mask,smooth((game::len(p-hub.p)-350)/450));
-    for(const auto& shop:commerce::shops)mask=std::min(mask,smooth((game::len(p-shop.p)-160)/300));
-    for(const auto& house:commerce::houses)mask=std::min(mask,smooth((game::len(p-house.p)-160)/300));
+        mask=std::min(mask,smooth((distanceToSegment(p,road.start,road.end)-road.width*.5f-shape.roadMargin)/shape.roadFade));
+    for(const auto& hub:regions::hubs())mask=std::min(mask,smooth((game::len(p-hub.p)-shape.hubRadius)/shape.hubFade));
+    for(const auto& shop:commerce::shops)mask=std::min(mask,smooth((game::len(p-shop.p)-shape.settlementRadius)/shape.settlementFade));
+    for(const auto& house:commerce::houses)mask=std::min(mask,smooth((game::len(p-house.p)-shape.settlementRadius)/shape.settlementFade));
     // Keep the riverbanks and harbor crossing level at their original height.
-    mask=std::min(mask,smooth((std::abs(p.x-7800)-300)/450));
-    float amplitude=region->biome==regions::Biome::Snow?36:
-        region->biome==regions::Biome::Desert?22:region->biome==regions::Biome::Savanna?17:12;
-    float result=amplitude*(std::sin(p.x*.0026f)*std::cos(p.z*.0021f)+
-        .35f*std::sin(p.x*.008f+p.z*.004f));
+    mask=std::min(mask,smooth((std::abs(p.x-shape.riverX)-shape.riverRadius)/shape.riverFade));
+    float amplitude=shape.amplitudes[int(region->biome)];
+    float result=amplitude*(std::sin(p.x*shape.waveX)*std::cos(p.z*shape.waveZ)+
+        shape.detailWeight*std::sin(p.x*shape.detailX+p.z*shape.detailZ));
     for(const auto& form:forms){
         float x=(p.x-form.center.x)/form.rx,z=(p.z-form.center.z)/form.rz;
         float r2=x*x+z*z;
         if(r2>=1)continue;
         float envelope=(1-r2)*(1-r2);
-        float ridges=form.height>0?.82f+.18f*std::cos(x*11+std::sin(z*7)):1;
+        float ridges=form.height>0?shape.ridgeBase+shape.ridgeWeight*std::cos(x*shape.ridgeX+std::sin(z*shape.ridgeZ)):1;
         result+=form.height*envelope*ridges;
     }
     return result*mask;
@@ -51,9 +57,24 @@ float sample(int x,int z){return grid[std::clamp(z,0,int(samples)-1)*samples+std
 }
 bool load(const char* path){
     data_file::Ini file;error.clear();
-    if(!file.load(path?path:data_file::resourcePath("terrain.ini"))||!file.version(1)){error=file.lastError();return false;}
+    if(!file.load(path?path:data_file::resourcePath("terrain.ini"))||!file.version(2)){error=file.lastError();return false;}
+    Shape parsedShape;
+    struct Field {const char* name;float* value;float low,high;};
+    const Field fields[]={
+        {"EdgeFade",&parsedShape.edgeFade,1,5000},{"RoadMargin",&parsedShape.roadMargin,0,5000},
+        {"RoadFade",&parsedShape.roadFade,1,5000},{"HubRadius",&parsedShape.hubRadius,0,5000},
+        {"HubFade",&parsedShape.hubFade,1,5000},{"SettlementRadius",&parsedShape.settlementRadius,0,5000},
+        {"SettlementFade",&parsedShape.settlementFade,1,5000},{"RiverX",&parsedShape.riverX,0,regions::WIDTH},
+        {"RiverRadius",&parsedShape.riverRadius,0,5000},{"RiverFade",&parsedShape.riverFade,1,5000},
+        {"CountrysideAmplitude",&parsedShape.amplitudes[1],0,500},{"SnowAmplitude",&parsedShape.amplitudes[2],0,500},
+        {"SavannaAmplitude",&parsedShape.amplitudes[3],0,500},{"DesertAmplitude",&parsedShape.amplitudes[4],0,500},
+        {"WaveX",&parsedShape.waveX,0,.1f},{"WaveZ",&parsedShape.waveZ,0,.1f},
+        {"DetailWeight",&parsedShape.detailWeight,0,1},{"DetailX",&parsedShape.detailX,0,.1f},
+        {"DetailZ",&parsedShape.detailZ,0,.1f},{"RidgeBase",&parsedShape.ridgeBase,0,1},
+        {"RidgeWeight",&parsedShape.ridgeWeight,0,1},{"RidgeX",&parsedShape.ridgeX,0,100},{"RidgeZ",&parsedShape.ridgeZ,0,100}};
+    for(const auto& field:fields)if(!file.real("Shape",field.name,*field.value,field.low,field.high)){error=file.lastError();return false;}
     int count=0;
-    if(!file.integer("Terrain","Count",count,1,64)){error=file.lastError();return false;}
+    if(!file.integer("Terrain","Count",count,0,64)){error=file.lastError();return false;}
     std::vector<Landform> parsed;std::set<std::string> ids;
     for(int i=0;i<count;++i){
         Landform form{};auto section="Landform"+std::to_string(i);
@@ -67,7 +88,7 @@ bool load(const char* path){
         }
         parsed.push_back(form);
     }
-    forms=std::move(parsed);
+    forms=std::move(parsed);shape=parsedShape;
     for(unsigned z=0;z<samples;++z)for(unsigned x=0;x<samples;++x)
         grid[z*samples+x]=authoredHeight({x*spacing,z*spacing});
     ++generation;return true;

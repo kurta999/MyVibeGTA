@@ -1,3 +1,4 @@
+#include "../../imgui_menus.h"
 #include "renderer.h"
 
 namespace game {
@@ -585,6 +586,7 @@ void Dx11Renderer::Render() {
         m_context->OMSetBlendState(nullptr, blend, 0xffffffffu);
         m_context->OMSetDepthStencilState(nullptr, 0);
     }
+    menus::Draw();
     m_profiler.End(*m_context);
     CaptureIfRequested();
     auto beforePresent = std::chrono::steady_clock::now();

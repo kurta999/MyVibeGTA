@@ -1,3 +1,4 @@
+#include "mission_script.h"
 #include "dx11_assets.h"
 #include "dx11_terrain.h"
 #include "terrain.h"
@@ -15,6 +16,7 @@
 #include "traversal.h"
 #include "weather.h"
 #include "regions.h"
+#include "world_placements.h"
 #include "debug_menu.h"
 #include "wildlife.h"
 #include "birds.h"
@@ -501,29 +503,6 @@ bool close(Vec2 p,float distance){
 }
 void streetlights(){
     float daylight=std::sin((game::gameHour-6)*game::PI/12.0f);
-    for(int column=0;column<5;++column)for(int row=0;row<7;++row){
-        float x=300+column*450+68.0f,z=115+row*215.0f;
-        if(!close({x,z},600))continue;
-        if(mesh("modern/street-lamp")){
-            authoredProp("modern/street-lamp",{x,0,z});
-            if(close({x,z},260)){
-                authoredProp("modern/bin",{x-6,0,z+10},0,20);
-                if(row%3==0)authoredProp("modern/bench",{x-6,0,z-25},game::PI/2);
-                else if(row%3==1)authoredProp("modern/bike-rack",{x-6,0,z-22},game::PI/2);
-                else authoredProp("modern/planter",{x-6,0,z-23},game::PI/2);
-                authoredProp("modern/bollard",{x-10,0,z-9});
-                if(row%3==0)authoredProp("modern/hydrant",{x-7,0,z+27},0,20);
-            }
-            if(daylight<0.1f)
-                glowBox({x-13.1f,44.63f,z},{4.8f,.20f,3.6f},0,game::rgb(255,220,135));
-            continue;
-        }
-        box(x,0,z,2.5f,47,2.5f,game::rgb(75,77,78));
-        box(x-7,46,z,14,2,2,game::rgb(72,74,78));
-        box(x-14,43,z,7,4,7,daylight<0.1f?game::rgb(255,222,125):game::rgb(178,175,154));
-        if(daylight<0.1f)
-            glowBox({x-14,43,z},{7,4,7},0,game::rgb(255,220,135));
-    }
     if(daylight<0.1f)for(const auto& shop:commerce::shops){
         if(!close(shop.p,350))continue;
         box(shop.p.x+12,0,shop.p.z,1.6f,21,1.6f,game::rgb(62,69,72));
@@ -582,23 +561,7 @@ void regionalTerrain(){
                 water?3:regions::biomeAt(edge)==regions::Biome::Desert?8:9);
         }
     }
-    if(close({7800,8500},1400)){
-        for(float side:{-88.0f,88.0f}){
-            beam({7600,7,8500+side},{8000,7,8500+side},3,3,game::rgb(178,183,179));
-            for(int column=0;column<=8;++column){
-                float x=7600+column*50.0f;
-                beam({x,0,8500+side},{x,9,8500+side},2,2,game::rgb(148,154,152));
-            }
-        }
-    }
-    if(close({1200,2025},900))for(float side:{-58.0f,58.0f}){
-        beam({1200+side,8,game::SHORE},{1200+side,8,game::WORLD_D},2,2,
-            game::rgb(174,179,176));
-        for(int post=0;post<=7;++post){
-            float z=game::SHORE+post*50.0f;
-            beam({1200+side,0,z},{1200+side,9,z},2,2,game::rgb(150,157,153));
-        }
-    }
+
 }
 void weatherGroundDetails(){
     const auto& conditions=weather::current();
@@ -611,14 +574,7 @@ void weatherGroundDetails(){
         float px=(x+0.25f+float((hash>>4)%50)/100.0f)*48.0f;
         float pz=(z+0.25f+float((hash>>10)%50)/100.0f)*48.0f;
         bool road=regions::roadAt({px,pz});
-        if(px>=0&&px<game::WORLD_W&&pz>=0&&pz<game::BEACH_START){
-            for(int column=0;column<5;++column)
-                road|=std::abs(px-(300+column*450))<game::ROAD_W*0.36f;
-            for(int row=0;row<4;++row)
-                road|=std::abs(pz-(250+row*390))<game::ROAD_W*0.36f;
-        }
-        if(px>=1140&&px<=1260&&pz>=game::BEACH_START&&
-           pz<game::WORLD_D)road=true;
+        road|=regions::downtownRoadAt({px,pz},0,.36f)||regions::causewayAt({px,pz});
         if(!road)continue;
         float width=8+float((hash>>16)%13);
         float depth=5+float((hash>>22)%9);
@@ -637,12 +593,32 @@ void weatherGroundDetails(){
                 vertex(rim(corner+1),{0,1,0},1,1,tint));
     }
 }
+void placedScenery(bool base){
+    using world_placements::VisualKind;
+    const float night=std::sin((game::gameHour-6)*game::PI/12.0f)<0.1f?1.0f:0.0f;
+    for(const auto& v:world_placements::Data().visuals){
+        if(v.base!=base)continue;
+        Vec2 center{v.a.x,v.a.z};
+        float radius=v.range;
+        if(v.kind==VisualKind::Ground||v.kind==VisualKind::Beam){
+            center={(v.a.x+v.b.x)*.5f,(v.a.z+v.b.z)*.5f};
+            radius+=game::len(Vec2{v.a.x,v.a.z}-center);
+        }
+        if(!base&&!close(center,radius))continue;
+        switch(v.kind){
+        case VisualKind::Ground:ground(v.a.x,v.a.z,v.b.x,v.b.z,v.a.y,v.color,v.tile,v.material);break;
+        case VisualKind::Beam:beam(v.a,v.b,v.width,v.height,v.color);break;
+        case VisualKind::Model:model(v.model,v.a,v.b,v.yaw,v.color);break;
+        case VisualKind::Prop:authoredProp(v.model,v.a,v.yaw,v.scale);break;
+        case VisualKind::Glow:if(night)glowBox(v.a,v.b,v.yaw,v.color);break;
+        case VisualKind::Plant:if(ui::vegetationDensity==2)model(v.model,v.a,v.b,v.yaw,v.color,v.id);break;
+        }
+    }
+}
 void marinaScenery(){
-    if(!close({8730,9720},1850))return;
-    const Color pavement=game::rgb(194,190,177);
     const Color curb=game::rgb(221,216,202);
     for(const auto& road:regions::roads()){
-        if(road.id.rfind("marina-",0)!=0)continue;
+        if(road.id.rfind("marina-",0)!=0||!close((road.start+road.end)*.5f,1850))continue;
         float half=road.width*0.5f;
         float x0=std::min(road.start.x,road.end.x)-half;
         float x1=std::max(road.start.x,road.end.x)+half;
@@ -651,75 +627,19 @@ void marinaScenery(){
         ground(x0-11,z0-11,x1+11,z1+11,0.14f,curb,-1,11);
         ground(x0,z0,x1,z1,0.19f,game::rgb(91,96,99),-1,7);
     }
-    // A paved Danube promenade with a planted strip in front of the west row.
-    for(int z=8810;z<10015;z+=40)
-        ground(8040,float(z),8137,float(std::min(z+40,10015)),0.20f,pavement,-1,11);
-    ground(8015,8820,8040,10005,0.23f,game::rgb(101,145,93),-1,9);
-    ground(8137,8820,8160,10005,0.23f,game::rgb(104,148,97),-1,9);
-    for(int z=8850;z<10000;z+=40){
-        ground(8067.0f,float(z),8068.4f,float(z+20),0.24f,
-            game::rgb(176,168,151));
-    }
-    // Smaller tiles follow Foka Bay's curved shoreline more closely than the
-    // normal regional terrain grid. The walkable decks sit above this layer.
-    for(int z=10000;z<10720;z+=25)for(int x=8000;x<8800;x+=25){
-        Vec2 p{float(x+12),float(z+12)};
-        if(!regions::marinaBayAt(p))continue;
-        int shade=(x/25+z/25)%5;
-        ground(float(x),float(z),float(x+25),float(z+25),0.13f,
-            game::rgb(62+shade*2,126+shade*2,157+shade*2));
-    }
-    for(int z=10035;z<=10685;z+=25){
-        float q=(float(z)-10360.0f)/360.0f;
-        float edge=8010.0f+770.0f*std::sqrt(std::max(0.0f,1.0f-q*q));
-        ground(edge+7,float(z),edge+54,float(z+24),0.25f,pavement,-1,11);
-        ground(edge+54,float(z),edge+73,float(z+24),0.24f,
-            game::rgb(112,151,99),-1,9);
-    }
-    struct Pier {float x0,x1,z;};
-    constexpr Pier piers[]={{8300,8730,10220},{8350,8780,10390},
-        {8260,8670,10560}};
-    for(const auto& pier:piers){
+    for(const auto& pier:regions::geography().piers){
+        if(!close({(pier.x0+pier.x1)*.5f,pier.z},1850))continue;
         float length=pier.x1-pier.x0;
         model("primitive/box",{(pier.x0+pier.x1)*0.5f,0.15f,pier.z},
-            {length,1.4f,22},0,game::rgb(154,123,87));
-        for(float x=pier.x0+7;x<pier.x1;x+=20){
-            model("primitive/box",{x,1.56f,pier.z},
-                {1.1f,0.13f,22},0,game::rgb(100,77,57));
-        }
-        for(float x=pier.x0+35;x<pier.x1;x+=90){
-            model("primitive/cylinder",{x,0,pier.z-12},{2.8f,8,2.8f},0,
-                game::rgb(73,80,80));
-        }
+            {length,1.4f,pier.halfWidth*2},0,game::rgb(154,123,87));
+        for(float x=pier.x0+7;x<pier.x1;x+=20)
+            model("primitive/box",{x,1.56f,pier.z},{1.1f,0.13f,pier.halfWidth*2},0,game::rgb(100,77,57));
+        for(float x=pier.x0+35;x<pier.x1;x+=90)
+            model("primitive/cylinder",{x,0,pier.z-pier.halfWidth-1},{2.8f,8,2.8f},0,game::rgb(73,80,80));
     }
-    float night=std::sin((game::gameHour-6)*game::PI/12.0f)<0.1f?1.0f:0.0f;
-    for(int z=8860;z<10010;z+=116){
-        if(mesh("modern/twin-lamp")){
-            authoredProp("modern/twin-lamp",{8060.0f,0,float(z)},0,8.0f);
-            if(night)for(float side:{-1.0f,1.0f})
-                glowBox({8060.0f+side*10.48f,35.70f,float(z)},
-                    {3.84f,.16f,2.88f},0,game::rgb(255,221,147));
-            continue;
-        }
-        model("primitive/cylinder",{8060.0f,0,float(z)},
-            {3,38,3},0,game::rgb(82,88,90));
-        model("primitive/box",{8060.0f,37,float(z)},
-            {12,2,3},0,game::rgb(83,89,91));
-        model("primitive/box",{8066.0f,34,float(z)},
-            {7,3,6},0,night?game::rgb(255,221,147):game::rgb(191,198,185));
-    }
-    for(int z=8920;z<9980;z+=150){
-        if(mesh("modern/bench")){
-            authoredProp("modern/bench",{8110.0f,0,float(z)});
-            continue;
-        }
-        model("primitive/box",{8110.0f,2,float(z)},
-            {18,2,5},0,game::rgb(119,88,61));
-        for(float offset:{-7.0f,7.0f})
-            model("primitive/box",{8110.0f+offset,0,float(z)},
-                {2,4,5},0,game::rgb(77,82,80));
-    }
+    placedScenery(false);
 }
+
 struct DamagedMesh {ModelInstance original{};Mesh mesh;std::uint64_t damageHash=0;};
 std::unordered_map<std::string,std::list<DamagedMesh>> damagedMeshes;
 void applyBuildingDamage(const game::Building& b,std::size_t first){
@@ -969,11 +889,6 @@ void vegetation(){
                 model(bushName(index),{tree.p.x+18,terrain::baseHeight({tree.p.x+18,tree.p.z-15}),tree.p.z-15},
                     {11,10,11},float(index)*0.9f+0.5f,game::rgb(185,217,176),scenery_edits::treeBushId(index));
         }
-    }
-    if(ui::vegetationDensity==2){
-        for(int i=0;i<70;++i){float x=35+float((i*137)%2280),z=game::BEACH_START+35+float((i*67)%210);
-            if(i%4==0&&close({x,z},400))model(bushName(i*13),
-                {x,0,z},{i%4==0?12.0f:8.0f,i%4==0?12.0f:7.0f,i%4==0?12.0f:8.0f},i*0.76f,{1,1,1},"beach-bush-"+std::to_string(i));}
     }
 }
 void character(Vec2 p,float angle,int style,bool armed,bool moving,bool running,float height=0,
@@ -1415,8 +1330,7 @@ void markers(){
     }
     if(game::activeMission>=0&&game::missionStep<int(game::missions[game::activeMission].goals.size())){
         Vec2 goal=game::missions[game::activeMission].goals[game::missionStep];
-        bool target=game::missions[game::activeMission].kind==game::MissionKind::Targets||
-            (game::missions[game::activeMission].kind==game::MissionKind::Finale&&game::missionStep==1);
+        bool target=mission_script::IsTarget();
         if(close(goal,650)){
             Color tint=target?game::rgb(255,104,70):game::rgb(255,211,78);
             marker(goal,target?20.0f:42.0f,target?42.0f:78.0f,tint);
@@ -1790,22 +1704,7 @@ void effects(){
 void buildStaticScene(std::vector<Vertex> groups[MATERIAL_GROUPS]){
     buckets=groups;
     for(int i=0;i<MATERIAL_GROUPS;++i)groups[i].clear();
-    ground(0,0,game::WORLD_W,game::BEACH_START,0,game::rgb(150,195,145),-1,9);
-    ground(0,game::BEACH_START,game::WORLD_W,game::SHORE,0.05f,game::rgb(244,218,166),-1,8);
-    ground(0,game::SHORE,game::WORLD_W,game::WORLD_D,-0.4f,
-        game::rgb(86,160,197),-1,3);
-    ground(1140,game::BEACH_START,1260,game::WORLD_D,0.15f,
-        game::rgb(112,114,116),-1,7);
-    for(int col=0;col<5;++col){float x=300+col*450.0f;
-        ground(x-game::ROAD_W/2,0,x+game::ROAD_W/2,game::BEACH_START,0.1f,game::rgb(126,129,133),-1,7);
-        for(int segment=0;segment<38;++segment){float z=20+segment*41.0f;
-            ground(x-1.5f,z,x+1.5f,z+19,0.15f,game::rgb(219,197,126));}}
-    for(int row=0;row<4;++row){float z=250+row*390.0f;
-        ground(0,z-game::ROAD_W/2,game::WORLD_W,z+game::ROAD_W/2,0.12f,game::rgb(126,129,133),-1,7);
-        for(int segment=0;segment<58;++segment){float x=20+segment*41.0f;
-            ground(x,z-1.5f,x+19,z+1.5f,0.16f,game::rgb(219,197,126));}}
-    for(float x:{300.0f,800.0f,1490.0f})
-        ground(x-22,game::SHORE-25,x+22,game::SHORE+90,0.2f,game::rgb(160,139,111),4);
+    placedScenery(true);
 }
 void buildScene(std::vector<Vertex> groups[MATERIAL_GROUPS],std::vector<ModelInstance>& instances){
     Vec2 focus=(game::occupied>=0||game::rightMouse)?game::player:

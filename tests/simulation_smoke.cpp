@@ -10,6 +10,7 @@
 #include "../src/ui.h"
 #include "../src/ai.h"
 #include "../src/content.h"
+#include "../src/world_placements.h"
 #include "../src/data_file.h"
 #include "../src/fire.h"
 #include "../src/police.h"
@@ -107,7 +108,14 @@ void builderInteractionScenarios();
 void builderPoliceScenarios(bool before);
 void builderNavigationRestartSave();
 void builderNavigationRestartLoad();
+void MissionScriptScenarios();
+void PlacementDataScenarios();
 int main(int argc,char** argv){
+    if(argc>1&&(std::string(argv[1])=="--mission-script-only"||std::string(argv[1])=="--placement-data-only")){
+        assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
+        if(std::string(argv[1])=="--mission-script-only")MissionScriptScenarios();
+        else PlacementDataScenarios();return 0;
+    }
     if(argc>1&&(std::string(argv[1])=="--builder-police-only"||std::string(argv[1])=="--builder-police-before")){
         assert(weapons::load()&&physics::load()&&fire::load()&&police::load()&&commerce::load()&&traversal::load()&&weather::load()&&regions::load());
         builderPoliceScenarios(std::string(argv[1])=="--builder-police-before");return 0;
@@ -335,13 +343,14 @@ int main(int argc,char** argv){
     assert(originalRegions);
     std::string regionData((std::istreambuf_iterator<char>(originalRegions)),
         std::istreambuf_iterator<char>());
-    auto cityVehicleCount=regionData.find("CityVehicles=12");
-    assert(cityVehicleCount!=std::string::npos);
-    regionData.replace(cityVehicleCount,std::string("CityVehicles=12").size(),
-        "CityVehicles=13");
+    std::ifstream regionalSource(data_file::resourcePath("regional_placements.txt"));assert(regionalSource);
+    std::string regionalData((std::istreambuf_iterator<char>(regionalSource)),{});
+    regionalData+="vehicle east-vehicle-extra 10720 8000 0 0 -1 0.5 0.6 0.7\n";
+    std::string placementConfig=std::string(currentDirectory)+"\\placements-test.txt";
+    {std::ofstream data(placementConfig);data<<regionalData;}
     std::string regionConfig=std::string(currentDirectory)+"\\regions-test.ini";
     {std::ofstream data(regionConfig);data<<regionData;}
-    assert(regions::load(regionConfig.c_str()));
+    assert(regions::load(regionConfig.c_str(),placementConfig.c_str()));
     game::reset();
     assert(std::count_if(game::buildings.begin(),game::buildings.end(),
         [](const game::Building& building){return building.id.rfind("marina-",0)==0;})==15);
@@ -352,16 +361,14 @@ int main(int argc,char** argv){
             return vehicle.id.rfind("east-vehicle-",0)==0;
         });};
     assert(countEastVehicles()==13);
-    auto cityVehicleCycle=regionData.find("VehicleCycle=sport,car,car");
-    assert(cityVehicleCycle!=std::string::npos);
-    regionData.replace(cityVehicleCycle+std::string("VehicleCycle=").size(),5,
-        "hover");
+    auto spacingPosition=regionData.find("Spacing=500");assert(spacingPosition!=std::string::npos);
+    regionData.replace(spacingPosition,11,"Spacing=nan");
     {std::ofstream data(regionConfig,std::ios::trunc);data<<regionData;}
-    assert(!regions::load(regionConfig.c_str()));
-    assert(regions::lastError().find("VehicleCycle")!=std::string::npos);
+    assert(!regions::load(regionConfig.c_str(),placementConfig.c_str()));
+    assert(regions::lastError().find("Spacing")!=std::string::npos);
     game::reset();
     assert(countEastVehicles()==13);
-    std::remove(regionConfig.c_str());
+    std::remove(regionConfig.c_str());std::remove(placementConfig.c_str());
     assert(regions::load());
     game::reset();
     const double playableArea=connectedPlayableArea();

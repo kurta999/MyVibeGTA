@@ -312,11 +312,11 @@ void updateRider(float dt){
 void reset(){
     animals.clear();carried=-1;active=0;mounted=-1;
     std::mt19937 rng(914271);std::uniform_real_distribution<float> unit(0,1);
-    const float xs[]={3000,4000,5000,6000,7000},zs[]={1300,3900,6400,9000};
-    for(int grove=0;grove<20;++grove)for(int slot=0;slot<8;++slot){
+    const auto& groves=regions::geography().groves;
+    for(int grove=0;grove<int(groves.size());++grove)for(int slot=0;slot<8;++slot){
         Animal a;a.species=(grove*3+slot/2)%int(catalog.size());
         a.id="forest-"+std::to_string(grove)+"-"+std::to_string(slot);
-        Vec2 center{xs[grove%5],zs[grove/5]};
+        Vec2 center=groves[grove];
         bool placed=false;
         for(int attempt=0;attempt<180;++attempt){
             float angle=unit(rng)*2*PI,distance=40+unit(rng)*200;

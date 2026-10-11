@@ -1,0 +1,12 @@
+[
+  {
+    "Algorithm": "SHA256",
+    "Hash": "D0B938CAF96040263E8D013DFA229F8C1B7301C215341F082D9AC021106F533C",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\MiniCity3D.exe"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "D0B938CAF96040263E8D013DFA229F8C1B7301C215341F082D9AC021106F533C",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\build-msvc-ninja\\MiniCity3D.exe"
+  }
+]

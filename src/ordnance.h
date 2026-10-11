@@ -23,4 +23,5 @@ bool obscured(game::Vec2 start,game::Vec2 end);
 bool timerOpen();
 const std::string& timerText();
 void timerKey(int key);
+void setTimerSeconds(int seconds);
 }

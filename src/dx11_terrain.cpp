@@ -1,3 +1,4 @@
+#include "world_placements.h"
 #include "dx11_terrain.h"
 #include "terrain.h"
 #include "regions.h"
@@ -96,19 +97,15 @@ void appendRegionalTerrain(std::vector<ModelInstance>& instances,float radius){
         }
     }
     // Sparse scanned outcrops decorate ridges; traversal uses the ground mesh.
-    for(int z=0;z<42;++z)for(int x=0;x<42;++x){
-        unsigned hash=unsigned(x)*73856093u^unsigned(z)*19349663u;
-        if(hash%3)continue;
-        game::Vec2 p{(x+.2f+float(hash%50)/100)*400,(z+.2f+float((hash>>8)%50)/100)*400};
+    for(const auto& outcrop:world_placements::Data().outcrops){
+        game::Vec2 p=outcrop.p;
         if(game::len(p-game::player)>std::min(radius,1900.0f)||regions::waterAt(p)||regions::roadAt(p))continue;
         float h=terrain::baseHeight(p);if(h<90||terrain::normal(p).y>.995f)continue;
-        if(scenery_edits::appendIfEdited("outcrop:"+std::to_string(x)+":"+std::to_string(z),instances))continue;
-        bool cliff=hash%4==0;
-        std::string name=cliff?"nature/rock_coastal_cliff_02":"nature/rock_namaqualand_boulder_02";
+        if(scenery_edits::appendIfEdited(outcrop.editId,instances))continue;
+        std::string name=outcrop.model;
         if(game::len(p-game::player)>800)name+="-lod";
         const auto* source=mesh(name);if(!source)continue;
-        float width=cliff?100+float(hash%60):22+float(hash%30),height=cliff?35:width*.65f;
-        float yaw=float(hash%628)/100;
+        float width=outcrop.width,height=outcrop.height,yaw=outcrop.yaw;
         auto tint=regions::biomeAt(p)==regions::Biome::Desert?game::rgb(234,202,166):game::rgb(226,224,207);
         instances.push_back({source,0,width/(source->maxX-source->minX),height/(source->maxY-source->minY),
             width/(source->maxZ-source->minZ),std::cos(yaw),std::sin(yaw),p.x,h-height*.22f,p.z,

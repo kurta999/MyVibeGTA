@@ -46,3 +46,6 @@ __pycache__/
 # Pinned and restored by CMake FetchContent
 /third_party/FidelityFX-FSR2/
 /bin/ffx_fsr2_api/
+
+# Download archives are not needed with the vendored ImGui/Lua sources.
+/third_party/downloads/

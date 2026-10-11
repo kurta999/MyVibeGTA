@@ -206,15 +206,14 @@ void map(int x,int y,int width,int height,bool large){
             region.biome==regions::Biome::Desert?RGB(219,190,133):RGB(137,174,111);
         mapRect(region.x0,region.z0,region.x1,region.z1,tint);
     }
-    mapRect(7600,0,8000,regions::DEPTH,RGB(49,124,175));
+    const auto& map=regions::geography();
+    mapRect(map.river.x0,map.river.z0,map.river.x1,map.river.z1,RGB(49,124,175));
     mapRect(0,game::BEACH_START,game::WORLD_W,game::SHORE,RGB(225,200,151));
-    mapRect(0,game::SHORE,game::WORLD_W,game::WORLD_D,RGB(49,124,175));
-    for(int col=0;col<5;++col)
-        mapRect(300+col*450-game::ROAD_W/2,0,
-            300+col*450+game::ROAD_W/2,game::BEACH_START,RGB(77,80,84));
-    for(int row=0;row<4;++row)
-        mapRect(0,250+row*390-game::ROAD_W/2,
-            game::WORLD_W,250+row*390+game::ROAD_W/2,RGB(77,80,84));
+    mapRect(map.sea.x0,map.sea.z0,map.sea.x1,map.sea.z1,RGB(49,124,175));
+    for(int col=0;col<map.roadColumns;++col){float p=map.roadOrigin.x+col*map.roadSpacing.x;
+        mapRect(p-map.roadWidth/2,map.downtown.z0,p+map.roadWidth/2,map.downtown.z1,RGB(77,80,84));}
+    for(int row=0;row<map.roadRows;++row){float p=map.roadOrigin.z+row*map.roadSpacing.z;
+        mapRect(map.downtown.x0,p-map.roadWidth/2,map.downtown.x1,p+map.roadWidth/2,RGB(77,80,84));}
     for(const auto& road:regions::roads()){
         float half=road.width*0.5f;
         mapRect(std::min(road.start.x,road.end.x)-half,
@@ -222,16 +221,14 @@ void map(int x,int y,int width,int height,bool large){
             std::max(road.start.x,road.end.x)+half,
             std::max(road.start.z,road.end.z)+half,RGB(77,80,84));
     }
-    mapRect(8040,8810,8160,10015,RGB(203,198,178));
-    for(int z=10000;z<10720;z+=24){
-        float q=(float(z+12)-10360.0f)/360.0f;
-        float edge=8010.0f+770.0f*std::sqrt(std::max(0.0f,1.0f-q*q));
-        mapRect(8000,float(z),edge,float(z+24),RGB(49,124,175));
+    mapRect(map.promenade.x0,map.promenade.z0,map.promenade.x1,map.promenade.z1,RGB(203,198,178));
+    for(float z=map.bayBounds.z0;z<map.bayBounds.z1;z+=24){
+        float q=(z+12-map.bayCenter.z)/map.bayRadius.z;
+        float edge=map.bayCenter.x+map.bayRadius.x*std::sqrt(std::max(0.0f,1.0f-q*q));
+        mapRect(map.bayBounds.x0,z,edge,std::min(z+24,map.bayBounds.z1),RGB(49,124,175));
     }
-    for(const auto& pier: {std::array<float,3>{8300,8730,10220},
-                           std::array<float,3>{8350,8780,10390},
-                           std::array<float,3>{8260,8670,10560}})
-        mapRect(pier[0],pier[2]-11,pier[1],pier[2]+11,RGB(171,139,100));
+    for(const auto& pier:map.piers)
+        mapRect(pier.x0,pier.z-pier.halfWidth,pier.x1,pier.z+pier.halfWidth,RGB(171,139,100));
     auto city=regions::secondCity();
     for(int col=0;col<=city.columns;++col)
         mapRect(city.x+col*city.spacing-52,city.z-100,
@@ -239,7 +236,7 @@ void map(int x,int y,int width,int height,bool large){
     for(int row=0;row<=city.rows;++row)
         mapRect(city.x-100,city.z+row*city.spacing-52,
             city.x+city.columns*city.spacing+100,city.z+row*city.spacing+52,RGB(77,80,84));
-    mapRect(7600,8400,8000,8600,RGB(119,120,117));
+    mapRect(map.bridge.x0,map.bridge.z0,map.bridge.x1,map.bridge.z1,RGB(119,120,117));
     if(large)for(const auto& b:game::buildings)
         mapRect(b.x,b.z,b.x+b.w,b.z+b.d,RGB(160,137,113));
     int next=game::nextMission();
@@ -298,6 +295,7 @@ void map(int x,int y,int width,int height,bool large){
     }
     RestoreDC(memoryDC,saved);
 }
+#ifndef MINI_CITY_IMGUI
 void pauseMenu(int width,int height){
     if(!ui::paused())return;
     rect(0,0,width,height,RGB(20,29,38));
@@ -417,23 +415,30 @@ void debugMenu(int width,int height){
     label(x+168,y+526,"Up/Down select  Left/Right change  Enter choose  Esc/F4 close",
         RGB(195,215,218));
 }
+#endif
 }
+
 void buildHud(unsigned char* pixels,int width,int height){
     resize(width,height);
     if(!memoryDC||!dib){std::memset(pixels,0,size_t(width)*height*4);return;}
     std::memset(dib,0,size_t(width)*height*4);
+#ifdef MINI_CITY_IMGUI
+    const bool legacyHelp=false;
+#else
+    const bool legacyHelp=ui::showHelp;
+#endif
     char textBuffer[240];
-    rect(12,12,ui::showHelp?760:190,ui::showHelp?72:53,RGB(31,41,49));
+    rect(12,12,legacyHelp?760:190,legacyHelp?72:53,RGB(31,41,49));
     int hour=int(game::gameHour),minute=int((game::gameHour-hour)*60);
     label(24,19,"MINI CITY 3D",RGB(255,225,151));
-    if(ui::showHelp&&game::occupied>=0){
+    if(legacyHelp&&game::occupied>=0){
         const auto& vehicle=game::vehicles[game::occupied];
         const char* name=vehicle_systems::name(vehicle.kind);
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  SPACE drift  |  H lights  |  E exit",
             name,int(game::vehicleHealth(game::occupied)));
-    }else if(ui::showHelp)std::snprintf(textBuffer,sizeof(textBuffer),
+    }else if(legacyHelp)std::snprintf(textBuffer,sizeof(textBuffer),
         "WASD move  |  SHIFT run  |  ALT slow  |  LCTRL crouch  |  RMB aim  |  LMB fire");
-    if(ui::showHelp){
+    if(legacyHelp){
         label(220,19,textBuffer,RGB(223,230,230));
         label(24,49,"1-9 / Q guns  |  C camera  |  B telescope  |  E vehicle  |  F use  |  TAB choose  |  G carry",RGB(201,215,215));
     }else{
@@ -605,8 +610,9 @@ void buildHud(unsigned char* pixels,int width,int height){
         std::snprintf(textBuffer,sizeof(textBuffer),"FIRE %zu   SHOTS %zu   PROPS %zu",
             fire::active().size(),game::bullets.size(),game::props.size());
         label(width-304,height-52,textBuffer,RGB(224,245,220));}
-    if(ui::showHelp&&!ui::paused()&&!debug_menu::open&&!builder::active())
+    if(legacyHelp&&!ui::paused()&&!debug_menu::open&&!builder::active())
         label(18,height-28,"F4 DEBUG  |  X C4 DETONATE  |  K KNIFE TAKEDOWN  |  SWIM: LMB DIVE / RMB SURFACE",RGB(197,211,213));
+#ifndef MINI_CITY_IMGUI
     if(commerce::menu()!=commerce::Menu::None&&!ui::paused()){
         auto entries=commerce::menuEntries();
         int x=width/2-300,y=height/2-275;
@@ -644,6 +650,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(x+24,y+122,"Digits / Backspace   Enter: place   Esc: cancel",RGB(187,209,215));
     }
     pauseMenu(width,height);
+#endif
     if(builder::active()){
         int bx=width/2-270,by=height-90;char info[160]{};
         if(!builder::modal()){rect(width/2-7,height/2,15,2,RGB(246,240,212));rect(width/2,height/2-7,2,15,RGB(246,240,212));}
@@ -665,6 +672,7 @@ void buildHud(unsigned char* pixels,int width,int height){
         bool inspection=!camera::firstPersonActive();int targetX=width/2+(inspection?100:-100);
         const auto& target=builder::target();if(target.item>=0){std::snprintf(info,sizeof(info),"%s  %.0f%%",builder::items()[target.item].name.c_str(),builder::miningProgress()*100);label(targetX,height/2+30,info,RGB(245,235,194));}
         auto harvestHint=builder::harvestHint();if(!harvestHint.empty()&&!builder::modal())label(inspection?targetX:width/2-130,height/2+53,harvestHint.c_str(),RGB(240,204,129));
+#ifndef MINI_CITY_IMGUI
         if(builder::inventoryOpen()){
             int y=builder::slotRect(9,width,height).y-60;rect(bx-18,y-42,576,360,RGB(25,34,40));label(bx,y-27,"BUILDER INVENTORY | E / ESC close",RGB(246,226,174));
             for(int n=0;n<36;++n)slot(builder::slotRect(n,width,height),builder::inventory()[n],n==builder::selected());
@@ -697,6 +705,7 @@ void buildHud(unsigned char* pixels,int width,int height){
             }
             label(bx,y+308,"LMB move | RMB split / one | Shift-click transfer",RGB(196,217,211));
         }
+#endif
     }
     if(builder::transitioning()){
         rect(0,0,width,height,RGB(18,27,35));int x=width/2-260,y=height/2-50;

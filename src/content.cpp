@@ -1,4 +1,6 @@
 #include "content.h"
+#include "mission_script.h"
+#include "props.h"
 #include "data_file.h"
 #include "game_internal.h"
 #include "weapons.h"
@@ -15,7 +17,6 @@ namespace content {
 using namespace game;
 namespace {
 std::string error;
-std::vector<std::string> missionNames;
 int civilianCashMin=5,civilianCashMax=35,armedCashMin=45,armedCashMax=125,noticePercent=30;
 bool bad(const std::string& section,const std::string& key){
     error="Invalid ["+section+"] "+key;return false;
@@ -72,20 +73,7 @@ bool kind(const std::string& v,Kind& out){
     else return false;
     return true;
 }
-bool missionKind(const std::string& v,MissionKind& out){
-    if(v=="drive")out=MissionKind::Drive;
-    else if(v=="collect")out=MissionKind::Collect;
-    else if(v=="boat")out=MissionKind::Boat;
-    else if(v=="targets")out=MissionKind::Targets;
-    else if(v=="bike")out=MissionKind::Bike;
-    else if(v=="finale")out=MissionKind::Finale;
-    else return false;
-    return true;
-}
-struct MissionRow {
-    std::string id,name;Vec2 start;MissionKind kind;std::vector<Vec2> goals;
-    float seconds=0;int reward=0;
-};
+
 }
 const std::string& lastError(){return error;}
 int rollPedCash(bool armed){
@@ -97,11 +85,9 @@ int pickpocketNoticePercent(){return noticePercent;}
 
 bool populate(const char* worldPath,const char* missionsPath){
     error.clear();
-    data_file::Ini world,missionFile;
+    data_file::Ini world;
     if(!world.load(worldPath?worldPath:data_file::resourcePath("world.ini"))||
        !world.version(1)){error=world.lastError();return false;}
-    if(!missionFile.load(missionsPath?missionsPath:data_file::resourcePath("missions.ini"))||
-       !missionFile.version(1)){error=missionFile.lastError();return false;}
     int seed=0;
     if(!integer(world,"Schema","Seed",seed,0,2147483647))return false;
 
@@ -174,8 +160,7 @@ bool populate(const char* worldPath,const char* missionsPath){
     if(laneX+(laneCount-1)*laneSpacing+laneJitter>WORLD_W||
        minZ>=BEACH_START-beachMargin)return bad(traffic,"bounds");
     if(!integer(world,"Vehicles","Count",vehicleCount,1,200)||
-       !integer(world,"Pickups","Count",pickupCount,0,200)||
-       !integer(missionFile,"Missions","Count",missionCount,6,10))return false;
+       !integer(world,"Pickups","Count",pickupCount,0,200))return false;
 
     std::set<std::string> vehicleIds,pickupIds,missionIds;
     std::vector<Vehicle> placed;placed.reserve(vehicleCount);
@@ -202,28 +187,9 @@ bool populate(const char* worldPath,const char* missionsPath){
            !real(world,s,"Z",p.p.z,0,SHORE))return false;
         placedPickups.push_back(p);
     }
-    std::vector<MissionRow> missionRows;missionRows.reserve(missionCount);
-    const char* legacyIds[]={"sunset-circuit","beach-cache","harbor-run",
-        "boardwalk-range","neon-sprint","coastline-finale"};
-    for(int i=0;i<missionCount;++i){
-        const std::string s="Mission"+std::to_string(i);std::string value;
-        MissionRow m{};
-        if(!id(missionFile,s,m.id,missionIds))return false;
-        if(i<6&&m.id!=legacyIds[i])return bad(s,"Id must retain save order");
-        if(!string(missionFile,s,"Name",m.name)||!string(missionFile,s,"Kind",value))return false;
-        if(!missionKind(value,m.kind))return bad(s,"Kind");
-        if(!point(missionFile,s,"Start",m.start)||
-           !real(missionFile,s,"Seconds",m.seconds,1,3600)||
-           !integer(missionFile,s,"Reward",m.reward,0,1000000))return false;
-        int goalCount=0;
-        if(!integer(missionFile,s,"GoalCount",goalCount,1,30))return false;
-        for(int g=0;g<goalCount;++g){
-            Vec2 destination{};
-            if(!point(missionFile,s,"Goal"+std::to_string(g),destination))return false;
-            m.goals.push_back(destination);
-        }
-        missionRows.push_back(m);
-    }
+    std::vector<MissionDef> missionRows;
+    if(!props::load()){error=props::lastError();return false;}
+    if(!mission_script::Load(missionsPath,missionRows)){error=mission_script::LastError();return false;}
 
     std::srand(unsigned(seed));
     civilianCashMin=civilianMin;civilianCashMax=civilianMax;
@@ -270,11 +236,7 @@ bool populate(const char* worldPath,const char* missionsPath){
     }
     vehicles.insert(vehicles.end(),placed.begin(),placed.end());
     pickups=std::move(placedPickups);
-    missionNames.clear();missionNames.reserve(missionRows.size());
-    for(const auto& row:missionRows)missionNames.push_back(row.name);
-    for(int i=0;i<int(missionRows.size());++i)missions.push_back({missionNames[i].c_str(),
-        missionRows[i].start,missionRows[i].kind,missionRows[i].goals,
-        missionRows[i].seconds,missionRows[i].reward,missionRows[i].id});
+    missions=std::move(missionRows);
     return true;
 }
 }

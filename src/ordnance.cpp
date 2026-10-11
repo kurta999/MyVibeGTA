@@ -112,6 +112,7 @@ bool use(const weapons::Stats& stats){
     if(stats.payload==Payload::C4){int remote=weapons::indexOf("remote-trigger");if(remote>=0)unlocked[remote]=true;}
     return true;
 }
+void setTimerSeconds(int delay){if(enteringTimer){seconds=std::to_string(std::clamp(delay,1,600));replaceSeconds=false;}}
 void timerKey(int key){
     if(!enteringTimer)return;
     if(key==VK_ESCAPE){enteringTimer=false;timerWeapon=-1;return;}

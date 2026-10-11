@@ -94,9 +94,7 @@ float landingHeight(Vec3 p,float r){
 void reset(){
     flock.clear();maximumCrown=0;active=0;
     for(const auto& tree:trees)if(!tree.destroyed)maximumCrown=std::max(maximumCrown,crown(tree));
-    std::vector<Vec2> centers{{550,600},{1300,1100},{1600,1900},{750,250},{1500,600},
-        {7900,8900},{12000,8500},{12000,14000},{4000,14000},{12000,3000}};
-    for(float z:{1300.0f,3900.0f,6400.0f,9000.0f})for(float x:{3000.0f,4000.0f,5000.0f,6000.0f,7000.0f})centers.push_back({x,z});
+    const auto& centers=regions::geography().flocks;
     std::mt19937 rng(928435);std::uniform_real_distribution<float> unit(0,1);
     for(int group=0;group<int(centers.size());++group)for(int i=0;i<5;++i){
         Bird b;b.species=i;b.id="flock-"+std::to_string(group)+"-"+std::to_string(i);

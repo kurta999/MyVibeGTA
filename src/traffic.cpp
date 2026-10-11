@@ -126,9 +126,13 @@ bool visible(Vec2 from,Vec2 to){
 std::size_t roadNodeCount(){return nodes.size();}
 void reset(){
     nodes.clear();std::vector<Segment> roads;
-    for(int x=0;x<5;++x)roads.push_back({{300+x*450.0f,60},{300+x*450.0f,1540}});
-    for(int z=0;z<4;++z)roads.push_back({{60,250+z*390.0f},{2340,250+z*390.0f}});
-    roads.push_back({{1200,1420},{1200,1600}});
+    const auto& map=regions::geography();
+    for(int x=0;x<map.roadColumns;++x){float p=map.roadOrigin.x+x*map.roadSpacing.x;
+        roads.push_back({{p,map.downtown.z0+map.trafficInset},{p,map.downtown.z1-map.trafficInset}});}
+    for(int z=0;z<map.roadRows;++z){float p=map.roadOrigin.z+z*map.roadSpacing.z;
+        roads.push_back({{map.downtown.x0+map.trafficInset,p},{map.downtown.x1-map.trafficInset,p}});}
+    float crossingX=(map.causeway.x0+map.causeway.x1)*.5f;
+    roads.push_back({{crossingX,map.roadOrigin.z+(map.roadRows-1)*map.roadSpacing.z},{crossingX,map.causeway.z0}});
     auto city=regions::secondCity();
     for(int x=0;x<=city.columns;++x)roads.push_back({{city.x+x*city.spacing,city.z},
         {city.x+x*city.spacing,city.z+city.rows*city.spacing}});

@@ -1,0 +1,12 @@
+[
+  {
+    "Algorithm": "SHA256",
+    "Hash": "B1597CBDC25AFFDACFC0FC7C3019BD6DC401209137B5F15AE4DF4363314E4AF6",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\savegame.ini"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "B297CD8FE66BFB7CDBDD7E00340A0E6D4862D89B21DA378EA3F8308493774B32",
+    "Path": "C:\\GIT_local\\MyVibeGTA\\settings.ini"
+  }
+]

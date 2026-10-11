@@ -1,4 +1,5 @@
 #include "regions.h"
+#include "world_placements.h"
 #ifdef MINI_CITY_JOLT
 #include "terrain.h"
 #endif
@@ -30,27 +31,9 @@ std::vector<std::vector<int>> treeBuckets(treeColumns*treeRows);
 std::size_t indexedTreeCount=0;
 std::vector<std::vector<int>> decorationBuckets(treeColumns*treeRows);
 std::string error;
-float cityX=10700,cityZ=7000,citySpacing=500;
-int cityRows=6,cityColumns=7,regionalTrees=6000,regionalProps=900;
-int climbFrequency=6,cityPedestrians=48,cityVehicles=12;
-int trafficPerRoad=1;
-std::vector<game::Kind> cityVehicleCycle;
-bool parseVehicleCycle(const std::string& source,std::vector<game::Kind>& result){
-    result.clear();
-    std::size_t start=0;
-    while(start<source.size()){
-        std::size_t end=source.find(',',start);
-        std::string token=data_file::trim(source.substr(start,end-start));
-        if(token=="car")result.push_back(game::Kind::Car);
-        else if(token=="sport")result.push_back(game::Kind::SportCar);
-        else if(token=="bike")result.push_back(game::Kind::Bike);
-        else return false;
-        if(result.size()>32)return false;
-        if(end==std::string::npos)return true;
-        start=end+1;
-    }
-    return false;
-}
+Geography map;
+float cityX=0,cityZ=0,citySpacing=0;
+int cityRows=0,cityColumns=0;
 bool parseBiome(const std::string& value,Biome& biome){
     if(value=="city")biome=Biome::City;
     else if(value=="countryside")biome=Biome::Countryside;
@@ -61,38 +44,21 @@ bool parseBiome(const std::string& value,Biome& biome){
     return true;
 }
 }
-bool load(const char* path){
+bool load(const char* path,const char* placementsPath,const char* geographyPath){
     error.clear();data_file::Ini file;
-    if(!file.load(path?path:data_file::resourcePath("regions.ini"))||!file.version(2)){
+    if(!file.load(path?path:data_file::resourcePath("regions.ini"))||!file.version(3)){
         error=file.lastError();return false;
     }
     int count=0;
     float parsedCityX=cityX,parsedCityZ=cityZ,parsedSpacing=citySpacing;
     int parsedRows=cityRows,parsedColumns=cityColumns;
-    int parsedTrees=regionalTrees,parsedPropCount=regionalProps;
-    int parsedClimbFrequency=climbFrequency,parsedCityPedestrians=cityPedestrians;
-    int parsedCityVehicles=cityVehicles,parsedTrafficPerRoad=trafficPerRoad;
     if(!file.integer("Regions","Count",count,5,20)||
        !file.real("SecondCity","X",parsedCityX,9000,14500)||
        !file.real("SecondCity","Z",parsedCityZ,5500,11000)||
        !file.real("SecondCity","Spacing",parsedSpacing,250,700)||
        !file.integer("SecondCity","Rows",parsedRows,3,8)||
-       !file.integer("SecondCity","Columns",parsedColumns,3,8)||
-       !file.integer("Population","Trees",parsedTrees,100,10000)||
-       !file.integer("Population","Props",parsedPropCount,0,3000)||
-       !file.integer("Population","ClimbFrequency",parsedClimbFrequency,1,30)||
-       !file.integer("Population","CityPedestrians",parsedCityPedestrians,10,150)||
-       !file.integer("Population","CityVehicles",parsedCityVehicles,1,100)||
-       !file.integer("Population","TrafficPerRoad",parsedTrafficPerRoad,0,2)){
+       !file.integer("SecondCity","Columns",parsedColumns,3,8)){
         error=file.lastError();return false;
-    }
-    std::string cityCycleText;
-    std::vector<game::Kind> parsedCityCycle;
-    if(!file.string("SecondCity","VehicleCycle",cityCycleText)){
-        error=file.lastError();return false;
-    }
-    if(!parseVehicleCycle(cityCycleText,parsedCityCycle)){
-        error="Invalid [SecondCity] VehicleCycle";return false;
     }
     if(parsedCityX+parsedColumns*parsedSpacing>WIDTH-100||
        parsedCityZ+parsedRows*parsedSpacing>DEPTH-100){
@@ -202,18 +168,12 @@ bool load(const char* path){
     std::vector<Hub> parsedHubs;ids.clear();
     for(int index=0;index<hubCount;++index){
         const std::string section="Hub"+std::to_string(index);
-        Hub hub{};std::string vehicleCycleText;
+        Hub hub{};
         if(!file.string(section,"Id",hub.id)||
            !file.string(section,"RegionId",hub.regionId)||
            !file.real(section,"X",hub.p.x,0,WIDTH)||
-           !file.real(section,"Z",hub.p.z,0,DEPTH)||
-           !file.integer(section,"Pedestrians",hub.pedestrians,1,40)||
-           !file.integer(section,"Vehicles",hub.vehicles,1,10)||
-           !file.string(section,"VehicleCycle",vehicleCycleText)){
+           !file.real(section,"Z",hub.p.z,0,DEPTH)){
             error=file.lastError();return false;
-        }
-        if(!parseVehicleCycle(vehicleCycleText,hub.vehicleCycle)){
-            error="Invalid ["+section+"] VehicleCycle";return false;
         }
         auto region=std::find_if(parsed.begin(),parsed.end(),
             [&](const Region& item){return item.id==hub.regionId;});
@@ -225,15 +185,76 @@ bool load(const char* path){
         }
         parsedHubs.push_back(hub);
     }
+    data_file::Ini geographyFile;Geography parsedMap;
+    if(!geographyFile.load(geographyPath?geographyPath:data_file::resourcePath("geography.ini"))||!geographyFile.version(1)){
+        error=geographyFile.lastError();return false;
+    }
+    auto rectangle=[&](const char* section,Rect& rectangle){
+        return geographyFile.real(section,"X0",rectangle.x0,0,WIDTH)&&geographyFile.real(section,"Z0",rectangle.z0,0,DEPTH)&&
+            geographyFile.real(section,"X1",rectangle.x1,0,WIDTH)&&geographyFile.real(section,"Z1",rectangle.z1,0,DEPTH)&&
+            rectangle.x0<rectangle.x1&&rectangle.z0<rectangle.z1;
+    };
+    int pierCount=0;
+    if(!rectangle("River",parsedMap.river)||!rectangle("Bridge",parsedMap.bridge)||
+       !rectangle("Causeway",parsedMap.causeway)||!rectangle("Sea",parsedMap.sea)||
+       !rectangle("BayBounds",parsedMap.bayBounds)||!rectangle("Promenade",parsedMap.promenade)||
+       !geographyFile.real("Bay","X",parsedMap.bayCenter.x,0,WIDTH)||
+       !geographyFile.real("Bay","Z",parsedMap.bayCenter.z,0,DEPTH)||
+       !geographyFile.real("Bay","RadiusX",parsedMap.bayRadius.x,1,WIDTH)||
+       !geographyFile.real("Bay","RadiusZ",parsedMap.bayRadius.z,1,DEPTH)||
+       !geographyFile.real("Shoreline","Z0",parsedMap.shorelineZ0,0,DEPTH)||
+       !geographyFile.real("Shoreline","Z1",parsedMap.shorelineZ1,0,DEPTH)||
+       !geographyFile.real("Shoreline","Inner",parsedMap.shorelineInner,0,1000)||
+       !geographyFile.real("Shoreline","Outer",parsedMap.shorelineOuter,0,1000)||
+       !geographyFile.integer("Piers","Count",pierCount,0,128)||
+       parsedMap.shorelineZ0>=parsedMap.shorelineZ1||parsedMap.shorelineInner>=parsedMap.shorelineOuter){
+        error="Invalid geography: "+geographyFile.lastError();return false;
+    }
+    for(int i=0;i<pierCount;++i){
+        const auto section="Pier"+std::to_string(i);Pier pier;
+        if(!geographyFile.real(section,"X0",pier.x0,0,WIDTH)||!geographyFile.real(section,"X1",pier.x1,0,WIDTH)||
+           !geographyFile.real(section,"Z",pier.z,0,DEPTH)||!geographyFile.real(section,"HalfWidth",pier.halfWidth,.1f,100)||pier.x0>=pier.x1){
+            error="Invalid pier: "+geographyFile.lastError();return false;
+        }
+        parsedMap.piers.push_back(pier);
+    }
+    if(!rectangle("Downtown",parsedMap.downtown)||
+       !geographyFile.real("DowntownRoads","X",parsedMap.roadOrigin.x,0,WIDTH)||
+       !geographyFile.real("DowntownRoads","Z",parsedMap.roadOrigin.z,0,DEPTH)||
+       !geographyFile.real("DowntownRoads","SpacingX",parsedMap.roadSpacing.x,1,2000)||
+       !geographyFile.real("DowntownRoads","SpacingZ",parsedMap.roadSpacing.z,1,2000)||
+       !geographyFile.real("DowntownRoads","Width",parsedMap.roadWidth,1,250)||
+       !geographyFile.real("DowntownRoads","TrafficInset",parsedMap.trafficInset,1,500)||
+       !geographyFile.integer("DowntownRoads","Columns",parsedMap.roadColumns,1,64)||
+       !geographyFile.integer("DowntownRoads","Rows",parsedMap.roadRows,1,64)||
+       parsedMap.roadOrigin.x+(parsedMap.roadColumns-1)*parsedMap.roadSpacing.x>parsedMap.downtown.x1||
+       parsedMap.roadOrigin.z+(parsedMap.roadRows-1)*parsedMap.roadSpacing.z>parsedMap.downtown.z1){
+        error="Invalid downtown road layout: "+geographyFile.lastError();return false;
+    }
+    auto centers=[&](const char* category,const char* prefix,std::vector<game::Vec2>& values){
+        int count=0;if(!geographyFile.integer(category,"Count",count,0,512))return false;
+        for(int i=0;i<count;++i){
+            auto section=std::string(prefix)+std::to_string(i);game::Vec2 p;
+            if(!geographyFile.real(section,"X",p.x,0,WIDTH)||!geographyFile.real(section,"Z",p.z,0,DEPTH))return false;
+            values.push_back(p);
+        }
+        return true;
+    };
+    if(!centers("Groves","Grove",parsedMap.groves)||!centers("Flocks","Flock",parsedMap.flocks)){
+        error=geographyFile.lastError();return false;
+    }
+    if(!world_placements::Load(placementsPath,unsigned(parsedRoads.size()))){error=world_placements::LastError();return false;}
+    map=std::move(parsedMap);
     definitions=std::move(parsed);treeSpecies=std::move(parsedSpecies);
     propSpecies=std::move(parsedProps);roadSegments=std::move(parsedRoads);
     cityX=parsedCityX;cityZ=parsedCityZ;citySpacing=parsedSpacing;
     cityRows=parsedRows;cityColumns=parsedColumns;
-    regionalTrees=parsedTrees;regionalProps=parsedPropCount;
-    climbFrequency=parsedClimbFrequency;cityPedestrians=parsedCityPedestrians;
-    cityVehicles=parsedCityVehicles;
-    cityVehicleCycle=std::move(parsedCityCycle);
-    trafficPerRoad=parsedTrafficPerRoad;
+    for(auto& hub:parsedHubs){
+        for(const auto& pedestrian:world_placements::Data().pedestrians)
+            if(pedestrian.id.rfind(hub.id+"-ped-",0)==0)++hub.pedestrians;
+        for(const auto& vehicle:world_placements::Data().vehicles)
+            if(vehicle.id.rfind(hub.id+"-vehicle-",0)==0){++hub.vehicles;hub.vehicleCycle.push_back(vehicle.kind);}
+    }
     populationHubs=std::move(parsedHubs);
 #ifdef MINI_CITY_JOLT
     if(!terrain::load()){error=terrain::lastError();return false;}
@@ -241,6 +262,16 @@ bool load(const char* path){
     return true;
 }
 const std::string& lastError(){return error;}
+const Geography& geography(){return map;}
+bool downtownRoadAt(game::Vec2 point,float clearance,float widthFactor){
+    if(point.x<map.downtown.x0||point.x>=map.downtown.x1||point.z<map.downtown.z0||point.z>=map.downtown.z1)return false;
+    float half=map.roadWidth*widthFactor+clearance;
+    for(int column=0;column<map.roadColumns;++column)
+        if(std::abs(point.x-(map.roadOrigin.x+column*map.roadSpacing.x))<half)return true;
+    for(int row=0;row<map.roadRows;++row)
+        if(std::abs(point.z-(map.roadOrigin.z+row*map.roadSpacing.z))<half)return true;
+    return false;
+}
 const std::vector<Region>& all(){return definitions;}
 const std::vector<TreeSpecies>& species(){return treeSpecies;}
 const std::vector<Decoration>& decorations(){return regionalDecorations;}
@@ -299,31 +330,28 @@ game::Color groundColor(game::Vec2 point){
     }
 }
 bool bridgeAt(game::Vec2 point){
-    return point.x>=7600&&point.x<8000&&std::abs(point.z-8500)<100;
+    return point.x>=map.bridge.x0&&point.x<map.bridge.x1&&point.z>map.bridge.z0&&point.z<map.bridge.z1;
 }
 bool causewayAt(game::Vec2 point){
-    return std::abs(point.x-1200)<60&&point.z>=1600&&point.z<2220;
+    return point.x>map.causeway.x0&&point.x<map.causeway.x1&&point.z>=map.causeway.z0&&point.z<map.causeway.z1;
 }
 bool marinaBayAt(game::Vec2 point){
-    if(point.x<8000||point.x>8780||point.z<10000||point.z>10720)return false;
-    float east=(point.x-8010)/770.0f;
-    float northSouth=(point.z-10360)/360.0f;
+    if(point.x<map.bayBounds.x0||point.x>map.bayBounds.x1||point.z<map.bayBounds.z0||point.z>map.bayBounds.z1)return false;
+    float east=(point.x-map.bayCenter.x)/map.bayRadius.x;
+    float northSouth=(point.z-map.bayCenter.z)/map.bayRadius.z;
     return east*east+northSouth*northSouth<1.0f;
 }
 bool marinaPierAt(game::Vec2 point){
-    struct Pier {float x0,x1,z;};
-    constexpr Pier piers[]={{8300,8730,10220},{8350,8780,10390},
-        {8260,8670,10560}};
-    for(const auto& pier:piers)
+    for(const auto& pier:map.piers)
         if(point.x>=pier.x0&&point.x<=pier.x1&&
-           std::abs(point.z-pier.z)<=11)return true;
+           std::abs(point.z-pier.z)<=pier.halfWidth)return true;
     return false;
 }
 bool waterAt(game::Vec2 point){
     if(marinaBayAt(point))return !marinaPierAt(point);
-    if(point.x>=0&&point.x<game::WORLD_W&&point.z>=game::SHORE&&
-       point.z<game::WORLD_D)return !causewayAt(point);
-    return point.x>=7600&&point.x<8000&&!bridgeAt(point);
+    if(point.x>=map.sea.x0&&point.x<map.sea.x1&&point.z>=map.sea.z0&&
+       point.z<map.sea.z1)return !causewayAt(point);
+    return point.x>=map.river.x0&&point.x<map.river.x1&&point.z>=map.river.z0&&point.z<map.river.z1&&!bridgeAt(point);
 }
 bool roadAt(game::Vec2 point){
     if(point.x<game::WORLD_W&&point.z<game::WORLD_D)return causewayAt(point);
@@ -347,266 +375,23 @@ bool roadAt(game::Vec2 point){
     return false;
 }
 void populate(){
-    std::mt19937 random(6221);
-    regionalDecorations.clear();
-    pedHomes.clear();
+    const auto& scene=world_placements::Data();
+    game::buildings.insert(game::buildings.end(),scene.buildings.begin(),scene.buildings.end());
+    game::trees.insert(game::trees.end(),scene.trees.begin(),scene.trees.end());
+    game::vehicles.insert(game::vehicles.begin(),scene.vehicles.begin(),scene.vehicles.end());
+    regionalDecorations=scene.decorations;pedHomes.clear();
+    for(auto pedestrian:scene.pedestrians){
+        pedestrian.cash=content::rollPedCash(pedestrian.armed);
+        pedHomes.emplace(pedestrian.id,pedestrian.p);game::peds.push_back(std::move(pedestrian));
+    }
     for(auto& bucket:treeBuckets)bucket.clear();
     for(auto& bucket:decorationBuckets)bucket.clear();
-    std::uniform_real_distribution<float> height(125,300);
-    for(int row=0;row<cityRows;++row)for(int column=0;column<cityColumns;++column){
-        float x=cityX+column*citySpacing+82;
-        float z=cityZ+row*citySpacing+82;
-        game::buildings.push_back({x,z,citySpacing-164,citySpacing-164,height(random),
-            game::rgb(150+column%4*14,157+row%3*13,159+column%3*11),
-            "east-city-"+std::to_string(row)+"-"+std::to_string(column)});
-    }
-    // The west-facing riverfront follows Marina Part's Danubius street and
-    // promenade, with lower courtyard blocks set back from the Danube.
-    struct MarinaBlock {float x,z,w,d,h;const char* style;};
-    const MarinaBlock marinaBlocks[]={
-        {8175,8940,185,170,166,"wave"},{8180,9130,175,118,138,"terrace"},
-        {8175,9360,185,168,160,"wave"},{8185,9550,175,158,143,"terrace"},
-        {8175,9820,185,166,170,"wave"},
-        {8600,8945,150,270,145,"courtyard"},{8810,8945,160,270,154,"courtyard"},
-        {9060,8945,155,270,150,"courtyard"},{9300,8945,160,270,140,"terrace"},
-        {8600,9380,150,275,155,"courtyard"},{8810,9380,160,275,150,"courtyard"},
-        {9060,9380,155,275,158,"courtyard"},{9300,9380,160,275,145,"terrace"},
-        {8890,9840,250,195,142,"bayfront"},{9300,9840,165,205,151,"courtyard"}
+    auto bucket=[&](game::Vec2 p){
+        int x=std::clamp(int(p.x/treeCellSize),0,treeColumns-1);
+        int z=std::clamp(int(p.z/treeCellSize),0,treeRows-1);return z*treeColumns+x;
     };
-    for(int index=0;index<int(std::size(marinaBlocks));++index){
-        const auto& b=marinaBlocks[index];
-        game::buildings.push_back({b.x,b.z,b.w,b.d,b.h,
-            game::rgb(224,216,196),"marina-"+std::string(b.style)+"-"+std::to_string(index)});
-    }
-    for(const auto& shop:commerce::shops)
-        if(biomeAt(shop.p)!=Biome::City)
-            game::buildings.push_back({shop.p.x-15,shop.p.z+45,30,28,27,
-                game::rgb(159,129,93),"outpost-shop-"+shop.id});
-    for(const auto& house:commerce::houses)
-        if(biomeAt(house.p)!=Biome::City)
-            game::buildings.push_back({house.p.x-15,house.p.z+45,30,30,31,
-                game::rgb(172,158,133),"outpost-house-"+house.id});
-    std::uniform_real_distribution<float> xChoice(100,WIDTH-100),zChoice(100,DEPTH-100);
-    std::array<int,5> biomeCounts{};
-    for(int index=0;index<regionalTrees;){
-        game::Vec2 point{xChoice(random),zChoice(random)};
-        if(waterAt(point)||roadAt(point)||biomeAt(point)==Biome::City||
-           game::solid(point,24))continue;
-        Biome biome=biomeAt(point);
-        if(biome==Biome::Desert&&random()%4!=0)continue;
-        std::vector<const TreeSpecies*> candidates;
-        for(const auto& entry:treeSpecies)if(entry.biome==biome)candidates.push_back(&entry);
-        if(candidates.empty())continue;
-        int slot=biomeCounts[int(biome)]++%int(candidates.size());
-        const TreeSpecies& selected=*candidates[slot];
-        game::Tree tree{};tree.id="regional-tree-"+std::to_string(index);
-        tree.p=point;tree.variant=index%3;
-        tree.modelId=selected.modelId;tree.crownWidth=selected.width;
-        tree.height=selected.height;
-        tree.palm=selected.modelId.rfind("tree_palm",0)==0;
-        tree.scale=0.68f+0.11f*float(index%9);
-        if(index%climbFrequency==0)
-            tree.climbHeight=selected.climbHeight*tree.scale;
-        game::trees.push_back(tree);++index;
-    }
-    int marinaTree=0;
-    for(float z=8910;z<=9960;z+=95){
-        for(float x:{8085.0f,8420.0f,8775.0f,9255.0f}){
-            game::Vec2 point{x,z};
-            if(game::solid(point,17)||roadAt(point))continue;
-            game::Tree tree{};tree.id="marina-tree-"+std::to_string(marinaTree++);
-            tree.p=point;tree.modelId=(marinaTree%3==0?"tree_oak":"tree_detailed");
-            tree.crownWidth=47;tree.height=65;tree.scale=0.75f+0.07f*float(marinaTree%4);
-            game::trees.push_back(tree);
-        }
-    }
-    // Concentrate additional trees in the open countryside rather than
-    // spreading them across roads, buildings, or other biomes.
-    constexpr std::array<float,5> forestXs{3000,4000,5000,6000,7000};
-    constexpr std::array<float,4> forestZs{1300,3900,6400,9000};
-    auto forestCenter=[&](int grove){
-        return game::Vec2{forestXs[grove%int(forestXs.size())],
-                          forestZs[grove/int(forestXs.size())]};
-    };
-    auto openForestGround=[&](game::Vec2 point,float clearance){
-        if(biomeAt(point)!=Biome::Countryside||game::solid(point,clearance))return false;
-        for(game::Vec2 offset: {game::Vec2{0,0}, {clearance,0},
-                                {-clearance,0}, {0,clearance}, {0,-clearance}})
-            if(roadAt(point+offset))return false;
-        return true;
-    };
-    std::vector<const TreeSpecies*> forestSpecies;
-    for(const auto& entry:treeSpecies)
-        if(entry.biome==Biome::Countryside&&
-           entry.modelId!="tree_fat"&&entry.modelId!="tree_urbanCherry")
-            forestSpecies.push_back(&entry);
-    auto giantOak=std::find_if(treeSpecies.begin(),treeSpecies.end(),
-        [](const TreeSpecies& entry){return entry.modelId=="tree_oak";});
-    auto giantTall=std::find_if(treeSpecies.begin(),treeSpecies.end(),
-        [](const TreeSpecies& entry){return entry.modelId=="tree_tall";});
-    std::mt19937 forestRandom(90627);
-    std::uniform_real_distribution<float> forestUnit(0.0f,1.0f);
-    constexpr float fullTurn=6.28318530718f;
-    for(int grove=0;grove<int(forestXs.size()*forestZs.size());++grove){
-        const game::Vec2 center=forestCenter(grove);
-        for(int local=0;local<130;++local){
-            float angle=fullTurn*forestUnit(forestRandom);
-            float radius=305.0f*std::sqrt(forestUnit(forestRandom));
-            game::Vec2 point{center.x+radius*std::cos(angle),
-                             center.z+radius*std::sin(angle)};
-            bool giant=local<3&&giantOak!=treeSpecies.end()&&giantTall!=treeSpecies.end();
-            float scale=giant?(local==0?10.0f:5.2f+float(grove%3)*0.4f):
-                0.58f+0.13f*float((grove*3+local)%10);
-            const TreeSpecies& selected=giant?
-                (local==0?*giantTall:*giantOak):
-                *forestSpecies[(grove*13+local)%forestSpecies.size()];
-            if(!openForestGround(point,giant?selected.width*scale*0.25f:28))continue;
-            game::Tree tree{};
-            tree.id="forest-tree-"+std::to_string(grove)+"-"+std::to_string(local);
-            tree.p=point;tree.modelId=selected.modelId;
-            tree.crownWidth=selected.width*(giant?0.56f:1.0f);
-            tree.height=selected.height;tree.scale=scale;
-            if(!giant&&local%climbFrequency==0)
-                tree.climbHeight=selected.climbHeight*tree.scale;
-            game::trees.push_back(tree);
-        }
-    }
-    for(int index=0;index<int(game::trees.size());++index){
-        const auto& point=game::trees[index].p;
-        int x=std::clamp(int(point.x/treeCellSize),0,treeColumns-1);
-        int z=std::clamp(int(point.z/treeCellSize),0,treeRows-1);
-        treeBuckets[z*treeColumns+x].push_back(index);
-    }
+    for(int i=0;i<int(game::trees.size());++i)treeBuckets[bucket(game::trees[i].p)].push_back(i);
+    for(int i=0;i<int(regionalDecorations.size());++i)decorationBuckets[bucket(regionalDecorations[i].p)].push_back(i);
     indexedTreeCount=game::trees.size();
-    for(int index=0;index<regionalProps;){
-        game::Vec2 point{xChoice(random),zChoice(random)};
-        if(waterAt(point)||roadAt(point)||biomeAt(point)!=Biome::Desert||
-           game::solid(point,18))continue;
-        const auto& selected=propSpecies[index%propSpecies.size()];
-        regionalDecorations.push_back({point,"desert-prop-"+std::to_string(index),
-            selected.modelId,selected.width,selected.height,selected.width});
-        int x=std::clamp(int(point.x/treeCellSize),0,treeColumns-1);
-        int z=std::clamp(int(point.z/treeCellSize),0,treeRows-1);
-        decorationBuckets[z*treeColumns+x].push_back(index);
-        ++index;
-    }
-    // Decorations are rendered and indexed for culling, but never enter the
-    // building/tree collision or physics collections.
-    for(int grove=0;grove<int(forestXs.size()*forestZs.size());++grove){
-        const game::Vec2 center=forestCenter(grove);
-        for(int local=0;local<300;++local){
-            float angle=fullTurn*forestUnit(forestRandom);
-            float radius=325.0f*std::sqrt(forestUnit(forestRandom));
-            game::Vec2 point{center.x+radius*std::cos(angle),
-                             center.z+radius*std::sin(angle)};
-            if(!openForestGround(point,9))continue;
-            int variant=(grove*19+local*7)%36;
-            std::string modelId="bush_"+
-                std::string(variant<10?"0":"")+std::to_string(variant);
-            float width=7.5f+float((grove+local)%8)*1.35f;
-            float height=4.5f+float((local*3+grove)%7)*1.1f;
-            int index=int(regionalDecorations.size());
-            regionalDecorations.push_back({point,
-                "forest-bush-"+std::to_string(grove)+"-"+std::to_string(local),
-                modelId,width,height,width});
-            int x=std::clamp(int(point.x/treeCellSize),0,treeColumns-1);
-            int z=std::clamp(int(point.z/treeCellSize),0,treeRows-1);
-            decorationBuckets[z*treeColumns+x].push_back(index);
-        }
-    }
-    for(int index=0;index<cityPedestrians;++index){
-        game::Vec2 point{};
-        for(int attempt=0;attempt<1000;++attempt){
-            point={cityX+float(random()%unsigned(cityColumns*int(citySpacing))),
-                cityZ+float(random()%unsigned(cityRows*int(citySpacing)))};
-            if(!game::solid(point,13))break;
-        }
-        game::Ped ped{};ped.id="east-ped-"+std::to_string(index);
-        ped.p=ped.target=point;ped.speed=28+float(index%27);ped.style=index%4;
-        ped.shirt=game::rgb(90+index%130,85+(index*13)%140,90+(index*19)%130);
-        ped.armed=index%7==0;ped.cash=content::rollPedCash(ped.armed);
-        pedHomes.emplace(ped.id,ped.p);
-        game::peds.push_back(ped);
-    }
-    for(int index=0;index<28;++index){
-        game::Vec2 point{index%2==0?8125.0f:8580.0f+float((index%4)*200),
-            8900.0f+float((index*139)%1050)};
-        if(game::solid(point,13))point={8500.0f,9000.0f+float(index%10)*95};
-        game::Ped ped{};ped.id="marina-ped-"+std::to_string(index);
-        ped.p=ped.target=point;ped.speed=26+float(index%18);ped.style=index%4;
-        ped.shirt=game::rgb(85+(index*29)%145,91+(index*37)%125,96+(index*17)%130);
-        ped.cash=content::rollPedCash(false);pedHomes.emplace(ped.id,point);
-        game::peds.push_back(ped);
-    }
-    for(int index=0;index<8;++index){
-        game::Vehicle vehicle{};vehicle.id="marina-car-"+std::to_string(index);
-        vehicle.kind=index%4==0?game::Kind::SportCar:game::Kind::Car;
-        vehicle.p={index<4?8500.0f:9680.0f,
-            8900.0f+float(index%4)*250.0f};
-        vehicle.c=game::rgb(83+(index*37)%140,94+(index*41)%130,107+(index*53)%120);
-        game::vehicles.insert(game::vehicles.begin(),vehicle);
-    }
-    for(int index=0;index<3;++index){
-        game::Vehicle boat{};boat.id="marina-boat-"+std::to_string(index);
-        boat.kind=game::Kind::Boat;boat.p={8170.0f+index*125.0f,10310.0f+index*65.0f};
-        boat.angle=game::PI*0.5f;
-        boat.c=game::rgb(217-index*31,226-index*17,231-index*9);
-        game::vehicles.insert(game::vehicles.begin(),boat);
-    }
-    for(int index=0;index<cityVehicles;++index){
-        game::Vehicle vehicle{};vehicle.id="east-vehicle-"+std::to_string(index);
-        vehicle.kind=cityVehicleCycle[index%cityVehicleCycle.size()];
-        vehicle.p={cityX+float(index%cityColumns)*citySpacing+20,
-            cityZ+float(index/cityColumns)*citySpacing+140};
-        vehicle.c=game::rgb(85+(index*23)%145,85+(index*37)%145,85+(index*53)%145);
-        game::vehicles.insert(game::vehicles.begin(),vehicle);
-    }
-    for(const Hub& hub:populationHubs){
-        for(int index=0;index<hub.pedestrians;++index){
-            float angle=index*2.399963f;
-            float radius=55.0f+float(index%3)*26.0f;
-            game::Vec2 point=hub.p+game::Vec2{std::cos(angle)*radius,
-                std::sin(angle)*radius};
-            if(game::solid(point,13))point=hub.p+game::Vec2{0,95+index*4.0f};
-            game::Ped ped{};ped.id=hub.id+"-ped-"+std::to_string(index);
-            ped.p=ped.target=point;ped.speed=24+float(index%25);
-            ped.style=index%4;ped.shirt=game::rgb(86+(index*29)%120,
-                93+(index*31)%120,91+(index*17)%120);
-            ped.armed=index%5==0;ped.cash=content::rollPedCash(ped.armed);
-            pedHomes.emplace(ped.id,ped.p);
-            game::peds.push_back(ped);
-        }
-        for(int index=0;index<hub.vehicles;++index){
-            game::Vehicle vehicle{};
-            vehicle.id=hub.id+"-vehicle-"+std::to_string(index);
-            vehicle.kind=hub.vehicleCycle[index%hub.vehicleCycle.size()];
-            vehicle.p=hub.p+game::Vec2{-70.0f+index*140.0f,0};
-            vehicle.c=game::rgb(90+(index*57)%130,93+(index*83)%130,
-                99+(index*43)%130);
-            game::vehicles.insert(game::vehicles.begin(),vehicle);
-        }
-    }
-    // Long regional roads receive a small, data-capped moving population.
-    // Cars keep stable IDs so theft and damage use the existing save rules.
-    for(int route=0;route<int(roadSegments.size());++route){
-        const Road& road=roadSegments[route];
-        game::Vec2 axis=road.end-road.start;
-        if(game::len(axis)<1500)continue;
-        game::Vec2 lane{-game::norm(axis).z,game::norm(axis).x};
-        for(int slot=0;slot<trafficPerRoad;++slot){
-            float fraction=0.25f+slot*0.5f;
-            game::Vec2 point=road.start+axis*fraction+lane*12.0f;
-            if(game::solid(point,22))continue;
-            game::Vehicle vehicle{};
-            vehicle.id="traffic-"+road.id+"-"+std::to_string(slot);
-            vehicle.kind=(route+slot)%4==0?game::Kind::SportCar:game::Kind::Car;
-            vehicle.p=point;
-            vehicle.angle=std::atan2(axis.z,axis.x);
-            vehicle.trafficRoute=route;
-            vehicle.c=game::rgb(86+(route*31+slot*23)%140,
-                83+(route*47+slot*19)%140,89+(route*53+slot*29)%140);
-            game::vehicles.insert(game::vehicles.begin(),vehicle);
-        }
-    }
 }
 }

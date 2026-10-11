@@ -1,5 +1,7 @@
 #include "props.h"
 #include "regions.h"
+#include "data_file.h"
+#include <set>
 #include <algorithm>
 #include <cmath>
 #ifdef MINI_CITY_JOLT
@@ -10,6 +12,9 @@ namespace game { std::vector<Prop> props; }
 namespace props {
 using namespace game;
 namespace {
+struct Placement {Prop prop;bool skipBlocked=false,skipCauseway=false;};
+std::vector<Placement> placements;
+std::string error;
 bool blocked(Vec2 p){
     if(p.x<12||p.x>WORLD_W-12||p.z<12||p.z>SHORE-12)return true;
     for(const auto& b:buildings)if(p.x>b.x-16&&p.x<b.x+b.w+16&&
@@ -24,8 +29,33 @@ void fragments(const Prop& prop){
             5,5,5,prop.barrel?11:4});}
 }
 }
+bool load(const char* path){
+    data_file::Ini file;error.clear();
+    if(!file.load(path?path:data_file::resourcePath("props.ini"))||!file.version(1)){error=file.lastError();return false;}
+    int count=0;if(!file.integer("Props","Count",count,0,10000)){error=file.lastError();return false;}
+    std::vector<Placement> parsed;std::set<std::string> ids;
+    for(int i=0;i<count;++i){
+        std::string section="Prop"+std::to_string(i),id;Placement row;int barrel=0,blocked=0,causeway=0;
+        if(!file.string(section,"Id",id)||!data_file::validId(id)||!ids.insert(id).second||
+           !file.real(section,"X",row.prop.p.x,0,regions::WIDTH)||!file.real(section,"Z",row.prop.p.z,0,regions::DEPTH)||
+           !file.integer(section,"Health",row.prop.health,1,10000)||!file.integer(section,"Barrel",barrel,0,1)||
+           !file.integer(section,"SkipBlocked",blocked,0,1)||!file.integer(section,"SkipCauseway",causeway,0,1)){
+            error=file.lastError().empty()?"Invalid/duplicate ["+section+"] Id":file.lastError();return false;
+        }
+        row.prop.barrel=barrel!=0;row.skipBlocked=blocked!=0;row.skipCauseway=causeway!=0;parsed.push_back(row);
+    }
+    placements=std::move(parsed);return true;
+}
+const std::string& lastError(){return error;}
 void reset(){
     game::props.clear();
+#ifdef MINI_CITY_JOLT
+    for(const auto& row:placements){
+        if(row.skipBlocked&&blocked(row.prop.p))continue;
+        if(row.skipCauseway&&regions::causewayAt(row.prop.p))continue;
+        game::props.push_back(row.prop);
+    }
+#else
     for(int i=0;i<22;++i){
         Vec2 p{150.0f+i*95.0f,BEACH_START+80.0f+float(i%3)*42.0f};
         if(regions::causewayAt(p))continue;
@@ -35,6 +65,7 @@ void reset(){
         Vec2 p{355.0f+float(i%4)*450.0f,95.0f+float(i/4)*390.0f};
         if(!blocked(p))game::props.push_back({p,{},0,0,0,0,80,i%3==0,true});
     }
+#endif
 #ifdef MINI_CITY_JOLT
     jolt_world::reset();
 #endif

@@ -43,6 +43,8 @@ if ($IncludeOpenGL) {
     $executables += 'MiniCity3DGL.exe'
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'README.md') -Destination $packageDirectory
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'third_party/imgui-1.92.6/LICENSE.txt') -Destination (Join-Path $packageDirectory 'Dear-ImGui-LICENSE.txt')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'third_party/LUA-LICENSE.txt') -Destination (Join-Path $packageDirectory 'Lua-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'third_party/FidelityFX-FSR2/LICENSE.txt') -Destination (Join-Path $packageDirectory 'AMD-FSR2-LICENSE.txt')
 $assetSource = Join-Path $PSScriptRoot 'assets'
 $assetDestination = Join-Path $packageDirectory 'assets'
