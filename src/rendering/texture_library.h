@@ -49,7 +49,7 @@ template <class Api> class TextureLibrary final {
         if (file.empty())
             return false;
         const auto key = TextureKey(file, kind);
-        if (m_images.count(key))
+        if (m_images.contains(key))
             return true;
         auto view = Upload(prepared, kind);
         if (!view)

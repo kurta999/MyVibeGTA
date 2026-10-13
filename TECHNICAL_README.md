@@ -1,4 +1,4 @@
-> Backend update (2026-10-11): `MiniCity3D` defaults to Direct3D 11 with Dear ImGui menus and Lua missions. `build.ps1 -DX12` selects the retained native DX12/FSR2 backend, which keeps its older menu implementation. The DX11 walkthrough below describes the default renderer. See `data/README.md` for runtime scripting and placement contracts.
+> Backend update (2026-10-13): `MiniCity3D` uses C++20 and defaults to native Direct3D 12/FSR2 with its existing menus. `build.ps1 -DX11` selects Direct3D 11 with Dear ImGui menus. The DX11 walkthrough below describes the retained renderer. See `ARCHITECTURE.md` for backend boundaries and `data/README.md` for runtime scripting and placement contracts.
 
 
 # Mini City 3D — Technical Guide
@@ -42,7 +42,7 @@ For installation, playable controls, screenshots, and packaging, use the [main R
 
 ### 1.1 What kind of engine is this?
 
-Mini City 3D is a native Windows application written in C++17. It uses a custom renderer and gameplay code rather than a general-purpose engine such as Unreal or Unity. There is no editor-driven entity/component framework hiding the data flow: much of the world is stored in typed structures and vectors under the `game` namespace.
+Mini City 3D is a native Windows application written in C++20. It uses a custom renderer and gameplay code rather than a general-purpose engine such as Unreal or Unity. There is no editor-driven entity/component framework hiding the data flow: much of the world is stored in typed structures and vectors under the `game` namespace.
 
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |

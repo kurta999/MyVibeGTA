@@ -17,12 +17,19 @@ SOLID or finish the naming migration.
   checkpoint against the existing behavior.
 - Leave the OpenGL fallback untouched, including its renderer, textures, and
   executable target.
+- First-party Direct3D game and test targets require C++20 through the
+  `MiniCityCpp20` CMake interface target. Vendor settings remain independent.
+- The root `.clang-format` keeps statements on separate lines and uses the
+  renderer's existing four-space, 100-column style. Apply it to files being
+  maintained; exclude vendor code and the OpenGL fallback.
 
 ## Current renderer structure
 
 `MiniCity3D` uses DX12. `MiniCity3D-DX11-benchmark` selects the retained DX11
-implementation at build time. This is the existing build arrangement, despite
-older roadmap text naming DX11 as the main target.
+implementation at build time. `build.ps1` delivers DX12 as `MiniCity3D.exe`;
+`build.ps1 -DX11` delivers `MiniCity3D-DX11.exe` with Dear ImGui menus.
+Existing CMake caches retain their selected backend; set `MINI_CITY_USE_DX12`
+explicitly when switching an existing build directory.
 
 | Location | Responsibility |
 | --- | --- |

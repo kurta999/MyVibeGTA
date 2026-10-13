@@ -1,0 +1,960 @@
+Start testing: Oct 13 11:46 W. Europe Summer Time
+----------------------------------------------------------
+1/46 Testing: benchmark_options_scenarios
+1/46 Test: benchmark_options_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/benchmark_options_scenarios.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"benchmark_options_scenarios" start time: Oct 13 11:46 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Benchmark option scenarios: 0 failures
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"benchmark_options_scenarios" end time: Oct 13 11:46 W. Europe Summer Time
+"benchmark_options_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/46 Testing: resource_cache_scenarios
+2/46 Test: resource_cache_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/resource_cache_scenarios.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"resource_cache_scenarios" start time: Oct 13 11:46 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+PASS resource ownership, mesh revision transactions, texture sharing, interpretation, mip validation, failures and retry for both Release contracts
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"resource_cache_scenarios" end time: Oct 13 11:46 W. Europe Summer Time
+"resource_cache_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/46 Testing: gpu_profiler_scenarios
+3/46 Test: gpu_profiler_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/gpu_profiler_scenarios.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"gpu_profiler_scenarios" start time: Oct 13 11:46 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+GPU profiler: both timing layouts, failures, saturation, pending/disjoint results and lifetime passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"gpu_profiler_scenarios" end time: Oct 13 11:46 W. Europe Summer Time
+"gpu_profiler_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/46 Testing: dx12_fsr2_smoke
+4/46 Test: dx12_fsr2_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/dx12_fsr2_smoke.exe" "--dx12-debug"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"dx12_fsr2_smoke" start time: Oct 13 11:46 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+PASS shadow receiver culling: 32000 known receiver/caster pairs, off-screen/behind-eye casters, low sun, camera rotations, aspect ratios, radial cascade bounds
+Native Direct3D 12 adapter: AMD Radeon(TM) 680M
+PASS GPU skin readback: 9 procedural modes, aiming, ragdoll, previous poses; max error 0.00001526
+PASS cached draw-state pixels: repeated draws, shader switches, remapped constants, recycled RTV handles, external state invalidation and frame recycling
+PASS parallel native recording: 12 frame pairs, exact color/depth pixels, indexed/instanced draws, target-to-SRV dependencies, RTV leases, allocator recycling; peak 4 recorders
+PASS cloud GPU: 21 volume cases, 1x1/odd/even sizes, clear/overcast/wind/night/inside/above, sky/surface edges and depth rejection; max split error 0.0004882
+PASS 12 asynchronous submissions preserve transient uploads and resources
+PASS long-lived constant buffer survives upload-page recycling
+PASS Quality 426x240 -> 640x360, temporal reset and GPU readback
+PASS Balanced 376x211 -> 640x360, temporal reset and GPU readback
+PASS Performance 320x180 -> 640x360, temporal reset and GPU readback
+PASS Ultra Performance 213x120 -> 640x360, temporal reset and GPU readback
+PASS Quality 533x300 -> 800x450, temporal reset and GPU readback
+PASS Balanced 470x264 -> 800x450, temporal reset and GPU readback
+PASS Performance 400x225 -> 800x450, temporal reset and GPU readback
+PASS Ultra Performance 266x150 -> 800x450, temporal reset and GPU readback
+PASS native DX12 resource lifetime, resizing, all FSR2 modes; validation errors: 0
+<end of output>
+Test time =   8.38 sec
+----------------------------------------------------------
+Test Passed.
+"dx12_fsr2_smoke" end time: Oct 13 11:46 W. Europe Summer Time
+"dx12_fsr2_smoke" time elapsed: 00:00:08
+----------------------------------------------------------
+
+5/46 Testing: dx12_fsr2_warp
+5/46 Test: dx12_fsr2_warp
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/dx12_fsr2_smoke.exe" "--dx12-debug" "--dx12-warp"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"dx12_fsr2_warp" start time: Oct 13 11:46 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+PASS shadow receiver culling: 32000 known receiver/caster pairs, off-screen/behind-eye casters, low sun, camera rotations, aspect ratios, radial cascade bounds
+Native Direct3D 12 adapter: Microsoft Basic Render Driver
+PASS GPU skin readback: 9 procedural modes, aiming, ragdoll, previous poses; max error 0.00004578
+PASS cached draw-state pixels: repeated draws, shader switches, remapped constants, recycled RTV handles, external state invalidation and frame recycling
+PASS parallel native recording: 12 frame pairs, exact color/depth pixels, indexed/instanced draws, target-to-SRV dependencies, RTV leases, allocator recycling; peak 4 recorders
+PASS cloud GPU: 21 volume cases, 1x1/odd/even sizes, clear/overcast/wind/night/inside/above, sky/surface edges and depth rejection; max split error 0.0004882
+PASS 12 asynchronous submissions preserve transient uploads and resources
+PASS long-lived constant buffer survives upload-page recycling
+PASS Quality 426x240 -> 640x360, temporal reset and GPU readback
+PASS Balanced 376x211 -> 640x360, temporal reset and GPU readback
+PASS Performance 320x180 -> 640x360, temporal reset and GPU readback
+PASS Ultra Performance 213x120 -> 640x360, temporal reset and GPU readback
+PASS Quality 533x300 -> 800x450, temporal reset and GPU readback
+PASS Balanced 470x264 -> 800x450, temporal reset and GPU readback
+PASS Performance 400x225 -> 800x450, temporal reset and GPU readback
+PASS Ultra Performance 266x150 -> 800x450, temporal reset and GPU readback
+PASS native DX12 resource lifetime, resizing, all FSR2 modes; validation errors: 0
+<end of output>
+Test time =  46.58 sec
+----------------------------------------------------------
+Test Passed.
+"dx12_fsr2_warp" end time: Oct 13 11:47 W. Europe Summer Time
+"dx12_fsr2_warp" time elapsed: 00:00:46
+----------------------------------------------------------
+
+6/46 Testing: sky_smoke
+6/46 Test: sky_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/sky_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"sky_smoke" start time: Oct 13 11:47 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Sky GPU readback: clear opacity 0.0065, overcast 0.9111
+Sky shader, periodic noise, coverage, wind, night, inside/above/below layers passed.
+<end of output>
+Test time =   1.95 sec
+----------------------------------------------------------
+Test Passed.
+"sky_smoke" end time: Oct 13 11:47 W. Europe Summer Time
+"sky_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+7/46 Testing: save_jobs_smoke
+7/46 Test: save_jobs_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/save_jobs_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"save_jobs_smoke" start time: Oct 13 11:47 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+save worker bounded queue, exact-snapshot receipts, shutdown, failure and recovery passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"save_jobs_smoke" end time: Oct 13 11:47 W. Europe Summer Time
+"save_jobs_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/46 Testing: audio_smoke
+8/46 Test: audio_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/audio_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"audio_smoke" start time: Oct 13 11:47 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Live XAudio2 cached effects, overlap/voice stealing, variants and reopening passed
+<end of output>
+Test time =   1.58 sec
+----------------------------------------------------------
+Test Passed.
+"audio_smoke" end time: Oct 13 11:47 W. Europe Summer Time
+"audio_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+9/46 Testing: startup_smoke
+9/46 Test: startup_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/startup_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"startup_smoke" start time: Oct 13 11:47 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Startup window responsiveness, cancellation, lifecycle and seven icon sizes passed
+<end of output>
+Test time =   0.54 sec
+----------------------------------------------------------
+Test Passed.
+"startup_smoke" end time: Oct 13 11:47 W. Europe Summer Time
+"startup_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/46 Testing: simulation_smoke
+10/46 Test: simulation_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"simulation_smoke" start time: Oct 13 11:47 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Connected playable area (conservative 100-unit grid): 267.79 million square units
+simulation smoke passed
+<end of output>
+Test time = 119.97 sec
+----------------------------------------------------------
+Test Passed.
+"simulation_smoke" end time: Oct 13 11:49 W. Europe Summer Time
+"simulation_smoke" time elapsed: 00:01:59
+----------------------------------------------------------
+
+11/46 Testing: mission_script_scenarios
+11/46 Test: mission_script_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--mission-script-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"mission_script_scenarios" start time: Oct 13 11:49 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Lua edited behavior, timeout, malformed input, instruction limit and rollback: PASS
+<end of output>
+Test time =   0.46 sec
+----------------------------------------------------------
+Test Passed.
+"mission_script_scenarios" end time: Oct 13 11:49 W. Europe Summer Time
+"mission_script_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/46 Testing: placement_data_scenarios
+12/46 Test: placement_data_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--placement-data-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"placement_data_scenarios" start time: Oct 13 11:49 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Edited terrain, regional objects, spatial indexes, prop locations and invalid-file rollback: PASS
+<end of output>
+Test time =   1.34 sec
+----------------------------------------------------------
+Test Passed.
+"placement_data_scenarios" end time: Oct 13 11:49 W. Europe Summer Time
+"placement_data_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+13/46 Testing: builder_scenarios
+13/46 Test: builder_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_scenarios" start time: Oct 13 11:49 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder: live reticle stacks two half-size blocks, Jolt supports their top, save migration preserves world coordinates
+builder layer, inventory, persistence, textured assets and Jolt isolation scenarios passed
+<end of output>
+Test time =  24.81 sec
+----------------------------------------------------------
+Test Passed.
+"builder_scenarios" end time: Oct 13 11:50 W. Europe Summer Time
+"builder_scenarios" time elapsed: 00:00:24
+----------------------------------------------------------
+
+14/46 Testing: excavation_scenarios
+14/46 Test: excavation_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--excavation-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"excavation_scenarios" start time: Oct 13 11:50 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+pit capsule -20.000
+tunnel capsule 230.000 -80.000
+mountain pit capsule 660.000 vs 660.000
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+excavation pit, roofed tunnel, Jolt capsule, camera/projectile/grapple, save and F5 scenarios passed
+<end of output>
+Test time =  63.11 sec
+----------------------------------------------------------
+Test Passed.
+"excavation_scenarios" end time: Oct 13 11:51 W. Europe Summer Time
+"excavation_scenarios" time elapsed: 00:01:03
+----------------------------------------------------------
+
+15/46 Testing: scenery_scenarios
+15/46 Test: scenery_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--scenery-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"scenery_scenarios" start time: Oct 13 11:51 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+tree target 106.67 11.00 100.00 cell 5 0 5
+builder streaming: small scanned rock retains real mesh collision at the actor-area edge
+scenery scenarios passed
+<end of output>
+Test time =  58.96 sec
+----------------------------------------------------------
+Test Passed.
+"scenery_scenarios" end time: Oct 13 11:52 W. Europe Summer Time
+"scenery_scenarios" time elapsed: 00:00:58
+----------------------------------------------------------
+
+16/46 Testing: tool_work_scenarios
+16/46 Test: tool_work_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--tool-work-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"tool_work_scenarios" start time: Oct 13 11:52 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+hoe variants: natural soil, texture, F5, snapshot validation and one-time soil harvest passed
+brush: live RMB geometry targeting, cancellation, single yield, full inventory and restart passed
+repair: all 22 tool costs, station/shortage/cursor gates, clamp, UI and snapshot persistence passed
+combined soil/deposit/repair on-disk persistence and repeated F5 isolation passed
+tool work scenarios passed
+<end of output>
+Test time =  48.91 sec
+----------------------------------------------------------
+Test Passed.
+"tool_work_scenarios" end time: Oct 13 11:52 W. Europe Summer Time
+"tool_work_scenarios" time elapsed: 00:00:48
+----------------------------------------------------------
+
+17/46 Testing: builder_feedback_scenarios
+17/46 Test: builder_feedback_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-feedback-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_feedback_scenarios" start time: Oct 13 11:52 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder feedback: live contact timing, material cues, cracks, shears pivots, bounded particles and F5 isolation passed
+<end of output>
+Test time =   7.06 sec
+----------------------------------------------------------
+Test Passed.
+"builder_feedback_scenarios" end time: Oct 13 11:52 W. Europe Summer Time
+"builder_feedback_scenarios" time elapsed: 00:00:07
+----------------------------------------------------------
+
+18/46 Testing: builder_recovery_scenarios
+18/46 Test: builder_recovery_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-recovery-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_recovery_scenarios" start time: Oct 13 11:52 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+recovery: prop pit fall, immediate F5 resurface, preserved unrelated momentum and re-entry fall passed
+recovery: unchanged submerged prop retains the existing water-bed physics passed
+recovery: live ragdoll rigid pose/joint recovery and obsolete pin release passed
+recovery: settled corpse snapshot support casts, rigid poses and repeated F5 isolation passed
+recovery: settled corpse retains support from an unchanged dynamic crate passed
+recovery: reappearing saved block clears loose props and legacy corpse animation origins passed
+recovery: restored Jolt tree trunk collision clears a prop from its mined root passed
+recovery: wide building roof fallback, ground-only legacy corpse escape and removed-roof fall passed
+recovery: valid wall pin retained, removed saved wall releases only its external constraint passed
+<end of output>
+Test time =  16.26 sec
+----------------------------------------------------------
+Test Passed.
+"builder_recovery_scenarios" end time: Oct 13 11:53 W. Europe Summer Time
+"builder_recovery_scenarios" time elapsed: 00:00:16
+----------------------------------------------------------
+
+19/46 Testing: builder_transition_scenarios
+19/46 Test: builder_transition_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-transition-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_transition_scenarios" start time: Oct 13 11:53 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+transition: failed normal entry leaves layer/camera/actors intact, then F5 retry succeeds
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+Save creation failed (32): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini.tmp
+transition: failed save creation/replacement preserves cuts, collision, chest tools, drops and exact disk bytes
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+transition: successful retries preserve F5 separation and complete edit/item records across on-disk reload
+input: death-screen R restarts with builder inventory closed/open, ignores repeats/pause, alive R still repairs
+<end of output>
+Test time =   5.61 sec
+----------------------------------------------------------
+Test Passed.
+"builder_transition_scenarios" end time: Oct 13 11:53 W. Europe Summer Time
+"builder_transition_scenarios" time elapsed: 00:00:05
+----------------------------------------------------------
+
+20/46 Testing: builder_progression_scenarios
+20/46 Test: builder_progression_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-progression-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_progression_scenarios" start time: Oct 13 11:53 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+progression: empty inventory -> hand-mined generated logs -> UI-crafted starter tools, placed bench and chest
+progression: harvested stone-material to 4 through live mining and Jolt shaft falls
+progression: harvested stone-material to 13 through live mining and Jolt shaft falls
+progression: harvested coal-ore to 30 through live mining and Jolt shaft falls
+progression: harvested iron-ore to 20 through live mining and Jolt shaft falls
+progression: harvested gold-ore to 9 through live mining and Jolt shaft falls
+progression: harvested diamond-ore to 9 through live mining and Jolt shaft falls
+tool loop 1/22: wood-pickaxe -> conglomerate -> conglomerate, durability 55, modeled pickup/chest/F5/reload passed
+tool loop 2/22: stone-pickaxe -> dolostone -> dolostone, durability 127, modeled pickup/chest/F5/reload passed
+tool loop 3/22: iron-pickaxe -> granite -> granite, durability 131, modeled pickup/chest/F5/reload passed
+tool loop 4/22: gold-pickaxe -> granite -> granite, durability 31, modeled pickup/chest/F5/reload passed
+tool loop 5/22: diamond-pickaxe -> gabbro -> gabbro, durability 1561, modeled pickup/chest/F5/reload passed
+tool loop 6/22: wood-axe -> log -> log, durability 41, modeled pickup/chest/F5/reload passed
+tool loop 7/22: stone-axe -> log -> log, durability 131, modeled pickup/chest/F5/reload passed
+tool loop 8/22: iron-axe -> log -> log, durability 249, modeled pickup/chest/F5/reload passed
+tool loop 9/22: gold-axe -> log -> log, durability 31, modeled pickup/chest/F5/reload passed
+tool loop 10/22: diamond-axe -> log -> log, durability 1561, modeled pickup/chest/F5/reload passed
+tool loop 11/22: wood-shovel -> soil -> soil, durability 51, modeled pickup/chest/F5/reload passed
+tool loop 12/22: stone-shovel -> soil -> soil, durability 107, modeled pickup/chest/F5/reload passed
+tool loop 13/22: iron-shovel -> soil -> soil, durability 249, modeled pickup/chest/F5/reload passed
+tool loop 14/22: gold-shovel -> soil -> soil, durability 31, modeled pickup/chest/F5/reload passed
+tool loop 15/22: diamond-shovel -> soil -> soil, durability 1561, modeled pickup/chest/F5/reload passed
+tool loop 16/22: wood-hoe -> soil -> tilled-soil surface, durability 59, modeled pickup/chest/F5/reload passed
+tool loop 17/22: stone-hoe -> soil -> tilled-soil surface, durability 131, modeled pickup/chest/F5/reload passed
+tool loop 18/22: iron-hoe -> soil -> tilled-soil surface, durability 249, modeled pickup/chest/F5/reload passed
+tool loop 19/22: gold-hoe -> soil -> tilled-soil surface, durability 31, modeled pickup/chest/F5/reload passed
+tool loop 20/22: diamond-hoe -> soil -> tilled-soil surface, durability 1561, modeled pickup/chest/F5/reload passed
+tool loop 21/22: shears -> leaves -> leaves, durability 237, modeled pickup/chest/F5/reload passed
+tool loop 22/22: brush -> surface-deposit -> coal, durability 237, modeled pickup/chest/F5/reload passed
+progression: all 22 crafted tools retained in one chest; 1210 ground cuts and 9 edited scenery objects persisted
+<end of output>
+Test time = 134.01 sec
+----------------------------------------------------------
+Test Passed.
+"builder_progression_scenarios" end time: Oct 13 11:55 W. Europe Summer Time
+"builder_progression_scenarios" time elapsed: 00:02:14
+----------------------------------------------------------
+
+21/46 Testing: builder_navigation_scenarios
+21/46 Test: builder_navigation_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-navigation-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_navigation_scenarios" start time: Oct 13 11:55 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder navigation: unchanged floor checks reuse nine columns (cold 19, warm 1 query); collision refresh and same-frame mining invalidate them
+builder navigation: roofed tunnel walked beneath surface player/pedestrian
+underground detour: 7.0 remaining; -81.0 height
+builder navigation: stacked passages retain distinct floors and allow independent crossing
+pit detour: 7.6 remaining; -1.0 height
+builder navigation: surface walkers avoid pits; normal F5 restores the direct route; re-entry restores the detour
+builder navigation: insufficient capsule headroom is rejected without climbing through the retained roof
+slope walk: 40.1 rise, 3.7 remaining
+builder navigation: all 12 walkers move with shared query budget; steady frame 928 queries
+builder navigation: actual actor heights prevent roof-through sight, talk and melee; underground sight, talk and attacks work
+stream return before movement: characters 1, before -81.0000, restored -81.0000, vertical -11.6667
+builder streaming: real far AI walks underground; unloaded pose stays on its floor and resumes without a surface teleport
+builder streaming: in-progress fall retains height and gravity velocity across capsule unloading/recreation
+builder streaming: distant F5 layer change reconciles the actor against incoming collision when it returns
+builder streaming: returning actor is reconciled before movement/render; replacement actors never inherit an old floor
+cell drift building walker: 1591.98 -1.00 1640.00; terrain 0.00
+builder streaming: tree, building and placed-block collision cover the actor boundary and diagonal focus-cell drift
+underground boarding: ped 340.0 140.0 y -80.6, car 340.0 140.0 y -80.6, state 8 seeking -1
+builder vehicle heights: surface impacts/cars cannot reach underground pedestrians; real door exit, obstruction and reboarding retain the underground floor
+builder vehicle heights: player entry rejects the underground wall and exit chooses the clear door without teleporting through terrain
+builder navigation scenarios passed
+<end of output>
+Test time =  10.52 sec
+----------------------------------------------------------
+Test Passed.
+"builder_navigation_scenarios" end time: Oct 13 11:55 W. Europe Summer Time
+"builder_navigation_scenarios" time elapsed: 00:00:10
+----------------------------------------------------------
+
+22/46 Testing: builder_destination_scenarios
+22/46 Test: builder_destination_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-destination-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_destination_scenarios" start time: Oct 13 11:55 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder destinations: underground wander 127.8 units, 180 supported lower-floor targets beneath original building
+builder destinations: real fleeing actor 532.3 20.1 avoids pit, detour 1
+builder destinations: edited-floor destination 220.000 0.050 140.000 queries 18000
+builder destinations: same-frame terrain edit replaces cached floor with supported approach 220.0 140.0 y 0.1
+builder destinations: selected cover state 3 at 301.0 130.0 floor -79.9
+builder destinations: cover execution 302.6 129.7 y -81.0 state 4 defended 1 target 301.0 130.0 nav -79.9 selected 1
+builder destinations: cover persists beyond sight memory, expires on the investigation timer, can be retained when already sheltered, and removal permits only valid supported Attack routes
+builder destinations: ordinary gunshot response with default timer reaches and holds cover before investigating
+builder destinations: 12 real wandering actors choose and execute routes within budget, peak 4933 queries
+builder destination scenarios passed
+<end of output>
+Test time =   5.37 sec
+----------------------------------------------------------
+Test Passed.
+"builder_destination_scenarios" end time: Oct 13 11:55 W. Europe Summer Time
+"builder_destination_scenarios" time elapsed: 00:00:05
+----------------------------------------------------------
+
+23/46 Testing: builder_wildlife_scenarios
+23/46 Test: builder_wildlife_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-wildlife-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_wildlife_scenarios" start time: Oct 13 11:55 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+HUD wildlife probes: 600 loot/carry/mount calls, 160 generated living animals, 0.290 ms total
+wildlife: retained roof prevents surface melee, mounting, projectile hits and predator damage against underground player
+wildlife: underground attacks, tiger mount movement, shared model height and supported dismount passed
+wildlife: mounted headroom rejects elephant in the low underground room
+wildlife: actual gravity pit fall, kinematic contact body, immediate normal F5 resurface and builder re-entry fall passed
+wildlife: placed block support and removal use the same physics and rendered height
+wildlife: underground walker detours a placed block, final 420.5 -80.3 140.8
+wildlife: separated prey and corpses cannot interact through a roof; underground carry/drop retains floor
+wildlife: all 15 species settle and render on an actual excavated floor with species-sized clearance
+wildlife: actual swept game projectile hits small underground animal at its collision/render height
+wildlife: oriented animal footprint blocks overlapping placement on its floor and reticle/edit targeting stops on the actual underground body
+pickups: actual game loop rejects roof-through and block-through collection, collects on matching surface, restores normal marker altitude
+Builder wildlife scenarios passed
+<end of output>
+Test time =   9.54 sec
+----------------------------------------------------------
+Test Passed.
+"builder_wildlife_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"builder_wildlife_scenarios" time elapsed: 00:00:09
+----------------------------------------------------------
+
+24/46 Testing: builder_interaction_scenarios
+24/46 Test: builder_interaction_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-interaction-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_interaction_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+pickups: roof separation and close obstruction retained, nearby collection works, distant respawn timers advance
+interactions: live/captured surface corpse cannot be looted or carried through retained roof; same-floor loot is single-use
+interactions: underground corpse loot, physical drop/settling and pickup preserve cash, health, loot and timer state
+interactions: falling/captured corpses use current body height; carried F5 transitions and snapshot pickup/drop restore real physics
+interactions: blocked release retains carried state; opening space permits retry without losing corpse
+interactions: corpse release and pickup respect actual placed-block support rather than original terrain
+interactions: roof blocks actual theft/talk/melee actions; same underground floor permits all three
+interactions: repair prompt and direct action share actual vehicle floor/line checks
+combat underground: selected 1, fired 1, farthest 53.1, target 374.1 179.9 floor -80.0
+combat: actual armed AI strafes/fires under original building, retains supported floor and replans an edited endpoint within shared budgets
+combat: elevated threat does not overwrite selected tactical floor
+Builder interaction scenarios passed
+<end of output>
+Test time =   8.24 sec
+----------------------------------------------------------
+Test Passed.
+"builder_interaction_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"builder_interaction_scenarios" time elapsed: 00:00:08
+----------------------------------------------------------
+
+25/46 Testing: builder_police_scenarios
+25/46 Test: builder_police_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-police-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_police_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Stealth roof reproduction: target -1, surface victim alive 1
+Witness roof reproduction: underground victim alive 0, wanted 0
+Dispatch plans 1 queries 2874 expanded 0 actors 1
+Dispatch roof reproduction: spawn 640.0 -80.0 300.0, report floor -80.0
+dispatch: actual underground pursuit/fire, shared frame caps and F5 restoration/re-entry
+stealth: same-floor facing witness reports; rear-facing and block-occluded witnesses remain silent
+stealth: wall, range, behind cone and vertical checks; takedown allowed on placed elevated support
+stealth: actual corpse carrying occupies the hands and prevents a knife takedown
+dispatch support: actual floor, dynamic crate and insufficient capsule headroom
+dispatch: full endpoint required across sealed divider; removing divider enables route; edited floor edge rejects support
+dispatch: sealed small room defers; newly excavated reachable corridor enables cooldown retry
+dispatch: exhausted shared route budget defers and retries instead of resetting the AI frame
+dispatch: capped officer pool reuses an uncarried corpse without overwriting carried ownership
+Combat crowd 0 distance 22.0
+Combat crowd 1 distance 39.4
+Combat crowd 2 distance 68.0
+Combat crowd 3 distance 103.1
+Combat crowd 4 distance 24.8
+Combat crowd 5 distance 35.3
+Combat crowd 6 distance 68.7
+Combat crowd 7 distance 73.3
+Combat crowd 8 distance 29.3
+Combat crowd 9 distance 8.9
+Combat crowd 10 distance 65.3
+Combat crowd 11 distance 91.9
+Combat crowd: 12/12 progressed, peak queries 13886
+<end of output>
+Test time =  29.74 sec
+----------------------------------------------------------
+Test Passed.
+"builder_police_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"builder_police_scenarios" time elapsed: 00:00:29
+----------------------------------------------------------
+
+26/46 Testing: builder_navigation_restart_save
+26/46 Test: builder_navigation_restart_save
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-navigation-restart-save"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_navigation_restart_save" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder navigation restart: edited tunnel, pit and placed obstacle saved; process exits
+<end of output>
+Test time =   0.86 sec
+----------------------------------------------------------
+Test Passed.
+"builder_navigation_restart_save" end time: Oct 13 11:56 W. Europe Summer Time
+"builder_navigation_restart_save" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/46 Testing: builder_navigation_restart_load
+27/46 Test: builder_navigation_restart_load
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--builder-navigation-restart-load"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"builder_navigation_restart_load" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+builder navigation restart: fresh process walks saved tunnel/block and pit detours; F5 restores the direct normal route and saved edits
+<end of output>
+Test time =   3.81 sec
+----------------------------------------------------------
+Test Passed.
+"builder_navigation_restart_load" end time: Oct 13 11:56 W. Europe Summer Time
+"builder_navigation_restart_load" time elapsed: 00:00:03
+----------------------------------------------------------
+
+28/46 Testing: expansion_scenarios
+28/46 Test: expansion_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--expansion-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"expansion_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+SKATEBOARD travel 74.2 speed 28.3 height 1.5
+SKATEBOARD travel 72.2 speed 28.2 height 1.6
+BICYCLE travel 273.4 speed 135.8 height 1.7
+BICYCLE travel 280.1 speed 138.9 height 1.7
+TRACTOR travel 216.3 speed 138.6 height 0.8
+TRACTOR travel 214.0 speed 138.1 height 0.8
+COMBINE travel 165.0 speed 108.6 height 1.6
+COMBINE travel 121.2 speed 87.5 height 2.2
+TANK travel 161.8 speed 114.8 height 3.0
+TANK travel 209.4 speed 139.8 height 2.6
+TRUCK travel 257.3 speed 156.7 height -2.6
+TRUCK travel 264.3 speed 174.6 height -2.6
+PLANE dt 0.0167 x 5726.7 alt 842.2 speed 125.6 pitch 0.97 stall 0 damage 0.0
+PLANE dt 0.0333 x 5724.2 alt 839.2 speed 131.8 pitch 0.95 stall 0 damage 0.0
+Vehicle expansion, trailer, tank, building holes, fragments, radio and saved display checks passed
+<end of output>
+Test time =   3.01 sec
+----------------------------------------------------------
+Test Passed.
+"expansion_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"expansion_scenarios" time elapsed: 00:00:03
+----------------------------------------------------------
+
+29/46 Testing: equipment_scenarios
+29/46 Test: equipment_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--equipment-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"equipment_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Minigun rounds in 2s: 51
+Equipment scenarios passed: flight, collisions, weapons, animation, grapple, transient corpses.
+<end of output>
+Test time =   2.71 sec
+----------------------------------------------------------
+Test Passed.
+"equipment_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"equipment_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+30/46 Testing: ordnance_scenarios
+30/46 Test: ordnance_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--ordnance-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"ordnance_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+C4 city capsule height: -0.000003
+Ordnance, stealth, hideout, range, debug and underwater scenarios passed.
+<end of output>
+Test time =   0.71 sec
+----------------------------------------------------------
+Test Passed.
+"ordnance_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"ordnance_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/46 Testing: wildlife_scenarios
+31/46 Test: wildlife_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--wildlife-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"wildlife_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Wildlife scenarios passed: 15 species, placement, flee, retaliation, predation, play, swept projectile, melee, loot, carry, obstacles, persistence, sleep.
+<end of output>
+Test time =   5.31 sec
+----------------------------------------------------------
+Test Passed.
+"wildlife_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"wildlife_scenarios" time elapsed: 00:00:05
+----------------------------------------------------------
+
+32/46 Testing: bird_scenarios
+32/46 Test: bird_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--birds-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"bird_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Bird scenarios passed: five types, flight clearance, camera-fired moving/wing/overhead hits, shot cover, falling, persistence.
+<end of output>
+Test time =   1.96 sec
+----------------------------------------------------------
+Test Passed.
+"bird_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"bird_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+33/46 Testing: driver_scenarios
+33/46 Test: driver_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--drivers-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"driver_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Bike kind 2 pelvis: height 13.163, along -11.332, samples 260
+Bike kind 2 pelvis: height 13.163, along -11.333, samples 260
+Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+Bike kind 6 pelvis: height 18.114, along -8.858, samples 260
+Driver scenarios passed: real entry, road acceleration, seated geometry, vehicle rotation, exit cleanup.
+<end of output>
+Test time =   1.33 sec
+----------------------------------------------------------
+Test Passed.
+"driver_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"driver_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+34/46 Testing: vehicle_collision_scenarios
+34/46 Test: vehicle_collision_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--vehicle-collisions-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"vehicle_collision_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Empty-road vehicle 0: peak speed 500.0, damage 0.000
+Empty-road vehicle 1: peak speed 500.0, damage 0.000
+Empty-road vehicle 2: peak speed 500.0, damage 0.000
+Tree strike distance 80: peak 71.3, destroyed 0, fragments 0
+Tree strike distance 450: peak 260.3, destroyed 1, fragments 11
+Coasting vehicle 0: 428.3 -> 0.00, travel 590.3
+Coasting vehicle 1: 500.0 -> 0.00, travel 681.8
+Coasting vehicle 2: 499.3 -> 0.00, travel 650.3
+Vehicle collision scenarios passed: empty-road braking/turning/drifting and real wall damage.
+<end of output>
+Test time =   0.98 sec
+----------------------------------------------------------
+Test Passed.
+"vehicle_collision_scenarios" end time: Oct 13 11:56 W. Europe Summer Time
+"vehicle_collision_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/46 Testing: ped_scenarios
+35/46 Test: ped_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--peds-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"ped_scenarios" start time: Oct 13 11:56 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Ped scenarios passed: camera-fired kill, contact, talking, and fighting.
+<end of output>
+Test time =   0.78 sec
+----------------------------------------------------------
+Test Passed.
+"ped_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"ped_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/46 Testing: scene_jobs_scenarios
+36/46 Test: scene_jobs_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--scene-jobs-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"scene_jobs_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Parallel scene checks passed: exact vertices, ordered grass/models, palettes, seats, aiming, ragdolls, region changes
+<end of output>
+Test time =   1.62 sec
+----------------------------------------------------------
+Test Passed.
+"scene_jobs_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"scene_jobs_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+37/46 Testing: grass_scenarios
+37/46 Test: grass_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--grass-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"grass_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Grass checks passed: 2K masked PBR, rooted wind, surface exclusions, deterministic density/LODs; default 2383, max 6184 roots
+<end of output>
+Test time =   1.07 sec
+----------------------------------------------------------
+Test Passed.
+"grass_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"grass_scenarios" time elapsed: 00:00:01
+----------------------------------------------------------
+
+38/46 Testing: terrain_scenarios
+38/46 Test: terrain_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--terrain-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"terrain_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+terrain capsule 13900 1800: 671.270 vs 671.269
+terrain capsule 13800 12550: 532.173 vs 532.172
+terrain capsule 13800 4550: -132.322 vs -132.330
+terrain capsule 13900 15450: -150.036 vs -150.041
+terrain car 13901 15450: y -149.568 vs -150.051, contacts 4
+terrain car 13900 1804: y 660.575 vs 670.406, contacts 3
+terrain scenarios passed
+<end of output>
+Test time =   2.11 sec
+----------------------------------------------------------
+Test Passed.
+"terrain_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"terrain_scenarios" time elapsed: 00:00:02
+----------------------------------------------------------
+
+39/46 Testing: autosave_scenarios
+39/46 Test: autosave_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--autosave-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"autosave_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Save replacement failed (5): C:\GIT_local\MyVibeGTA\build-msvc-ninja-dx12\savegame.ini
+Autosave snapshot isolation, latest request, load/flush, replacement failure, recovery and weapon pickup passed
+<end of output>
+Test time =  11.67 sec
+----------------------------------------------------------
+Test Passed.
+"autosave_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"autosave_scenarios" time elapsed: 00:00:11
+----------------------------------------------------------
+
+40/46 Testing: traffic_scenarios
+40/46 Test: traffic_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--traffic-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"traffic_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+stop: speed -0.00 gap 65.92
+junctions: 7, position 323.8 995.9
+route: speed 23.2 desired 17.2 damage 0.0 road 3 2
+cross 0: 1222.4 377.2 speed 31.8 wanted 33.4 state 1 road 13 14
+cross 1: 326.6 222.5 speed 39.3 wanted 44.5 state 1 road 1 2
+expired: hostile 0 anger 0.00 memory 0.00 state 0 alive 1 knock 0.00
+city traffic-1 moved 784.3 at 781.1 739.1 angle -1.6 wanted 41.4 state 1
+city traffic-4 moved 859.8 at 291.0 1254.1 angle -1.4 wanted 0.0 state 2
+city traffic-7 moved 266.0 at 726.8 527.8 angle 1.8 wanted 2.8 state 2
+city traffic-8 moved 696.7 at 955.7 610.0 angle 3.1 wanted 0.0 state 2
+city traffic-9 moved 549.6 at 1233.3 349.9 angle -1.6 wanted 0.0 state 2
+city traffic-11 moved 644.8 at 280.2 908.4 angle -1.9 wanted 32.2 state 1
+city traffic-12 moved 764.3 at 404.6 625.1 angle -0.4 wanted 31.1 state 1
+city traffic-14 moved 7.0 at 1620.0 1068.1 angle 1.6 wanted 0.0 state 2
+city traffic-15 moved 74.1 at 1176.1 1553.2 angle 1.6 wanted 0.0 state 1
+populated city: 7 circulating cars
+traffic scenarios passed
+<end of output>
+Test time =   4.78 sec
+----------------------------------------------------------
+Test Passed.
+"traffic_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"traffic_scenarios" time elapsed: 00:00:04
+----------------------------------------------------------
+
+41/46 Testing: navigation_scenarios
+41/46 Test: navigation_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/simulation_smoke.exe" "--navigation-only"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"navigation_scenarios" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+wall pursuit: 22.9 remaining
+crowd minimum separation 20.5; remaining 20.6 20.1 19.9 21.5
+navigation scenarios passed
+<end of output>
+Test time =   0.46 sec
+----------------------------------------------------------
+Test Passed.
+"navigation_scenarios" end time: Oct 13 11:57 W. Europe Summer Time
+"navigation_scenarios" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/46 Testing: asset_smoke
+42/46 Test: asset_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/asset_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"asset_smoke" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Shadow LOD selection: 17 reduced samples, preserved transform bounds, no finer replacement
+asset smoke passed
+<end of output>
+Test time =   0.69 sec
+----------------------------------------------------------
+Test Passed.
+"asset_smoke" end time: Oct 13 11:57 W. Europe Summer Time
+"asset_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+43/46 Testing: texture_mips_smoke
+43/46 Test: texture_mips_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/texture_mips_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"texture_mips_smoke" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+texture mip checks passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"texture_mips_smoke" end time: Oct 13 11:57 W. Europe Summer Time
+"texture_mips_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/46 Testing: texture_loading_smoke
+44/46 Test: texture_loading_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/texture_loading_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"texture_loading_smoke" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Texture loading checks passed: BC7/BC5/BC4/RGBA DDS, rejected corrupt DDS, exact mip bytes, bounded concurrency, cancellation, failures, reopening; serial 0.132 s
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"texture_loading_smoke" end time: Oct 13 11:57 W. Europe Summer Time
+"texture_loading_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+45/46 Testing: shader_loading_smoke
+45/46 Test: shader_loading_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/shader_loading_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"shader_loading_smoke" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+Shader loading checks passed: exact bytecode, concurrency, caller progress, errors, cancellation, reopening
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"shader_loading_smoke" end time: Oct 13 11:57 W. Europe Summer Time
+"shader_loading_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/46 Testing: probe_smoke
+46/46 Test: probe_smoke
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12/probe_smoke.exe"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja-dx12
+"probe_smoke" start time: Oct 13 11:57 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"probe_smoke" end time: Oct 13 11:57 W. Europe Summer Time
+"probe_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 13 11:57 W. Europe Summer Time

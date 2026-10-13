@@ -1,0 +1,51 @@
+[
+  {
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--validate-loading",
+      "--dx12-debug"
+    ],
+    "ExitCode": 0,
+    "Name": "dx12-candidate",
+    "ExecutableSha256": "025029A9F666F4CDC164D354D9E84850314FBA9F0C36F8123C2D3CEE5E212A41"
+  },
+  {
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=1",
+      "--validate-loading",
+      "--dx12-debug"
+    ],
+    "ExitCode": 0,
+    "Name": "dx12-fsr2-candidate",
+    "ExecutableSha256": "025029A9F666F4CDC164D354D9E84850314FBA9F0C36F8123C2D3CEE5E212A41"
+  },
+  {
+    "Arguments": [
+      "--smoke",
+      "--benchmark",
+      "--1080p",
+      "--day",
+      "--screenshot",
+      "--validate-gpu-skinning",
+      "--fsr2=0",
+      "--record-workers=4",
+      "--validate-loading",
+      "--dx12-debug"
+    ],
+    "ExitCode": 0,
+    "Name": "dx12-workers-candidate",
+    "ExecutableSha256": "025029A9F666F4CDC164D354D9E84850314FBA9F0C36F8123C2D3CEE5E212A41"
+  }
+]

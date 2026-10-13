@@ -1,0 +1,18 @@
+Start testing: Oct 13 11:52 W. Europe Summer Time
+----------------------------------------------------------
+13/47 Testing: imgui_menu_scenarios
+13/47 Test: imgui_menu_scenarios
+Command: "C:/GIT_local/MyVibeGTA/build-msvc-ninja/MiniCity3D.exe" "--smoke" "--1080p" "--imgui-review"
+Directory: C:/GIT_local/MyVibeGTA/build-msvc-ninja
+"imgui_menu_scenarios" start time: Oct 13 11:52 W. Europe Summer Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =  34.48 sec
+----------------------------------------------------------
+Test Passed.
+"imgui_menu_scenarios" end time: Oct 13 11:53 W. Europe Summer Time
+"imgui_menu_scenarios" time elapsed: 00:00:34
+----------------------------------------------------------
+
+End testing: Oct 13 11:53 W. Europe Summer Time

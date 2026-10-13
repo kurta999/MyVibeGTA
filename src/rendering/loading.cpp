@@ -11,6 +11,19 @@
 #include <wrl/client.h>
 
 namespace rendering {
+namespace {
+unsigned WorkerCount(const char* option) {
+    const unsigned fallback = dx11::texture::defaultLoadingWorkers();
+    const char* start = std::strstr(GetCommandLineA(), option);
+    if (!start)
+        return fallback;
+    start += std::strlen(option);
+    char* end = nullptr;
+    const auto value = std::strtoul(start, &end, 10);
+    return end != start && value >= 1 && value <= 8 ? unsigned(value) : fallback;
+}
+} // namespace
+
 std::wstring ExecutableFolder() {
     wchar_t filename[MAX_PATH]{};
     GetModuleFileNameW(nullptr, filename, MAX_PATH);
@@ -20,23 +33,11 @@ std::wstring ExecutableFolder() {
 }
 
 unsigned LoadingWorkers() {
-    const char* option = std::strstr(GetCommandLineA(), "--loader-workers=");
-    if (!option)
-        return dx11::texture::defaultLoadingWorkers();
-    char* end = nullptr;
-    auto value = std::strtoul(option + 17, &end, 10);
-    return end != option + 17 && value >= 1 && value <= 8 ? unsigned(value)
-                                                          : dx11::texture::defaultLoadingWorkers();
+    return WorkerCount("--loader-workers=");
 }
 
 unsigned SceneWorkers() {
-    const char* option = std::strstr(GetCommandLineA(), "--scene-workers=");
-    if (!option)
-        return dx11::texture::defaultLoadingWorkers();
-    char* end = nullptr;
-    auto value = std::strtoul(option + 16, &end, 10);
-    return end != option + 16 && value >= 1 && value <= 8 ? unsigned(value)
-                                                          : dx11::texture::defaultLoadingWorkers();
+    return WorkerCount("--scene-workers=");
 }
 
 bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
@@ -50,10 +51,11 @@ bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
         requests, LoadingWorkers(),
         [&](size_t index, const dx11::texture::Prepared& prepared) {
             if (!prepared.error.empty() || prepared.levels.empty()) {
-                logging::write(("Texture preparation failed: " +
-                                std::filesystem::path(requests[index].file).u8string() + ": " +
-                                prepared.error)
-                                   .c_str());
+                const auto path = std::filesystem::path(requests[index].file).u8string();
+                // C++20 paths return char8_t; the logger consumes UTF-8 bytes.
+                const std::string filename(reinterpret_cast<const char*>(path.data()), path.size());
+                logging::write(
+                    ("Texture preparation failed: " + filename + ": " + prepared.error).c_str());
                 return false;
             }
             if (validate)

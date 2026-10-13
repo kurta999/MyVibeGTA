@@ -1,4 +1,4 @@
-param([string]$Runtime='build-msvc-ninja',[string]$Evidence='evidence/dx12-optimization-20261009',[switch]$Benchmark,
+param([string]$Runtime='build-msvc-ninja-dx12',[string]$Evidence='evidence/dx12-optimization-20261009',[switch]$Benchmark,
     [int]$Repeats=3,[switch]$CandidateOnly,[string]$Label='skin-state',
     [string]$Baseline='MiniCity3D-before-optimization.exe',[string[]]$ExtraArgs=@(),[switch]$NativeOnly,
     [switch]$SkyOnly)

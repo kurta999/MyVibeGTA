@@ -1,12 +1,12 @@
 # Mini City 3D
 
-A playable Windows city sandbox written in C++17, with **Direct3D 11**, **Dear ImGui**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Native Direct3D 12 with AMD FSR2 remains an optional build. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
+A playable Windows city sandbox written in C++20, with **Direct3D 12 and AMD FSR2**, **Dear ImGui**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Direct3D 11 with Dear ImGui menus remains available through `-DX11`; the default DX12 build retains its existing menus. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
 
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
 The ongoing codebase refactor and current module boundaries are documented in [Architecture](ARCHITECTURE.md).
 
-For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices through the default Direct3D 11 pipeline, mipmaps, lighting, animation, camera movement, and collision. For the optional DX12 backend and shared renderer components, see [Architecture](ARCHITECTURE.md).
+For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_README.md). It follows models and vertices through the retained Direct3D 11 pipeline, mipmaps, lighting, animation, camera movement, and collision. For the default DX12 backend and shared renderer components, see [Architecture](ARCHITECTURE.md).
 
 ## Contents
 
@@ -33,7 +33,7 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 - **Menus and authoring:** DX11 pause/settings, shops/houses, debug, bomb timer, inventory, chest storage, crafting and repair use Dear ImGui. Missions are defined and progressed by `data/missions.lua`. Terrain shaping, geographic masks and world placements are editable runtime files; see [gameplay data](data/README.md).
 - **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
 - **Rendering:** imported textured meshes, PBR material ranges, compressed DDS materials and mipmaps, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections with local-probe fallback, filmic tone mapping with bounded automatic exposure, and selectable FXAA/TAA. Supported scenery uses GPU instancing and geometry LOD.
-- **AMD FSR2 (optional DX12 build):** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
+- **AMD FSR2 (default DX12 build):** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
 - **Animation:** runtime skeletal clips for humanoids, GPU deformation for ordinary humanoid clips, procedural seated/swimming/climbing poses, and visible Jolt pedestrian ragdolls. DX12 also deforms procedural, aimed, attached and ragdoll humanoid vertices on the GPU, with previous-pose motion vectors for supported stable identities.
 - **Physics:** a capsule player controller, nearby pedestrian controllers, vehicle chassis with suspension, boat buoyancy, movable props, animal bodies, solid tree trunks, and physical tree fragments.
 - **Vehicles:** 13 authored vehicle kinds, including cars, sports cars, motorcycles, boats, helicopters, skateboards, bicycles, tractors, combines with rotating cutting augers, tanks with independently aimed turrets and barrels, trucks with detachable physical trailers, and fixed-wing airplanes with thrust/lift/drag/stall and landing gear. Vehicles show dirt and paint scratches and break into colliding imported mesh parts when destroyed. [Vehicle sources and licenses](assets/models/VEHICLE_EXPANSION.md) include the private-use combine and noncommercial trailer.
@@ -86,7 +86,7 @@ Grass source credits and reproducible import steps are in [GRASS.md](assets/mode
 
 ### Requirements
 
-- Windows with a Direct3D 11-capable graphics device and driver. The optional DX12/FSR2 build requires Direct3D 12 and Shader Model 6.2.
+- Windows with a Direct3D 12-capable graphics device, driver, and Shader Model 6.2. The retained `-DX11` build requires Direct3D 11.
 - Visual Studio 2022 or 2026 with **Desktop development with C++** and a Windows SDK, or a compatible LLVM/Clang toolchain with Ninja.
 - CMake 3.20 or newer. The build script can use the CMake installation bundled with Visual Studio.
 - Git and the pinned **Jolt Physics v5.6.0** submodule.
@@ -102,7 +102,7 @@ git submodule update --init --recursive
 ./MiniCity3D.exe
 ```
 
-`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the DX11 executable with Dear ImGui menus at `MiniCity3D.exe` in the repository root. Optional `-DX12` builds use a separate build directory with a `-dx12` suffix and deliver `MiniCity3D-DX12.exe`, preserving the default build and executable. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
+`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the default DX12 executable at `MiniCity3D.exe` in the repository root. DX12 builds use a build directory with a `-dx12` suffix. `-DX11` delivers `MiniCity3D-DX11.exe` with Dear ImGui menus from a separate cache. `-DX12` remains an explicit alias for the default. Specifying both switches is an error. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
 
 To build without running tests:
 
@@ -120,7 +120,7 @@ Create the destination directory first and keep `assets/` and `data/` beside a r
 
 ### Tracy profiling and logged benchmarks
 
-Both Direct3D builds support [Tracy v0.13.1](https://github.com/wolfpld/tracy/releases/tag/v0.13.1). Build DX11 with `./build.ps1 -Tracy`, or build DX12 and the matching DX11 comparison executable together:
+Both Direct3D builds support [Tracy v0.13.1](https://github.com/wolfpld/tracy/releases/tag/v0.13.1). Build DX11 with `./build.ps1 -DX11 -Tracy`, or build DX12 and the matching DX11 comparison executable together:
 
 ```powershell
 ./build.ps1 -DX12 -Tracy -DX11Benchmark
@@ -147,13 +147,13 @@ This waits up to 15 seconds for connection before startup and saves `capture.tra
 
 ### Native DX12 and AMD FSR2
 
-The default `MiniCity3D` build uses Direct3D 11 and Dear ImGui menus. To select the optional native DX12/FSR2 backend, run `./build.ps1 -DX12` and launch `./MiniCity3D-DX12.exe` (CMake: `-DMINI_CITY_USE_DX12=ON`, using a separate build directory). DX12 currently retains the previous menu backend. That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+The default `MiniCity3D` build uses native DX12/FSR2. Run `./build.ps1` and launch `./MiniCity3D.exe`. To select Direct3D 11 with Dear ImGui menus, run `./build.ps1 -DX11` and launch `./MiniCity3D-DX11.exe` (CMake: `-DMINI_CITY_USE_DX12=OFF`). DX12 currently retains the previous menu backend. That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
 
 In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
 ```powershell
-./MiniCity3D-DX12.exe --fsr2=1  # Quality
-./MiniCity3D-DX12.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
+./MiniCity3D.exe --fsr2=1  # Quality
+./MiniCity3D.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
 ```
 
 | ID / mode | Render resolution at 1920 × 1080 | Linear scale |
@@ -203,7 +203,7 @@ ctest --test-dir build -C Release --output-on-failure
 ./build/Release/MiniCity3D.exe
 ```
 
-CMake copies `assets/` and `data/` beside the game. Baked runtime assets are included; Python and Blender are needed only when rebuilding or converting art.
+CMake copies `assets/` and `data/` beside the game on every build, including builds that do not relink. Existing build caches retain their backend selection; pass `-DMINI_CITY_USE_DX12=ON` to migrate an older DX11 cache or use a fresh build directory. Baked runtime assets are included; Python and Blender are needed only when rebuilding or converting art.
 
 ### Startup feedback
 
@@ -345,7 +345,7 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The default DX11 build registers **47 CTest entries (48 with Tracy enabled)** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering, startup and benchmark options. Tracy adds allocation-hook contract tests; the optional DX12 primary build omits the ImGui menu entry. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records that verification sequence; [Tracy evidence](evidence/tracy-20261011/README.md) records its targeted tests and real traces.
+The default DX12 build registers **46 CTest entries (47 with Tracy enabled)** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering, startup and benchmark options. Tracy adds allocation-hook contract tests; the retained DX11 primary build adds the ImGui menu entry. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records that verification sequence; [Tracy evidence](evidence/tracy-20261011/README.md) records its targeted tests and real traces.
 
 To rerun focused scenarios after building with Ninja:
 
@@ -355,7 +355,7 @@ ctest --test-dir build-msvc-ninja -C Release -R 'expansion_scenarios|equipment_s
 ctest --test-dir build-msvc-ninja -C Release -R 'dx12_fsr2_|gpu_profiler_scenarios|resource_cache_scenarios' --output-on-failure
 ```
 
-Use the build directory produced by your generator. These historical gameplay capture scripts run the default DX11 executable; their retained evidence directories describe the backend originally tested:
+Use the build directory produced by your generator. These historical gameplay capture scripts expect a DX11 executable; their retained evidence directories describe the backend originally tested:
 
 ```powershell
 ./tools/verify_vehicle_expansion.ps1
@@ -372,8 +372,8 @@ Visual smoke flags stage repeatable scenes and exit after rendering:
 ./MiniCity3D.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
 ./MiniCity3D.exe --smoke --night --driver-preview --damaged --screenshot
 ./MiniCity3D.exe --smoke --day --marina --1080p --screenshot
-./MiniCity3D-DX12.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
-./MiniCity3D-DX12.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
+./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
+./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
 ```
 
 Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MiniCity3D.log`; local measurements do not establish performance on other hardware.

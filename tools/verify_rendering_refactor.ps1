@@ -1,5 +1,5 @@
 param(
-    [string]$Runtime = 'build-msvc-ninja',
+    [string]$Runtime = 'build-msvc-ninja-dx12',
     [string]$Evidence = 'evidence/rendering-refactor-20261009',
     [string]$BaselineDirectory = '',
     [string[]]$SelectedConfigurations = @('dx11', 'dx12', 'dx12-fsr2', 'dx12-workers'),

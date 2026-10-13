@@ -1,5 +1,16 @@
-param([switch]$OpenGL,[switch]$DX12,[switch]$Tracy,[switch]$DX11Benchmark,[string]$OutputPath='',[switch]$RunTests)
+param(
+    [switch]$OpenGL,
+    [switch]$DX12,
+    [switch]$DX11,
+    [switch]$Tracy,
+    [switch]$DX11Benchmark,
+    [string]$OutputPath = '',
+    [switch]$RunTests
+)
 $ErrorActionPreference = 'Stop'
+if ($DX11 -and $DX12) {
+    throw 'Choose either -DX11 or -DX12.'
+}
 $invocationDirectory = (Get-Location).Path
 $common = @('main.cpp','input.cpp','logging.cpp','game.cpp','ai.cpp','content.cpp','audio.cpp','ui.cpp','physics.cpp','weapons.cpp',
     'savegame.cpp','camera.cpp','props.cpp')
@@ -12,10 +23,11 @@ if ($OpenGL) {
     Write-Host "Built $target (OpenGL fallback)"
 } else {
     $root = $PSScriptRoot
-    # Backend caches and binaries must not replace the default ImGui build.
-    $buildSuffix = if ($DX12) { '-dx12' } else { '' }
-    $defaultExecutable = if ($DX12) { 'MiniCity3D-DX12.exe' } else { 'MiniCity3D.exe' }
-    $backendOption = if ($DX12) { 'ON' } else { 'OFF' }
+    $useDX12 = -not $DX11
+    # Separate caches prevent backend switches from rebuilding the other backend.
+    $buildSuffix = if ($useDX12) { '-dx12' } else { '' }
+    $defaultExecutable = if ($useDX12) { 'MiniCity3D.exe' } else { 'MiniCity3D-DX11.exe' }
+    $backendOption = if ($useDX12) { 'ON' } else { 'OFF' }
     $tracyOption = if ($Tracy) { 'ON' } else { 'OFF' }
     $comparisonOption = if ($DX11Benchmark) { 'ON' } else { 'OFF' }
     $profilingOptions = @("-DMINI_CITY_TRACY=$tracyOption", "-DMINI_CITY_BUILD_DX11_BENCHMARK=$comparisonOption")
@@ -72,22 +84,21 @@ if ($OpenGL) {
             -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
-    if($Tracy){
-        & $cmake --build $buildDirectory --config Release --target profiling_memory_scenarios --parallel 6
-        if($LASTEXITCODE -ne 0){throw "Allocation hook test build failed ($LASTEXITCODE)."}
+    $targets = @(
+        'MiniCity3D', 'benchmark_options_scenarios', 'resource_cache_scenarios',
+        'gpu_profiler_scenarios', 'dx12_fsr2_smoke', 'simulation_smoke', 'asset_smoke',
+        'texture_mips_smoke', 'texture_loading_smoke', 'shader_loading_smoke',
+        'probe_smoke', 'startup_smoke', 'save_jobs_smoke', 'audio_smoke', 'sky_smoke'
+    )
+    if ($Tracy) {
+        $targets += 'profiling_memory_scenarios'
     }
-    if($DX11Benchmark){
-        & $cmake --build $buildDirectory --config Release --target MiniCity3D-DX11-benchmark --parallel 6
-        if($LASTEXITCODE -ne 0){throw "DX11 comparison build failed ($LASTEXITCODE)."}
+    if ($DX11Benchmark) {
+        $targets += 'MiniCity3D-DX11-benchmark'
     }
     & $cmake --build $buildDirectory --config Release `
-        --target MiniCity3D benchmark_options_scenarios resource_cache_scenarios gpu_profiler_scenarios dx12_fsr2_smoke simulation_smoke asset_smoke texture_mips_smoke texture_loading_smoke shader_loading_smoke probe_smoke startup_smoke save_jobs_smoke audio_smoke sky_smoke --parallel 6
+        --target @targets --parallel 6
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)." }
-    # Cooked assets can change without relinking. Refresh the executable's
-    # working set before tests even when Ninja reports no work to do.
-    $runtimeDirectory = Split-Path -Parent $builtExecutable
-    Copy-Item -LiteralPath (Join-Path $root 'assets') -Destination $runtimeDirectory -Recurse -Force
-    Copy-Item -LiteralPath (Join-Path $root 'data') -Destination $runtimeDirectory -Recurse -Force
     if ($RunTests) {
         $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
         if (-not (Test-Path -LiteralPath $ctest)) { throw 'ctest.exe was not found beside cmake.exe.' }
@@ -115,6 +126,6 @@ if ($OpenGL) {
             throw "Build succeeded at $builtExecutable, but $target could not be replaced. Close the running game and rerun build.ps1."
         }
     }
-    $backendName = if ($DX12) { 'native Direct3D 12 + AMD FSR2' } else { 'Direct3D 11 + Dear ImGui' }
+    $backendName = if ($useDX12) { 'native Direct3D 12 + AMD FSR2' } else { 'Direct3D 11 + Dear ImGui' }
     Write-Host "Built $target ($backendName + Lua missions + Jolt Physics)"
 }

@@ -27,7 +27,7 @@ bool Dx11Renderer::CreateSkinResources() {
 }
 
 bool Dx11Renderer::CacheSkin(const dx11::SkinMesh* skin) {
-    if (m_skinSources.count(skin))
+    if (m_skinSources.contains(skin))
         return true;
     if (skin->jointCount == 0 || skin->jointCount > dx11::MAX_GPU_SKIN_JOINTS ||
         skin->vertices.empty() || skin->vertices.size() > 300000)

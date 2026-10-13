@@ -1,5 +1,5 @@
 param(
-    [string[]]$Executable=@((Join-Path $PSScriptRoot '../build-msvc-ninja/MiniCity3D.exe')),
+    [string[]]$Executable=@((Join-Path $PSScriptRoot '../build-msvc-ninja-dx12/MiniCity3D.exe')),
     [string]$OutputDirectory=(Join-Path $PSScriptRoot ('../evidence/benchmarks-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))),
     [ValidateSet('city','forest','travel','route')][string[]]$Scenarios=@('city','forest','travel'),
     [ValidateRange(1,36000)][int]$Frames=240,
