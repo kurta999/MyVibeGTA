@@ -2,6 +2,8 @@
 
 A playable Windows city sandbox written in C++20, with **Direct3D 12 and AMD FSR2**, **Dear ImGui**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Direct3D 11 with Dear ImGui menus remains available through `-DX11`; the default DX12 build retains its existing menus. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
 
+Set forest fires that spread through grass and trees, or use an RPG to blast holes in buildings and scatter physical debris. Building damage updates collision for the current session and resets on load.
+
 The project is an evolving prototype. Implementation and verification status are tracked in [idea.md](idea.md) and the [graphics upgrade plan](graphics-upgrade-plan.md).
 
 The ongoing codebase refactor and current module boundaries are documented in [Architecture](ARCHITECTURE.md).
@@ -81,6 +83,18 @@ Grass source credits and reproducible import steps are in [GRASS.md](assets/mode
 **Hit effects**
 
 ![An armed pedestrian shooting the player, with a blood hit effect visible](github_screenshots/blood.png)
+
+**Forest fires**
+
+Flamethrowers and other incendiary weapons ignite vegetation, with fire spreading through grass and burning nearby trees and vehicles.
+
+![The player beside a spreading grass fire among trees near the city, with the flamethrower selected](github_screenshots/forest_fire.png)
+
+**RPG building destruction**
+
+RPG blasts cut holes through buildings, update collision, and eject physical masonry debris. Building damage and debris are session effects that reset on load.
+
+![The player with an RPG beside blast-damaged buildings, scattered masonry debris, and burning grass at night](github_screenshots/rpg_destroy_buildings.png)
 
 **Minecraft-style builder mode**
 
