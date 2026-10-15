@@ -82,6 +82,18 @@ Grass source credits and reproducible import steps are in [GRASS.md](assets/mode
 
 ![An armed pedestrian shooting the player, with a blood hit effect visible](github_screenshots/blood.png)
 
+**Minecraft-style builder mode**
+
+Mine terrain and place blocks in the city using the separately saved builder layer. Press **F5** to toggle builder mode; the hotbar shows the selected material for mining and building.
+
+![The player beside excavated terrain and stacked soil blocks in the city, with the builder hotbar visible](github_screenshots/minecraft_mode.png)
+
+**Builder inventory and crafting**
+
+Press **E** in builder mode to manage inventory and hotbar items, browse crafting recipes and their material costs, and access tool repair controls.
+
+![The builder inventory grid and crafting panel showing recipes, material costs, and tool repair controls](github_screenshots/minecraft_mode_invertory.png)
+
 ## Build and run
 
 ### Requirements
