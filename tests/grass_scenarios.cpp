@@ -6,8 +6,10 @@
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
+#include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <set>
@@ -24,11 +26,14 @@ std::set<Root> capture(game::Vec2 point,int setting,int density,unsigned* detail
     std::set<Root> roots;
     for(const auto& instance:instances){
         if(!instance.source->grassFoliage)continue;
+        const float distance=game::len(game::Vec2{instance.x,instance.z}-point);
         assert(dx11::grass::surfaceAt({instance.x,instance.z})!=dx11::grass::Surface::None);
-        assert(game::len(game::Vec2{instance.x,instance.z}-point)<ui::grassDistanceUnits());
+        assert(distance<ui::grassDistanceUnits());
         assert(instance.scaleX>0&&instance.scaleY>0&&instance.scaleZ>0);
-        bool isDetailed=instance.source->castsShadow;
-        assert(isDetailed==(game::len(game::Vec2{instance.x,instance.z}-point)<=ui::grassLodDistanceUnits()));
+        const bool isDetailed=instance.source->castsShadow;
+        const float detailRadius=ui::grassLodDistanceUnits();
+        if(distance<=detailRadius*.70f||detailRadius>=ui::grassDistanceUnits())assert(isDetailed);
+        if(distance>detailRadius*1.30f)assert(!isDetailed);
         if(detailed&&isDetailed)++*detailed;
         roots.insert({instance.x,instance.z});
     }
@@ -42,7 +47,7 @@ void grassScenarios(){
     for(const char* type:{"lawn","meadow","savanna","desert","snow","coastal"}){
         std::string name="nature/grass_"+std::string(type);
         const auto* detail=dx11::mesh(name);
-        assert(!dx11::mesh(name+"-lod")); // Cutouts must keep their authored LODs.
+        assert(!dx11::mesh(name+"-lod")); // Grass uses its own authored LODs.
         assert(detail&&detail->grassFoliage&&detail->textured&&detail->alphaTest&&detail->castsShadow);
         assert(!detail->allowTessellation&&!detail->temporalStable);
         assert(!detail->indices.empty()&&detail->materialRanges.size()==1);
@@ -57,11 +62,25 @@ void grassScenarios(){
         bool rooted=false,flexible=false;
         for(const auto& v:detail->vertices){rooted|=v.a<.001f;flexible|=v.a>.9f;}
         assert(rooted&&flexible);
+        const auto* previous=detail;
         for(int level=1;level<=2;++level){
             const auto* lod=dx11::mesh(name+"-lod"+std::to_string(level));
             assert(lod&&lod->grassFoliage&&!lod->castsShadow&&!lod->allowTessellation);
-            assert(lod->indices.size()<detail->indices.size()/4);
-            assert(lod->materialRanges[0].baseFile==material.baseFile);
+            assert(!lod->indices.empty()&&lod->indices.size()<detail->indices.size()/4&&
+                lod->indices.size()<previous->indices.size());
+            assert(lod->minX==detail->minX&&lod->maxX==detail->maxX);
+            assert(lod->minY==detail->minY&&lod->maxY==detail->maxY);
+            assert(lod->minZ==detail->minZ&&lod->maxZ==detail->maxZ);
+            assert(lod->materialRanges.size()==1);
+            const auto& lodMaterial=lod->materialRanges.front();
+            assert(lodMaterial.baseFile==material.baseFile&&lodMaterial.normalFile==material.normalFile&&
+                lodMaterial.ormFile==material.ormFile&&lodMaterial.alphaCutoff==material.alphaCutoff);
+            for(const auto& vertex:lod->vertices){
+                assert(std::any_of(previous->vertices.begin(),previous->vertices.end(),[&](const dx11::Vertex& candidate){
+                    return std::memcmp(&vertex,&candidate,sizeof(vertex))==0;
+                }));
+            }
+            previous=lod;
         }
     }
     auto buildings=game::buildings;game::buildings.clear();
@@ -83,6 +102,9 @@ void grassScenarios(){
     assert(ringFade(0,0,230)==1&&ringFade(231,1,230)==0);
     assert(ringFade(145,0,800)>0&&ringFade(145,1,800)>0);
     assert(ringFade(380,1,800)>0&&ringFade(380,2,800)>0);
+    assert(lodLevel(95,95,800,0)==1&&lodLevel(95,95,800,65535)==0);
+    assert(lodLevel(260,95,800,0)==2&&lodLevel(260,95,800,65535)==1);
+    assert(lodLevel(790,800,800,0)==0);
     auto nearbyRoots=capture({4550,4500},50,2),repeat=capture({4550,4500},50,2);
     assert(nearbyRoots.size()>500&&nearbyRoots==repeat);
     auto medium=capture({4550,4500},50,1);

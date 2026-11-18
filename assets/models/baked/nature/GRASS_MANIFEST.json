@@ -13,13 +13,13 @@
     },
     {
       "name": "grass_lawn-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 208,
+      "triangles": 188
     },
     {
       "name": "grass_lawn-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 97,
+      "triangles": 86
     },
     {
       "name": "grass_meadow",
@@ -28,13 +28,13 @@
     },
     {
       "name": "grass_meadow-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 163,
+      "triangles": 146
     },
     {
       "name": "grass_meadow-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 79,
+      "triangles": 70
     },
     {
       "name": "grass_savanna",
@@ -43,13 +43,13 @@
     },
     {
       "name": "grass_savanna-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 81,
+      "triangles": 66
     },
     {
       "name": "grass_savanna-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 39,
+      "triangles": 28
     },
     {
       "name": "grass_desert",
@@ -58,13 +58,13 @@
     },
     {
       "name": "grass_desert-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 87,
+      "triangles": 71
     },
     {
       "name": "grass_desert-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 45,
+      "triangles": 34
     },
     {
       "name": "grass_snow",
@@ -73,13 +73,13 @@
     },
     {
       "name": "grass_snow-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 93,
+      "triangles": 76
     },
     {
       "name": "grass_snow-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 40,
+      "triangles": 30
     },
     {
       "name": "grass_coastal",
@@ -88,13 +88,13 @@
     },
     {
       "name": "grass_coastal-lod1",
-      "vertices": 18,
-      "triangles": 12
+      "vertices": 163,
+      "triangles": 146
     },
     {
       "name": "grass_coastal-lod2",
-      "vertices": 12,
-      "triangles": 8
+      "vertices": 79,
+      "triangles": 70
     }
   ]
 }

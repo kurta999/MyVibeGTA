@@ -13,4 +13,5 @@ std::uint32_t hash(int x,int z,int variant);
 float unit(std::uint32_t value);
 // Ring spacing is fixed in world space; LOD and density do not move the roots.
 float ringFade(float distance,int ring,float radius);
+int lodLevel(float distance,float detailRadius,float drawRadius,std::uint32_t seed);
 }

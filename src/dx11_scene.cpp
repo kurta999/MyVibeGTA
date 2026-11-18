@@ -767,7 +767,6 @@ void texturedGrass(){
     CITY_ZONE("Grass preparation");
     const float radius=ui::grassDistanceUnits();
     const float detailRadius=ui::grassLodDistanceUnits();
-    const float midRadius=std::max(260.0f,detailRadius*(260.0f/95.0f));
     if(ui::vegetationDensity==0||radius==0)return;
     constexpr float recenter=20;
     static int cacheX=std::numeric_limits<int>::min(),cacheZ=cacheX;
@@ -828,9 +827,8 @@ void texturedGrass(){
         float fade=grass::ringFade(distance,tuft.ring,radius);
         if(fade<=.01f)continue;
         std::string name=grass::profile(tuft.surface).mesh;
-        // Detailed curved blades only nearby. Both cutout LODs share the
-        // same root and physical size; distant clumps do not cast tiny shadows.
-        if(distance>detailRadius)name+=distance>midRadius?"-lod2":"-lod1";
+        const int lod=grass::lodLevel(distance,detailRadius,radius,tuft.seed>>16);
+        if(lod)name+=lod==1?"-lod1":"-lod2";
         model(name,{tuft.p.x,root+.015f,tuft.p.z},
             {tuft.width*fade,tuft.height*fade,tuft.width*fade},tuft.yaw,tuft.tint);
     }

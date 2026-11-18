@@ -64,4 +64,12 @@ float ringFade(float distance,int ring,float radius){
     if(ring>0)fade*=std::clamp((distance-(ring==1?130.0f:365.0f))/28,0.0f,1.0f);
     return fade;
 }
+int lodLevel(float distance,float detailRadius,float drawRadius,std::uint32_t seed){
+    if(detailRadius>=drawRadius)return 0;
+    // Stagger each root's transition so nearby tufts change at different distances.
+    const float stagger=.70f+.60f*unit(seed);
+    if(distance<=detailRadius*stagger)return 0;
+    const float midRadius=std::max(260.0f,detailRadius*(260.0f/95.0f));
+    return distance>midRadius*stagger?2:1;
+}
 }
