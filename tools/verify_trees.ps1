@@ -14,14 +14,25 @@ function Save-TreeLog([string]$Destination){
     }
     $treeLines | Select-Object -Skip $treeFirst | Set-Content -LiteralPath $Destination
 }
-if($Before){
-    $treeOriginal=Join-Path $treeRoot 'build-tools/trees-before'
-    if(-not(Test-Path -LiteralPath $treeOriginal)){throw 'Original tree snapshot is missing'}
-    Get-ChildItem -LiteralPath $treeOriginal -File | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination $treeAssets -Force
-    }
-}
+$treeOriginal=Join-Path $treeRoot 'build-tools/trees-before'
+$treeSidecars=@{}
+$treeRestoredFiles=@()
 try{
+    if($Before){
+        if(-not(Test-Path -LiteralPath $treeOriginal)){throw 'Original tree snapshot is missing'}
+        Get-ChildItem -LiteralPath $treeOriginal -File | ForEach-Object {
+            if($_.Extension -eq '.m3d'){
+                $sidecar=Join-Path $treeAssets ($_.BaseName+'.pbr')
+                if(Test-Path -LiteralPath $sidecar){
+                    $backup="$sidecar.$([guid]::NewGuid()).review"
+                    Move-Item -LiteralPath $sidecar -Destination $backup
+                    $treeSidecars[$sidecar]=$backup
+                }
+            }
+            Copy-Item -LiteralPath $_.FullName -Destination $treeAssets -Force
+            $treeRestoredFiles+=$_.Name
+        }
+    }
     foreach($treeModel in @('tree_detailed','tree_default','tree_oak','tree_thin','tree_pineDefaultA')){
         foreach($treeDistance in @('near','distant')){
             $treeStarted=Get-Date
@@ -48,9 +59,10 @@ try{
     if(-not $treeImage){throw 'Woods benchmark produced no capture'}
     Copy-Item -LiteralPath $treeImage.FullName -Destination (Join-Path $treeEvidence "$treeStage-woods.png") -Force
 }finally{
-    if($Before){
-        Get-ChildItem -LiteralPath $treeOriginal -File | ForEach-Object {
-            Copy-Item -LiteralPath (Join-Path $treeRoot "assets/models/baked/nature/$($_.Name)") -Destination $treeAssets -Force
-        }
+    foreach($name in $treeRestoredFiles){
+        Copy-Item -LiteralPath (Join-Path $treeRoot "assets/models/baked/nature/$name") -Destination $treeAssets -Force
+    }
+    foreach($sidecar in $treeSidecars.Keys){
+        Move-Item -LiteralPath $treeSidecars[$sidecar] -Destination $sidecar
     }
 }

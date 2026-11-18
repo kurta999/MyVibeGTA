@@ -36,9 +36,15 @@ for name in TREE_IDS:
             geometry = np.frombuffer(raw, '<f4', offset=8).reshape(-1, 3, 12)
             assert np.isfinite(geometry).all()
             assert np.all((geometry[:, :, 6:8] >= 0) & (geometry[:, :, 6:8] <= 1))
-            cells = np.floor(geometry[:, :, 6:8].mean(axis=1) * [cols, rows]).astype(int)
+            sidecar = path.with_suffix('.pbr')
+            atlas = geometry
+            if sidecar.is_file():
+                # Only the first draw range still uses the original material atlas.
+                start, length = map(int, sidecar.read_text().split()[:2])
+                atlas = geometry[start // 3:(start + length) // 3]
+            cells = np.floor(atlas[:, :, 6:8].mean(axis=1) * [cols, rows]).astype(int)
             material = cells[:, 1] * cols + cells[:, 0]
-            points = geometry[np.isin(material, wood), :, :3]
+            points = atlas[np.isin(material, wood), :, :3]
             exposed = total = 0
             if len(points):
                 _, ids = np.unique(np.round(points.reshape(-1, 3), 5), axis=0, return_inverse=True)

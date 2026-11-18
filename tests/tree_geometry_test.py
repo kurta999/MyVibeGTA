@@ -13,28 +13,31 @@ from tree_geometry import leaf_components, select_leaves, expand_leaves, decimat
 class TreeGeometryTest(unittest.TestCase):
     def test_gltf_leaf_mask_orientation(self):
         import build_city_models as bake
+        from PIL import Image
         path = bake.tree_source('tree_detailed')[0]
         doc, binary = bake.read_scene(path)
         primitive = next(primitive for mesh in doc['meshes'] for primitive in mesh['primitives']
             if 'leaves' in doc['materials'][primitive['material']]['name'])
-        material = doc['materials'][primitive['material']]
-        image = np.asarray(bake.image_from_material(doc, binary, path, material))
+        mask = (bake.SOURCE / 'polyhaven/island_tree_01/textures'
+                / 'island_tree_01_leaves_alpha_2k.png')
+        image = np.asarray(Image.open(mask))
         triangles = bake.accessor(doc, binary, primitive['indices']).reshape(-1, 3)[::100]
         uv = bake.accessor(doc, binary, primitive['attributes']['TEXCOORD_0'])[triangles].mean(axis=1)
-        def coverage(v):
-            x = np.clip((uv[:, 0] * image.shape[1]).astype(int), 0, image.shape[1] - 1)
-            y = np.clip((v * image.shape[0]).astype(int), 0, image.shape[0] - 1)
-            return np.mean(image[y, x, 3] >= 128)
-        self.assertGreater(coverage(uv[:, 1]), .8)
-        self.assertLess(coverage(1 - uv[:, 1]), .4)
-        # Check the cooked atlas coordinates too, so reverting the baker's V
-        # orientation fails this regression even if the source remains correct.
-        packed = np.fromfile(bake.BAKED / 'nature/tree_detailed.m3d', '<f4', offset=8).reshape(-1, 3, 12)
-        atlas = packed[:, :, 6:8].mean(axis=1)
-        leaf_uv = atlas[(atlas[:, 0] >= .5) & (atlas[:, 1] < .5)]
-        x = np.clip((((leaf_uv[:, 0] * 2 - 1 - .001) / .998) * image.shape[1]).astype(int), 0, image.shape[1] - 1)
-        y = np.clip((((leaf_uv[:, 1] * 2 - .001) / .998) * image.shape[0]).astype(int), 0, image.shape[0] - 1)
-        self.assertGreater(np.mean(image[y, x, 3] >= 128), .75)
+
+        def coverage(coordinates):
+            x = np.clip((coordinates[:, 0] * image.shape[1]).astype(int), 0, image.shape[1] - 1)
+            y = np.clip((coordinates[:, 1] * image.shape[0]).astype(int), 0, image.shape[0] - 1)
+            return np.mean(image[y, x] >= 32768)
+
+        self.assertGreater(coverage(uv), .8)
+        self.assertLess(coverage(uv * [1, -1] + [0, 1]), .4)
+        for suffix in ('', '-lod'):
+            model = bake.BAKED / f'nature/tree_detailed{suffix}'
+            material = model.with_suffix('.pbr').read_text().splitlines()[1].split()
+            start, count = map(int, material[:2])
+            packed = np.fromfile(model.with_suffix('.m3d'), '<f4', offset=8).reshape(-1, 12)
+            leaves = packed[start:start + count, 6:8].reshape(-1, 3, 2)
+            self.assertGreater(coverage(leaves.mean(axis=1)), .75)
 
     def test_twig_budget_retains_whole_largest_pieces(self):
         faces = []

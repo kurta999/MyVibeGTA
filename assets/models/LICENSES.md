@@ -30,6 +30,8 @@ Regional mountain outcrops use Poly Haven's CC0 Namaqualand Boulder 02 and Coast
 
 High-resolution Direct3D grass uses Poly Haven's CC0 Grass Medium 01 model and shared 2K PBR textures. [GRASS.md](GRASS.md) records credits, download verification, and the six surface adaptations.
 
+DX11 tree foliage uses Poly Haven's CC0 2K color, opacity, and DirectX normal maps. Credits and source URLs are recorded in the nature manifest and each source folder's `leaf-maps.json`. The three Island Tree models share byte-identical leaf maps. Selected 3D Assets crowns use new cutout geometry with the Island Tree and Jacaranda scans, including a recolored Jacaranda map for the ornamental cherry. Run `tools/fetch_tree_materials.ps1` and `tools/bootstrap_texconv.ps1`, then `python tools/build_city_models.py --trees` to rebuild the meshes and mipmapped BC7/BC5 textures.
+
 The fifteen textured wildlife meshes use **CC BY 3.0** assets by **Poly by Google**, obtained from Poly Pizza. See [ANIMALS.md](ANIMALS.md) for each source link, attribution, and modification notes, including the fawn-derived roe-deer stand-in. Source GLBs, checksums, and the complete license are in `source/animals/`. These assets are not CC0.
 
 Five bird models also use **CC BY 3.0** assets by **Poly by Google** via Poly Pizza. [BIRDS.md](BIRDS.md) records the original models and procedural flight-wing modifications; source GLBs, textures, checksums, and the full license ship in `source/birds/`.

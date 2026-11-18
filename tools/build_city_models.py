@@ -11,10 +11,12 @@ import math
 import pathlib
 import struct
 import sys
+import time
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 from tree_geometry import leaf_components, select_leaves, expand_leaves, decimate_wood
+from tree_materials import ALPHA_CUTOFF, CROWNS, cooked_foliage, crown_sprigs, scan_material
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets/models/source"
@@ -183,7 +185,14 @@ def write_mesh(path, vertices):
     with temporary.open("wb") as file:
         file.write(struct.pack("<4sI", b"M3D1", len(arr)))
         file.write(arr.tobytes())
-    temporary.replace(path)
+    for attempt in range(5):
+        try:
+            temporary.replace(path)
+            break
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(.2)
     return len(arr) // 3
 
 
@@ -274,8 +283,13 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
         chosen = [variant % 3]
     full_parts = []
     lod_parts = []
+    leaf_parts = []
+    leaf_lods = []
+    crown = CROWNS.get(name) if not solid_only else None
+    leaf_scan = None
 
     def visit(index, parent):
+        nonlocal leaf_scan
         node = nodes[index]
         matrix = parent @ node_matrix(node)
         if "mesh" in node and (not chosen or node["mesh"] in chosen):
@@ -301,6 +315,10 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
                 tri = indices.reshape((-1, 3))
                 name_lower = material.get("name", "").lower()
                 foliage = any(word in name_lower for word in ("leaf", "leav", "twig", "foliage", "flower", "blossom"))
+                replacement = crown and name_lower == crown[0]
+                scan = scan_material(path, name_lower) if not bush and not solid_only else None
+                if scan:
+                    leaf_scan = scan
                 if solid_only and foliage:
                     continue
                 if path.suffix == ".glb" and "date-palm" in path.name and "foliage" in name_lower:
@@ -314,7 +332,7 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
                 packed_source = np.concatenate((pos, normals, uv), axis=1)
                 near_scale = lod_scale = 1.0
                 near_labels = lod_labels = None
-                if solid_only:
+                if solid_only or replacement:
                     near_geometry = lod_geometry = packed_source[tri.ravel()]
                 elif foliage and path.suffix == '.gltf':
                     labels = leaf_components(tri, len(pos))
@@ -347,16 +365,22 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
                     tex = source_uv.copy() if np.all((source_uv >= 0) & (source_uv <= 1)) else np.mod(source_uv, 1.0)
                     # Raw glTF and DX11 image uploads both start at the top
                     # left. A V flip moves the leaf's alpha mask off its mesh.
-                    tex[:, 0] = (material_index % cols + tex[:, 0] * 0.998 + 0.001) / cols
-                    tex[:, 1] = (material_index // cols + tex[:, 1] * 0.998 + 0.001) / rows
+                    if not scan:
+                        tex[:, 0] = (material_index % cols + tex[:, 0] * 0.998 + 0.001) / cols
+                        tex[:, 1] = (material_index // cols + tex[:, 1] * 0.998 + 0.001) / rows
                     factor = material.get("pbrMetallicRoughness", {}).get("baseColorFactor", [1, 1, 1, 1])
                     if "baseColorTexture" not in material.get("pbrMetallicRoughness", {}):
                         factor = [1, 1, 1, 1]  # Applied to the fallback texture above.
                     color = np.tile(np.asarray(factor, np.float32), (len(geometry), 1))
                     return np.concatenate((points, normal, tex, color), axis=1).astype(np.float32)
 
-                full_parts.append(pack(near_geometry, near_labels, near_scale))
-                lod_parts.append(pack(lod_geometry, lod_labels, lod_scale))
+                if replacement or scan:
+                    leaf_parts.append(pack(near_geometry, near_labels, near_scale))
+                    if scan:
+                        leaf_lods.append(pack(lod_geometry, lod_labels, lod_scale))
+                else:
+                    full_parts.append(pack(near_geometry, near_labels, near_scale))
+                    lod_parts.append(pack(lod_geometry, lod_labels, lod_scale))
         for child in node.get("children", []):
             visit(child, matrix)
 
@@ -376,9 +400,25 @@ def bake_tree(name, variant, source_override=None, solid_only=False):
         print(f"{name}: mining solid {len(indices)//3} triangles, {len(vertices)} vertices", flush=True)
         return
     lod = np.concatenate(lod_parts)
+    lod_path = destination.with_name(name + '-lod')
+    if leaf_parts:
+        leaf = np.concatenate(leaf_parts)
+        if crown:
+            leaf_scan, uv_boxes = crown[1]
+            leaf, leaf_lod = crown_sprigs(leaf, uv_boxes, rng)
+        else:
+            leaf_lod = np.concatenate(leaf_lods)
+        base, normal, mask = cooked_foliage(leaf_scan, name == 'tree_urbanCherry')
+        for mesh, solid, leaves in ((destination, full, leaf), (lod_path, lod, leaf_lod)):
+            mesh.with_suffix('.pbr').write_text(
+                f'0 {len(solid)} 0.88 0 0 {name}.png - - - - OPAQUE 0\n'
+                f'{len(solid)} {len(leaves)} 0.82 0 0 {base} {normal} - - - '
+                f'{"MASK" if mask else "OPAQUE"} {ALPHA_CUTOFF}\n', encoding='utf-8')
+        full = np.concatenate((full, leaf))
+        lod = np.concatenate((lod, leaf_lod))
     # Some kit assets place the model slightly above the origin; runtime aligns minY.
     print(f"{name}: {write_mesh(destination.with_suffix('.m3d'), full)} triangles, "
-          f"LOD {write_mesh(destination.with_name(name + '-lod.m3d'), lod)}")
+          f"LOD {write_mesh(lod_path.with_suffix('.m3d'), lod)}", flush=True)
 
 
 def building_atlas(index):

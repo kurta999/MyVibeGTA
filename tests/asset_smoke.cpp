@@ -379,6 +379,18 @@ int main(){
     int count=0;assert(catalog.integer("Trees","Count",count,30,128));
     std::set<std::string> treeModels;
     std::set<std::wstring> treeTextures;
+    const std::set<std::string> woodlandFoliage{
+        "tree_blocks","tree_default","tree_detailed","tree_fat","tree_oak",
+        "tree_simple","tree_tall","tree_thin","tree_urbanCherry"};
+    std::set<std::wstring> checkedFoliage;
+    auto checkLeafMap=[&](const std::wstring& path, std::uint32_t format){
+        if(!checkedFoliage.insert(path).second)return;
+        std::array<std::uint32_t,37> header{};
+        std::ifstream dds(std::filesystem::path(path),std::ios::binary);
+        dds.read(reinterpret_cast<char*>(header.data()),sizeof(header));
+        assert(dds&&header[0]==0x20534444&&header[21]==0x30315844);
+        assert(header[3]==2048&&header[4]==2048&&header[7]==12&&header[32]==format);
+    };
     for(int index=0;index<count;++index){
         std::string name;assert(catalog.string("Tree"+std::to_string(index),"Model",name));
         assert(treeModels.insert(name).second&&manifestModels.count(name));
@@ -395,6 +407,21 @@ int main(){
             lod->minY==tree->minY&&lod->maxY==tree->maxY&&
             lod->minZ==tree->minZ&&lod->maxZ==tree->maxZ);
         assert(treeTextures.insert(tree->textureFile).second);
+        if(woodlandFoliage.count(name))assert(!tree->materialRanges.empty());
+        if(!tree->materialRanges.empty()){
+            assert(tree->materialRanges.size()==2&&lod->materialRanges.size()==2);
+            const auto& leaf=tree->materialRanges.back();
+            const auto& distant=lod->materialRanges.back();
+            assert(!tree->materialRanges.front().alphaTest&&
+                leaf.start==tree->materialRanges.front().count&&leaf.start+leaf.count==tree->vertices.size());
+            assert(!lod->materialRanges.front().alphaTest&&
+                distant.start==lod->materialRanges.front().count&&distant.start+distant.count==lod->vertices.size());
+            assert(distant.count<=leaf.count&&distant.alphaTest==leaf.alphaTest&&
+                distant.alphaCutoff==leaf.alphaCutoff&&distant.baseFile==leaf.baseFile&&distant.normalFile==leaf.normalFile);
+            if(woodlandFoliage.count(name))assert(leaf.alphaTest);
+            checkLeafMap(leaf.baseFile,99); // BC7_UNORM_SRGB
+            checkLeafMap(leaf.normalFile,83); // BC5_UNORM
+        }
     }
     std::set<std::wstring> bushTextures;
     for(int index=0;index<36;++index){
