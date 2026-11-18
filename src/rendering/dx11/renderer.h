@@ -41,6 +41,7 @@
 #include <array>
 #include <cmath>
 #include <chrono>
+#include <unordered_set>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -228,6 +229,8 @@ class Dx11Renderer final {
     std::uint64_t m_groundRevision = ~std::uint64_t(0);
     std::vector<dx11::Vertex> m_vertices;
     std::vector<dx11::ModelInstance> m_models;
+    std::vector<dx11::BoundingSphere> m_instanceBounds;
+    std::unordered_set<const dx11::Mesh*> m_cachedInstanceMeshes;
     using InstanceData = ::rendering::InstanceData;
     using InstanceBatch = ::rendering::InstanceBatch;
     std::vector<InstanceData> m_instanceData;

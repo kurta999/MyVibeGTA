@@ -97,6 +97,16 @@ skin shaders remain separate because they implement different behavior. Shared
 CPU buffer types keep the two renderer layouts synchronized. API-specific
 allocation, barriers, command recording, and FSR2 integration remain in DX12.
 
+DX11 reuses the receiver-volume calculations and authored shadow LODs from the
+Direct3D renderers. It computes instance bounds and checks mesh residency once
+per frame before building the individual draw lists.
+
+`app_previews.cpp` owns the Direct3D scene fixtures and builder transitions.
+`benchmark_run.h` owns the fixed-step benchmark and its CSV measurements.
+`standard_gui_review.cpp` and `imgui_review.cpp` exercise the two menu paths
+through game input. `WinMain` handles application startup, selects the fixture,
+and owns shutdown.
+
 ## Remaining work
 
 The backend sessions still have too many responsibilities and fields. Splitting
@@ -105,8 +115,7 @@ their implementation into files is an intermediate step, not the final design.
 1. Extract coherent resource owners for render targets, skinning, and probe
    state; decompose frame execution into named passes. Texture/mesh caches and
    dynamic vertex streams have been extracted.
-2. Separate the Windows application lifecycle and smoke/benchmark fixtures from
-   the long `WinMain` function.
+2. Extract the remaining startup and Windows lifecycle concerns from `WinMain`.
 3. Establish explicit simulation state and service boundaries around the current
    shared game globals, physics, gameplay systems, and persistence.
 4. Simplify the native DX12 device/context implementation and clarify its resource,

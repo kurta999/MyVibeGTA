@@ -1090,7 +1090,7 @@ int main(int argc,char** argv){
     std::ifstream originalWorld(data_file::resourcePath("world.ini"));
     assert(originalWorld);
     std::string world((std::istreambuf_iterator<char>(originalWorld)),std::istreambuf_iterator<char>());
-    auto vehicleX=world.find("X=345");
+    auto vehicleX=world.find("X=362");
     assert(vehicleX!=std::string::npos);
     world.replace(vehicleX,5,"X=355");
     std::string worldConfig=std::string(currentDirectory)+"\\world-test.ini";

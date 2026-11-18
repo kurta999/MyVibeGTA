@@ -27,6 +27,7 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND,UINT,WPARAM,LPARAM);
 namespace menus {
 namespace {
+bool optedIn=false;
 bool initialized=false;
 ID3D11Device* device=nullptr;
 std::map<int,Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> icons;
@@ -268,8 +269,12 @@ void Timer(){
     ImGui::End();
 }
 }
+void SetOptIn(bool enabled){optedIn=enabled;}
+bool Enabled(){return initialized;}
 bool Init(HWND window,ID3D11Device* graphicsDevice,ID3D11DeviceContext* context){
-    Shutdown();IMGUI_CHECKVERSION();ImGui::CreateContext();
+    Shutdown();
+    if(!optedIn)return true;
+    IMGUI_CHECKVERSION();ImGui::CreateContext();
     auto& io=ImGui::GetIO();io.ConfigFlags|=ImGuiConfigFlags_NavEnableKeyboard;io.IniFilename=nullptr;
     char windows[MAX_PATH]{};GetWindowsDirectoryA(windows,MAX_PATH);
     std::string fontPath=std::string(windows)+"\\Fonts\\segoeui.ttf";

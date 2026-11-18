@@ -268,10 +268,12 @@ void missionCard(const std::string& title,const std::string& detail,float second
 void completeMission(){
     const auto& m=missions[activeMission];creditMoney(m.reward);missionDone[activeMission]=true;
     health=std::min(PLAYER_MAX_HEALTH,health+20*(PLAYER_MAX_HEALTH/100.0f));
-    announce(std::string("MISSION PASSED: ")+m.name+"  +$"+std::to_string(m.reward),7);
+    const std::string result=std::string("MISSION PASSED: ")+m.name+"  +$"+std::to_string(m.reward);
     missionCard("MISSION PASSED",std::string(m.name)+"  +$"+std::to_string(m.reward),4);
     audio::play(audio::Effect::Success);
     activeMission=-1;missionStep=0;
+    const int next=nextMission();
+    announce(next>=0?result+"  |  NEXT: "+missions[next].name:result,7);
     savegame::request();
 }
 int nextMission(){return mission_script::Next();}
@@ -449,7 +451,7 @@ void reset(){
     magazine.assign(weapons::count(),0);
     unlocked[0]=true;ammo[0]=-1;magazine[0]=weapons::stats(0).magazine;
     missionDone.fill(false);
-    announce("Find the colored mission markers. Press F to start; M opens the map.",8);
+    announce("Press F at the gold marker. The starter car is nearby. M opens the map.",8);
     content::populate();
     regions::populate();
 #ifdef MINI_CITY_JOLT
@@ -529,7 +531,14 @@ std::vector<Interaction> availableInteractions(){
 #ifdef MINI_CITY_JOLT
     if(wildlife::riding())return options;
 #endif
-    if(health<=0||occupied>=0)return options;
+    if(health<=0)return options;
+    const int mission=mission_script::StartCandidate();
+#ifdef MINI_CITY_JOLT
+    const bool featuredMission=mission>=0&&!builder::active()&&mission==nextMission();
+    if(featuredMission)
+        options.push_back({InteractionType::Mission,mission});
+#endif
+    if(occupied>=0)return options;
     int corpse=-1;float corpseDistance=38;
     for(int i=0;i<int(peds.size());++i){
         const Ped& ped=peds[i];
@@ -600,8 +609,11 @@ std::vector<Interaction> availableInteractions(){
             if(available)
                 options.push_back({InteractionType::Tree,i});
         }
-    int mission=mission_script::StartCandidate();
-    if(mission>=0)options.push_back({InteractionType::Mission,mission});
+    if(mission>=0
+#ifdef MINI_CITY_JOLT
+       &&!builder::active()&&!featuredMission
+#endif
+       )options.push_back({InteractionType::Mission,mission});
     return options;
 }
 Interaction chooseInteraction(){
@@ -621,14 +633,22 @@ std::string interactionPrompt(){
     if(traversal::active())return "W/S CLIMB  |  F LET GO  |  SPACE JUMP FROM TREE";
     std::string vehicleHint;
 #ifdef MINI_CITY_JOLT
-    int mount=wildlife::nearbyMount();
-    if(mount>=0)vehicleHint=std::string("E  RIDE ")+
-        wildlife::species()[wildlife::animals[mount].species].name;
-    float nearestVehicle=85;
-    if(mount>=0)nearestVehicle=len(wildlife::animals[mount].p-player);
-    for(int i=0;i<int(vehicles.size());++i)if(traffic::canPlayerEnter(i)&&len(vehicles[i].p-player)<nearestVehicle){
-        nearestVehicle=len(vehicles[i].p-player);
-        vehicleHint=vehicles[i].driver>=0?"E  STEAL SLOW VEHICLE":"E  ENTER VEHICLE";
+    if(occupied<0&&!builder::active()){
+        const std::string entryKey=std::string(ui::keyName(ui::bindings[int(ui::Action::Interact)]))+"  ";
+        const int mount=wildlife::nearbyMount();
+        float nearestVehicle=85;
+        if(mount>=0){
+            vehicleHint=entryKey+"RIDE "+wildlife::species()[wildlife::animals[mount].species].name;
+            nearestVehicle=len(wildlife::animals[mount].p-player);
+        }
+        for(int i=0;i<int(vehicles.size());++i){
+            const auto& vehicle=vehicles[i];
+            const float distance=len(vehicle.p-player);
+            if(distance>=nearestVehicle||!traffic::canPlayerEnter(i))continue;
+            nearestVehicle=distance;
+            vehicleHint=entryKey+(vehicle.driver>=0?"STEAL SLOW VEHICLE":
+                vehicle.id=="starter-car"?"ENTER STARTER CAR":"ENTER VEHICLE");
+        }
     }
 #endif
     auto options=availableInteractions();
@@ -650,7 +670,7 @@ std::string interactionPrompt(){
     case InteractionType::House:prompt="F  HOUSE: "+commerce::houses[action.index].name;break;
     case InteractionType::Ladder:prompt="F  CLIMB LADDER";break;
     case InteractionType::Tree:prompt="F  CLIMB TREE";break;
-    case InteractionType::Mission:prompt="F  START "+std::string(missions[action.index].name);break;
+    case InteractionType::Mission:prompt=std::string(action.index==mission_script::Retry()?"F  RETRY ":"F  START ")+missions[action.index].name;break;
     default:break;
     }
     if(options.size()>1)prompt+="  |  TAB CHOOSE "+std::to_string(selected+1)+

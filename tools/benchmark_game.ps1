@@ -1,7 +1,7 @@
 param(
     [string[]]$Executable=@((Join-Path $PSScriptRoot '../build-msvc-ninja-dx12/MiniCity3D.exe')),
     [string]$OutputDirectory=(Join-Path $PSScriptRoot ('../evidence/benchmarks-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))),
-    [ValidateSet('city','forest','travel','route')][string[]]$Scenarios=@('city','forest','travel'),
+    [ValidateSet('city','forest','travel','route','dense-builder')][string[]]$Scenarios=@('city','forest','travel'),
     [ValidateRange(1,36000)][int]$Frames=240,
     [ValidateRange(0,3600)][int]$Warmup=60,
     [ValidateRange(1,20)][int]$Repeats=1,
@@ -9,6 +9,7 @@ param(
     [ValidateRange(1,8)][int]$RecordWorkers=1,
     [ValidateRange(30,7200)][int]$TimeoutSeconds=600,
     [string]$CaptureExecutable='',
+    [switch]$LegacyShadows,
     [switch]$Validate
 )
 $ErrorActionPreference='Stop'
@@ -49,6 +50,8 @@ try {
                 if($scenario -eq 'forest'){$arguments+=' --woods'}
                 if($scenario -eq 'travel'){$arguments+=' --benchmark-travel'}
                 if($scenario -eq 'route'){$arguments+=' --benchmark-route'}
+                if($scenario -eq 'dense-builder'){$arguments+=' --benchmark-dense-builder'}
+                if($LegacyShadows){$arguments+=' --legacy-shadow-culling --legacy-shadow-lod'}
                 if($Validate){$arguments+=' --validate-loading --dx12-debug'}
                 $capture=$null;$game=$null
                 try {

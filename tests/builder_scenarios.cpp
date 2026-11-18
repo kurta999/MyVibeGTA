@@ -111,6 +111,12 @@ void stacking(){
     jolt_world::reset();toggle();int soil=builder::itemIndex("soil");
     assert(builder::BLOCK_SIZE==20&&builder::addItem(soil,3));
     const builder::Cell base{24,0,20},upper{24,1,20};assert(builder::place(base,soil));
+    assert(builder::contains({490,10,410})&&!builder::contains({480,10,410}));
+    assert(builder::contains({479.5f,10,410},1)&&!builder::contains({479,10,410},1));
+    assert(builder::blocksOverlap({479,8,405},{481,12,415})&&
+           !builder::blocksOverlap({470,8,405},{480,12,415}));
+    float entry=0;
+    assert(builder::segment({460,20,410},{500,20,410},entry)&&std::abs(entry-.5f)<.001f);
     auto pose=camera::compute(player,playerY,false,-1);assert(pose.eye.y==40);
     builder::update(.01f);assert(builder::target().source==builder::Source::Block);
     assert(builder::target().cell==base&&builder::target().normal.y>.9f&&builder::target().adjacent==upper);

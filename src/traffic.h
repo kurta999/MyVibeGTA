@@ -16,4 +16,5 @@ bool updatePed(game::Ped& ped,float dt);
 void release(game::Ped& ped);
 void afterLoad();
 std::size_t roadNodeCount();
+std::vector<game::Vec2> roadRoute(game::Vec2 from,game::Vec2 to);
 }

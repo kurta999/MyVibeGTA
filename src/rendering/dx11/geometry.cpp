@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../dx12_visibility.h"
 
 namespace game {
 
@@ -28,6 +29,24 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
     m_headlightShadowInstanceBatches.clear();
     m_streetShadowInstanceBatches.clear();
     const bool disableCulling = std::strstr(GetCommandLineA(), "--no-frustum-cull") != nullptr;
+    // Both Direct3D backends use the same conservative receiver math.
+    const bool receiverCull =
+        !disableCulling && !std::strstr(GetCommandLineA(), "--legacy-shadow-culling");
+    const bool shadowLod = !std::strstr(GetCommandLineA(), "--legacy-shadow-lod");
+    const dx12::ShadowReceivers receivers(
+        constants.m_viewProjection, {pose.eye.x, pose.eye.y, pose.eye.z},
+        {constants.m_sun.x, constants.m_sun.y, constants.m_sun.z});
+    m_instanceBounds.clear();
+    m_instanceBounds.reserve(m_models.size());
+    for (const auto& model : m_models)
+        m_instanceBounds.push_back(dx11::instanceBounds(model));
+    auto modelBounds = [&](const dx11::ModelInstance& model) -> const dx11::BoundingSphere& {
+        return m_instanceBounds[&model - m_models.data()];
+    };
+    m_cachedInstanceMeshes.clear();
+    auto ensureCached = [&](const dx11::Mesh* source) {
+        return !m_cachedInstanceMeshes.insert(source).second || CacheModel(source);
+    };
     XMVECTOR eye = XMVectorSet(pose.eye.x, pose.eye.y, pose.eye.z, 1);
     XMVECTOR forward = XMVector3Normalize(XMVectorSet(
         pose.target.x - pose.eye.x, pose.target.y - pose.eye.y, pose.target.z - pose.eye.z, 0));
@@ -57,11 +76,9 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
         return std::abs(XMVectorGetX(XMVector3Dot(delta, right))) <= halfHeight * aspect + radius &&
                std::abs(XMVectorGetX(XMVector3Dot(delta, up))) <= halfHeight + radius;
     };
-    auto visibleInShadow = [&](const dx11::BoundingSphere& sphere, int cascade) {
+    auto visibleInShadow = [&](const dx11::BoundingSphere& sphere, int cascade, float extent) {
         XMVECTOR projected = XMVector3TransformCoord(XMVectorSet(sphere.x, sphere.y, sphere.z, 1),
                                                      shadowMatrices[cascade]);
-        float extent = m_shadowCascadeCount > 1 ? ShadowCascadeExtent(cascade)
-                                                : 1800.0f * ui::drawDistanceScale();
         float xyRadius = sphere.radius * 2.0f / extent;
         float zRadius = sphere.radius / 3300.0f;
         return std::abs(XMVectorGetX(projected)) <= 1 + xyRadius &&
@@ -77,10 +94,12 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
                XMVectorGetZ(clip) <= w + radius;
     };
     auto append = [&](const dx11::ModelInstance& model, std::vector<InstanceBatch>& batches,
-                      bool separate) {
-        if (batches.empty() || separate || batches.back().m_mesh != model.source ||
+                      bool separate, const dx11::Mesh* selected = nullptr) {
+        if (!selected)
+            selected = model.source;
+        if (batches.empty() || separate || batches.back().m_mesh != selected ||
             batches.back().m_material != model.material)
-            batches.push_back({model.source, model.material, UINT(m_instanceData.size()), 0});
+            batches.push_back({selected, model.material, UINT(m_instanceData.size()), 0});
         ++batches.back().m_count;
         m_instanceData.push_back({{model.scaleX, model.scaleY, model.scaleZ, model.cosYaw},
                                   {model.sinYaw, model.x, model.y, model.z},
@@ -89,35 +108,62 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
                                   {model.qx, model.qy, model.qz, model.qw}});
     };
     for (const auto& model : m_models) {
-        if (!disableCulling && !visibleInCamera(dx11::instanceBounds(model)))
+        if (!disableCulling && !visibleInCamera(modelBounds(model)))
             continue;
-        if (!CacheModel(model.source))
+        if (!ensureCached(model.source))
             return false;
         append(model, m_instanceBatches, model.source->transparent);
     }
     if (constants.m_params.w > 0) {
+        std::vector<std::pair<const dx11::ModelInstance*, const dx11::Mesh*>> casters;
+        casters.reserve(m_models.size());
         for (int cascade = 0; cascade < m_shadowCascadeCount; ++cascade) {
+            casters.clear();
+            const float extent = m_shadowCascadeCount > 1 ? ShadowCascadeExtent(cascade)
+                                                          : 1800.0f * ui::drawDistanceScale();
+            // The shader chooses cascades by radial distance and blends across
+            // each split. The last cascade has no radial cutoff in the shader.
+            const float receiverRange = m_shadowCascadeCount < 2 || cascade == 2
+                                            ? std::numeric_limits<float>::infinity()
+                                        : cascade == 0 ? constants.m_shadowInfo.y * 1.08f
+                                                       : constants.m_shadowInfo.z * 1.06f;
+            const float padding = 4 * extent / std::max(1, m_shadowSize);
             for (const auto& model : m_models) {
                 if (!model.source->castsShadow ||
-                    (!disableCulling && !visibleInShadow(dx11::instanceBounds(model), cascade)))
+                    (!disableCulling && !visibleInShadow(modelBounds(model), cascade, extent)))
                     continue;
-                if (!CacheModel(model.source))
+                const auto& sphere = modelBounds(model);
+                if (receiverCull && !receivers.reaches(sphere, receiverRange, padding))
+                    continue;
+                const auto* selected =
+                    shadowLod                   ? dx11::shadowLodMesh(model.source,
+                                                                      2 * sphere.radius * m_shadowSize / extent)
+                    : model.source->shadowProxy ? model.source->shadowProxy
+                                                : model.source;
+                if (!ensureCached(selected))
                     return false;
-                if (model.source->shadowProxy && !CacheModel(model.source->shadowProxy))
-                    return false;
-                append(model, m_shadowInstanceBatches[cascade], false);
+                casters.emplace_back(&model, selected);
             }
+            // Camera LODs can collapse to the same shadow mesh. Regroup after
+            // selection so those instances share one draw even when their
+            // camera batches were separated by other meshes.
+            std::stable_sort(casters.begin(), casters.end(), [](const auto& a, const auto& b) {
+                if (a.first->material != b.first->material)
+                    return a.first->material < b.first->material;
+                return std::less<const dx11::Mesh*>{}(a.second, b.second);
+            });
+            for (const auto& caster : casters)
+                append(*caster.first, m_shadowInstanceBatches[cascade], false, caster.second);
         }
     }
     if (constants.m_headlightShadowInfo.z > 0.5f) {
         for (const auto& model : m_models) {
             if (!model.source->castsShadow ||
-                (!disableCulling &&
-                 !visibleInLocal(dx11::instanceBounds(model), headlightMatrix, 145.0f)))
+                (!disableCulling && !visibleInLocal(modelBounds(model), headlightMatrix, 145.0f)))
                 continue;
-            if (!CacheModel(model.source))
+            if (!ensureCached(model.source))
                 return false;
-            if (model.source->shadowProxy && !CacheModel(model.source->shadowProxy))
+            if (model.source->shadowProxy && !ensureCached(model.source->shadowProxy))
                 return false;
             append(model, m_headlightShadowInstanceBatches, false);
         }
@@ -125,12 +171,11 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
     if (constants.m_streetShadowInfo.y > 0.5f) {
         for (const auto& model : m_models) {
             if (!model.source->castsShadow ||
-                (!disableCulling &&
-                 !visibleInLocal(dx11::instanceBounds(model), streetMatrix, 130.0f)))
+                (!disableCulling && !visibleInLocal(modelBounds(model), streetMatrix, 130.0f)))
                 continue;
-            if (!CacheModel(model.source))
+            if (!ensureCached(model.source))
                 return false;
-            if (model.source->shadowProxy && !CacheModel(model.source->shadowProxy))
+            if (model.source->shadowProxy && !ensureCached(model.source->shadowProxy))
                 return false;
             append(model, m_streetShadowInstanceBatches, false);
         }

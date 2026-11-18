@@ -1,6 +1,6 @@
 # Mini City 3D
 
-A playable Windows city sandbox written in C++20, with **Direct3D 12 and AMD FSR2**, **Dear ImGui**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Direct3D 11 with Dear ImGui menus remains available through `-DX11`; the default DX12 build retains its existing menus. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision; [terrain assets and rebuild instructions](assets/models/TERRAIN.md) document the imported CC0 rocks.
+A playable Windows city sandbox written in C++20, with **Direct3D 12 and AMD FSR2**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Both Direct3D builds use the standard game menus by default. Direct3D 11 also supports optional Dear ImGui menus. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision. See the [terrain assets and rebuild instructions](assets/models/TERRAIN.md).
 
 Set forest fires that spread through grass and trees, or use an RPG to blast holes in buildings and scatter physical debris. Building damage updates collision for the current session and resets on load.
 
@@ -32,7 +32,7 @@ For an in-depth explanation of the engine, see the [Technical Guide](TECHNICAL_R
 
 ## Features
 
-- **Menus and authoring:** DX11 pause/settings, shops/houses, debug, bomb timer, inventory, chest storage, crafting and repair use Dear ImGui. Missions are defined and progressed by `data/missions.lua`. Terrain shaping, geographic masks and world placements are editable runtime files; see [gameplay data](data/README.md).
+- **Menus and authoring:** The standard GUI covers pause/settings, shops/houses, debug, the bomb timer, and builder inventory, storage and crafting. DX11 can use Dear ImGui menus when launched with `--imgui`. `data/missions.lua` defines missions and progression. Terrain shaping, geographic masks and world placements are editable runtime files. See [gameplay data](data/README.md).
 - **World:** 16,800 x 16,800 world units, connected roads, a river bridge, biome hubs, shops, houses, and a waterfront neighborhood with piers and boats.
 - **Rendering:** imported textured meshes, PBR material ranges, compressed DDS materials and mipmaps, HDR lighting, day/night cycles, sun and selected local-light shadows, bloom, SSAO, screen-space reflections with local-probe fallback, filmic tone mapping with bounded automatic exposure, and selectable FXAA/TAA. Supported scenery uses GPU instancing and geometry LOD.
 - **AMD FSR2 (default DX12 build):** temporal upscaling in the native DX12 backend, with Quality, Balanced, Performance and Ultra Performance modes, adjustable sharpness, and display-resolution HUD/menus. Quality is the default; native rendering remains available. See [FSR2 settings and commands](#native-dx12-and-amd-fsr2).
@@ -128,7 +128,7 @@ git submodule update --init --recursive
 ./MiniCity3D.exe
 ```
 
-`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the default DX12 executable at `MiniCity3D.exe` in the repository root. DX12 builds use a build directory with a `-dx12` suffix. `-DX11` delivers `MiniCity3D-DX11.exe` with Dear ImGui menus from a separate cache. `-DX12` remains an explicit alias for the default. Specifying both switches is an error. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
+`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the default DX12 executable at `MiniCity3D.exe` in the repository root. DX12 builds use a build directory with a `-dx12` suffix. `-DX11` delivers `MiniCity3D-DX11.exe` from a separate cache. `-DX12` remains an explicit alias for the default. Specifying both switches is an error. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
 
 To build without running tests:
 
@@ -162,6 +162,8 @@ Open the matching upstream `tracy-profiler.exe` and connect to localhost to insp
 
 The benchmark runner defaults to city, dense forest and six-region travel scenarios, fixed seed 1, 60 Hz simulation, 1080p, High shadows/TAA and native rendering (`--fsr2=0`). It runs backends sequentially, alternates order across repeats, uses fresh isolated settings/save directories under `build-benchmarks/`, and leaves runtime copies there for inspection. It saves `game.log.txt`, `benchmark-frames.csv`, `run.json` and a combined `summary.csv` under the selected `-OutputDirectory`. Logs include mean/p95/p99/max frame times, simulation/physics/CPU render work, GPU shadow/scene/post timing, draws, triangles, AI and startup/loading statistics; CSV adds per-frame working set/private memory. GPU CSV values are the latest completed asynchronous samples, may repeat, and use -1 when unavailable. These are local measurements, not cross-hardware performance guarantees.
 
+Use `-Scenarios city,forest,travel,dense-builder` to include the saved-block reconstruction and rendering fixture. For a matched shadow comparison, run the same executable and scenario list with and without `-LegacyShadows`.
+
 Choose `-Scenarios forest`, `-Scenarios route -Frames 3600 -Warmup 120`, or `-RecordWorkers 4` for worker recording. `-Validate` enables loading validation and the DX12 debug layer for correctness checks; leave it off for timing comparisons. Benchmark logging works with Tracy disabled. For a saved Tracy trace, download the matching Windows tools from the upstream release and pass the capture executable:
 
 ```powershell
@@ -173,7 +175,9 @@ This waits up to 15 seconds for connection before startup and saves `capture.tra
 
 ### Native DX12 and AMD FSR2
 
-The default `MiniCity3D` build uses native DX12/FSR2. Run `./build.ps1` and launch `./MiniCity3D.exe`. To select Direct3D 11 with Dear ImGui menus, run `./build.ps1 -DX11` and launch `./MiniCity3D-DX11.exe` (CMake: `-DMINI_CITY_USE_DX12=OFF`). DX12 currently retains the previous menu backend. That backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics/compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. It does not use D3D11On12 or a D3D11 device. The optional `MiniCity3D-DX11-benchmark` target also uses DX11; CPU scene/asset modules retain their historical `dx11_` names. The OpenGL fallback is unchanged.
+The default `MiniCity3D` build uses native DX12/FSR2. Run `./build.ps1` and launch `./MiniCity3D.exe`. For Direct3D 11, run `./build.ps1 -DX11` and launch `./MiniCity3D-DX11.exe` (CMake option `-DMINI_CITY_USE_DX12=OFF`). To opt in to Dear ImGui menus, launch the DX11 build with `./MiniCity3D-DX11.exe --imgui`.
+
+The DX12 backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics and compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. The optional `MiniCity3D-DX11-benchmark` target uses DX11. CPU scene and asset modules retain their historical `dx11_` names.
 
 In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
@@ -232,6 +236,8 @@ ctest --test-dir build -C Release --output-on-failure
 CMake copies `assets/` and `data/` beside the game on every build, including builds that do not relink. Existing build caches retain their backend selection; pass `-DMINI_CITY_USE_DX12=ON` to migrate an older DX11 cache or use a fresh build directory. Baked runtime assets are included; Python and Blender are needed only when rebuilding or converting art.
 
 ### Startup feedback
+
+DX11 can prepare regional texture mipmaps ahead of time. Run `./MiniCity3D-DX11.exe --smoke --cook-regional-mips` once to build `regional-mips-v1/` beside the executable. Subsequent DX11 launches use the cache for matching source textures. Cache files hold the full uncompressed mip chains, and the log reports the cache hits. Use `--no-regional-mip-cache` for an uncached comparison.
 
 The Direct3D executable immediately opens a loading window with a progress bar, current stage, and elapsed time. It remains responsive while graphics initialize; closing it cancels at the next startup checkpoint. The game appears after its first frame is prepared. `--smoke` runs keep the loading window hidden.
 
@@ -308,7 +314,9 @@ Shops and house menus use arrow keys, Enter, and Esc. In debug fly mode, Space/C
 
 ### Getting started
 
-A car starts near the player. Follow the gold map line to the next mission marker and press **F**. Cyan markers provide weapons, green markers identify shops, purple markers identify houses for sale, and blue markers identify owned houses. Orange markers identify regional missions.
+Press **F** at the gold *Sunset Circuit* marker. Press **E** near the starter car to get in, then follow the green checkpoints. If time runs out, return to the gold waypoint and press **F** to retry. Finishing the circuit points you to *Beach Cache*.
+
+The minimap shows the current mission flag, including the direction of off-screen goals. Press **M** for the full map. Gold flags indicate the next mission or a retry. Green flags indicate active objectives. The maps draw a road route when both ends connect to the road network. Orange flags indicate regional missions.
 
 Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `savegame.ini`. These files, `MiniCity3D.log`, and the `screenshots/` directory are located beside the executable. Mission rewards and weapon pickups also trigger saves.
 
@@ -371,7 +379,7 @@ Run the complete build and CTest suite:
 ./test.ps1
 ```
 
-The default DX12 build registers **46 CTest entries (47 with Tracy enabled)** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering, startup and benchmark options. Tracy adds allocation-hook contract tests; the retained DX11 primary build adds the ImGui menu entry. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios; `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. All 46 entries passed in 536.28 seconds for the ImGui/Lua/data milestone; final affected gameplay/script/data rechecks and the delivered native menu review also pass. The [milestone evidence](evidence/ui-lua-data-20261011/README.md) records that verification sequence; [Tracy evidence](evidence/tracy-20261011/README.md) records its targeted tests and real traces.
+The default DX12 build registers **46 CTest entries (47 with Tracy enabled)** covering simulation, vehicles, equipment, ordnance, wildlife, birds, traffic/navigation, grass, scene jobs, builder excavation/progression/transitions/recovery, persistence, assets, texture/shader loading, probes, audio, sky rendering, startup and benchmark options. Tracy adds allocation-hook contract tests. The DX11 build adds `standard_gui_review` and the opt-in ImGui review. Run the standard GUI review from a fresh build directory with no existing save or settings. It tests the graphics menu, the first mission's start, timeout and retry, the completion reward, save/load, and builder mode. Windows CI runs it in a separate DX11 job. `dx12_fsr2_smoke` exercises real AMD reconstruction and native GPU state, skinning, recording and cloud scenarios. `dx12_fsr2_warp` also covers the software adapter. `gpu_profiler_scenarios` and `resource_cache_scenarios` cover shared ownership, query polling, partial allocation failures and retries. See the [ImGui/Lua/data milestone evidence](evidence/ui-lua-data-20261011/README.md) and [Tracy evidence](evidence/tracy-20261011/README.md) for their original verification runs.
 
 To rerun focused scenarios after building with Ninja:
 

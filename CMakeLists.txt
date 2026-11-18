@@ -69,6 +69,11 @@ set(OVERRIDE_CXX_FLAGS OFF CACHE BOOL "Preserve the game's compiler flags" FORCE
 set(USE_STATIC_MSVC_RUNTIME_LIBRARY ON CACHE BOOL "Use the same static MSVC runtime as the game" FORCE)
 set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "Keep Jolt builds straightforward" FORCE)
 set(ENABLE_INSTALL OFF CACHE BOOL "No Jolt install target" FORCE)
+if(MSVC AND MSVC_VERSION GREATER_EQUAL 1952)
+  # Jolt's fast floating-point build on MSVC 19.52 can deflect a car under
+  # straight input and leave it stalled, even with a clear road and throttle.
+  set(CROSS_PLATFORM_DETERMINISTIC ON)
+endif()
 add_subdirectory(third_party/JoltPhysics/Build third_party/JoltPhysics-build)
 
 set(COMMON_SOURCES main.cpp input.cpp logging.cpp game.cpp ai.cpp content.cpp mission_script.cpp world_placements.cpp audio.cpp ui.cpp physics.cpp weapons.cpp
@@ -79,6 +84,8 @@ set(RENDERER_MODULES probes skinning shaders targets geometry lighting capture l
 set(DX11_RENDERER_SOURCES src/renderer_dx11.cpp)
 set(DX12_RENDERER_SOURCES src/renderer_dx12.cpp)
 set(SHARED_RENDERER_SOURCES src/rendering/loading.cpp src/rendering/screenshot_writer.cpp)
+set(DIRECT3D_PREVIEW_SOURCES src/app_previews.cpp src/imgui_review.cpp)
+set(DX11_MENU_SOURCES src/imgui_menus.cpp src/standard_gui_review.cpp)
 foreach(module IN LISTS RENDERER_MODULES)
   list(APPEND DX11_RENDERER_SOURCES "src/rendering/dx11/${module}.cpp")
   list(APPEND DX12_RENDERER_SOURCES "src/rendering/dx12/${module}.cpp")
@@ -87,10 +94,11 @@ option(MINI_CITY_USE_DX12 "Use the native DX12/FSR2 renderer" ON)
 if(MINI_CITY_USE_DX12)
   set(PRIMARY_RENDERER_SOURCES ${DX12_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp)
 else()
-  set(PRIMARY_RENDERER_SOURCES ${DX11_RENDERER_SOURCES} src/imgui_menus.cpp)
+  set(PRIMARY_RENDERER_SOURCES ${DX11_RENDERER_SOURCES} ${DX11_MENU_SOURCES})
 endif()
 add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
     ${SHARED_RENDERER_SOURCES}
+    ${DIRECT3D_PREVIEW_SOURCES}
     src/startup.cpp assets/app/minicity.rc
     ${PRIMARY_RENDERER_SOURCES} src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
@@ -110,10 +118,14 @@ endif()
 target_link_libraries(MiniCity3D PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
 # Both Direct3D executables use the same runtime directory. One copy operation
 # avoids concurrent writes when both backends are built in parallel.
+set(RUNTIME_COPY_DIRECTORY copy_directory)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.26")
+  set(RUNTIME_COPY_DIRECTORY copy_directory_if_different)
+endif()
 add_custom_target(MiniCityRuntimeAssets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  COMMAND ${CMAKE_COMMAND} -E ${RUNTIME_COPY_DIRECTORY}
   "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  COMMAND ${CMAKE_COMMAND} -E ${RUNTIME_COPY_DIRECTORY}
   "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   "${CMAKE_CURRENT_SOURCE_DIR}/TRACY-LICENSE.txt" "$<TARGET_FILE_DIR:MiniCity3D>/TRACY-LICENSE.txt")
@@ -123,9 +135,9 @@ option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
 option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for performance comparisons" OFF)
 if(MINI_CITY_BUILD_DX11_BENCHMARK)
   get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
-  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} ${DX11_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp src/imgui_menus.cpp)
+  list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} ${DX11_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp ${DX11_MENU_SOURCES})
   list(REMOVE_ITEM DX11_BENCHMARK_SOURCES src/profiling_memory.cpp)
-  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} src/imgui_menus.cpp)
+  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} ${DX11_MENU_SOURCES})
   target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE MiniCityCpp20)
   minicity_enable_tracy(MiniCity3D-DX11-benchmark)
   target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_IMGUI)
@@ -218,14 +230,15 @@ if(BUILD_TESTING)
   target_compile_definitions(simulation_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
   target_include_directories(simulation_smoke PRIVATE third_party/JoltPhysics)
   target_link_libraries(simulation_smoke PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus opengl32 ole32 xaudio2 mfplay mfplat mfuuid)
-  add_custom_command(TARGET simulation_smoke POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:simulation_smoke>/data")
+  add_dependencies(simulation_smoke MiniCityRuntimeAssets)
   add_test(NAME simulation_smoke COMMAND simulation_smoke)
   add_test(NAME mission_script_scenarios COMMAND simulation_smoke --mission-script-only)
   add_test(NAME placement_data_scenarios COMMAND simulation_smoke --placement-data-only)
   set_tests_properties(mission_script_scenarios placement_data_scenarios PROPERTIES RUN_SERIAL TRUE)
   if(NOT MINI_CITY_USE_DX12)
+    add_test(NAME standard_gui_review COMMAND MiniCity3D --smoke --standard-gui-review)
+    set_tests_properties(standard_gui_review PROPERTIES
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>" TIMEOUT 180 RUN_SERIAL TRUE)
     add_test(NAME imgui_menu_scenarios COMMAND MiniCity3D --smoke --1080p --imgui-review)
     set_tests_properties(imgui_menu_scenarios PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>" TIMEOUT 120 RUN_SERIAL TRUE)

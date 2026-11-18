@@ -1317,10 +1317,15 @@ void markers(){
             card.minY=icon->maxY*.5f;card.y+=height*.5f;
         }
     }
-    for(const auto& mission:game::missions)if(close(mission.start,650)){
-        Color tint=game::rgb(244,174,67);
-        marker(mission.start,17,38,tint);
-        markerArrow(mission.start,42,tint,{0,1});
+    const bool cityMissions=!builder::active();
+    const int nextMission=cityMissions&&game::activeMission<0?game::nextMission():-1;
+    for(int i=0;cityMissions&&i<int(game::missions.size());++i){
+        const auto& mission=game::missions[i];
+        if(game::missionDone[i]||game::activeMission==i||!close(mission.start,650))continue;
+        const bool featured=i==nextMission;
+        const Color tint=featured?game::rgb(255,213,74):game::rgb(217,137,64);
+        marker(mission.start,featured?22.0f:14.0f,featured?55.0f:28.0f,tint);
+        markerArrow(mission.start,featured?60.0f:32.0f,tint,{0,1});
     }
     for(const auto& shop:commerce::shops)if(close(shop.p,650)){
         marker(shop.p,14,26,game::rgb(75,228,145));
@@ -1329,11 +1334,11 @@ void markers(){
         Color tint=house.owned?game::rgb(91,170,245):game::rgb(185,134,230);
         marker(house.p,14,26,tint);
     }
-    if(game::activeMission>=0&&game::missionStep<int(game::missions[game::activeMission].goals.size())){
+    if(cityMissions&&game::activeMission>=0&&game::missionStep<int(game::missions[game::activeMission].goals.size())){
         Vec2 goal=game::missions[game::activeMission].goals[game::missionStep];
         bool target=mission_script::IsTarget();
         if(close(goal,650)){
-            Color tint=target?game::rgb(255,104,70):game::rgb(255,211,78);
+            Color tint=target?game::rgb(255,104,70):game::rgb(152,255,141);
             marker(goal,target?20.0f:42.0f,target?42.0f:78.0f,tint);
             const auto& goals=game::missions[game::activeMission].goals;
             Vec2 next=game::missionStep+1<int(goals.size())?

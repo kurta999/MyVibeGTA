@@ -21,7 +21,12 @@ local function goal(c)
 end
 local function objective(c)
     local g = goal(c)
-    return g and g.objective or "Follow the gold line to the next mission."
+    if not g then return "Follow the mission waypoint." end
+    if g.requires == "car" and c.vehicle ~= "car" then return "Get in a car to continue." end
+    if g.requires == "bike" and c.vehicle ~= "bike" then return "Get on a motorcycle to continue." end
+    if g.requires == "boat" and c.vehicle ~= "boat" then return "Board a boat to continue." end
+    if g.requires == "foot" and c.vehicle ~= "foot" then return "Continue on foot." end
+    return g.objective
 end
 local function transition(c, event, message, banner, detail)
     return {active=c.active, step=c.step, time=math.max(0,c.time),
@@ -50,7 +55,7 @@ local function update(c, dt, event)
     if c.time <= 0 or c.health <= 0 then
         local reason = c.health <= 0 and "You were defeated" or "Time ran out"
         c.active,c.step = 0,1
-        return transition(c,"fail","MISSION FAILED. Return to a marker to retry.","MISSION FAILED",reason)
+        return transition(c,"fail","Return to the gold waypoint and press F to retry.","MISSION FAILED",reason)
     end
     local g=goal(c)
     local hit=g and g.requires=="target" and event=="target_hit"

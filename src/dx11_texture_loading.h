@@ -5,19 +5,25 @@
 #include <string>
 
 namespace dx11::texture {
-struct Request {std::wstring file;Kind kind=Kind::Color;};
+struct Request {
+    std::wstring file;
+    Kind kind=Kind::Color;
+    std::wstring mipCache;
+    bool cookMips=false;
+};
 enum class Format { Bgra8, Rgba8, Bc7, Bc5, Bc4 };
 struct Prepared {
     std::vector<Level> levels;
     Format format=Format::Bgra8;
     std::string error;
     double decodeSeconds=0,mipSeconds=0;
+    bool fromMipCache=false;
 };
 unsigned rowPitch(unsigned width,Format format);
 unsigned rowCount(unsigned height,Format format);
 struct LoadingStats {
     unsigned workers=1,peakActive=0;
-    std::size_t completed=0,peakPending=0;
+    std::size_t completed=0,peakPending=0,mipCacheHits=0;
     double wallSeconds=0,decodeSeconds=0,mipSeconds=0,consumeSeconds=0;
 };
 unsigned defaultLoadingWorkers();

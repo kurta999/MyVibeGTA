@@ -341,18 +341,81 @@ void clickSlot(int hit,bool right,bool shift){
     }else if(!right)std::swap(stack,held);
     savegame::request();
 }
-bool contains(game::Vec3 p,float pad){if(!enabled)return false;for(const auto& b:placed){auto low=cellLow(b.first),high=low+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE};
-    if(p.x>low.x-pad&&p.x<high.x+pad&&p.y>low.y-pad&&p.y<high.y+pad&&p.z>low.z-pad&&p.z<high.z+pad)return true;}return false;}
-bool segment(game::Vec3 start,game::Vec3 end,float& entry){if(!enabled)return false;float distance=game::len(end-start);if(distance<.00001f){entry=0;return contains(start);}
-    float best=distance+.001f;game::Vec3 normal;for(const auto& b:placed){auto lo=cellLow(b.first);float hit=0;
-        if(boxRay(start,(end-start)*(1/distance),lo,lo+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE},best,hit,normal))best=hit;}
-    if(best>distance)return false;entry=best/distance;return true;}
+namespace {
+template<class Visit> bool visitBlocks(Cell first,Cell last,Visit visit){
+    if(placed.empty()||first.x>last.x||first.y>last.y||first.z>last.z)return false;
+    // Skip entire x/y columns when the query covers fewer columns than blocks.
+    const auto columns=(std::int64_t(last.x)-first.x+1)*(std::int64_t(last.y)-first.y+1);
+    if(columns>std::int64_t(placed.size())){
+        auto begin=placed.lower_bound({first.x,first.y,first.z});
+        for(auto it=begin;it!=placed.end()&&it->first.x<=last.x;++it){
+            const auto& cell=it->first;
+            if(cell.y>=first.y&&cell.y<=last.y&&cell.z>=first.z&&cell.z<=last.z&&visit(*it))return true;
+        }
+        return false;
+    }
+    for(int x=first.x;x<=last.x;++x)for(int y=first.y;y<=last.y;++y){
+        for(auto it=placed.lower_bound({x,y,first.z});it!=placed.end()&&
+            it->first.x==x&&it->first.y==y&&it->first.z<=last.z;++it)
+            if(visit(*it))return true;
+    }
+    return false;
+}
+
+template<class Visit> void visitSegmentBlocks(game::Vec3 start,game::Vec3 end,Visit visit){
+    const auto first=cellAt({std::min(start.x,end.x),std::min(start.y,end.y),std::min(start.z,end.z)});
+    const auto last=cellAt({std::max(start.x,end.x),std::max(start.y,end.y),std::max(start.z,end.z)});
+    // Include the cell below a ray that touches an exact grid boundary.
+    visitBlocks({first.x-1,first.y-1,first.z-1},last,visit);
+}
+}
+
+bool contains(game::Vec3 p,float pad){
+    if(!enabled)return false;
+    const float searchPadding=std::max(0.0f,pad);
+    const game::Vec3 padding{searchPadding,searchPadding,searchPadding};
+    return visitBlocks(cellAt(p-padding),cellAt(p+padding),[&](const auto& block){
+        const auto low=cellLow(block.first),high=low+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE};
+        return p.x>low.x-pad&&p.x<high.x+pad&&p.y>low.y-pad&&p.y<high.y+pad&&p.z>low.z-pad&&p.z<high.z+pad;
+    });
+}
+bool blocksOverlap(game::Vec3 low,game::Vec3 high,float verticalInset){
+    if(!enabled)return false;
+    return visitBlocks(cellAt(low),cellAt(high),[&](const auto& block){
+        const auto begin=cellLow(block.first),end=begin+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE};
+        return high.x>begin.x&&low.x<end.x&&high.z>begin.z&&low.z<end.z&&
+            high.y>begin.y+verticalInset&&low.y<end.y-verticalInset;
+    });
+}
+bool segment(game::Vec3 start,game::Vec3 end,float& entry){
+    if(!enabled)return false;
+    const float distance=game::len(end-start);
+    if(distance<.00001f){entry=0;return contains(start);}
+    const auto direction=(end-start)*(1/distance);
+    float best=distance+.001f;
+    game::Vec3 normal;
+    visitSegmentBlocks(start,end,[&](const auto& block){
+        const auto low=cellLow(block.first);
+        float hit=0;
+        if(boxRay(start,direction,low,low+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE},best,hit,normal))best=hit;
+        return false;
+    });
+    if(best>distance)return false;
+    entry=best/distance;
+    return true;
+}
 Target trace(game::Vec3 origin,game::Vec3 direction){
     Target result;direction=game::norm(direction);
     auto test=[&](Source source,int index,int item,game::Vec3 low,game::Vec3 high){float hit=0;game::Vec3 normal;
         if(boxRay(origin,direction,low,high,result.distance,hit,normal)){result.source=source;result.index=index;result.item=item;result.distance=hit;
             result.point=origin+direction*hit;result.normal=normal;result.cell=cellAt(result.point-normal*.01f);result.adjacent=cellAt(result.point+normal*.01f);}};
-    if(enabled)for(const auto& b:placed){auto lo=cellLow(b.first);float previous=result.distance;test(Source::Block,-1,b.second.item,lo,lo+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE});if(result.distance<previous)result.cell=b.first;}
+    if(enabled)visitSegmentBlocks(origin,origin+direction*result.distance,[&](const auto& block){
+        const auto low=cellLow(block.first);
+        const float previous=result.distance;
+        test(Source::Block,-1,block.second.item,low,low+game::Vec3{BLOCK_SIZE,BLOCK_SIZE,BLOCK_SIZE});
+        if(result.distance<previous)result.cell=block.first;
+        return false;
+    });
     for(int n=0;n<int(game::buildings.size());++n)for(const auto& box:destruction::boxes(game::buildings[n]))test(Source::Building,n,itemIndex("brick"),box.low,box.high);
     scenery_edits::trace(origin,direction,result.distance,result);
     if(enabled)surface_work::trace(origin,direction,result.distance,result);

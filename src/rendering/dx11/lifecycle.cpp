@@ -205,6 +205,8 @@ bool Dx11Renderer::InitRenderer() {
     std::vector<dx11::texture::Request> regionalRequests;
     for (const auto& item : uniqueTextures)
         regionalRequests.push_back(item.second);
+    if (!::rendering::SetRegionalMipCache(regionalRequests))
+        return false;
     if (!::rendering::PreloadTextures(
             regionalRequests,
             [&](size_t index, const dx11::texture::Prepared& prepared) {

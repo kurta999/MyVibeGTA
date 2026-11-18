@@ -61,8 +61,6 @@ struct Context {
         float z0=std::min(from.z,goal.z)-400,z1=std::max(from.z,goal.z)+400;
         for(const auto& building:buildings)if(building.x<=x1&&building.x+building.w>=x0&&building.z<=z1&&building.z+building.d>=z0)
             for(auto box:destruction::boxes(building))boxes.push_back({box.low,box.high});
-        for(const auto& block:builder::blocks()){auto low=builder::cellLow(block.first);
-            if(low.x<=x1&&low.x+builder::BLOCK_SIZE>=x0&&low.z<=z1&&low.z+builder::BLOCK_SIZE>=z0)boxes.push_back({low,low+Vec3{builder::BLOCK_SIZE,builder::BLOCK_SIZE,builder::BLOCK_SIZE}});}
         for(const auto& prop:props)if(prop.alive&&prop.p.x>=x0&&prop.p.x<=x1&&prop.p.z>=z0&&prop.p.z<=z1)localProps.push_back(&prop);
         for(const auto& car:vehicles)if(car.p.x>=x0&&car.p.x<=x1&&car.p.z>=z0&&car.p.z<=z1)localVehicles.push_back(&car);
     }
@@ -75,6 +73,7 @@ struct Context {
         for(Vec2 offset:{Vec2{},Vec2{radius,0},Vec2{-radius,0},Vec2{0,radius},Vec2{0,-radius}})if(regions::waterAt(horizontal(p)+offset))return false;
         // Source bounds also protect routes at the edge of streamed collision.
         for(const auto& box:boxes)if(p.x+radius>box.low.x&&p.x-radius<box.high.x&&p.z+radius>box.low.z&&p.z-radius<box.high.z&&p.y+31>box.low.y+.1f&&p.y+1<box.high.y-.1f)return false;
+        if(builder::blocksOverlap({p.x-radius,p.y+1,p.z-radius},{p.x+radius,p.y+31,p.z+radius},.1f))return false;
         for(const auto* object:localProps){const auto& prop=*object;if(p.y+31>prop.y&&p.y<prop.y+(prop.barrel?25:23)&&len(horizontal(p)-prop.p)<(prop.barrel?12:14)+radius+2)return false;}
         for(const auto* object:localVehicles){const auto& car=*object;if(p.y+31<car.rideHeight||p.y>car.rideHeight+42)continue;
             Vec2 d=horizontal(p)-car.p,f=forward(car.angle);float along=dot(d,f),across=-d.x*f.z+d.z*f.x;

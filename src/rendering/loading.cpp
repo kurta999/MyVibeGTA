@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cwctype>
 #include <filesystem>
 #include <fstream>
 #include <wrl/client.h>
@@ -40,6 +41,48 @@ unsigned SceneWorkers() {
     return WorkerCount("--scene-workers=");
 }
 
+bool SetRegionalMipCache(std::vector<dx11::texture::Request>& requests) {
+    const auto* command=GetCommandLineA();
+    const bool cook=std::strstr(command,"--smoke")&&std::strstr(command,"--cook-regional-mips");
+    if (!cook&&std::strstr(command,"--no-regional-mip-cache"))
+        return true;
+    const auto runtime=std::filesystem::path(ExecutableFolder());
+    const auto folder=runtime/L"regional-mips-v1";
+    std::error_code error;
+    if (cook) {
+        std::filesystem::create_directories(folder,error);
+        if (error) {
+            logging::write("Could not create the regional mip cache directory");
+            return false;
+        }
+    } else if (!std::filesystem::is_directory(folder,error)) {
+        return true;
+    }
+    for (auto& request : requests) {
+        const std::filesystem::path source(request.file);
+        auto extension=source.extension().wstring();
+        for (auto& character : extension)
+            character=std::towlower(character);
+        if (extension==L".dds")
+            continue;
+        const auto size=std::filesystem::file_size(source,error);
+        if (error)
+            continue;
+        const auto time=std::filesystem::last_write_time(source,error);
+        if (error)
+            continue;
+        const auto key=source.lexically_relative(runtime).generic_wstring()+L"|"+
+            std::to_wstring(static_cast<int>(request.kind))+L"|"+std::to_wstring(size)+L"|"+
+            std::to_wstring(time.time_since_epoch().count());
+        std::uint64_t hash=14695981039346656037ULL;
+        for (auto character : key)
+            hash=(hash^character)*1099511628211ULL;
+        request.mipCache=(folder/(std::to_wstring(hash)+L".dds")).wstring();
+        request.cookMips=cook;
+    }
+    return true;
+}
+
 bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
                      const std::function<bool(size_t, const dx11::texture::Prepared&)>& consume,
                      int start, int span, const char* stage) {
@@ -71,10 +114,10 @@ bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
     char line[320]{};
     std::snprintf(line, sizeof(line),
                   "Texture loading: %s; workers %u, peak active %u, completed %zu/%zu, pending <= "
-                  "%zu, wall %.3f s, decode CPU %.3f s, mip CPU %.3f s, upload %.3f s%s",
+                  "%zu, wall %.3f s, decode CPU %.3f s, mip CPU %.3f s, upload %.3f s, mip cache hits %zu%s",
                   stage, stats.workers, stats.peakActive, stats.completed, requests.size(),
                   stats.peakPending, stats.wallSeconds, stats.decodeSeconds, stats.mipSeconds,
-                  stats.consumeSeconds, ok ? "" : " (stopped)");
+                  stats.consumeSeconds, stats.mipCacheHits, ok ? "" : " (stopped)");
     logging::write(line);
     if (validate) {
         std::snprintf(line, sizeof(line), "Texture checksum: %s %016llx", stage,

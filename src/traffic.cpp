@@ -56,8 +56,30 @@ void assignRoad(Vehicle& v,bool snap){
         v.p=point;Vec2 axis=nodes[to].p-nodes[from].p;v.angle=std::atan2(axis.z,axis.x);
     }
 }
-// Dijkstra is run only when a pursuer reaches a junction. It routes to the
-// last observed position, never to an unseen player's live position.
+using RoadCost=std::pair<float,int>;
+void roadDistances(std::vector<float>& distances,std::initializer_list<RoadCost> destinations){
+    std::priority_queue<RoadCost,std::vector<RoadCost>,std::greater<RoadCost>> open;
+    for(auto [cost,index]:destinations){distances[index]=cost;open.push({cost,index});}
+    while(!open.empty()){
+        auto [cost,i]=open.top();open.pop();if(cost>distances[i])continue;
+        for(int j:nodes[i].links){float distance=cost+len(nodes[i].p-nodes[j].p);
+            if(distance<distances[j]){distances[j]=distance;open.push({distance,j});}}
+    }
+}
+struct RoadProjection {int a=-1,b=-1;Vec2 point;};
+RoadProjection projectToRoad(Vec2 p){
+    RoadProjection result{};
+    float nearest=70;
+    for(int a=0;a<int(nodes.size());++a)for(int b:nodes[a].links){
+        if(b<a)continue;
+        Vec2 edge=nodes[b].p-nodes[a].p;
+        Vec2 point=nodes[a].p+edge*std::clamp(dot(p-nodes[a].p,edge)/dot(edge,edge),0.0f,1.0f);
+        float distance=len(point-p);
+        if(distance<nearest){nearest=distance;result={a,b,point};}
+    }
+    return result;
+}
+// Pursuers route to the last observed position when they reach a junction.
 int nextRoad(Vehicle& v,const Ped& driver){
     int at=v.roadTo;
     if(driver.grievance>0){
@@ -65,14 +87,7 @@ int nextRoad(Vehicle& v,const Ped& driver){
         for(int i=0;i<int(nodes.size());++i){float d=len(nodes[i].p-driver.lastKnown);
             if(d<best){best=d;goal=i;}}
         std::vector<float> dist(nodes.size(),1e30f);
-        using Item=std::pair<float,int>;
-        std::priority_queue<Item,std::vector<Item>,std::greater<Item>> open;
-        dist[goal]=0.0f;open.push({0.0f,goal});
-        while(!open.empty()){
-            auto [cost,i]=open.top();open.pop();if(cost>dist[i])continue;
-            for(int j:nodes[i].links){float d=cost+len(nodes[i].p-nodes[j].p);
-                if(d<dist[j]){dist[j]=d;open.push({d,j});}}
-        }
+        roadDistances(dist,{{0.0f,goal}});
         int result=-1;best=1e30f;
         for(int j:nodes[at].links){
             float d=dist[j]+len(nodes[at].p-nodes[j].p)+(j==v.roadFrom?120.0f:0.0f);
@@ -124,6 +139,36 @@ bool visible(Vec2 from,Vec2 to){
 }
 
 std::size_t roadNodeCount(){return nodes.size();}
+std::vector<Vec2> roadRoute(Vec2 from,Vec2 to){
+    const auto start=projectToRoad(from),goal=projectToRoad(to);
+    if(start.a<0||goal.a<0||!clearLine(from,start.point)||!clearLine(goal.point,to))return {};
+    if(start.a==goal.a&&start.b==goal.b)return {from,start.point,goal.point,to};
+
+    std::vector<float> distances(nodes.size(),std::numeric_limits<float>::infinity());
+    const auto costToGoal=[&](int index){return len(nodes[index].p-goal.point);};
+    roadDistances(distances,{{costToGoal(goal.a),goal.a},{costToGoal(goal.b),goal.b}});
+    const auto total=[&](int index){return len(nodes[index].p-start.point)+distances[index];};
+    int at=total(start.a)<total(start.b)?start.a:start.b;
+    if(!std::isfinite(distances[at]))return {};
+
+    std::vector<Vec2> route{from,start.point};
+    while(true){
+        route.push_back(nodes[at].p);
+        const bool destination=at==goal.a||at==goal.b;
+        int next=-1;
+        float shortest=destination?costToGoal(at):std::numeric_limits<float>::infinity();
+        for(int link:nodes[at].links){
+            if(distances[link]>=distances[at])continue;
+            float distance=len(nodes[at].p-nodes[link].p)+distances[link];
+            if(distance<shortest){shortest=distance;next=link;}
+        }
+        if(next<0)break;
+        at=next;
+    }
+    route.push_back(goal.point);
+    route.push_back(to);
+    return route;
+}
 void reset(){
     nodes.clear();std::vector<Segment> roads;
     const auto& map=regions::geography();

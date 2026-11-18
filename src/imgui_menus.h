@@ -4,6 +4,8 @@
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 namespace menus {
+void SetOptIn(bool enabled);
+bool Enabled();
 bool Init(HWND window,ID3D11Device* device,ID3D11DeviceContext* context);
 void Shutdown();
 void Draw();

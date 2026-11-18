@@ -89,6 +89,7 @@ bool mineTerrain(Cell cell);
 bool mineScenery(const Target& target);
 void blast(game::Vec3 point,float radius,int damage);
 bool contains(game::Vec3 point,float pad=0);
+bool blocksOverlap(game::Vec3 low,game::Vec3 high,float verticalInset=0);
 bool segment(game::Vec3 start,game::Vec3 end,float& entry);
 Target trace(game::Vec3 origin,game::Vec3 direction);
 std::uint64_t revision();

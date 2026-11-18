@@ -90,6 +90,15 @@ int main(){
         using namespace dx11::texture;
         ddsChecks(folder);
         auto image=(folder/L"fixture.png").wstring();fixture(image,513,257);
+        const auto cache=folder/L"cooked.dds";
+        const auto uncached=prepare({image,Kind::MaskedColor});
+        const auto baked=prepare({image,Kind::MaskedColor,cache.wstring(),true});
+        check(equal(uncached,baked)&&!baked.fromMipCache,"cooking changed masked texture bytes");
+        const auto cached=prepare({image,Kind::MaskedColor,cache.wstring()});
+        check(equal(uncached,cached)&&cached.fromMipCache,"cache did not preserve exact mip bytes");
+        {std::ofstream broken(cache,std::ios::trunc);broken<<"truncated";}
+        const auto fallback=prepare({image,Kind::MaskedColor,cache.wstring()});
+        check(equal(uncached,fallback)&&!fallback.fromMipCache,"invalid cache did not fall back to the source");
         std::vector<Request> requests;
         for(unsigned i=0;i<16;++i)requests.push_back({image,Kind(i%4)});
         std::vector<Prepared> reference;
@@ -135,7 +144,7 @@ int main(){
         std::printf("Texture loading checks passed: BC7/BC5/BC4/RGBA DDS, rejected corrupt DDS, exact mip bytes, bounded concurrency, cancellation, failures, reopening; serial %.3f s\n",serial.wallSeconds);
     }catch(const std::exception& error){std::printf("Texture loading checks failed: %s\n",error.what());exitCode=1;}
     // Remove only the exact known fixture files, never a recursively computed path.
-    for(const wchar_t* name:{L"fixture.png",L"fixture.dds",L"broken.png",L"oversized.png"})std::filesystem::remove(folder/name);
+    for(const wchar_t* name:{L"fixture.png",L"fixture.dds",L"cooked.dds",L"broken.png",L"oversized.png"})std::filesystem::remove(folder/name);
     std::filesystem::remove(folder);
     Gdiplus::GdiplusShutdown(token);return exitCode;
 }

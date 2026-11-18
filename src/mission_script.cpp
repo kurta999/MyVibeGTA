@@ -16,6 +16,7 @@ namespace {
 struct Runtime {
     lua_State* state=luaL_newstate();
     std::vector<std::string> names;
+    int retry=-1;
     ~Runtime(){if(state)lua_close(state);}
 };
 std::unique_ptr<Runtime> runtime;
@@ -95,6 +96,8 @@ void Apply(lua_State* state){
             game::missionTime=time;
             game::completeMission();
         }else{
+            if(event=="fail")runtime->retry=game::activeMission;
+            else if(event=="start")runtime->retry=-1;
             game::activeMission=active;game::missionStep=step;game::missionTime=time;
         }
         if(event!="none"&&event!="complete"){
@@ -189,6 +192,7 @@ int MissionIndex(const char* function){
     lua_settop(state,0);return int(value)-1;
 }
 }
-int Next(){return MissionIndex("next");}
+int Retry(){return runtime?runtime->retry:-1;}
+int Next(){return Retry()>=0?Retry():MissionIndex("next");}
 int StartCandidate(){return MissionIndex("start_candidate");}
 }

@@ -5,6 +5,7 @@
 /out/
 /dist/
 /screenshots/
+/regional-mips-v1/
 /.vs/
 CMakeFiles/
 CMakeCache.txt

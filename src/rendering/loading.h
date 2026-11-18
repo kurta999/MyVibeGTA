@@ -10,6 +10,7 @@ namespace rendering {
 std::wstring ExecutableFolder();
 unsigned LoadingWorkers();
 unsigned SceneWorkers();
+bool SetRegionalMipCache(std::vector<dx11::texture::Request>& requests);
 bool PreloadTextures(const std::vector<dx11::texture::Request>& requests,
                      const std::function<bool(size_t, const dx11::texture::Prepared&)>& consume,
                      int start, int span, const char* stage);

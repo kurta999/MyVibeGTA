@@ -61,6 +61,35 @@ Prepared prepareDds(const Request& request,const std::atomic<bool>* cancel){
     }
     result.decodeSeconds=seconds(started);return result;
 }
+bool writeMipCache(const Request& request,const Prepared& texture){
+    const auto& base=texture.levels.front();
+    std::array<std::uint32_t,37> header{};
+    header[0]=0x20534444; // DDS magic
+    header[1]=124;
+    header[2]=0x2100f; // caps, height, width, pitch, format, mip count
+    header[3]=base.height;
+    header[4]=base.width;
+    header[5]=rowPitch(base.width,texture.format);
+    header[7]=static_cast<std::uint32_t>(texture.levels.size());
+    header[19]=32;
+    header[20]=4;
+    header[21]=0x30315844; // DX10 extension
+    header[27]=header[7]>1?0x401008:0x1000;
+    header[32]=87; // BGRA8. The texture view applies sRGB when needed.
+    header[33]=3;
+    header[35]=1;
+
+    const std::wstring temporary=request.mipCache+L"."+std::to_wstring(GetCurrentProcessId())+
+        L"."+std::to_wstring(GetCurrentThreadId())+L".tmp";
+    std::ofstream file(std::filesystem::path(temporary),std::ios::binary|std::ios::trunc);
+    file.write(reinterpret_cast<const char*>(header.data()),sizeof(header));
+    for(const auto& level:texture.levels)
+        file.write(reinterpret_cast<const char*>(level.pixels.data()),level.pixels.size());
+    file.close();
+    if(file&&MoveFileExW(temporary.c_str(),request.mipCache.c_str(),MOVEFILE_REPLACE_EXISTING))return true;
+    DeleteFileW(temporary.c_str());
+    return false;
+}
 }
 unsigned rowPitch(unsigned width,Format format){
     if(format==Format::Bc4)return std::max(1u,(width+3)/4)*8;
@@ -79,6 +108,14 @@ Prepared prepare(const Request& request,const std::atomic<bool>* cancel){
     auto extension=std::filesystem::path(request.file).extension().wstring();
     for(auto& ch:extension)ch=std::towlower(ch);
     if(extension==L".dds")return prepareDds(request,cancel);
+    if(!request.mipCache.empty()){
+        auto cached=prepareDds({request.mipCache,request.kind},cancel);
+        if(!cached.levels.empty()){
+            cached.fromMipCache=true;
+            return cached;
+        }
+        if(stopped(cancel))return result;
+    }
     auto started=Clock::now();
     Gdiplus::Bitmap image(request.file.c_str());
     if(image.GetLastStatus()!=Gdiplus::Ok){result.error="Cannot decode texture";return result;}
@@ -103,6 +140,8 @@ Prepared prepare(const Request& request,const std::atomic<bool>* cancel){
     result.levels=generate(width,height,pixels.data(),request.kind,cancel);
     result.mipSeconds=seconds(started);
     if(result.levels.empty()&&!stopped(cancel))result.error="Cannot generate texture mipmaps";
+    if(request.cookMips&&!result.levels.empty()&&!stopped(cancel)&&!writeMipCache(request,result))
+        result.error="Cannot write cooked mip cache";
     return result;
 }
 bool prepareBatch(const std::vector<Request>& requests,unsigned workers,
@@ -138,6 +177,7 @@ bool prepareBatch(const std::vector<Request>& requests,unsigned workers,
             {
                 auto prepared=pending.front().get();pending.pop_front();
                 stats.decodeSeconds+=prepared.decodeSeconds;stats.mipSeconds+=prepared.mipSeconds;
+                stats.mipCacheHits+=prepared.fromMipCache;
                 stats.peakActive=peak.load();
                 auto consumed=Clock::now();
                 bool ok=consume(stats.completed,prepared);

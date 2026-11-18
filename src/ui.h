@@ -18,8 +18,13 @@ extern int filteringQuality;
 extern int vegetationDensity;
 extern int grassDistance;
 extern int grassLodDistance;
-constexpr int GRAPHICS_MENU_HEIGHT=704;
 constexpr int GRAPHICS_ROW_HEIGHT=32;
+#ifdef MINI_CITY_DX12
+constexpr int GRAPHICS_MENU_ROWS=17;
+#else
+constexpr int GRAPHICS_MENU_ROWS=15;
+#endif
+constexpr int GRAPHICS_MENU_HEIGHT=160+GRAPHICS_MENU_ROWS*GRAPHICS_ROW_HEIGHT;
 extern int effectsQuality;
 extern int drawDistance;
 extern int lodDistance;

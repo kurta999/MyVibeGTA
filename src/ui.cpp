@@ -29,12 +29,7 @@ std::string configPath(){
     return result.substr(0,slash+1)+"settings.ini";
 }
 int count(Page p){
-#ifdef MINI_CITY_DX12
-    constexpr int graphicsRows=17;
-#else
-    constexpr int graphicsRows=15;
-#endif
-    return p==Page::Main?7:p==Page::Graphics?graphicsRows:p==Page::Controls?8:p==Page::Audio?1:0;
+    return p==Page::Main?7:p==Page::Graphics?GRAPHICS_MENU_ROWS:p==Page::Controls?8:p==Page::Audio?1:0;
 }
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);

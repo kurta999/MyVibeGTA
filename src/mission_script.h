@@ -13,4 +13,5 @@ void TargetHit();
 bool IsTarget();
 const char* Objective();
 int Next();
+int Retry();
 }

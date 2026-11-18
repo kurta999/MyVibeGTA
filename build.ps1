@@ -62,7 +62,8 @@ if ($OpenGL) {
             $buildDirectory = Join-Path $root ("build-msvc-ninja$buildSuffix")
             $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
             & $cmake -S $root -B $buildDirectory -G Ninja `
-                -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
+                -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release `
+                -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
         } else {
             $generator = if ($vs2022) { 'Visual Studio 17 2022' }
                 else { 'Visual Studio 18 2026' }
@@ -126,6 +127,6 @@ if ($OpenGL) {
             throw "Build succeeded at $builtExecutable, but $target could not be replaced. Close the running game and rerun build.ps1."
         }
     }
-    $backendName = if ($useDX12) { 'native Direct3D 12 + AMD FSR2' } else { 'Direct3D 11 + Dear ImGui' }
+    $backendName = if ($useDX12) { 'native Direct3D 12 + AMD FSR2' } else { 'Direct3D 11' }
     Write-Host "Built $target ($backendName + Lua missions + Jolt Physics)"
 }

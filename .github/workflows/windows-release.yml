@@ -58,9 +58,42 @@ jobs:
           path: dist/*.zip
           if-no-files-found: error
 
+  dx11-standard-gui:
+    runs-on: windows-2025
+    steps:
+      - name: Check out source and Jolt
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Build Direct3D 11 game and scenarios
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $vsInstall) { throw 'No Visual Studio C++ toolchain was found.' }
+          & (Join-Path $vsInstall 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+          cmake -S . -B build-ci-dx11 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release -DBUILD_TESTING=ON -DMINI_CITY_USE_DX12=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build-ci-dx11 --target MiniCity3D simulation_smoke save_jobs_smoke texture_loading_smoke --parallel 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run standard GUI and gameplay scenarios
+        run: ctest --test-dir build-ci-dx11 --output-on-failure -R '^(standard_gui_review|mission_script_scenarios|traffic_scenarios|builder_transition_scenarios|builder_interaction_scenarios|save_jobs_smoke|texture_loading_smoke)$'
+
+      - name: Upload DX11 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: MiniCity3D-dx11-diagnostics
+          path: |
+            build-ci-dx11/Testing/Temporary/*.log
+            build-ci-dx11/MiniCity3D.log
+          if-no-files-found: ignore
+
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, dx11-standard-gui]
     runs-on: ubuntu-latest
     permissions:
       contents: write
