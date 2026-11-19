@@ -14,7 +14,7 @@ BAKED = ROOT / 'assets/models/baked/nature'
 MODELS = ('namaqualand_boulder_02', 'coastal_cliff_02')
 
 def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'MiniCity3D terrain importer'}), timeout=180) as response:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'MyVibeGTA terrain importer'}), timeout=180) as response:
         return response.read()
 
 def fetch():

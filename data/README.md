@@ -1,6 +1,6 @@
 # Gameplay data
 
-The DX11 game loads these versioned runtime files from the `data/` directory beside the executable. Art and licenses remain in `assets/`. A malformed or missing required file stops startup with a file/section/key error in `MiniCity3D.log`.
+The DX11 game loads these versioned runtime files from the `data/` directory beside the executable. Art and licenses remain in `assets/`. A malformed or missing required file stops startup with a file/section/key error in `MyVibeGTA.log`.
 
 | File | Contents |
 | --- | --- |
@@ -61,4 +61,4 @@ The shipped placement snapshot preserves the previous generated layout and IDs. 
 
 Restart the game after editing required runtime files. Use a fresh world when reviewing authored placements; loading existing progress restores saved actor/world state. No C++ rebuild is needed for script or data edits.
 
-For verification, run `ctest --test-dir build-msvc-ninja -R "mission_script_scenarios|placement_data_scenarios" --output-on-failure`. The tests edit the actual runtime script, terrain, crossing masks, placements and props and verify their effects without rebuilding the game. `MiniCity3D.exe --smoke --1080p --imgui-review` captures menus and exercises native widgets; it restores the executable's previous saves/settings after exercising those actions.
+For verification, run `ctest --test-dir build-msvc-ninja -R "mission_script_scenarios|placement_data_scenarios" --output-on-failure`. The tests edit the actual runtime script, terrain, crossing masks, placements and props and verify their effects without rebuilding the game. `MyVibeGTA.exe --smoke --1080p --imgui-review` captures menus and exercises native widgets; it restores the executable's previous saves/settings after exercising those actions.

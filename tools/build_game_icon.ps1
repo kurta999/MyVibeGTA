@@ -57,4 +57,4 @@ try{
     }
     foreach($bytes in $images){$writer.Write([byte[]]$bytes)}
 }finally{$writer.Dispose();$output.Dispose()}
-Write-Host "Created Mini City 3D icon ($($sizes -join ', ') px) in $OutputDirectory"
+Write-Host "Created MyVibeGTA icon ($($sizes -join ', ') px) in $OutputDirectory"

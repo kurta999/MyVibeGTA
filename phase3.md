@@ -1,16 +1,16 @@
-# Mini City 3D — phase 3 increment: district jobs
+# MyVibeGTA — phase 3 increment: district jobs
 
 **Status:** proposed plan. None of the work below is claimed as implemented.
 
 ## Goal
 
-Turn the existing large world into a place with a useful repeatable play loop. A player should be able to take a short job in downtown or Marina Part, use the current vehicles or fire tools to finish it, earn cash and local standing, then take a different job without resetting the game. Keep every step runnable in the Direct3D 11 `MiniCity3D` target.
+Turn the existing large world into a place with a useful repeatable play loop. A player should be able to take a short job in downtown or Marina Part, use the current vehicles or fire tools to finish it, earn cash and local standing, then take a different job without resetting the game. Keep every step runnable in the Direct3D 11 `MyVibeGTA` target.
 
 This increment builds on the existing ten authored missions (six main and four regional), data catalogs, Jolt vehicles, fire simulation, shops, map, and version 3 saves. The authored missions and current progression remain available while district jobs are added. Before calling the increment complete, resolve the current open human playthrough and performance checks against a packaged DX11 build.
 
 ## Ideas adapted from other games
 
-| Game and source | Useful design pattern | Mini City adaptation |
+| Game and source | Useful design pattern | MyVibeGTA adaptation |
 | --- | --- | --- |
 | [GTA Online Taxi Work and Odd Jobs](https://www.rockstargames.com/newswire/article/o39kk138351118) | Short, repeatable work makes driving and local road knowledge valuable. | Timed courier runs across the existing road network, with a safe-delivery bonus. |
 | [Cyberpunk 2077 fixer gigs](https://www.cyberpunk.net/en/news/41435/patch-1-5-next-generation-update-list-of-changes) | Local jobs unlock in small sets as standing grows. | Each district tracks its own standing and opens a harder job variant after successful work. |

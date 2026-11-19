@@ -15,10 +15,10 @@ Copy-Item -LiteralPath (Join-Path $repository 'assets') -Destination $isolatedRo
 Copy-Item -LiteralPath (Join-Path $repository 'data') -Destination $isolatedRoot -Recurse -Force
 
 $configurations = @(
-    @{ Name = 'dx11'; Executable = 'MiniCity3D-DX11-benchmark.exe'; Backend = 11; Args = @() },
-    @{ Name = 'dx12'; Executable = 'MiniCity3D.exe'; Backend = 12; Args = @('--fsr2=0') },
-    @{ Name = 'dx12-fsr2'; Executable = 'MiniCity3D.exe'; Backend = 12; Args = @('--fsr2=1') },
-    @{ Name = 'dx12-workers'; Executable = 'MiniCity3D.exe'; Backend = 12; Args = @('--fsr2=0', '--record-workers=4') }
+    @{ Name = 'dx11'; Executable = 'MyVibeGTA-DX11-benchmark.exe'; Backend = 11; Args = @() },
+    @{ Name = 'dx12'; Executable = 'MyVibeGTA.exe'; Backend = 12; Args = @('--fsr2=0') },
+    @{ Name = 'dx12-fsr2'; Executable = 'MyVibeGTA.exe'; Backend = 12; Args = @('--fsr2=1') },
+    @{ Name = 'dx12-workers'; Executable = 'MyVibeGTA.exe'; Backend = 12; Args = @('--fsr2=0', '--record-workers=4') }
 )
 $results = @()
 foreach ($configuration in $configurations) {
@@ -34,7 +34,7 @@ foreach ($configuration in $configurations) {
         $sourceExecutable = if ($version -eq 'baseline') {
             Join-Path (Join-Path $repository $BaselineDirectory) "baseline-dx$($configuration.Backend).exe"
         } else { Join-Path $runtimePath $configuration.Executable }
-        $executable = Join-Path $directory 'MiniCity3D.exe'
+        $executable = Join-Path $directory 'MyVibeGTA.exe'
         Copy-Item -LiteralPath $sourceExecutable -Destination $executable -Force
         $arguments = @('--smoke', '--benchmark', '--1080p', '--day', '--screenshot', '--validate-gpu-skinning') + $configuration.Args + $AdditionalArguments
         if ($configuration.Backend -eq 12) { $arguments += '--dx12-debug' }
@@ -46,7 +46,7 @@ foreach ($configuration in $configurations) {
         }
         $process.Refresh()
         if ($process.ExitCode -ne 0) { throw "$name failed: $($process.ExitCode)" }
-        $logPath = Join-Path $directory 'MiniCity3D.log'
+        $logPath = Join-Path $directory 'MyVibeGTA.log'
         $log = [IO.File]::ReadAllText($logPath)
         $start = $log.LastIndexOf('Application started')
         if ($start -lt 0) { throw "$name missing application start" }

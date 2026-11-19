@@ -18,7 +18,7 @@ $cases=@(
 if($Benchmark){$cases=@(@{Name='benchmark';Flags=@('--day','--windy','--benchmark','--1080p')})}
 foreach($case in $cases){
     $flags=@('--smoke','--sky-preview','--screenshot')+$case.Flags
-    $process=Start-Process -FilePath (Join-Path $runtime 'MiniCity3D.exe') -WorkingDirectory $runtime -ArgumentList $flags -WindowStyle Hidden -Wait -PassThru
+    $process=Start-Process -FilePath (Join-Path $runtime 'MyVibeGTA.exe') -WorkingDirectory $runtime -ArgumentList $flags -WindowStyle Hidden -Wait -PassThru
     if($process.ExitCode -ne 0){throw "$($case.Name) preview failed: $($process.ExitCode)"}
     $latest=Get-ChildItem -LiteralPath (Join-Path $runtime 'screenshots') -Filter '*.png' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if(-not $latest){throw 'Screenshot missing'}

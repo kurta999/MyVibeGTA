@@ -1,4 +1,4 @@
-"""Bake selected CC0 GLB scene geometry into Mini City mesh files.
+"""Bake selected CC0 GLB scene geometry into MyVibeGTA mesh files.
 
 The runtime keeps its own compact static mesh format; original GLBs remain under
 assets/models/source so geometry, source, and licenses are reviewable.

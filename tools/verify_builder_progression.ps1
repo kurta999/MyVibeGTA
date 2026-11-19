@@ -27,7 +27,7 @@ $taskPreviousReview=$env:MINICITY_REVIEW_DIR
 try{
     $env:MINICITY_REVIEW_DIR=$taskEvidence
     Copy-Item -LiteralPath $taskEarnedSave -Destination $taskSave -Force
-    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime `
+    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime `
         -ArgumentList @('--smoke','--day','--builder-catalog-review') -WindowStyle Hidden -Wait -PassThru
     if($taskProcess.ExitCode -ne 0){throw "Earned tool catalog review failed ($($taskProcess.ExitCode))"}
     $taskViews=@(Import-Csv -LiteralPath (Join-Path $taskRuntime 'builder-catalog-captures.tsv') -Delimiter "`t")
@@ -36,7 +36,7 @@ try{
         if($taskView.file -ne $taskView.view+'.png' -or -not (Test-Path -LiteralPath (Join-Path $taskEvidence $taskView.file))){throw 'Missing direct review capture'}
     }
     Copy-Item -LiteralPath (Join-Path $taskRuntime 'builder-catalog-captures.tsv') -Destination (Join-Path $taskEvidence 'captures.tsv') -Force
-    Get-Content -LiteralPath (Join-Path $taskRuntime 'MiniCity3D.log') |
+    Get-Content -LiteralPath (Join-Path $taskRuntime 'MyVibeGTA.log') |
         Select-String -SimpleMatch 'Builder catalog' | Select-Object -Last 69 | ForEach-Object Line |
         Out-File -LiteralPath (Join-Path $taskEvidence 'review.log') -Encoding utf8
     Write-Output 'All 22 earned tools captured in hand/third/drop views; storage capture and catalog retained'

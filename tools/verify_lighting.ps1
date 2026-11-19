@@ -1,11 +1,11 @@
-param([string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MiniCity3D.exe'),
+param([string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MyVibeGTA.exe'),
     [string]$OutputDirectory=(Join-Path $PSScriptRoot '../evidence/lighting-20260928'))
 $ErrorActionPreference='Stop'
 $executablePath=(Resolve-Path -LiteralPath $Executable).Path
 $runtimeDirectory=Split-Path -Parent $executablePath
 $outputDirectory=[IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
-$log=Join-Path $runtimeDirectory 'MiniCity3D.log'
+$log=Join-Path $runtimeDirectory 'MyVibeGTA.log'
 $scenes=@(
     @{Name='sun';Arguments='--sun-preview'},
     @{Name='flare-visible';Arguments='--sun-preview --flare-view'},

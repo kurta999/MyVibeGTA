@@ -17,7 +17,7 @@ try{
     $interactionRecords=@()
     foreach($interactionView in @('corpse','carried','dropped','combat','normal')){
         $interactionStarted=Get-Date
-        $interactionProcess=Start-Process -FilePath (Join-Path $interactionRuntime 'MiniCity3D.exe') -WorkingDirectory $interactionRuntime `
+        $interactionProcess=Start-Process -FilePath (Join-Path $interactionRuntime 'MyVibeGTA.exe') -WorkingDirectory $interactionRuntime `
             -ArgumentList @('--smoke','--day','--builder-interaction-preview',"--interaction-$interactionView",'--screenshot') -WindowStyle Hidden -Wait -PassThru
         if($interactionProcess.ExitCode -ne 0){throw "Interaction $interactionView capture failed ($($interactionProcess.ExitCode))."}
         $interactionCapture=Get-ChildItem -LiteralPath (Join-Path $interactionRuntime 'screenshots') -File -Filter '*.png' |
@@ -25,7 +25,7 @@ try{
         if(-not $interactionCapture){throw "Interaction $interactionView produced no image."}
         $interactionFile=Join-Path $interactionEvidence ($interactionView+'.png')
         Move-Item -LiteralPath $interactionCapture.FullName -Destination $interactionFile -Force
-        $interactionLog=Get-Content -LiteralPath (Join-Path $interactionRuntime 'MiniCity3D.log')
+        $interactionLog=Get-Content -LiteralPath (Join-Path $interactionRuntime 'MyVibeGTA.log')
         $interactionLog | Set-Content -LiteralPath (Join-Path $interactionEvidence ($interactionView+'.log'))
         $interactionPose=($interactionLog | Select-String -SimpleMatch 'Interaction review:' | Select-Object -Last 1).Line
         if(-not $interactionPose){throw 'Missing native actor/interaction report.'}

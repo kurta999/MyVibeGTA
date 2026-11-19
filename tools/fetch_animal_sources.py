@@ -15,7 +15,7 @@ OUT = ROOT / 'assets/models/source/animals'
 def get(url):
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'MiniCity3D asset importer'}), timeout=30) as response:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'MyVibeGTA asset importer'}), timeout=30) as response:
                 return response.read()
         except (OSError, TimeoutError):
             if attempt==2: raise

@@ -12,7 +12,7 @@ foreach($excavationView in @('pit','tunnel','normal','mountain')){
     $excavationStarted=Get-Date
     $excavationArguments=@('--smoke','--day','--excavation-preview','--screenshot')
     if($excavationView -ne 'pit'){$excavationArguments+="--excavation-$excavationView"}
-    $excavationProcess=Start-Process -FilePath (Join-Path $excavationRuntime 'MiniCity3D.exe') `
+    $excavationProcess=Start-Process -FilePath (Join-Path $excavationRuntime 'MyVibeGTA.exe') `
         -WorkingDirectory $excavationRuntime -ArgumentList $excavationArguments -WindowStyle Hidden -Wait -PassThru
     if($excavationProcess.ExitCode -ne 0){throw "Excavation $excavationView preview failed ($($excavationProcess.ExitCode))"}
     $excavationImage=Get-ChildItem -LiteralPath (Join-Path $excavationRuntime 'screenshots') -Filter '*.png' |

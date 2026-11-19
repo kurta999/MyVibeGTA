@@ -5,7 +5,7 @@ $evidence=Join-Path $root 'evidence/ordnance-20261004'
 New-Item -ItemType Directory -Force -Path $evidence | Out-Null
 foreach($name in @('ordnance','bomb-timer','big-bomb','underwater')){
     $started=Get-Date
-    $process=Start-Process -FilePath (Join-Path $runtime 'MiniCity3D.exe') -WorkingDirectory $runtime `
+    $process=Start-Process -FilePath (Join-Path $runtime 'MyVibeGTA.exe') -WorkingDirectory $runtime `
         -ArgumentList @('--smoke','--day',"--$name-preview",'--screenshot') -WindowStyle Hidden -Wait -PassThru
     if($process.ExitCode -ne 0){throw "$name preview failed: $($process.ExitCode)"}
     $latest=Get-ChildItem (Join-Path $runtime 'screenshots') -Filter '*.png' |

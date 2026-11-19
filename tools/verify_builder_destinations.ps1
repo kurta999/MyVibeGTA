@@ -17,7 +17,7 @@ try{
     $destinationRecords=@()
     foreach($destinationView in @('wander','flee','cover','normal')){
         $destinationStarted=Get-Date
-        $destinationProcess=Start-Process -FilePath (Join-Path $destinationRuntime 'MiniCity3D.exe') -WorkingDirectory $destinationRuntime `
+        $destinationProcess=Start-Process -FilePath (Join-Path $destinationRuntime 'MyVibeGTA.exe') -WorkingDirectory $destinationRuntime `
             -ArgumentList @('--smoke','--day','--builder-destination-preview',"--destination-$destinationView",'--screenshot') -WindowStyle Hidden -Wait -PassThru
         if($destinationProcess.ExitCode -ne 0){throw "Destination $destinationView capture failed ($($destinationProcess.ExitCode))."}
         $destinationCapture=Get-ChildItem -LiteralPath (Join-Path $destinationRuntime 'screenshots') -File -Filter '*.png' |
@@ -25,7 +25,7 @@ try{
         if(-not $destinationCapture){throw "Destination $destinationView produced no image."}
         $destinationFile=Join-Path $destinationEvidence ($destinationView+'.png')
         Move-Item -LiteralPath $destinationCapture.FullName -Destination $destinationFile -Force
-        $destinationLog=Get-Content -LiteralPath (Join-Path $destinationRuntime 'MiniCity3D.log')
+        $destinationLog=Get-Content -LiteralPath (Join-Path $destinationRuntime 'MyVibeGTA.log')
         $destinationLog | Set-Content -LiteralPath (Join-Path $destinationEvidence ($destinationView+'.log'))
         $destinationPose=($destinationLog | Select-String -SimpleMatch 'Destination review:' | Select-Object -Last 1).Line
         if(-not $destinationPose){throw 'Missing native actor/destination report.'}

@@ -41,20 +41,20 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: MiniCity3D-test-diagnostics
+          name: MyVibeGTA-test-diagnostics
           path: |
             build-ci/Testing/Temporary/*.log
-            build-ci/Release/MiniCity3D.log
+            build-ci/Release/MyVibeGTA.log
           if-no-files-found: ignore
 
       - name: Package game
         shell: pwsh
-        run: ./package.ps1 -SkipBuild -SkipSmoke -PackageName 'MiniCity3D-build-${{ github.run_number }}' -Direct3DExecutable 'build-ci/Release/MiniCity3D.exe'
+        run: ./package.ps1 -SkipBuild -SkipSmoke -PackageName 'MyVibeGTA-build-${{ github.run_number }}' -Direct3DExecutable 'build-ci/Release/MyVibeGTA.exe'
 
       - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: MiniCity3D-windows
+          name: MyVibeGTA-windows
           path: dist/*.zip
           if-no-files-found: error
 
@@ -75,7 +75,7 @@ jobs:
           & (Join-Path $vsInstall 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
           cmake -S . -B build-ci-dx11 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release -DBUILD_TESTING=ON -DMINI_CITY_USE_DX12=OFF
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build build-ci-dx11 --target MiniCity3D simulation_smoke save_jobs_smoke texture_loading_smoke --parallel 4
+          cmake --build build-ci-dx11 --target MyVibeGTA simulation_smoke save_jobs_smoke texture_loading_smoke --parallel 4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run standard GUI and gameplay scenarios
@@ -85,10 +85,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: MiniCity3D-dx11-diagnostics
+          name: MyVibeGTA-dx11-diagnostics
           path: |
             build-ci-dx11/Testing/Temporary/*.log
-            build-ci-dx11/MiniCity3D.log
+            build-ci-dx11/MyVibeGTA.log
           if-no-files-found: ignore
 
   release:
@@ -101,7 +101,7 @@ jobs:
       - name: Download tested package
         uses: actions/download-artifact@v7
         with:
-          name: MiniCity3D-windows
+          name: MyVibeGTA-windows
           path: dist
 
       - name: Publish release
@@ -109,7 +109,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Mini City 3D build ${{ github.run_number }}
+          name: MyVibeGTA build ${{ github.run_number }}
           prerelease: true
           generate_release_notes: true
           fail_on_unmatched_files: true

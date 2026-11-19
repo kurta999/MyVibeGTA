@@ -11,7 +11,7 @@ from PIL import Image, ImageChops, ImageStat
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--evidence',type=Path,default=ROOT/'evidence/lighting-20260928')
-parser.add_argument('--executable',type=Path,default=ROOT/'build-msvc-ninja/MiniCity3D.exe')
+parser.add_argument('--executable',type=Path,default=ROOT/'build-msvc-ninja/MyVibeGTA.exe')
 args=parser.parse_args();EVIDENCE=args.evidence
 manifest=json.loads((EVIDENCE/"captures.json").read_text(encoding="utf-8-sig"))
 assert manifest["ExecutableSha256"].lower()==hashlib.sha256(

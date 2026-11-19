@@ -1,8 +1,8 @@
-# Mini City 3D — phase 2 implementation plan
+# MyVibeGTA — phase 2 implementation plan
 
 ## Scope and ground rules
 
-This is the plan for the requested expansion, not an implementation status report. Ship it as small, runnable milestones in the Direct3D 11 `MiniCity3D` target. Keep the existing OpenGL fallback, `renderer.cpp`, `textures.cpp`, and `MiniCity3DGL` untouched. At the end of every milestone, build the DX11 game, run the relevant deterministic smoke tests, launch it for a short human play check, and update `idea.md`/README status only for verified behavior.
+This is the plan for the requested expansion, not an implementation status report. Ship it as small, runnable milestones in the Direct3D 11 `MyVibeGTA` target. Keep the existing OpenGL fallback, `renderer.cpp`, `textures.cpp`, and `MiniCity3DGL` untouched. At the end of every milestone, build the DX11 game, run the relevant deterministic smoke tests, launch it for a short human play check, and update `idea.md`/README status only for verified behavior.
 
 Keep editable gameplay definitions in `./data/`; keep meshes, textures, sounds, icons, and their license records in `./assets/`. Neither a new renderer nor a one-time replacement of the entire existing game is required. Preserve the current six-mission loop throughout migration.
 

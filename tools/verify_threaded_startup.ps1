@@ -1,7 +1,7 @@
 param(
  [switch]$Cancel,
  [string]$CancelAtStage='',
- [string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MiniCity3D.exe'),
+ [string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MyVibeGTA.exe'),
  [string]$Arguments='--loader-workers=4',
  [string]$OutputPath=''
 )
@@ -25,13 +25,13 @@ public static class StartupLaunchCheck {
 "@
 $executablePath=(Resolve-Path -LiteralPath $Executable).Path
 $root=Split-Path -Parent $executablePath
-$log=Join-Path $root 'MiniCity3D.log'
+$log=Join-Path $root 'MyVibeGTA.log'
 $before=(Get-Content -LiteralPath $log).Count
 $timer=[Diagnostics.Stopwatch]::StartNew()
 $testGame=Start-Process -FilePath $executablePath -WorkingDirectory $root -ArgumentList $Arguments -WindowStyle Hidden -PassThru
 $loading=[IntPtr]::Zero
 while($timer.Elapsed.TotalSeconds -lt 10 -and $loading -eq [IntPtr]::Zero -and -not $testGame.HasExited){
- $loading=[StartupLaunchCheck]::Find($testGame.Id,'MiniCity3DLoading');if($loading -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 20}
+ $loading=[StartupLaunchCheck]::Find($testGame.Id,'MyVibeGTALoading');if($loading -eq [IntPtr]::Zero){Start-Sleep -Milliseconds 20}
 }
 if($loading -eq [IntPtr]::Zero){throw 'Actual game did not show the loading window'}
 Write-Output ('Actual loading window created after {0:N3} s' -f $timer.Elapsed.TotalSeconds)
@@ -63,9 +63,9 @@ if($Cancel -or $CancelAtStage){
   Start-Sleep -Milliseconds 100
  }
  if(-not $ready){throw 'Actual game did not finish startup'}
- if([StartupLaunchCheck]::Find($testGame.Id,'MiniCity3DLoading') -ne [IntPtr]::Zero){Start-Sleep -Milliseconds 250}
- if([StartupLaunchCheck]::Find($testGame.Id,'MiniCity3DLoading') -ne [IntPtr]::Zero){throw 'Actual loading window did not close at ready'}
- $main=[StartupLaunchCheck]::Find($testGame.Id,'MiniCity3D')
+ if([StartupLaunchCheck]::Find($testGame.Id,'MyVibeGTALoading') -ne [IntPtr]::Zero){Start-Sleep -Milliseconds 250}
+ if([StartupLaunchCheck]::Find($testGame.Id,'MyVibeGTALoading') -ne [IntPtr]::Zero){throw 'Actual loading window did not close at ready'}
+ $main=[StartupLaunchCheck]::Find($testGame.Id,'MyVibeGTA')
  if($main -eq [IntPtr]::Zero){throw 'Actual game window missing after startup'}
  [void][StartupLaunchCheck]::SendMessageTimeout($main,0x10,[UIntPtr]::Zero,[IntPtr]::Zero,2,2000,[ref]$result)
  $testGame.WaitForExit(10000)|Out-Null

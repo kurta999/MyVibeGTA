@@ -15,7 +15,7 @@ $vehicleHadSave=Test-Path -LiteralPath $vehicleSave
 $vehicleBackup=Join-Path $vehicleEvidence 'runtime-save-backup.ini'
 if($vehicleHadSave){Copy-Item -LiteralPath $vehicleSave -Destination $vehicleBackup -Force}
 try{
-    $vehicleHash=(Get-FileHash -LiteralPath (Join-Path $vehicleRuntime 'MiniCity3D.exe')).Hash
+    $vehicleHash=(Get-FileHash -LiteralPath (Join-Path $vehicleRuntime 'MyVibeGTA.exe')).Hash
     $vehicleRecords=@()
     foreach($vehicleView in @('helicopter','airplane','combine','bike-seat','bicycle-seat','helicopter-night')){
         $vehicleStarted=Get-Date
@@ -23,14 +23,14 @@ try{
         $vehicleTime=if($vehicleView -eq 'helicopter-night'){'--night'}else{'--day'}
         $vehicleArgs=@('--smoke',$vehicleTime,"--$vehicleKind-preview",'--screenshot')
         if($vehicleView -like '*seat'){$vehicleArgs+='--seat-close-up'}
-        $vehicleProcess=Start-Process -FilePath (Join-Path $vehicleRuntime 'MiniCity3D.exe') -WorkingDirectory $vehicleRuntime -ArgumentList $vehicleArgs -WindowStyle Hidden -PassThru -Wait
+        $vehicleProcess=Start-Process -FilePath (Join-Path $vehicleRuntime 'MyVibeGTA.exe') -WorkingDirectory $vehicleRuntime -ArgumentList $vehicleArgs -WindowStyle Hidden -PassThru -Wait
         if($vehicleProcess.ExitCode -ne 0){throw "$vehicleView capture failed ($($vehicleProcess.ExitCode))."}
         $vehicleCapture=Get-ChildItem -LiteralPath (Join-Path $vehicleRuntime 'screenshots') -File -Filter '*.png' |
             Where-Object LastWriteTime -ge $vehicleStarted | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if(-not $vehicleCapture){throw "$vehicleView produced no image."}
         $vehicleImage=Join-Path $vehicleEvidence "$vehicleView-final.png"
         Copy-Item -LiteralPath $vehicleCapture.FullName -Destination $vehicleImage -Force
-        Copy-Item -LiteralPath (Join-Path $vehicleRuntime 'MiniCity3D.log') -Destination (Join-Path $vehicleEvidence "$vehicleView-capture.txt") -Force
+        Copy-Item -LiteralPath (Join-Path $vehicleRuntime 'MyVibeGTA.log') -Destination (Join-Path $vehicleEvidence "$vehicleView-capture.txt") -Force
         $vehicleRecords+=[pscustomobject]@{View=$vehicleView;Image="$vehicleView-final.png";ImageSHA256=(Get-FileHash -LiteralPath $vehicleImage).Hash;ExecutableSHA256=$vehicleHash;Arguments=($vehicleArgs -join ' ')}
         Write-Output "$vehicleView final DX11 capture saved."
     }

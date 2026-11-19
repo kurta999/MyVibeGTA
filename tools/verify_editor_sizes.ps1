@@ -17,13 +17,13 @@ try{
         if($taskView -eq 'saved-builder'){Copy-Item -LiteralPath (Join-Path $taskRoot 'savegame.ini') -Destination $taskSave -Force}
         if($taskView -eq 'builder-stack-third'){$taskArguments+='--stack-third-person'}
         if($taskView -eq 'builder-stack-respawn'){$taskArguments+='--stack-respawn'}
-        $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime -ArgumentList $taskArguments -WindowStyle Hidden -Wait -PassThru
+        $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime -ArgumentList $taskArguments -WindowStyle Hidden -Wait -PassThru
         if($taskProcess.ExitCode -ne 0){throw "$taskView failed: $($taskProcess.ExitCode)"}
         $taskCapture=Get-ChildItem -LiteralPath (Join-Path $taskRuntime 'screenshots') -File -Filter '*.png' |
             Where-Object LastWriteTime -ge $taskStarted | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if(-not $taskCapture){throw "$taskView produced no capture"}
         Copy-Item -LiteralPath $taskCapture.FullName -Destination (Join-Path $taskEvidence "$taskView.png") -Force
-        Copy-Item -LiteralPath (Join-Path $taskRuntime 'MiniCity3D.log') -Destination (Join-Path $taskEvidence "$taskView.log") -Force
+        Copy-Item -LiteralPath (Join-Path $taskRuntime 'MyVibeGTA.log') -Destination (Join-Path $taskEvidence "$taskView.log") -Force
         Write-Output "$taskView DX11 capture passed"
     }
 }finally{

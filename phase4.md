@@ -1,26 +1,26 @@
-# Mini City 3D — phase 4 ideas: a reactive city and reusable activities
+# MyVibeGTA — phase 4 ideas: a reactive city and reusable activities
 
 **Status:** proposed design direction. None of the work below is claimed as implemented. Existing mechanics are foundations to extend; their current verification limits remain recorded in `idea.md`.
 
 ## Recommendation
 
-Develop MiniCity3D around repeatable jobs, believable police pursuits, and missions with several possible solutions. These would give the existing vehicles, weapons, physics, weather, and large map more purpose.
+Develop MyVibeGTA around repeatable jobs, believable police pursuits, and missions with several possible solutions. These would give the existing vehicles, weapons, physics, weather, and large map more purpose.
 
 This analysis is based on repository inspection of `idea.md`, the proposed `phase3.md`, relevant gameplay code, and official documentation for MTA:SA and other games. Gameplay feel still needs hands-on evaluation.
 
-Phase 3 already proposes courier, vehicle-recovery, and fire-response jobs. Complete that foundation before building the phase 4 extensions below. Keep each milestone playable and verified in the Direct3D 11 `MiniCity3D` target. Leave the OpenGL fallback, `renderer.cpp`, `textures.cpp`, and `MiniCity3DGL` untouched.
+Phase 3 already proposes courier, vehicle-recovery, and fire-response jobs. Complete that foundation before building the phase 4 extensions below. Keep each milestone playable and verified in the Direct3D 11 `MyVibeGTA` target. Leave the OpenGL fallback, `renderer.cpp`, `textures.cpp`, and `MiniCity3DGL` untouched.
 
 ## Lessons from MTA:SA
 
 ### Modular activities
 
-MTA packages scripts, maps, assets, and dependencies into resources that can be started and stopped. For MiniCity3D, a similar structure could let a race, delivery route, or rescue scenario ship as a small content pack. The existing data catalogs provide a starting point.
+MTA packages scripts, maps, assets, and dependencies into resources that can be started and stopped. For MyVibeGTA, a similar structure could let a race, delivery route, or rescue scenario ship as a small content pack. The existing data catalogs provide a starting point.
 
 Source: [MTA resources](https://wiki.multitheftauto.com/wiki/Resources).
 
 ### Accessible content creation
 
-MTA's map editor supports placing objects, vehicles, and checkpoints. A small editor in MiniCity3D could reduce the effort of creating activities: place a start, destinations, props, and rewards, then immediately play the result.
+MTA's map editor supports placing objects, vehicles, and checkpoints. A small editor in MyVibeGTA could reduce the effort of creating activities: place a start, destinations, props, and rewards, then immediately play the result.
 
 Source: [MTA editor](https://wiki.multitheftauto.com/wiki/Resource:Editor).
 
@@ -30,13 +30,13 @@ MTA supports racing, roleplay, stealth, and custom modes through scripting. The 
 
 Source: [MTA overview](https://multitheftauto.com/).
 
-MTA is a multiplayer platform, so individual servers determine much of the experience. For MiniCity3D, make consistent controls, clear objectives, quick retries, and enjoyable solo activities part of the foundation. Creator tools can follow without requiring multiplayer first.
+MTA is a multiplayer platform, so individual servers determine much of the experience. For MyVibeGTA, make consistent controls, clear objectives, quick retries, and enjoyable solo activities part of the foundation. Creator tools can follow without requiring multiplayer first.
 
 ## Other games worth studying
 
-The adaptations in this table are proposals for MiniCity3D, not claims about implemented features.
+The adaptations in this table are proposals for MyVibeGTA, not claims about implemented features.
 
-| Reference | Useful feature to study | Feasible adaptation for MiniCity3D |
+| Reference | Useful feature to study | Feasible adaptation for MyVibeGTA |
 | --- | --- | --- |
 | [HITMAN](https://ioi.dk/hitman) | Freedom of approach. | One harbor objective with street, rooftop, and waterfront routes. |
 | [Watch Dogs 2](https://news.ubisoft.com/en-us/article/63LcbEhcTsso6Qvc87ylfs/this-week-at-ubisoft-division-day-showcase-mighty-quest-rogue-palace-available-now) | Manipulating infrastructure and creating distractions. | Operable gates, alarm boxes, lights, and traffic signals that affect missions. |

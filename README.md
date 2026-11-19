@@ -1,4 +1,4 @@
-# Mini City 3D
+# MyVibeGTA
 
 A playable Windows city sandbox written in C++20, with **Direct3D 12 and AMD FSR2**, **Lua missions**, **Jolt Physics**, and **XAudio2**. Both Direct3D builds use the standard game menus by default. Direct3D 11 also supports optional Dear ImGui menus. Explore two cities, a beach and harbor, countryside forests, snowfields, desert, savanna, and a Marina Part-inspired waterfront district. Regional terrain includes mountains, rocky ridges, rolling hills, and dry basins with matching Jolt collision. See the [terrain assets and rebuild instructions](assets/models/TERRAIN.md).
 
@@ -125,10 +125,10 @@ From a checkout of this repository:
 ```powershell
 git submodule update --init --recursive
 ./build.ps1 -RunTests
-./MiniCity3D.exe
+./MyVibeGTA.exe
 ```
 
-`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the default DX12 executable at `MiniCity3D.exe` in the repository root. DX12 builds use a build directory with a `-dx12` suffix. `-DX11` delivers `MiniCity3D-DX11.exe` from a separate cache. `-DX12` remains an explicit alias for the default. Specifying both switches is an error. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MiniCity3D.exe`; use `-Direct3DExecutable` to select another binary explicitly.
+`build.ps1` configures the compiler environment, builds the Direct3D game and test executables, copies runtime assets and data, runs tests when requested, and places the default DX12 executable at `MyVibeGTA.exe` in the repository root. DX12 builds use a build directory with a `-dx12` suffix. `-DX11` delivers `MyVibeGTA-DX11.exe` from a separate cache. `-DX12` remains an explicit alias for the default. Specifying both switches is an error. Close a running executable before rebuilding it. `package.ps1 -SkipBuild` packages the root `MyVibeGTA.exe`; use `-Direct3DExecutable` to select another binary explicitly.
 
 To build without running tests:
 
@@ -139,7 +139,7 @@ To build without running tests:
 To choose a different output executable:
 
 ```powershell
-./build.ps1 -OutputPath 'build-output/MiniCity3D.exe'
+./build.ps1 -OutputPath 'build-output/MyVibeGTA.exe'
 ```
 
 Create the destination directory first and keep `assets/` and `data/` beside a relocated executable. The build directory already contains both folders.
@@ -151,8 +151,8 @@ Both Direct3D builds support [Tracy v0.13.1](https://github.com/wolfpld/tracy/re
 ```powershell
 ./build.ps1 -DX12 -Tracy -DX11Benchmark
 ./tools/benchmark_game.ps1 -Executable @(
-    './build-msvc-ninja-dx12/MiniCity3D.exe',
-    './build-msvc-ninja-dx12/MiniCity3D-DX11-benchmark.exe'
+    './build-msvc-ninja-dx12/MyVibeGTA.exe',
+    './build-msvc-ninja-dx12/MyVibeGTA-DX11-benchmark.exe'
 ) -Frames 240 -Warmup 60 -Repeats 3
 ```
 
@@ -175,15 +175,15 @@ This waits up to 15 seconds for connection before startup and saves `capture.tra
 
 ### Native DX12 and AMD FSR2
 
-The default `MiniCity3D` build uses native DX12/FSR2. Run `./build.ps1` and launch `./MiniCity3D.exe`. For Direct3D 11, run `./build.ps1 -DX11` and launch `./MiniCity3D-DX11.exe` (CMake option `-DMINI_CITY_USE_DX12=OFF`). To opt in to Dear ImGui menus, launch the DX11 build with `./MiniCity3D-DX11.exe --imgui`.
+The default `MyVibeGTA` build uses native DX12/FSR2. Run `./build.ps1` and launch `./MyVibeGTA.exe`. For Direct3D 11, run `./build.ps1 -DX11` and launch `./MyVibeGTA-DX11.exe` (CMake option `-DMINI_CITY_USE_DX12=OFF`). To opt in to Dear ImGui menus, launch the DX11 build with `./MyVibeGTA-DX11.exe --imgui`.
 
-The DX12 backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics and compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. The optional `MiniCity3D-DX11-benchmark` target uses DX11. CPU scene and asset modules retain their historical `dx11_` names.
+The DX12 backend creates a native D3D12 device and flip-model swapchain. Its rendering passes record D3D12 graphics and compute commands with explicit resource barriers, descriptor heaps, cached pipeline state objects, upload/readback buffers, and GPU fences. The optional `MyVibeGTA-DX11-benchmark` target uses DX11. CPU scene and asset modules retain their historical `dx11_` names.
 
 In **Esc → Graphics**, select **AMD FSR2** and adjust **FSR2 sharpness** from 0–100% (default **20%**). Modes apply immediately and persist in `settings.ini` as `FSR2=0..4` and `FSR2Sharpness=0..100`. A command-line mode overrides the saved choice for that run:
 
 ```powershell
-./MiniCity3D.exe --fsr2=1  # Quality
-./MiniCity3D.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
+./MyVibeGTA.exe --fsr2=1  # Quality
+./MyVibeGTA.exe --fsr2=0  # Native rendering; use the selected FXAA/TAA setting
 ```
 
 | ID / mode | Render resolution at 1920 × 1080 | Linear scale |
@@ -216,9 +216,9 @@ DX12 overlaps CPU preparation with GPU execution using two fence-protected recor
 | `--dx12-sync` | Full GPU wait per frame for synchronization diagnostics |
 | `--full-res-clouds` | Full-resolution cloud-volume reference path |
 
-Worker recording is opt-in: each worker has its own native list, allocator and state cache, with ordered submission and fence-protected storage. Correctness checks pass, but repeated measurements did not establish a consistent speedup, so the default remains one recorder. Material/descriptor preparation and HUD work remain serial. Separate GPU timers report deformation and individual post stages in `MiniCity3D.log`.
+Worker recording is opt-in: each worker has its own native list, allocator and state cache, with ordered submission and fence-protected storage. Correctness checks pass, but repeated measurements did not establish a consistent speedup, so the default remains one recorder. Material/descriptor preparation and HUD work remain serial. Separate GPU timers report deformation and individual post stages in `MyVibeGTA.log`.
 
-For matched API benchmarks, configure with `-DMINI_CITY_BUILD_DX11_BENCHMARK=ON` and build the optional `MiniCity3D-DX11-benchmark` target. Run both executables from the same build directory with `--smoke --benchmark`, adding `--fsr2=0` to DX12 for native-resolution comparisons. Keep settings identical and disable debug validation and screenshots while measuring. Results and remaining limits are in [DX12 performance evidence](evidence/dx12-performance-20261009/README.md).
+For matched API benchmarks, configure with `-DMINI_CITY_BUILD_DX11_BENCHMARK=ON` and build the optional `MyVibeGTA-DX11-benchmark` target. Run both executables from the same build directory with `--smoke --benchmark`, adding `--fsr2=0` to DX12 for native-resolution comparisons. Keep settings identical and disable debug validation and screenshots while measuring. Results and remaining limits are in [DX12 performance evidence](evidence/dx12-performance-20261009/README.md).
 
 The subsequent combined DX12 optimization fixture measured median mean frame time **35.78 → 26.44 ms** at native 1080p on a Radeon 680M. This is a local 120-frame fixture comparison, not an expected result for every scene or GPU, and FSR2 is not guaranteed to improve a CPU-bound scene. See the [recorded optimization results and limits](evidence/dx12-clouds-20261009/README.md).
 
@@ -230,20 +230,20 @@ For a Visual Studio 2022 installation:
 cmake -S . -B build -G 'Visual Studio 17 2022' -A x64 -DBUILD_TESTING=ON
 cmake --build build --config Release --parallel 4
 ctest --test-dir build -C Release --output-on-failure
-./build/Release/MiniCity3D.exe
+./build/Release/MyVibeGTA.exe
 ```
 
 CMake copies `assets/` and `data/` beside the game on every build, including builds that do not relink. Existing build caches retain their backend selection; pass `-DMINI_CITY_USE_DX12=ON` to migrate an older DX11 cache or use a fresh build directory. Baked runtime assets are included; Python and Blender are needed only when rebuilding or converting art.
 
 ### Startup feedback
 
-DX11 can prepare regional texture mipmaps ahead of time. Run `./MiniCity3D-DX11.exe --smoke --cook-regional-mips` once to build `regional-mips-v1/` beside the executable. Subsequent DX11 launches use the cache for matching source textures. Cache files hold the full uncompressed mip chains, and the log reports the cache hits. Use `--no-regional-mip-cache` for an uncached comparison.
+DX11 can prepare regional texture mipmaps ahead of time. Run `./MyVibeGTA-DX11.exe --smoke --cook-regional-mips` once to build `regional-mips-v1/` beside the executable. Subsequent DX11 launches use the cache for matching source textures. Cache files hold the full uncompressed mip chains, and the log reports the cache hits. Use `--no-regional-mip-cache` for an uncached comparison.
 
 The Direct3D executable immediately opens a loading window with a progress bar, current stage, and elapsed time. It remains responsive while graphics initialize; closing it cancels at the next startup checkpoint. The game appears after its first frame is prepared. `--smoke` runs keep the loading window hidden.
 
 Startup prepares regional meshes and textures in advance to avoid uploads interrupting travel. Independent image decoding, mipmap generation, and graphics shader compilation now use a bounded CPU worker pool. The default uses up to four workers, reserving a logical CPU for the main thread when possible. GPU uploads and renderer cache updates remain on the main thread, and loading workers finish before gameplay starts. Closing the loader cancels pending work and joins the workers before cleanup.
 
-Use `--loader-workers=1` for the serial reference, or `--loader-workers=2` through `--loader-workers=8` to select a worker count. Each stage and total startup time are logged in `MiniCity3D.log`, including decode/mipmap/upload timings and actual peak concurrency. `--validate-loading` additionally checksums the prepared textures and shader bytecode; hashing adds work, so leave it off for performance measurements. Measured results and verification are in [threading evidence](evidence/threading-20260928/README.md).
+Use `--loader-workers=1` for the serial reference, or `--loader-workers=2` through `--loader-workers=8` to select a worker count. Each stage and total startup time are logged in `MyVibeGTA.log`, including decode/mipmap/upload timings and actual peak concurrency. `--validate-loading` additionally checksums the prepared textures and shader bytecode; hashing adds work, so leave it off for performance measurements. Measured results and verification are in [threading evidence](evidence/threading-20260928/README.md).
 
 To repeat matched startup measurements (three interleaved runs per worker count):
 
@@ -264,11 +264,11 @@ To compare runtime scene workers while holding loading at four workers:
 
 The game embeds an original city icon at 16, 24, 32, 48, 64, 128, and 256 pixels for Explorer, the taskbar, and window captions. The resource is in `assets/app/`; regenerate it with `./tools/build_game_icon.ps1`.
 
-`MiniCity3D` is the actively developed Direct3D target. The existing OpenGL fallback remains available through `./build.ps1 -OpenGL` as `MiniCity3DGL.exe`.
+`MyVibeGTA` is the actively developed Direct3D target. The existing OpenGL fallback remains available through `./build.ps1 -OpenGL` as `MiniCity3DGL.exe`.
 
 ## Controls
 
-These are the default bindings. Movement, sprint, vehicle interaction, sensitivity, and inverted mouse look can be changed under **Esc > Controls**.
+These are the default bindings. Movement, sprint, vehicle interaction, sensitivity, inverted mouse look and field of view can be changed under **Esc > Controls**. Choosing a key that another action already uses swaps the two bindings; Esc, Alt, the Windows keys and the F1/F3/F4/F5/F11 shortcuts are reserved. VSync is under **Esc > Graphics** (on by default).
 
 | Input | Action |
 | --- | --- |
@@ -305,6 +305,7 @@ These are the default bindings. Movement, sprint, vehicle interaction, sensitivi
 | F5 | Switch between normal play and the saved builder layer |
 | F11 | Save a PNG screenshot |
 | Alt+Enter | Toggle windowed/borderless display |
+| Alt+F4 | Quit (progress is flushed to `savegame.ini`) |
 
 Three helicopters are parked at **(170, 250)** downtown, **(1550, 1690)** near the beach, and **(2070, 1700)** near the harbor. Enter with **E**, use **W/S** for forward/reverse flight, **A/D** for yaw, **Space** to ascend, and hold **Ctrl** to descend. Releasing lift holds altitude after rotor spin-up. Landing uses the same solid-world collision and damage rules as other vehicles; exiting in the air starts a fall.
 
@@ -318,7 +319,7 @@ Press **F** at the gold *Sunset Circuit* marker. Press **E** near the starter ca
 
 The minimap shows the current mission flag, including the direction of off-screen goals. Press **M** for the full map. Gold flags indicate the next mission or a retry. Green flags indicate active objectives. The maps draw a road route when both ends connect to the road network. Orange flags indicate regional missions.
 
-Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `savegame.ini`. These files, `MiniCity3D.log`, and the `screenshots/` directory are located beside the executable. Mission rewards and weapon pickups also trigger saves.
+Graphics, controls, and volume are saved in `settings.ini`. Save/Load use `savegame.ini`. These files, `MyVibeGTA.log`, and the `screenshots/` directory are located beside the executable. Mission rewards and weapon pickups also trigger saves.
 
 In the DX11 game, autosaves capture a snapshot on the gameplay thread and write it on a dedicated worker. One active write and one pending snapshot bound the queue; newer requests replace an unwritten pending snapshot. The worker writes a complete temporary INI and replaces the destination after flushing it. Manual Save waits for completion, Load waits for pending writes, and normal shutdown drains them. Failed autosaves report a message while preserving the previous save. Sound effects reuse PCM prepared during startup, including four takes for noise-based sounds, and held-weapon graphics are prepared before gameplay. See [pickup hitch measurements](evidence/pickup-hitches-20260928/README.md).
 
@@ -346,7 +347,7 @@ Builder controls take precedence over the normal weapon/vehicle shortcuts. The [
 
 `savegame.ini` and `settings.ini` live beside the executable. Gameplay requests background saves, the pause menu offers Save/Load, and normal shutdown flushes pending saves. Graphics, controls and audio preferences are stored separately from progression. Back up these files before replacing a build or resetting progress.
 
-`MiniCity3D.log` records startup stages, graphics validation and benchmark results. F11 captures PNGs under `screenshots/` beside the executable. Keep `assets/` and `data/` alongside the game when moving it. Verification scripts that isolate runtime state are preferable to running save/load fixtures against a personal save.
+`MyVibeGTA.log` records startup stages, graphics validation and benchmark results. F11 captures PNGs under `screenshots/` beside the executable. Keep `assets/` and `data/` alongside the game when moving it. Verification scripts that isolate runtime state are preferable to running save/load fixtures against a personal save.
 
 ## Animals and destructible trees
 
@@ -400,17 +401,17 @@ Use the build directory produced by your generator. These historical gameplay ca
 Visual smoke flags stage repeatable scenes and exit after rendering:
 
 ```powershell
-./MiniCity3D.exe --smoke --day --animals --animal-ride --animal-ride-move --screenshot
-./MiniCity3D.exe --smoke --day --animals --animal-ride --animal-ride-move --tiger --screenshot
-./MiniCity3D.exe --smoke --day --tree-impact-preview --1080p --screenshot
-./MiniCity3D.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
-./MiniCity3D.exe --smoke --night --driver-preview --damaged --screenshot
-./MiniCity3D.exe --smoke --day --marina --1080p --screenshot
-./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
-./MiniCity3D.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
+./MyVibeGTA.exe --smoke --day --animals --animal-ride --animal-ride-move --screenshot
+./MyVibeGTA.exe --smoke --day --animals --animal-ride --animal-ride-move --tiger --screenshot
+./MyVibeGTA.exe --smoke --day --tree-impact-preview --1080p --screenshot
+./MyVibeGTA.exe --smoke --day --tree-impact-preview --settled --1080p --screenshot
+./MyVibeGTA.exe --smoke --night --driver-preview --damaged --screenshot
+./MyVibeGTA.exe --smoke --day --marina --1080p --screenshot
+./MyVibeGTA.exe --smoke --benchmark --benchmark-short --fsr2=1 --capture-converged --dx12-debug
+./MyVibeGTA.exe --smoke --benchmark --benchmark-short --fsr2-cycle --capture-converged --dx12-debug
 ```
 
-Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MiniCity3D.log`; local measurements do not establish performance on other hardware.
+Smoke mode uses staged test state. To record performance, use `--smoke --benchmark --1080p --day`, or `--smoke --benchmark-route --1080p` for the deterministic six-segment route. Timings are written to `MyVibeGTA.log`; local measurements do not establish performance on other hardware.
 
 ## Packaging
 
@@ -422,7 +423,7 @@ This builds, copies cooked assets, data, attribution records, and the Jolt and A
 
 Use `./package.ps1 -SkipBuild` to package an existing build. `-SkipSmoke` skips graphical checks; `-IncludeOpenGL` includes an existing fallback executable.
 
-The [Windows workflow](.github/workflows/windows-release.yml) builds and tests pull requests and pushes to `main` on `windows-2025`, using its newer inbox D3D12/WARP runtime for FSR2 tests. It retains CTest and graphics logs in the `MiniCity3D-test-diagnostics` artifact, including failed runs. It uploads a downloadable package; successful `main` pushes also publish a prerelease tagged `build-<run number>`. Hosted CI skips graphical package smoke runs. A manual workflow run uploads an artifact without publishing a release.
+The [Windows workflow](.github/workflows/windows-release.yml) builds and tests pull requests and pushes to `main` on `windows-2025`, using its newer inbox D3D12/WARP runtime for FSR2 tests. It retains CTest and graphics logs in the `MyVibeGTA-test-diagnostics` artifact, including failed runs. It uploads a downloadable package; successful `main` pushes also publish a prerelease tagged `build-<run number>`. Hosted CI skips graphical package smoke runs. A manual workflow run uploads an artifact without publishing a release.
 
 ## Project layout
 

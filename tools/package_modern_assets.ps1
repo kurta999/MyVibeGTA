@@ -13,7 +13,7 @@ foreach ($name in @('build_modern_assets.py','build_modern_materials.py','cook_m
 Copy-Item -LiteralPath (Join-Path $root 'tests/modern_assets.py') -Destination (Join-Path $staging 'tests')
 Copy-Item -LiteralPath (Join-Path $root 'tests/modern_texture_quality.py') -Destination (Join-Path $staging 'tests')
 Copy-Item -LiteralPath (Join-Path $root 'evidence/modern-assets-20260928/modern-assets-overview.jpg') -Destination $staging
-$destination=Join-Path $root 'dist/MiniCity3D-original-modern-assets-20260928.zip'
+$destination=Join-Path $root 'dist/MyVibeGTA-original-modern-assets-20260928.zip'
 New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
 Compress-Archive -Path (Join-Path $staging 'assets'),(Join-Path $staging 'tools'),(Join-Path $staging 'tests'),(Join-Path $staging 'README.md'),(Join-Path $staging 'modern-assets-overview.jpg') -DestinationPath $destination -Force
 Write-Output $destination

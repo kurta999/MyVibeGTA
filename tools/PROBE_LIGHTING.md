@@ -3,12 +3,12 @@
 ## Reproduce
 
 ```powershell
-./build.ps1 -OutputPath build-msvc-ninja/MiniCity3D.exe
+./build.ps1 -OutputPath build-msvc-ninja/MyVibeGTA.exe
 # Run from build-msvc-ninja, using the DX11 executable:
-./MiniCity3D.exe --smoke --bake-probes
+./MyVibeGTA.exe --smoke --bake-probes
 # From repository root, with NumPy 2.3.5:
 python tools/cook_probes.py --captures build-msvc-ninja/probe-captures
-./build.ps1 -OutputPath build-msvc-ninja/MiniCity3D.exe -RunTests
+./build.ps1 -OutputPath build-msvc-ninja/MyVibeGTA.exe -RunTests
 python tests/probe_cooking.py
 ```
 

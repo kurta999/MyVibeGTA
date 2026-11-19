@@ -15,7 +15,7 @@ foreach($builderView in @('world','inventory','loading','tool','third-person')){
     $builderStarted=Get-Date
     $builderArguments=@('--smoke','--day','--builder-preview','--screenshot')
     if($builderView -ne 'world'){$builderArguments+="--builder-$builderView"}
-    $builderProcess=Start-Process -FilePath (Join-Path $builderRuntime 'MiniCity3D.exe') `
+    $builderProcess=Start-Process -FilePath (Join-Path $builderRuntime 'MyVibeGTA.exe') `
         -WorkingDirectory $builderRuntime -ArgumentList $builderArguments -WindowStyle Hidden -Wait -PassThru
     if($builderProcess.ExitCode -ne 0){throw "Builder $builderView preview failed ($($builderProcess.ExitCode))"}
     $builderImage=Get-ChildItem -LiteralPath (Join-Path $builderRuntime 'screenshots') -Filter '*.png' |

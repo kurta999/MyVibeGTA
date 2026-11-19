@@ -1,4 +1,4 @@
-"""Bake the selected CC0 OBJ/GLTF/GLB traffic and weapon meshes for MiniCity3D.
+"""Bake the selected CC0 OBJ/GLTF/GLB traffic and weapon meshes for MyVibeGTA.
 
 Source files live in assets/models/source; the game loads indexed M3D2 files and
 adjacent texture maps from assets/models/baked. Run with the bundled Python 3.

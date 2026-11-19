@@ -17,7 +17,7 @@ foreach($taskView in $Views){
     $taskStarted=Get-Date
     $taskArgs=@('--smoke','--day','--builder-feedback-preview',"--feedback-$taskView",'--screenshot')
     if($taskView -eq 'shears-third'){$taskArgs+='--feedback-third'}
-    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime `
+    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime `
         -ArgumentList $taskArgs -WindowStyle Hidden -Wait -PassThru
     if($taskProcess.ExitCode -ne 0){throw "Feedback $taskView preview failed ($($taskProcess.ExitCode))"}
     $taskImage=Get-ChildItem -LiteralPath (Join-Path $taskRuntime 'screenshots') -Filter '*.png' |

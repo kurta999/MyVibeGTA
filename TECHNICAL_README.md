@@ -1,13 +1,13 @@
-> Backend update (2026-10-13): `MiniCity3D` uses C++20 and defaults to native Direct3D 12/FSR2 with its existing menus. `build.ps1 -DX11` selects Direct3D 11 with Dear ImGui menus. The DX11 walkthrough below describes the retained renderer. See `ARCHITECTURE.md` for backend boundaries and `data/README.md` for runtime scripting and placement contracts.
+> Backend update (2026-10-13): `MyVibeGTA` uses C++20 and defaults to native Direct3D 12/FSR2 with its existing menus. `build.ps1 -DX11` selects Direct3D 11 with Dear ImGui menus. The DX11 walkthrough below describes the retained renderer. See `ARCHITECTURE.md` for backend boundaries and `data/README.md` for runtime scripting and placement contracts.
 
 
-# Mini City 3D — Technical Guide
+# MyVibeGTA — Technical Guide
 
 **From asset bytes to pixels, movement, and collision in the Direct3D 11 engine.**
 
 This guide is for an experienced software engineer who is comfortable with C++, memory layouts, concurrency, and embedded systems, but is new to DirectX and real-time graphics. It explains graphics terminology as it appears in this project and connects each concept to the code that implements it.
 
-The subject is the actively developed **`MiniCity3D` Direct3D 11 target**. The implementation described here was inspected on **2026-09-28**. The engine is an evolving prototype; statements about current behavior are separate from future goals in [idea.md](idea.md) and [graphics-upgrade-plan.md](graphics-upgrade-plan.md). The OpenGL fallback has a different renderer and is outside this guide.
+The subject is the actively developed **`MyVibeGTA` Direct3D 11 target**. The implementation described here was inspected on **2026-09-28**. The engine is an evolving prototype; statements about current behavior are separate from future goals in [idea.md](idea.md) and [graphics-upgrade-plan.md](graphics-upgrade-plan.md). The OpenGL fallback has a different renderer and is outside this guide.
 
 > **Start here:** a game object, a mesh, a material, and a collider are separate things. The CPU updates the game and prepares rendering data. Direct3D submits that data to the GPU. Shaders turn triangles and textures into images. Jolt resolves physical motion separately, and the renderer displays the resulting game state.
 
@@ -42,7 +42,7 @@ For installation, playable controls, screenshots, and packaging, use the [main R
 
 ### 1.1 What kind of engine is this?
 
-Mini City 3D is a native Windows application written in C++20. It uses a custom renderer and gameplay code rather than a general-purpose engine such as Unreal or Unity. There is no editor-driven entity/component framework hiding the data flow: much of the world is stored in typed structures and vectors under the `game` namespace.
+MyVibeGTA is a native Windows application written in C++20. It uses a custom renderer and gameplay code rather than a general-purpose engine such as Unreal or Unity. There is no editor-driven entity/component framework hiding the data flow: much of the world is stored in typed structures and vectors under the `game` namespace.
 
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |
@@ -1187,7 +1187,7 @@ From the repository root:
 ```powershell
 git submodule update --init --recursive
 ./build.ps1 -RunTests
-./MiniCity3D.exe
+./MyVibeGTA.exe
 ```
 
 Keep `assets/` and `data/` beside a relocated executable. Baked assets are included; Blender/Python conversion is not required just to play.
@@ -1198,21 +1198,21 @@ These commands use supported staged smoke/debug flags and exit after the smoke r
 
 ```powershell
 # Material texture LOD: inspect road/model sampling as colored mip estimates.
-./MiniCity3D.exe --smoke --day --1080p --mip-view --screenshot
+./MyVibeGTA.exe --smoke --day --1080p --mip-view --screenshot
 
 # Shading normals and scalar roughness, in separate runs.
-./MiniCity3D.exe --smoke --day --normal-view --screenshot
-./MiniCity3D.exe --smoke --day --roughness-view --screenshot
+./MyVibeGTA.exe --smoke --day --normal-view --screenshot
+./MyVibeGTA.exe --smoke --day --roughness-view --screenshot
 
 # Sunlight cascade coverage and local probe contribution.
-./MiniCity3D.exe --smoke --day --high-shadows --shadow-cascade-view --screenshot
-./MiniCity3D.exe --smoke --day --probe-weight-view --screenshot
+./MyVibeGTA.exe --smoke --day --high-shadows --shadow-cascade-view --screenshot
+./MyVibeGTA.exe --smoke --day --probe-weight-view --screenshot
 
 # Temporal animated motion, with selected GPU/CPU deformation comparisons.
-./MiniCity3D.exe --smoke --skin-motion-preview --high-taa --motion-view --validate-gpu-skinning --screenshot
+./MyVibeGTA.exe --smoke --skin-motion-preview --high-taa --motion-view --validate-gpu-skinning --screenshot
 
 # Authored Marina geometry LOD, forced to a coarse level for inspection.
-./MiniCity3D.exe --smoke --day --marina --lod-level-3 --lod-view --screenshot
+./MyVibeGTA.exe --smoke --day --marina --lod-level-3 --lod-view --screenshot
 ```
 
 `--lod-view` colorizes authored-chain choices. It does not imply that every older two-level asset is visualized the same way. `--material-view` shows material/base information, `--bloom-view` shows glow, and `--indirect-view` isolates indirect light. `--no-probes`, `--no-taa`, `--cpu-skinning`, and `--no-frustum-cull` are useful reference switches; each comparison should hold other settings and scene state fixed.
@@ -1250,13 +1250,13 @@ Passing CPU/data tests does not prove visual stability. Inspect screenshots and 
 ### 17.4 Measure with matching inputs
 
 ```powershell
-./MiniCity3D.exe --smoke --benchmark-route --1080p
+./MyVibeGTA.exe --smoke --benchmark-route --1080p
 ./tools/measure_threading.ps1 -CompareScene -Route -Repeats 1 -Workers 1,4
 ```
 
 The route benchmark is deterministic and disables VSync through the benchmark command-line handling. `--validate-loading` adds prepared texture/shader checksums; do not enable those extra checks while collecting matched baseline performance unless both sides intentionally include them.
 
-Read `MiniCity3D.log` beside the executable. Compare adapter, resolution, settings, worker counts, scene, and screenshot/readback activity before attributing a difference to a code change.
+Read `MyVibeGTA.log` beside the executable. Compare adapter, resolution, settings, worker counts, scene, and screenshot/readback activity before attributing a difference to a code change.
 
 ### 17.5 Symptoms and where to look
 

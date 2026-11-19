@@ -17,7 +17,7 @@ try{
     $wildlifeRecords=@()
     foreach($wildlifeView in @('tunnel','pit','block','mounted','normal')){
         $wildlifeStarted=Get-Date
-        $wildlifeProcess=Start-Process -FilePath (Join-Path $wildlifeRuntime 'MiniCity3D.exe') -WorkingDirectory $wildlifeRuntime `
+        $wildlifeProcess=Start-Process -FilePath (Join-Path $wildlifeRuntime 'MyVibeGTA.exe') -WorkingDirectory $wildlifeRuntime `
             -ArgumentList @('--smoke','--day','--builder-wildlife-preview',"--wildlife-$wildlifeView",'--screenshot') -WindowStyle Hidden -Wait -PassThru
         if($wildlifeProcess.ExitCode -ne 0){throw "Wildlife $wildlifeView capture failed ($($wildlifeProcess.ExitCode))."}
         $wildlifeCapture=Get-ChildItem -LiteralPath (Join-Path $wildlifeRuntime 'screenshots') -File -Filter '*.png' |
@@ -25,7 +25,7 @@ try{
         if(-not $wildlifeCapture){throw "Wildlife $wildlifeView produced no image."}
         $wildlifeFile=Join-Path $wildlifeEvidence ($wildlifeView+'.png')
         Move-Item -LiteralPath $wildlifeCapture.FullName -Destination $wildlifeFile -Force
-        $wildlifeLog=Get-Content -LiteralPath (Join-Path $wildlifeRuntime 'MiniCity3D.log')
+        $wildlifeLog=Get-Content -LiteralPath (Join-Path $wildlifeRuntime 'MyVibeGTA.log')
         $wildlifeLog | Set-Content -LiteralPath (Join-Path $wildlifeEvidence ($wildlifeView+'.log'))
         $wildlifePose=($wildlifeLog | Select-String -SimpleMatch 'Wildlife review:' | Select-Object -Last 1).Line
         if(-not $wildlifePose){throw 'Missing native actor/wildlife report.'}

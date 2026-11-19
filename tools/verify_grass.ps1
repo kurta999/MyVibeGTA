@@ -28,10 +28,10 @@ if($Capture){
     if($cases.Count -ne 1){throw "Unknown capture: $Capture"}
 }
 foreach($case in $cases){
-    $log=Join-Path $runtime 'MiniCity3D.log'
+    $log=Join-Path $runtime 'MyVibeGTA.log'
     $logLines=if(Test-Path -LiteralPath $log){@(Get-Content -LiteralPath $log).Count}else{0}
     $flags=@('--smoke','--grass-preview','--day','--screenshot','--1080p')+$case.Flags
-    $process=Start-Process -FilePath (Join-Path $runtime 'MiniCity3D.exe') -WorkingDirectory $runtime -ArgumentList $flags -WindowStyle Hidden -Wait -PassThru
+    $process=Start-Process -FilePath (Join-Path $runtime 'MyVibeGTA.exe') -WorkingDirectory $runtime -ArgumentList $flags -WindowStyle Hidden -Wait -PassThru
     if($process.ExitCode -ne 0){throw "$($case.Name) preview failed: $($process.ExitCode)"}
     $latest=Get-ChildItem -LiteralPath (Join-Path $runtime 'screenshots') -Filter '*.png' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if(-not $latest){throw 'Screenshot missing'}

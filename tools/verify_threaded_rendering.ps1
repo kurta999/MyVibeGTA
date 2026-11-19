@@ -1,5 +1,5 @@
 param(
-    [string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MiniCity3D.exe'),
+    [string]$Executable=(Join-Path $PSScriptRoot '../build-msvc-ninja/MyVibeGTA.exe'),
     [string]$OutputDirectory=(Join-Path $PSScriptRoot '../evidence/threading-20260928/rendering'),
     [switch]$CompareOnly
 )
@@ -36,7 +36,7 @@ function Read-Pixels([string]$Path) {
 }
 $executablePath=(Resolve-Path -LiteralPath $Executable).Path
 $runtimeDirectory=Split-Path -Parent $executablePath
-$log=Join-Path $runtimeDirectory 'MiniCity3D.log'
+$log=Join-Path $runtimeDirectory 'MyVibeGTA.log'
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $scenes=@(
     @{Name='day';Arguments='--day'},

@@ -35,7 +35,7 @@ The graph is built once per populated world. Pursuit routing runs at junctions. 
 - A pursuer exiting its car and damaging the player in melee.
 - Dead driver, wreck, owned-car load cleanup, and circulation in the populated downtown.
 
-For a reproducible graphical check, run `MiniCity3D.exe --smoke --traffic-preview --day --screenshot --1080p`. Add `--benchmark` to measure 120 rendered simulation frames. Screenshots are written beside the executable under `screenshots/`.
+For a reproducible graphical check, run `MyVibeGTA.exe --smoke --traffic-preview --day --screenshot --1080p`. Add `--benchmark` to measure 120 rendered simulation frames. Screenshots are written beside the executable under `screenshots/`.
 
 Validation on 2026-09-26: the DX11 build and all three CTest cases passed. The additional physical ramming assertion passed in the targeted traffic run. A 1920 × 1080 traffic preview was captured and visually inspected. The 120-frame preview benchmark averaged 1.01 ms simulation (including 0.86 ms physics), 25.94 ms total, and 27.95 ms p95 on the development machine; this is a scene-specific measurement, not a broad hardware performance claim.
 

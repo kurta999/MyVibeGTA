@@ -6,7 +6,7 @@ Upgrade the models and supporting engine features to deliver polished, realistic
 
 - Use free assets first, including appropriately licensed account-based downloads.
 - Target 1080p/60 FPS on an RTX 3060-class GPU. **Lower FPS on this PC’s Radeon 680M is acceptable** and will be reported accurately.
-- Develop only the Direct3D 11 `MiniCity3D` target; preserve the OpenGL fallback.
+- Develop only the Direct3D 11 `MyVibeGTA` target; preserve the OpenGL fallback.
 - Keep existing gameplay, physics, missions, and save compatibility.
 - At implementation start, save this plan as `graphics-upgrade-plan.md` and maintain milestone status and verification results there.
 - Execute all milestones continuously without routine approval stops. Continue independent work if asset access is blocked; report unavoidable account, permission, or licensing dependencies explicitly.

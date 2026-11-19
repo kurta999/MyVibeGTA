@@ -17,7 +17,7 @@ if($taskHadSave){Copy-Item -LiteralPath $taskSave -Destination $taskBackup -Forc
 $taskPreviousReview=$env:MINICITY_REVIEW_DIR
 try{
     $env:MINICITY_REVIEW_DIR=$taskEvidence
-    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime `
+    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime `
         -ArgumentList @('--smoke','--day','--builder-rock-review') -WindowStyle Hidden -Wait -PassThru
     if($taskProcess.ExitCode -ne 0){throw "Native rock review failed ($($taskProcess.ExitCode))."}
     $taskRows=@(Import-Csv -LiteralPath (Join-Path $taskRuntime 'builder-rock-report.tsv') -Delimiter "`t")
@@ -35,7 +35,7 @@ try{
     Copy-Item -LiteralPath (Join-Path $taskRuntime 'builder-rock-report.tsv') -Destination (Join-Path $taskEvidence 'gameplay.tsv') -Force
     Copy-Item -LiteralPath (Join-Path $taskRuntime 'builder-rock-captures.tsv') -Destination (Join-Path $taskEvidence 'captures.tsv') -Force
     Copy-Item -LiteralPath $taskSave -Destination (Join-Path $taskEvidence 'gallery-save.ini') -Force
-    Get-Content -LiteralPath (Join-Path $taskRuntime 'MiniCity3D.log') | Select-String -SimpleMatch 'Rock review:' |
+    Get-Content -LiteralPath (Join-Path $taskRuntime 'MyVibeGTA.log') | Select-String -SimpleMatch 'Rock review:' |
         Select-Object -Last 21 | ForEach-Object Line | Set-Content -LiteralPath (Join-Path $taskEvidence 'native-review.log')
     Write-Output 'All 20 rocks placed, rendered and mined with distinct durations and single yields/durability; save/F5 gallery reconstructed.'
 }finally{

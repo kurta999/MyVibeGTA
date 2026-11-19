@@ -1,6 +1,6 @@
 param([switch]$SkipBuild,[switch]$SkipSmoke,[switch]$IncludeOpenGL,
     [string]$PackageName='',
-    [string]$Direct3DExecutable='MiniCity3D.exe',
+    [string]$Direct3DExecutable='MyVibeGTA.exe',
     [string]$OpenGLExecutable='MiniCity3DGL.exe')
 $ErrorActionPreference = 'Stop'
 
@@ -12,7 +12,7 @@ if (-not $SkipBuild) {
 $outputDirectory = Join-Path $PSScriptRoot 'dist'
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 $packageName = if ($PackageName) { $PackageName } else {
-    'MiniCity3D-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' +
+    'MyVibeGTA-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' +
         ([guid]::NewGuid().ToString('N').Substring(0,4))
 }
 if ($packageName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
@@ -25,8 +25,8 @@ New-Item -ItemType Directory -Path $packageDirectory | Out-Null
 # different backend from a comparison build instead of the delivered game.
 $direct3DSource = Join-Path $PSScriptRoot $Direct3DExecutable
 Copy-Item -LiteralPath $direct3DSource `
-    -Destination (Join-Path $packageDirectory 'MiniCity3D.exe')
-$executables = @('MiniCity3D.exe')
+    -Destination (Join-Path $packageDirectory 'MyVibeGTA.exe')
+$executables = @('MyVibeGTA.exe')
 if ($IncludeOpenGL) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $OpenGLExecutable) `
         -Destination (Join-Path $packageDirectory 'MiniCity3DGL.exe')
@@ -74,24 +74,24 @@ if (-not $SkipSmoke) {
         throw "$fileName failed its packaged smoke run with exit code $($gameProcess.ExitCode)"
     }
     }
-    $nightRun = Start-Process -FilePath (Join-Path $packageDirectory 'MiniCity3D.exe') `
+    $nightRun = Start-Process -FilePath (Join-Path $packageDirectory 'MyVibeGTA.exe') `
     -ArgumentList '--smoke --night --ragdoll' -WorkingDirectory $packageDirectory `
     -PassThru -Wait -WindowStyle Hidden
     if ($nightRun.ExitCode -ne 0) {
-    throw "MiniCity3D.exe failed its packaged night/ragdoll smoke run with exit code $($nightRun.ExitCode)"
+    throw "MyVibeGTA.exe failed its packaged night/ragdoll smoke run with exit code $($nightRun.ExitCode)"
     }
     foreach ($regionFlag in @('--causeway', '--east', '--snowfield', '--desert-hub', '--savanna',
         '--swim', '--climb', '--fall', '--debug-menu')) {
-    $regionRun = Start-Process -FilePath (Join-Path $packageDirectory 'MiniCity3D.exe') `
+    $regionRun = Start-Process -FilePath (Join-Path $packageDirectory 'MyVibeGTA.exe') `
         -ArgumentList "--smoke --day $regionFlag" -WorkingDirectory $packageDirectory `
         -PassThru -Wait -WindowStyle Hidden
     if ($regionRun.ExitCode -ne 0) {
-        throw "MiniCity3D.exe failed packaged $regionFlag smoke run with exit code $($regionRun.ExitCode)"
+        throw "MyVibeGTA.exe failed packaged $regionFlag smoke run with exit code $($regionRun.ExitCode)"
     }
     }
 }
 
-$packageLog = Join-Path $packageDirectory 'MiniCity3D.log'
+$packageLog = Join-Path $packageDirectory 'MyVibeGTA.log'
 if (Test-Path -LiteralPath $packageLog) { Remove-Item -LiteralPath $packageLog }
 $archivePath = "$packageDirectory.zip"
 Compress-Archive -LiteralPath $packageDirectory -DestinationPath $archivePath -CompressionLevel Optimal

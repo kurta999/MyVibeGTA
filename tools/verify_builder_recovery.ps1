@@ -12,14 +12,14 @@ if(-not $CaptureOnly){
 foreach($taskView in @('pit','normal','restored')){
     $taskStarted=Get-Date
     $taskArgs=@('--smoke','--day','--builder-recovery-preview',"--recovery-$taskView",'--screenshot')
-    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime `
+    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime `
         -ArgumentList $taskArgs -WindowStyle Hidden -Wait -PassThru
     if($taskProcess.ExitCode -ne 0){throw "Recovery $taskView preview failed ($($taskProcess.ExitCode))"}
     $taskImage=Get-ChildItem -LiteralPath (Join-Path $taskRuntime 'screenshots') -Filter '*.png' |
         Where-Object LastWriteTime -ge $taskStarted | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if(-not $taskImage){throw "Recovery $taskView produced no capture"}
     Copy-Item -LiteralPath $taskImage.FullName -Destination (Join-Path $taskEvidence "$taskView.png") -Force
-    Get-Content -LiteralPath (Join-Path $taskRuntime 'MiniCity3D.log') -Tail 20 |
+    Get-Content -LiteralPath (Join-Path $taskRuntime 'MyVibeGTA.log') -Tail 20 |
         Select-String -SimpleMatch 'Builder recovery preview:' | ForEach-Object Line |
         Out-File -LiteralPath (Join-Path $taskEvidence "$taskView.log") -Encoding utf8
     Write-Output "Builder recovery $taskView DX11 capture saved"

@@ -14,7 +14,7 @@ $cases=@(
 foreach($case in $cases){
     if($Only -and $case.Name -notin $Only){continue}
     $args=@('--smoke','--1080p','--screenshot')+$case.Args
-    $process=Start-Process -FilePath (Join-Path $runtime 'MiniCity3D.exe') -WorkingDirectory $runtime -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
+    $process=Start-Process -FilePath (Join-Path $runtime 'MyVibeGTA.exe') -WorkingDirectory $runtime -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
     if($process.ExitCode -ne 0){throw "$($case.Name): exit $($process.ExitCode)"}
     $latest=Get-ChildItem -LiteralPath (Join-Path $runtime 'screenshots') -Filter '*.png' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if(-not $latest){throw 'Screenshot missing'}

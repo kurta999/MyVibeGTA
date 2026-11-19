@@ -289,7 +289,7 @@ class Mesh:
                 material.setdefault("extensions",{})["KHR_materials_ior"]={"ior":ior}
             materials.append(material)
             primitives.append({"attributes":attrs,"indices":index,"material":len(materials)-1})
-        doc={"asset":{"version":"2.0","generator":"MiniCity3D original procedural authoring"},
+        doc={"asset":{"version":"2.0","generator":"MyVibeGTA original procedural authoring"},
              "scene":0,"scenes":[{"nodes":[0]}],"nodes":[{"name":name,"mesh":0}],
              "meshes":[{"name":name,"primitives":primitives}],"bufferViews":views,"accessors":accessors,
              "buffers":[{"byteLength":len(binary)}],"images":images,"materials":materials,

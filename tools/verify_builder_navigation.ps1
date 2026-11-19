@@ -25,14 +25,14 @@ try{
         $navigationStarted=Get-Date
         $navigationArgs=@('--smoke','--day','--builder-navigation-preview','--screenshot')
         if($navigationView -ne 'pit'){$navigationArgs+="--navigation-$navigationView"}
-        $navigationProcess=Start-Process -FilePath (Join-Path $navigationRuntime 'MiniCity3D.exe') -WorkingDirectory $navigationRuntime -ArgumentList $navigationArgs -WindowStyle Hidden -Wait -PassThru
+        $navigationProcess=Start-Process -FilePath (Join-Path $navigationRuntime 'MyVibeGTA.exe') -WorkingDirectory $navigationRuntime -ArgumentList $navigationArgs -WindowStyle Hidden -Wait -PassThru
         if($navigationProcess.ExitCode -ne 0){throw "Navigation $navigationView capture failed ($($navigationProcess.ExitCode))."}
         $navigationCapture=Get-ChildItem -LiteralPath (Join-Path $navigationRuntime 'screenshots') -File -Filter '*.png' |
             Where-Object LastWriteTime -ge $navigationStarted | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if(-not $navigationCapture){throw "Navigation $navigationView produced no image."}
         $navigationDestination=Join-Path $navigationEvidence "$navigationView.png"
         Move-Item -LiteralPath $navigationCapture.FullName -Destination $navigationDestination -Force
-        $navigationLog=Get-Content -LiteralPath (Join-Path $navigationRuntime 'MiniCity3D.log')
+        $navigationLog=Get-Content -LiteralPath (Join-Path $navigationRuntime 'MyVibeGTA.log')
         $navigationLog | Set-Content -LiteralPath (Join-Path $navigationEvidence "$navigationView.log")
         $navigationRecords+=[pscustomobject]@{View=$navigationView;Image="$navigationView.png";SHA256=(Get-FileHash -LiteralPath $navigationDestination).Hash;Position=($navigationLog | Select-String 'Navigation review:' | Select-Object -Last 1).Line}
         Write-Output "Navigation $navigationView DX11 capture retained."

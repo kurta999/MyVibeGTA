@@ -40,7 +40,7 @@ upstream files. `--bake` works offline when the sources are present.
 Preview locations:
 
 ```powershell
-./MiniCity3D.exe --smoke --terrain-savanna --screenshot
-./MiniCity3D.exe --smoke --terrain-desert --screenshot
-./MiniCity3D.exe --smoke --terrain-basin --screenshot
+./MyVibeGTA.exe --smoke --terrain-savanna --screenshot
+./MyVibeGTA.exe --smoke --terrain-desert --screenshot
+./MyVibeGTA.exe --smoke --terrain-basin --screenshot
 ```

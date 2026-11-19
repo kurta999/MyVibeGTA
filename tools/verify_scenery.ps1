@@ -9,7 +9,7 @@ $taskCtest='C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\Co
 if($LASTEXITCODE -ne 0){throw 'Scenery simulation regression failed'}
 foreach($taskView in @('tree','rock','bush','normal')){
     $taskStarted=Get-Date
-    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MiniCity3D.exe') -WorkingDirectory $taskRuntime `
+    $taskProcess=Start-Process -FilePath (Join-Path $taskRuntime 'MyVibeGTA.exe') -WorkingDirectory $taskRuntime `
         -ArgumentList @('--smoke','--day','--scenery-preview',"--scenery-$taskView",'--screenshot') -WindowStyle Hidden -Wait -PassThru
     if($taskProcess.ExitCode -ne 0){throw "Scenery $taskView preview failed ($($taskProcess.ExitCode))"}
     $taskImage=Get-ChildItem -LiteralPath (Join-Path $taskRuntime 'screenshots') -Filter '*.png' |

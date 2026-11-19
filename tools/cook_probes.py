@@ -203,10 +203,10 @@ def cook(capture_directory, output):
                     file.write(rgba.astype('<f2').tobytes())
         file.write(lut.astype('<f4').tobytes())
     temporary.replace(output)
-    report = {'schema': 1, 'asset': 'Original MiniCity3D static district lighting',
+    report = {'schema': 1, 'asset': 'Original MyVibeGTA static district lighting',
               'source_captures': source, 'positions': positions, 'hours': HOURS,
               'capture_settings': capture_manifest,
-              'capture_executable_sha256': hashlib.sha256((capture_directory.parent / 'MiniCity3D.exe').read_bytes()).hexdigest(),
+              'capture_executable_sha256': hashlib.sha256((capture_directory.parent / 'MyVibeGTA.exe').read_bytes()).hexdigest(),
               'cooker_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'numpy': np.__version__, 'tool': 'tools/cook_probes.py',
               'capture': 'DX11 linear HDR static-only geometry, 128px faces, no probe feedback, no tone mapping',

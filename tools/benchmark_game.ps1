@@ -1,5 +1,5 @@
 param(
-    [string[]]$Executable=@((Join-Path $PSScriptRoot '../build-msvc-ninja-dx12/MiniCity3D.exe')),
+    [string[]]$Executable=@((Join-Path $PSScriptRoot '../build-msvc-ninja-dx12/MyVibeGTA.exe')),
     [string]$OutputDirectory=(Join-Path $PSScriptRoot ('../evidence/benchmarks-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))),
     [ValidateSet('city','forest','travel','route','dense-builder')][string[]]$Scenarios=@('city','forest','travel'),
     [ValidateRange(1,36000)][int]$Frames=240,
@@ -19,12 +19,12 @@ $capturePath=if($CaptureExecutable){(Resolve-Path -LiteralPath $CaptureExecutabl
 $executables=@($Executable | ForEach-Object {(Resolve-Path -LiteralPath $_).Path})
 $rows=@()
 $culture=[Globalization.CultureInfo]::InvariantCulture
-$mutex=[Threading.Mutex]::new($false,'Local\MiniCity3D-Benchmark')
+$mutex=[Threading.Mutex]::new($false,'Local\MyVibeGTA-Benchmark')
 $locked=$false
 try {
     $locked=$mutex.WaitOne(0)
     if(-not $locked){throw 'Another benchmark_game.ps1 run is active.'}
-    if(@(Get-Process -Name 'MiniCity3D*' -ErrorAction SilentlyContinue).Count){throw 'Close other MiniCity3D instances before benchmarking.'}
+    if(@(Get-Process -Name 'MyVibeGTA*' -ErrorAction SilentlyContinue).Count){throw 'Close other MyVibeGTA instances before benchmarking.'}
     for($repeat=1;$repeat -le $Repeats;$repeat++){
         # Alternate backend order to reduce first-run and thermal bias.
         $order=@($executables);if($repeat%2 -eq 0){[array]::Reverse($order)}
@@ -66,13 +66,13 @@ try {
                     $game=Start-Process -FilePath $staged -WorkingDirectory $runtime -ArgumentList $arguments -WindowStyle Hidden -PassThru
                     if(-not $game.WaitForExit($TimeoutSeconds*1000)){throw "Game benchmark timed out after $TimeoutSeconds seconds."}
                     $game.Refresh()
-                    if($game.ExitCode -ne 0){throw "Game benchmark failed ($($game.ExitCode)); see $run/MiniCity3D.log"}
+                    if($game.ExitCode -ne 0){throw "Game benchmark failed ($($game.ExitCode)); see $run/MyVibeGTA.log"}
                     if($capture){
                         if(-not $capture.WaitForExit(60000)){throw 'Tracy capture did not finish after game shutdown.'}
                         $capture.Refresh()
                         if($capture.ExitCode -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $run 'capture.tracy'))){throw 'Tracy capture failed; inspect capture stdout/stderr.'}
                     }
-                    $log=Get-Content -LiteralPath (Join-Path $runtime 'MiniCity3D.log')
+                    $log=Get-Content -LiteralPath (Join-Path $runtime 'MyVibeGTA.log')
                     $result=@($log | Select-String 'Benchmark.*: avg ([0-9.]+) ms .*p95 ([0-9.]+) ms, p99 ([0-9.]+) ms, max ([0-9.]+) ms')
                     if($result.Count -ne 1){throw 'Missing benchmark summary.'}
                     if(-not @($log | Select-String 'Smoke render completed').Count){throw 'Game did not complete smoke shutdown.'}
@@ -102,10 +102,10 @@ try {
                 } finally {
                     # Only terminate processes launched for this individual run.
                     foreach($process in @($game,$capture)){if($process){$process.Refresh();if(-not $process.HasExited){$process.Kill();$process.WaitForExit()};$process.Dispose()}}
-                    foreach($file in @('MiniCity3D.log','benchmark-frames.csv')){
+                    foreach($file in @('MyVibeGTA.log','benchmark-frames.csv')){
                         $saved=Join-Path $runtime $file
                         if(Test-Path -LiteralPath $saved){
-                            $destination=if($file -eq 'MiniCity3D.log'){'game.log.txt'}else{$file}
+                            $destination=if($file -eq 'MyVibeGTA.log'){'game.log.txt'}else{$file}
                             Copy-Item -LiteralPath $saved -Destination (Join-Path $run $destination)
                         }
                     }

@@ -25,9 +25,9 @@ SOLID or finish the naming migration.
 
 ## Current renderer structure
 
-`MiniCity3D` uses DX12. `MiniCity3D-DX11-benchmark` selects the retained DX11
-implementation at build time. `build.ps1` delivers DX12 as `MiniCity3D.exe`;
-`build.ps1 -DX11` delivers `MiniCity3D-DX11.exe` with Dear ImGui menus.
+`MyVibeGTA` uses DX12. `MyVibeGTA-DX11-benchmark` selects the retained DX11
+implementation at build time. `build.ps1` delivers DX12 as `MyVibeGTA.exe`;
+`build.ps1 -DX11` delivers `MyVibeGTA-DX11.exe` with Dear ImGui menus.
 Existing CMake caches retain their selected backend; set `MINI_CITY_USE_DX12`
 explicitly when switching an existing build directory.
 

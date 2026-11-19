@@ -7,7 +7,7 @@ $treeAssets=Join-Path $treeRuntime 'assets/models/baked/nature'
 $treeStage=if($Before){'before'}else{'after'}
 New-Item -ItemType Directory -Path $treeEvidence -Force | Out-Null
 function Save-TreeLog([string]$Destination){
-    $treeLines=@(Get-Content -LiteralPath (Join-Path $treeRuntime 'MiniCity3D.log'))
+    $treeLines=@(Get-Content -LiteralPath (Join-Path $treeRuntime 'MyVibeGTA.log'))
     $treeFirst=0
     for($treeLine=0;$treeLine -lt $treeLines.Count;$treeLine++){
         if($treeLines[$treeLine].Contains('Application started')){$treeFirst=$treeLine}
@@ -38,7 +38,7 @@ try{
             $treeStarted=Get-Date
             $treeArgs=@('--smoke','--day','--tree-preview',"--tree-model=$treeModel",'--screenshot')
             if($treeDistance -eq 'distant'){$treeArgs+='--tree-distant'}
-            $treeProcess=Start-Process -FilePath (Join-Path $treeRuntime 'MiniCity3D.exe') -WorkingDirectory $treeRuntime `
+            $treeProcess=Start-Process -FilePath (Join-Path $treeRuntime 'MyVibeGTA.exe') -WorkingDirectory $treeRuntime `
                 -ArgumentList $treeArgs -WindowStyle Hidden -Wait -PassThru
             if($treeProcess.ExitCode -ne 0){throw "Tree $treeModel $treeDistance failed ($($treeProcess.ExitCode))"}
             $treeImage=Get-ChildItem -LiteralPath (Join-Path $treeRuntime 'screenshots') -Filter '*.png' |
@@ -50,7 +50,7 @@ try{
         }
     }
     $treeStarted=Get-Date
-    $treeProcess=Start-Process -FilePath (Join-Path $treeRuntime 'MiniCity3D.exe') -WorkingDirectory $treeRuntime `
+    $treeProcess=Start-Process -FilePath (Join-Path $treeRuntime 'MyVibeGTA.exe') -WorkingDirectory $treeRuntime `
         -ArgumentList @('--smoke','--day','--woods','--1080p','--benchmark','--screenshot') -WindowStyle Hidden -Wait -PassThru
     if($treeProcess.ExitCode -ne 0){throw 'Woods benchmark failed'}
     Save-TreeLog (Join-Path $treeEvidence "$treeStage-woods-benchmark.txt")

@@ -1,6 +1,6 @@
 param([string]$Runtime='build-msvc-ninja-dx12',[string]$Evidence='evidence/dx12-optimization-20261009',[switch]$Benchmark,
     [int]$Repeats=3,[switch]$CandidateOnly,[string]$Label='skin-state',
-    [string]$Baseline='MiniCity3D-before-optimization.exe',[string[]]$ExtraArgs=@(),[switch]$NativeOnly,
+    [string]$Baseline='MyVibeGTA-before-optimization.exe',[string[]]$ExtraArgs=@(),[switch]$NativeOnly,
     [switch]$SkyOnly)
 $ErrorActionPreference='Stop'
 if($SkyOnly -and $ExtraArgs -notcontains '--sky-preview'){throw 'SkyOnly requires the actor-free --sky-preview fixture.'}
@@ -21,18 +21,18 @@ try{
     $runs=if($Benchmark){
         foreach($index in 1..$Repeats){
             if(-not $CandidateOnly){@{Name="baseline-native-$index";Exe=$Baseline;Args=@('--smoke','--benchmark','--fsr2=0')}}
-            @{Name="$Label-native-$index";Exe='MiniCity3D.exe';Args=@('--smoke','--benchmark','--fsr2=0')}
+            @{Name="$Label-native-$index";Exe='MyVibeGTA.exe';Args=@('--smoke','--benchmark','--fsr2=0')}
         }
     }else{
-        @{Name='native-validation';Exe='MiniCity3D.exe';Args=@('--smoke','--benchmark','--fsr2=0','--dx12-debug','--validate-gpu-skinning','--screenshot')}
-        if(-not $NativeOnly){@{Name='quality-validation';Exe='MiniCity3D.exe';Args=@('--smoke','--benchmark','--fsr2=1','--dx12-debug','--validate-gpu-skinning','--screenshot')}}
+        @{Name='native-validation';Exe='MyVibeGTA.exe';Args=@('--smoke','--benchmark','--fsr2=0','--dx12-debug','--validate-gpu-skinning','--screenshot')}
+        if(-not $NativeOnly){@{Name='quality-validation';Exe='MyVibeGTA.exe';Args=@('--smoke','--benchmark','--fsr2=1','--dx12-debug','--validate-gpu-skinning','--screenshot')}}
     }
     foreach($run in $runs){
-        if($run.Exe -eq 'MiniCity3D.exe'){$run.Args += $ExtraArgs}
+        if($run.Exe -eq 'MyVibeGTA.exe'){$run.Args += $ExtraArgs}
         $started=Get-Date
         $process=Start-Process -FilePath (Join-Path $taskRuntime $run.Exe) -WorkingDirectory $taskRuntime -ArgumentList $run.Args -WindowStyle Hidden -Wait -PassThru
         $log=Join-Path $taskEvidence ($run.Name+'.txt')
-        $text=[IO.File]::ReadAllText((Join-Path $taskRuntime 'MiniCity3D.log'))
+        $text=[IO.File]::ReadAllText((Join-Path $taskRuntime 'MyVibeGTA.log'))
         $start=$text.LastIndexOf('Application started')
         if($start -lt 0){throw 'Missing application log'}
         $start=$text.LastIndexOf("`n",$start)+1

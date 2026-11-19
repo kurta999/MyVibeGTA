@@ -13,7 +13,7 @@ names=("coastal-office","terrace-apartments",
 sheet=Image.new("RGB",(1800,1615),(21,26,31));draw=ImageDraw.Draw(sheet)
 font=ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf",23)
 title=ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf",34)
-draw.text((24,16),"MINI CITY 3D  /  Original modern asset collection",font=title,fill=(236,236,226))
+draw.text((24,16),"MyVibeGTA  /  Original modern asset collection",font=title,fill=(236,236,226))
 draw.text((24,65),"Editable GLB sources • PBR material sections • Authored building and car LODs",font=font,fill=(160,181,194))
 for i,name in enumerate(names):
     x=(i%4)*450;y=110+(i//4)*370
