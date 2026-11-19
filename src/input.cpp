@@ -224,7 +224,7 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             wheelRemainder+=GET_WHEEL_DELTA_WPARAM(wp);
             while(std::abs(wheelRemainder)>=WHEEL_DELTA){int direction=wheelRemainder>0?1:-1;
                 radio::cycle(direction);wheelRemainder-=direction*WHEEL_DELTA;}
-            message=radio::status();messageTime=3;ui::save();return 0;
+            message=radio::status();messageTime=3;ui::saveSoon();return 0;
         }
 #endif
         if(!ui::paused()&&commerce::menu()==commerce::Menu::None&&camera::zoomActive()

@@ -907,11 +907,13 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         radio::update(radioDriving,ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open,ui::masterVolume);
         if(ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open)audio::stopEngine();
 #endif
+        ui::flushSettings();
         renderAlpha=frame_pacing::alpha(accumulator,fixedStep);
         render();++frames;fpsTimer+=dt;
         if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
         Sleep(1);
     }
+    ui::flushSettings(true);
     if(!savegame::flush())logging::write("Final autosave failed");
     #ifdef MINI_CITY_JOLT
         radio::shutdown();

@@ -59,6 +59,9 @@ void handleMouse(int x,int y,bool dragging);
 bool paused();
 void load();
 void save();
+// Marks settings changed; flushSettings writes them once changes settle.
+void saveSoon();
+void flushSettings(bool force=false);
 void handleKey(int key);
 const char* keyName(int key);
 bool bindKey(int action,int key);

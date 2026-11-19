@@ -141,7 +141,7 @@ void Pause(){
             if(SliderInt("Master volume",&ui::masterVolume,0,100,"%d%%")){audio::setVolume(ui::masterVolume);changed=true;}
             Back();
         }
-        ImGui::PopItemWidth();if(changed)ui::save();
+        ImGui::PopItemWidth();if(changed)ui::saveSoon();
     }
     ImGui::End();
 }

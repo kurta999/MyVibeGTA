@@ -80,7 +80,23 @@ void setWindowActive(bool active){
     (void)active;
 #endif
 }
-void toggleFullscreen(){windowMode=windowMode==0?1:0;applyWindow();save();}
+void toggleFullscreen(){windowMode=windowMode==0?1:0;applyWindow();saveSoon();}
+namespace {
+bool settingsDirty=false;
+ULONGLONG settingsDirtySince=0;
+}
+// settings.ini is written with ~30 WritePrivateProfileString calls (each a
+// file open/rewrite). Rapid changes (radio wheel, menu arrows, slider drags)
+// are coalesced and written once they settle for a second.
+void saveSoon(){
+    if(!settingsDirty)settingsDirtySince=GetTickCount64();
+    settingsDirty=true;
+}
+void flushSettings(bool force){
+    if(!settingsDirty)return;
+    if(!force&&GetTickCount64()-settingsDirtySince<1000)return;
+    settingsDirty=false;save();
+}
 bool paused(){return page!=Page::Closed;}
 float drawDistanceScale(){
     int value=std::clamp(drawDistance,0,100);
@@ -208,7 +224,7 @@ void handleKey(int key){
     if(key==VK_ESCAPE){
         bindingNotice.clear();
         if(page==Page::Closed)page=Page::Main;
-        else if(page==Page::Main)page=Page::Closed;
+        else if(page==Page::Main){page=Page::Closed;flushSettings(true);}
         else page=Page::Main;
         selection=0;return;
     }
@@ -256,7 +272,7 @@ void handleKey(int key){
     }
     if(page==Page::Audio&&direction){masterVolume=std::clamp(masterVolume+direction*10,0,100);
         audio::setVolume(masterVolume);}
-    if(direction||key==VK_RETURN)save();
+    if(direction||key==VK_RETURN)saveSoon();
 }
 void handleMouse(int x,int y,bool dragging){
     if(page!=Page::Graphics)return;
@@ -271,7 +287,7 @@ void handleMouse(int x,int y,bool dragging){
         selection=row;
         int value=std::clamp((x-(left+290))*100/220,0,100);
         int& setting=row==10?drawDistance:row==11?lodDistance:row==12?grassDistance:row==13?grassLodDistance:fsr2Sharpness;
-        if(setting!=value){setting=value;save();}
+        if(setting!=value){setting=value;saveSoon();}
         return;
     }
 }
