@@ -227,7 +227,6 @@ class Dx11Renderer final {
     std::vector<dx11::Vertex> m_groups[dx11::MATERIAL_GROUPS];
     size_t m_staticStarts[dx11::MATERIAL_GROUPS]{}, m_staticCounts[dx11::MATERIAL_GROUPS]{};
     std::uint64_t m_groundRevision = ~std::uint64_t(0);
-    std::vector<dx11::Vertex> m_vertices;
     std::vector<dx11::ModelInstance> m_models;
     std::vector<dx11::BoundingSphere> m_instanceBounds;
     std::unordered_set<const dx11::Mesh*> m_cachedInstanceMeshes;

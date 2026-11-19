@@ -53,21 +53,40 @@ void Dx11Renderer::Render() {
     }
     auto sceneBuilt = std::chrono::steady_clock::now();
     CITY_CPU_STAGE(cpuPhase, "DX11 upload and cull");
-    m_vertices.clear();
-    size_t starts[dx11::MATERIAL_GROUPS]{}, counts[dx11::MATERIAL_GROUPS]{};
+    size_t vertexCount = 0, starts[dx11::MATERIAL_GROUPS]{}, counts[dx11::MATERIAL_GROUPS]{};
     for (int group = 0; group < dx11::MATERIAL_GROUPS; ++group) {
-        starts[group] = m_vertices.size();
+        starts[group] = vertexCount;
         counts[group] = m_groups[group].size();
-        m_vertices.insert(m_vertices.end(), m_groups[group].begin(), m_groups[group].end());
+        vertexCount += counts[group];
     }
-    if (!m_dynamicVertices->Ensure(std::max(size_t(1), m_vertices.size())))
+    if (!m_dynamicVertices->Ensure(std::max(size_t(1), vertexCount)))
         return;
     auto* vertexBuffer = m_dynamicVertices->Get();
     D3D11_MAPPED_SUBRESOURCE mapped{};
     if (FAILED(m_context->Map(vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
         return;
-    if (!m_vertices.empty())
-        std::memcpy(mapped.pData, m_vertices.data(), m_vertices.size() * sizeof(dx11::Vertex));
+    {
+        // Copy each material group straight into its range of the mapped
+        // buffer (as DX12 does). The old path first concatenated the whole
+        // dynamic scene into m_vertices, copying every vertex twice.
+        std::vector<std::future<void>> uploads;
+        for (int group = 0; group < dx11::MATERIAL_GROUPS; ++group) {
+            for (size_t first = 0; first < counts[group]; first += 32768) {
+                const size_t count = std::min(size_t(32768), counts[group] - first);
+                auto* destination = static_cast<dx11::Vertex*>(mapped.pData) + starts[group] + first;
+                const auto* source = m_groups[group].data() + first;
+                auto copy = [destination, source, count] {
+                    std::memcpy(destination, source, count * sizeof(dx11::Vertex));
+                };
+                if (m_scenePool && m_scenePool->concurrency() > 1 && count >= 8192)
+                    uploads.push_back(m_scenePool->submit(copy));
+                else
+                    copy();
+            }
+        }
+        for (auto& upload : uploads)
+            upload.get();
+    }
     m_context->Unmap(vertexBuffer, 0);
     float solar = std::sin((gameHour - 6) * PI / 12.0f);
     float daylight = std::clamp(solar * 2.3f + 0.42f, 0.0f, 1.0f);
