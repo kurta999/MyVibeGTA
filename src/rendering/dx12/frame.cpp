@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 
 namespace game {
 using ::rendering::GpuStage;
@@ -12,23 +13,16 @@ void Dx12Renderer::Render() {
         return;
     if (m_groundRevision != excavation::revision() && !CreateStaticGeometry())
         return;
-    if (std::strstr(GetCommandLineA(), "--smoke") &&
-        std::strstr(GetCommandLineA(), "--high-shadows"))
-        ui::shadowQuality = 2;
-    if (std::strstr(GetCommandLineA(), "--smoke") && std::strstr(GetCommandLineA(), "--high-taa"))
-        ui::antiAliasingQuality = 2;
-    if (std::strstr(GetCommandLineA(), "--smoke") && std::strstr(GetCommandLineA(), "--low-aa"))
-        ui::antiAliasingQuality = 0;
     auto renderBegin = std::chrono::steady_clock::now();
     drawCalls = 0;
     triangleCount = 0;
     m_profiler.Poll(*m_context, gpuShadowMs, gpuSceneMs, gpuPostMs);
     int quality = ui::fsr2Quality;
-    if (const char* option = std::strstr(GetCommandLineA(), "--fsr2="))
+    if (const char* option = std::strstr(launch::commandLine().c_str(), "--fsr2="))
         quality = std::clamp(std::atoi(option + 7), 0, 4);
-    if (std::strstr(GetCommandLineA(), "--fsr2-cycle"))
+    if (launch::has("--fsr2-cycle"))
         quality = int(m_temporalFrame / 4) % 5;
-    if (m_probeBakeActive || std::strstr(GetCommandLineA(), "--motion-view"))
+    if (m_probeBakeActive || launch::has("--motion-view"))
         quality = 0;
     const bool reconfigure =
         m_fsr.width != screenW || m_fsr.height != screenH || m_fsr.mode != quality;
@@ -120,8 +114,8 @@ void Dx12Renderer::Render() {
     const char* commandLine = GetCommandLineA();
     const bool temporalAA =
         m_fsr.active || (ui::graphicsQuality > 0 && ui::antiAliasingQuality == 2 &&
-                         !std::strstr(commandLine, "--no-taa") && !m_probeBakeActive);
-    const bool motionDebug = std::strstr(commandLine, "--motion-view") != nullptr;
+                         !launch::has("--no-taa") && !m_probeBakeActive);
+    const bool motionDebug = launch::has("--motion-view");
     SceneConstants constants = ConstantsForFrame(pose, solar, daylight, temporalAA);
     UpdateProbes();
     constants.m_previousViewProjection = m_previousViewProjection;
@@ -417,20 +411,20 @@ void Dx12Renderer::Render() {
                     : ui::antiAliasingQuality == 0 ? 0.75f
                                                    : float(ui::antiAliasingQuality),
                     ui::graphicsQuality > 0 ? float(ui::reflectionQuality) : 0.0f};
-    if (std::strstr(commandLine, "--profile-no-ssao"))
+    if (launch::has("--profile-no-ssao"))
         post.effects.x = 0;
     const bool probeDebug =
-        std::strstr(commandLine, "--probe-view") || std::strstr(commandLine, "--probe-weight-view");
+        launch::has("--probe-view") || launch::has("--probe-weight-view");
     if (probeDebug)
         post.effects = {0, 0, 0, 0};
-    post.debug.x = std::strstr(commandLine, "--normal-view")      ? 1.0f
-                   : std::strstr(commandLine, "--roughness-view") ? 2.0f
-                   : std::strstr(commandLine, "--indirect-view")  ? 5.0f
-                   : std::strstr(commandLine, "--bloom-view")     ? 4.0f
-                   : std::strstr(commandLine, "--shadow-cascade-view") ||
-                           std::strstr(commandLine, "--material-view") ||
-                           std::strstr(commandLine, "--mip-view") ||
-                           std::strstr(commandLine, "--probe-weight-view")
+    post.debug.x = launch::has("--normal-view")      ? 1.0f
+                   : launch::has("--roughness-view") ? 2.0f
+                   : launch::has("--indirect-view")  ? 5.0f
+                   : launch::has("--bloom-view")     ? 4.0f
+                   : launch::has("--shadow-cascade-view") ||
+                           launch::has("--material-view") ||
+                           launch::has("--mip-view") ||
+                           launch::has("--probe-weight-view")
                        ? 3.0f
                        : 0.0f;
     post.previousViewProjection =
@@ -448,20 +442,20 @@ void Dx12Renderer::Render() {
                       solarClip.w > 0 ? .5f - solarClip.y / solarClip.w * .5f : -2,
                       .00465f / (2 * std::tan(camera::fieldOfView() * PI / 360.0f)),
                       ui::effectsQuality > 0 && solarClip.w > 0 && !probeDebug && !post.debug.x &&
-                              !std::strstr(commandLine, "--no-lens-flare")
+                              !launch::has("--no-lens-flare")
                           ? 1.0f
                           : 0.0f};
-    post.debug.w = std::strstr(commandLine, "--flare-view") ? 1.0f : 0.0f;
+    post.debug.w = launch::has("--flare-view") ? 1.0f : 0.0f;
     post.skyWeather = {worldTime * weather::current().wind.x * 18,
                        worldTime * weather::current().wind.z * 18,
                        ui::graphicsQuality == 0   ? 24.0f
                        : ui::graphicsQuality == 1 ? 36.0f
                                                   : 48.0f,
                        daylight};
-    if (std::strstr(commandLine, "--profile-no-clouds"))
+    if (launch::has("--profile-no-clouds"))
         post.skyWeather.z = 0;
     post.temporal.z =
-        !std::strstr(commandLine, "--full-res-clouds") && !post.debug.x && !post.debug.w ? 1.0f
+        !launch::has("--full-res-clouds") && !post.debug.x && !post.debug.w ? 1.0f
                                                                                          : 0.0f;
     m_context->UpdateSubresource(m_postBuffer, 0, nullptr, &post, 0, 0);
     if (post.effects.w > 0.5f) {
@@ -551,15 +545,15 @@ void Dx12Renderer::Render() {
     tone.grade[2] = post.grade.z;
     tone.grade[3] = post.grade.w;
     const auto now = std::chrono::steady_clock::now();
-    tone.adaptation[0] = std::strstr(commandLine, "--smoke") ? 1.0f / 60
+    tone.adaptation[0] = launch::has("--smoke") ? 1.0f / 60
                          : m_exposureValid
                              ? std::chrono::duration<float>(now - m_exposureClock).count()
                              : 0;
     m_exposureClock = now;
     tone.adaptation[1] = m_exposureValid ? 0 : 1;
-    tone.adaptation[2] = std::strstr(commandLine, "--fixed-exposure") ? 0 : 1;
+    tone.adaptation[2] = launch::has("--fixed-exposure") ? 0 : 1;
     tone.adaptation[3] = post.debug.x || post.debug.w || motionDebug ? 1 : 0;
-    tone.options[0] = std::strstr(commandLine, "--legacy-tonemap") ? 1 : 0;
+    tone.options[0] = launch::has("--legacy-tonemap") ? 1 : 0;
     m_context->UpdateSubresource(m_toneBuffer, 0, nullptr, &tone, 0, 0);
     m_context->PSSetConstantBuffers(1, 1, &m_toneBuffer);
     dx12::ShaderResourceView* toneEmpty[2]{};
@@ -659,7 +653,7 @@ void Dx12Renderer::Render() {
     ++drawCalls;
     dx12::ShaderResourceView* displayEmpty = nullptr;
     m_context->PSSetShaderResources(0, 1, &displayEmpty);
-    if (std::strstr(commandLine, "--exposure-log") && m_exposureFrame % 30 == 0) {
+    if (launch::has("--exposure-log") && m_exposureFrame % 30 == 0) {
         dx12::TextureDesc description{};
         m_exposureTexture[m_exposureIndex]->GetDesc(&description);
         description.Usage = dx12::Readback;
@@ -713,14 +707,14 @@ void Dx12Renderer::Render() {
     }
     m_profiler.End(*m_context);
     m_device->tracyEnd();
-    if (std::strstr(commandLine, "--capture-converged") && m_temporalFrame == 18)
+    if (launch::has("--capture-converged") && m_temporalFrame == 18)
         screenshotRequested = true;
     CaptureIfRequested();
     auto beforePresent = std::chrono::steady_clock::now();
     CITY_CPU_STAGE(cpuPhase, "DX12 present");
     m_device->transition(m_target->resource, D3D12_RESOURCE_STATE_PRESENT);
     HRESULT presentResult =
-        m_device->present(ui::vsync && !std::strstr(GetCommandLineA(), "--benchmark") ? 1 : 0);
+        m_device->present(ui::vsync && !launch::has("--benchmark") ? 1 : 0);
     CITY_FRAME();
     Release(m_target);
     dx12::Texture2D* nextBack = nullptr;
@@ -764,7 +758,7 @@ void Dx12Renderer::Render() {
                       binds.constantBinds);
         logging::write(timing);
     }
-    if (std::strstr(GetCommandLineA(), "--benchmark-travel") &&
+    if (launch::has("--benchmark-travel") &&
         std::chrono::duration<float, std::milli>(afterPresent - renderBegin).count() > 30) {
         char timing[200]{};
         std::snprintf(

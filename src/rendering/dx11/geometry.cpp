@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 #include "../../dx12_visibility.h"
 
 namespace game {
@@ -28,11 +29,11 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
         batches.clear();
     m_headlightShadowInstanceBatches.clear();
     m_streetShadowInstanceBatches.clear();
-    const bool disableCulling = std::strstr(GetCommandLineA(), "--no-frustum-cull") != nullptr;
+    const bool disableCulling = launch::has("--no-frustum-cull");
     // Both Direct3D backends use the same conservative receiver math.
     const bool receiverCull =
-        !disableCulling && !std::strstr(GetCommandLineA(), "--legacy-shadow-culling");
-    const bool shadowLod = !std::strstr(GetCommandLineA(), "--legacy-shadow-lod");
+        !disableCulling && !launch::has("--legacy-shadow-culling");
+    const bool shadowLod = !launch::has("--legacy-shadow-lod");
     const dx12::ShadowReceivers receivers(
         constants.m_viewProjection, {pose.eye.x, pose.eye.y, pose.eye.z},
         {constants.m_sun.x, constants.m_sun.y, constants.m_sun.z});
@@ -301,7 +302,7 @@ void Dx11Renderer::DrawInstances(bool shadow, SceneConstants& constants, bool tr
             constants.m_materialSurface = {
                 range ? range->clearcoat : 0, range ? range->clearcoatRoughness : 0.1f,
                 range ? range->glassIor : 0, drawn->grassFoliage ? 1.0f : 0.0f};
-            if (std::strstr(GetCommandLineA(), "--no-clearcoat"))
+            if (launch::has("--no-clearcoat"))
                 constants.m_materialSurface.x = 0;
             constants.m_materialOptions.x = range                   ? range->alphaCutoff
                                             : batch.m_material == 4 ? 0.42f

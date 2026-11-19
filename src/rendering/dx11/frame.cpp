@@ -1,4 +1,5 @@
 #include "../../imgui_menus.h"
+#include "../../launch_options.h"
 #include "renderer.h"
 
 namespace game {
@@ -12,13 +13,6 @@ void Dx11Renderer::Render() {
         return;
     if (m_groundRevision != excavation::revision() && !CreateStaticGeometry())
         return;
-    if (std::strstr(GetCommandLineA(), "--smoke") &&
-        std::strstr(GetCommandLineA(), "--high-shadows"))
-        ui::shadowQuality = 2;
-    if (std::strstr(GetCommandLineA(), "--smoke") && std::strstr(GetCommandLineA(), "--high-taa"))
-        ui::antiAliasingQuality = 2;
-    if (std::strstr(GetCommandLineA(), "--smoke") && std::strstr(GetCommandLineA(), "--low-aa"))
-        ui::antiAliasingQuality = 0;
     auto renderBegin = std::chrono::steady_clock::now();
     drawCalls = 0;
     triangleCount = 0;
@@ -85,8 +79,8 @@ void Dx11Renderer::Render() {
     dx11::sortInstancesForRendering(m_models, pose.eye.x, pose.eye.y, pose.eye.z);
     const char* commandLine = GetCommandLineA();
     const bool temporalAA = ui::graphicsQuality > 0 && ui::antiAliasingQuality == 2 &&
-                            !std::strstr(commandLine, "--no-taa") && !m_probeBakeActive;
-    const bool motionDebug = std::strstr(commandLine, "--motion-view") != nullptr;
+                            !launch::has("--no-taa") && !m_probeBakeActive;
+    const bool motionDebug = launch::has("--motion-view");
     SceneConstants constants = ConstantsForFrame(pose, solar, daylight, temporalAA);
     UpdateProbes();
     constants.m_previousViewProjection = m_previousViewProjection;
@@ -371,17 +365,17 @@ void Dx11Renderer::Render() {
                                                      : float(ui::antiAliasingQuality),
                       ui::graphicsQuality > 0 ? float(ui::reflectionQuality) : 0.0f};
     const bool probeDebug =
-        std::strstr(commandLine, "--probe-view") || std::strstr(commandLine, "--probe-weight-view");
+        launch::has("--probe-view") || launch::has("--probe-weight-view");
     if (probeDebug)
         post.m_effects = {0, 0, 0, 0};
-    post.m_debug.x = std::strstr(commandLine, "--normal-view")      ? 1.0f
-                     : std::strstr(commandLine, "--roughness-view") ? 2.0f
-                     : std::strstr(commandLine, "--indirect-view")  ? 5.0f
-                     : std::strstr(commandLine, "--bloom-view")     ? 4.0f
-                     : std::strstr(commandLine, "--shadow-cascade-view") ||
-                             std::strstr(commandLine, "--material-view") ||
-                             std::strstr(commandLine, "--mip-view") ||
-                             std::strstr(commandLine, "--probe-weight-view")
+    post.m_debug.x = launch::has("--normal-view")      ? 1.0f
+                     : launch::has("--roughness-view") ? 2.0f
+                     : launch::has("--indirect-view")  ? 5.0f
+                     : launch::has("--bloom-view")     ? 4.0f
+                     : launch::has("--shadow-cascade-view") ||
+                             launch::has("--material-view") ||
+                             launch::has("--mip-view") ||
+                             launch::has("--probe-weight-view")
                          ? 3.0f
                          : 0.0f;
     post.m_previousViewProjection =
@@ -399,10 +393,10 @@ void Dx11Renderer::Render() {
                         solarClip.w > 0 ? .5f - solarClip.y / solarClip.w * .5f : -2,
                         .00465f / (2 * std::tan(camera::fieldOfView() * PI / 360.0f)),
                         ui::effectsQuality > 0 && solarClip.w > 0 && !probeDebug &&
-                                !post.m_debug.x && !std::strstr(commandLine, "--no-lens-flare")
+                                !post.m_debug.x && !launch::has("--no-lens-flare")
                             ? 1.0f
                             : 0.0f};
-    post.m_debug.w = std::strstr(commandLine, "--flare-view") ? 1.0f : 0.0f;
+    post.m_debug.w = launch::has("--flare-view") ? 1.0f : 0.0f;
     post.m_skyWeather = {worldTime * weather::current().wind.x * 18,
                          worldTime * weather::current().wind.z * 18,
                          ui::graphicsQuality == 0   ? 24.0f
@@ -463,15 +457,15 @@ void Dx11Renderer::Render() {
     tone.grade[2] = post.m_grade.z;
     tone.grade[3] = post.m_grade.w;
     const auto now = std::chrono::steady_clock::now();
-    tone.adaptation[0] = std::strstr(commandLine, "--smoke") ? 1.0f / 60
+    tone.adaptation[0] = launch::has("--smoke") ? 1.0f / 60
                          : m_exposureValid
                              ? std::chrono::duration<float>(now - m_exposureClock).count()
                              : 0;
     m_exposureClock = now;
     tone.adaptation[1] = m_exposureValid ? 0 : 1;
-    tone.adaptation[2] = std::strstr(commandLine, "--fixed-exposure") ? 0 : 1;
+    tone.adaptation[2] = launch::has("--fixed-exposure") ? 0 : 1;
     tone.adaptation[3] = post.m_debug.x || post.m_debug.w || motionDebug ? 1 : 0;
-    tone.options[0] = std::strstr(commandLine, "--legacy-tonemap") ? 1 : 0;
+    tone.options[0] = launch::has("--legacy-tonemap") ? 1 : 0;
     m_context->UpdateSubresource(m_toneBuffer, 0, nullptr, &tone, 0, 0);
     m_context->PSSetConstantBuffers(1, 1, &m_toneBuffer);
     ID3D11ShaderResourceView* toneEmpty[2]{};
@@ -544,7 +538,7 @@ void Dx11Renderer::Render() {
     ++drawCalls;
     ID3D11ShaderResourceView* displayEmpty = nullptr;
     m_context->PSSetShaderResources(0, 1, &displayEmpty);
-    if (std::strstr(commandLine, "--exposure-log") && m_exposureFrame % 30 == 0) {
+    if (launch::has("--exposure-log") && m_exposureFrame % 30 == 0) {
         D3D11_TEXTURE2D_DESC description{};
         m_exposureTexture[m_exposureIndex]->GetDesc(&description);
         description.Usage = D3D11_USAGE_STAGING;
@@ -603,7 +597,7 @@ void Dx11Renderer::Render() {
     auto beforePresent = std::chrono::steady_clock::now();
     CITY_CPU_STAGE(cpuPhase, "DX11 present");
     HRESULT presentResult =
-        m_swapChain->Present(ui::vsync && !std::strstr(GetCommandLineA(), "--benchmark") ? 1 : 0, 0);
+        m_swapChain->Present(ui::vsync && !launch::has("--benchmark") ? 1 : 0, 0);
     CITY_FRAME();
     if (FAILED(presentResult)) {
         char failure[128]{};
@@ -634,7 +628,7 @@ void Dx11Renderer::Render() {
                       renderSceneMs, renderUploadMs, renderDrawMs, renderPresentMs, drawCalls);
         logging::write(timing);
     }
-    if (std::strstr(GetCommandLineA(), "--benchmark-travel") &&
+    if (launch::has("--benchmark-travel") &&
         std::chrono::duration<float, std::milli>(afterPresent - renderBegin).count() > 30) {
         char timing[200]{};
         std::snprintf(

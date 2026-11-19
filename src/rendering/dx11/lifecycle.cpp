@@ -1,4 +1,5 @@
 #include "../../imgui_menus.h"
+#include "../../launch_options.h"
 #include "renderer.h"
 
 namespace game {
@@ -109,7 +110,7 @@ bool Dx11Renderer::InitRenderer() {
         return false;
     if (!CreateStates() || !CreateTargets(std::max(1, screenW), std::max(1, screenH)))
         return false;
-    if (!std::strstr(GetCommandLineA(), "--cpu-skinning") && !CreateSkinResources())
+    if (!launch::has("--cpu-skinning") && !CreateSkinResources())
         logging::write("GPU skin resources unavailable; using CPU deformation");
     if (!CreateHeadlightShadowTarget())
         logging::write("Headlight shadow target unavailable; continuing without local shadows");
@@ -124,7 +125,7 @@ bool Dx11Renderer::InitRenderer() {
         *m_device, sizeof(InstanceData), 128);
     m_meshCache = std::make_unique<::rendering::MeshCache<ResourceApi>>(*m_device);
     m_textureLibrary = std::make_unique<::rendering::TextureLibrary<ResourceApi>>(
-        *m_device, *m_context, std::strstr(GetCommandLineA(), "--validate-loading") != nullptr);
+        *m_device, *m_context, launch::has("--validate-loading"));
     std::wstring base = ::rendering::ExecutableFolder();
     if (!startup::report(35, "Loading surface textures"))
         return false;

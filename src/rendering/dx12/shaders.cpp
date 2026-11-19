@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 #include "../shaders/shared_shaders.h"
 #include "../shaders/dx12_shaders.h"
 
@@ -53,14 +54,14 @@ bool Dx12Renderer::CreateShaders() {
                 if (log)
                     log << requests[i].entry << ": " << compiled[i].error << '\n';
                 logging::write("Graphics shader compilation failed; see shader-error.log");
-                if (!std::strstr(GetCommandLineA(), "--smoke"))
+                if (!launch::has("--smoke"))
                     MessageBoxA(win, compiled[i].error.c_str(), "Direct3D shader compile error",
                                 MB_ICONERROR);
                 break;
             }
         return false;
     }
-    if (std::strstr(GetCommandLineA(), "--validate-loading")) {
+    if (launch::has("--validate-loading")) {
         std::uint64_t checksum = 14695981039346656037ULL;
         for (const auto& item : compiled) {
             const auto* bytes = static_cast<const unsigned char*>(item.blob->GetBufferPointer());

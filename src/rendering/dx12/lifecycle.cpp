@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 
 namespace game {
 bool Dx12Renderer::ExclusiveFullscreenEnabled() {
@@ -83,7 +84,7 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
         return false;
     if (!CreateStates() || !CreateTargets(std::max(1, screenW), std::max(1, screenH)))
         return false;
-    if (!std::strstr(GetCommandLineA(), "--cpu-skinning") && !CreateSkinResources())
+    if (!launch::has("--cpu-skinning") && !CreateSkinResources())
         logging::write("GPU skin resources unavailable; using CPU deformation");
     if (!CreateHeadlightShadowTarget())
         logging::write("Headlight shadow target unavailable; continuing without local shadows");
@@ -97,7 +98,7 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
         *m_device, sizeof(InstanceData), 128);
     m_meshCache = std::make_unique<::rendering::MeshCache<ResourceApi>>(*m_device);
     m_textureLibrary = std::make_unique<::rendering::TextureLibrary<ResourceApi>>(
-        *m_device, *m_context, std::strstr(GetCommandLineA(), "--validate-loading") != nullptr);
+        *m_device, *m_context, launch::has("--validate-loading"));
     std::wstring base = ::rendering::ExecutableFolder();
     if (!startup::report(35, "Loading surface textures"))
         return false;
@@ -214,7 +215,7 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
     // a throughput win from splitting native lists. Keep the measured serial
     // default until larger batches/hardware justify enabling worker recording.
     unsigned recordWorkers = 1;
-    if (const char* option = std::strstr(GetCommandLineA(), "--record-workers="))
+    if (const char* option = std::strstr(launch::commandLine().c_str(), "--record-workers="))
         recordWorkers = unsigned(std::clamp(std::atoi(option + 17), 1, 8));
     m_recordPool = std::make_unique<cpu::Pool>(recordWorkers,"DX12 recording");
     logging::write(("DX12 command recording workers: " + std::to_string(recordWorkers)).c_str());

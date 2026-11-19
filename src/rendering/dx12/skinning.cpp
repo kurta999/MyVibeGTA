@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 #include "../shaders/dx12_skin.h"
 
 namespace game {
@@ -212,7 +213,7 @@ void Dx12Renderer::PrepareSkins() {
         ready = ready && instance.palette.size() == instance.source->jointCount &&
                 CacheSkin(instance.source);
     if (ready) {
-        const bool validate = std::strstr(GetCommandLineA(), "--validate-gpu-skinning") &&
+        const bool validate = launch::has("--validate-gpu-skinning") &&
                               (m_skinFrame == 1 || m_skinFrame == 30 || m_skinFrame == 60);
         std::vector<dx11::SkinInstance> priorPoses;
         std::vector<unsigned> priorValidity;

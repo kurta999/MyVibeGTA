@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "../../launch_options.h"
 #include "world_placements.h"
 
 namespace game {
@@ -37,7 +38,7 @@ Dx11Renderer::SceneConstants Dx11Renderer::ConstantsForFrame(const camera::Pose&
     XMStoreFloat4x4(&constants.m_viewProjection, XMMatrixMultiply(view, projection));
     constants.m_sun = {std::cos((gameHour - 6) * PI / 12), solar, 0.3f,
                        std::clamp(solar * 6.0f, 0.0f, 1.0f) * light};
-    if (std::strstr(GetCommandLineA(), "--no-direct-sun"))
+    if (launch::has("--no-direct-sun"))
         constants.m_sun.w = 0;
     XMVECTOR focus = XMVectorSet(player.x, playerY, player.z, 1);
     XMVECTOR sunDirection =
@@ -212,9 +213,9 @@ Dx11Renderer::SceneConstants Dx11Renderer::ConstantsForFrame(const camera::Pose&
     constants.m_shadowInfo = {1.0f / float(std::max(1, m_shadowSize)), 250.0f * drawScale,
                               650.0f * drawScale, float(m_shadowCascadeCount)};
     constants.m_materialOptions.y =
-        std::strstr(GetCommandLineA(), "--shadow-cascade-view") ? 1.0f : 0.0f;
-    constants.m_materialOptions.z = std::strstr(GetCommandLineA(), "--material-view") ? 1.0f : 0.0f;
-    constants.m_materialOptions.w = std::strstr(GetCommandLineA(), "--mip-view") ? 1.0f : 0.0f;
+        launch::has("--shadow-cascade-view") ? 1.0f : 0.0f;
+    constants.m_materialOptions.z = launch::has("--material-view") ? 1.0f : 0.0f;
+    constants.m_materialOptions.w = launch::has("--mip-view") ? 1.0f : 0.0f;
     return constants;
 }
 } // namespace game

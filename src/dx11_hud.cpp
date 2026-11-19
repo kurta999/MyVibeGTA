@@ -5,6 +5,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include "launch_options.h"
 #include <objidl.h>
 #include <gdiplus.h>
 #include "dx11_assets.h"
@@ -113,7 +114,7 @@ float damageFeedback(){
     lastHealth=health;
     if(!ui::paused())hurt=std::max(0.0f,hurt-dt*1.4f);
     const char* commandLine=GetCommandLineA();
-    if(health<=0||ui::paused()||(std::strstr(commandLine,"--smoke")&&!std::strstr(commandLine,"--hurt-preview")))return 0;
+    if(health<=0||ui::paused()||(launch::has("--smoke")&&!launch::has("--hurt-preview")))return 0;
     float low=health<maximum*0.25f?0.32f+0.14f*std::sin(float(now%100000)/1000.0f*4.5f):0.0f;
     return std::max(hurt*0.85f,low);
 }

@@ -607,6 +607,11 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     }
     if(smoke&&commandLine&&std::strstr(commandLine,"--no-shadows"))ui::shadowQuality=0;
     if(smoke&&commandLine&&std::strstr(commandLine,"--medium-shadows"))ui::shadowQuality=1;
+    // Smoke graphics overrides are applied once here; the renderers used to
+    // re-apply them every frame, overwriting the menu settings.
+    if(smoke&&commandLine&&std::strstr(commandLine,"--high-shadows"))ui::shadowQuality=2;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--high-taa"))ui::antiAliasingQuality=2;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--low-aa"))ui::antiAliasingQuality=0;
 #ifdef MINI_CITY_JOLT
     if(smoke&&commandLine&&std::strstr(commandLine,"--traffic-preview")){
         player=previousPlayer={520,235};cameraYaw=0;cameraPitch=0;

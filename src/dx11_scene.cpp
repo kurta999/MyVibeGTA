@@ -1,4 +1,5 @@
 #include "profiling.h"
+#include "launch_options.h"
 #include "mission_script.h"
 #include "dx11_assets.h"
 #include "dx11_terrain.h"
@@ -177,13 +178,13 @@ void model(const std::string& name,Vec3 position,Vec3 size,float yaw,Color tint=
         LodKey key{source,position.x,position.y,position.z};
         auto [choice,inserted]=authoredLodChoice.try_emplace(key,0);
         choice->second=chooseLodLevel(pixels,chain->minPixels,!inserted,choice->second);
-        if(std::strstr(GetCommandLineA(),"--smoke")){
+        if(launch::has("--smoke")){
             const char* flags[4]={"--lod-level-0","--lod-level-1","--lod-level-2","--lod-level-3"};
             for(unsigned level=0;level<4;++level)
                 if(std::strstr(GetCommandLineA(),flags[level]))choice->second=level;
         }
         source=chain->meshes[choice->second];
-        if(std::strstr(GetCommandLineA(),"--lod-view")){
+        if(launch::has("--lod-view")){
             const Color colors[4]={{0.25f,1,0.25f},{1,1,0.2f},{1,0.5f,0.2f},{1,0.2f,0.2f}};
             tint=colors[choice->second];
         }
