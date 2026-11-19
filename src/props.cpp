@@ -80,7 +80,7 @@ void update(float dt){
             jolt_world::impulse(index,{push.x,0,push.z});
         }
         if(occupied>=0&&len(player-prop.p)<radius+22){
-            Vec2 strike=vehicles[occupied].velocity;
+            Vec2 strike=currentVehicle()?currentVehicle()->velocity:Vec2{};
             jolt_world::impulse(index,{strike.x*dt*5,0,strike.z*dt*5});
             if(len(strike)>90){prop.health-=int(len(strike)*dt*2);
                 damageVehicle(occupied,dt*5);}
@@ -94,7 +94,7 @@ void update(float dt){
         if(occupied<0&&len(player-prop.p)<radius+11&&len(playerVelocity)>25)
             prop.v=prop.v+norm(prop.p-player)*std::min(130.0f,len(playerVelocity))*dt*5;
         if(occupied>=0&&len(player-prop.p)<radius+22){
-            Vec2 strike=vehicles[occupied].velocity;
+            Vec2 strike=currentVehicle()?currentVehicle()->velocity:Vec2{};
             prop.v=prop.v+strike*dt*5.0f;
             if(len(strike)>90){prop.health-=int(len(strike)*dt*2);
                 damageVehicle(occupied,dt*5);}

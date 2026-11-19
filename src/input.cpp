@@ -172,10 +172,10 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
             if(wp==VK_F3)debugHud=!debugHud;
             if(wp==VK_F1)ui::showHelp=!ui::showHelp;
             if(wp=='T')gameHour=std::fmod(gameHour+1.0f,24.0f);
-            if(wp=='Q'&&(occupied<0||vehicles[occupied].kind!=Kind::Airplane))for(int i=1;i<=weapons::count();++i){int candidate=(weapon+i)%weapons::count();
+            if(wp=='Q'&&(!currentVehicle()||currentVehicle()->kind!=Kind::Airplane))for(int i=1;i<=weapons::count();++i){int candidate=(weapon+i)%weapons::count();
                 if(unlocked[candidate]){weapon=candidate;break;}}
         }
-        if(wp=='R'&&(occupied<0||vehicles[occupied].kind!=Kind::Airplane)){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
+        if(wp=='R'&&(!currentVehicle()||currentVehicle()->kind!=Kind::Airplane)){if(health<=0)reset();else if(!(lp&(1<<30)))startReload();}return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:if(wp<256)keys[wp]=false;return 0;
     case WM_LBUTTONDOWN:

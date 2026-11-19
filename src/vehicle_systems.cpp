@@ -103,7 +103,7 @@ void fireTank(){
     police::report(police::Crime::Gunfire,v.p,false);
 }
 void toggleTrailer(){
-    if(occupied<0||vehicles[occupied].kind!=Kind::Truck)return;
+    if(!currentVehicle()||currentVehicle()->kind!=Kind::Truck)return;
     bool ok=jolt_world::toggleTrailer(occupied);
     announce(ok?(vehicles[occupied].trailer>=0?"TRAILER ATTACHED":"TRAILER DETACHED"):
         "Back the truck hitch close to the trailer. Stop before coupling.",3);

@@ -448,7 +448,7 @@ void update(float dt){
             desired=std::min(desired,std::sqrt(2.0f*95.0f*gap));
         };
         if(!chasing||!sees||occupied<0){
-            float otherScale=occupied>=0?physics::vehicleScale(vehicles[occupied].kind):1;
+            float otherScale=currentVehicle()?physics::vehicleScale(currentVehicle()->kind):1;
             avoid(player,playerVelocity,occupied>=0?13*otherScale:10,occupied>=0?24*otherScale:12);
         }
         for(int j=0;j<int(vehicles.size());++j)if(j!=i){

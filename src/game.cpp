@@ -101,6 +101,7 @@ std::vector<Building> buildings;
 std::vector<Tree> trees;
 std::vector<Ped> peds;
 std::vector<Vehicle> vehicles;
+Vehicle* currentVehicle(){return occupied>=0&&occupied<int(vehicles.size())?&vehicles[occupied]:nullptr;}
 std::vector<Bullet> bullets;
 std::vector<Impact> impacts;
 std::vector<HitFlash> hitFlashes;
@@ -817,8 +818,8 @@ void enterExit(){
     if(traversal::active()||health<=0)return;
 #endif
     if(carryingBody())carryDrop();
-    if(occupied>=0){
-        Vehicle& v=vehicles[occupied];Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
+    if(Vehicle* driven=currentVehicle()){
+        Vehicle& v=*driven;Vec2 side{-std::sin(v.angle),std::cos(v.angle)};
 #ifdef MINI_CITY_JOLT
         // Water is a valid swimming exit; solid() deliberately rejects it for
         // ground navigation. Keep bounds and obstacles in the exit test.
@@ -909,8 +910,8 @@ void startReload(){
 #endif
     const auto& stats=weapons::stats(weapon);
     if(stats.melee||stats.grapple)return;
-    if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
-        vehicles[occupied].kind==Kind::Bike||int(vehicles[occupied].kind)>=5||!stats.driveByAllowed))return;
+    if(const Vehicle* car=currentVehicle();car&&(car->kind==Kind::Boat||car->kind==Kind::Helicopter||
+        car->kind==Kind::Bike||int(car->kind)>=5||!stats.driveByAllowed))return;
     if(magazine[weapon]>=stats.magazine||ammo[weapon]==0)return;
     reloadingWeapon=weapon;reloadRemaining=stats.reloadSeconds;
     audio::play(audio::Effect::Reload);
@@ -1029,8 +1030,8 @@ void shoot(){
         }
         return;
     }
-    if(occupied>=0&&(vehicles[occupied].kind==Kind::Boat||vehicles[occupied].kind==Kind::Helicopter||
-        vehicles[occupied].kind==Kind::Bike||int(vehicles[occupied].kind)>=5||!stats.driveByAllowed))return;
+    if(const Vehicle* car=currentVehicle();car&&(car->kind==Kind::Boat||car->kind==Kind::Helicopter||
+        car->kind==Kind::Bike||int(car->kind)>=5||!stats.driveByAllowed))return;
     if(reloadRemaining>0&&reloadingWeapon==weapon)return;
 #ifdef MINI_CITY_JOLT
     // Debug ammunition does not mutate the saved magazine or reserve.
@@ -1068,8 +1069,8 @@ void shoot(){
 #ifdef MINI_CITY_JOLT
     if(occupied<0)muzzle=camera::weaponMuzzle(player,playerY,cameraYaw,target);
 #endif
-    if(occupied>=0){
-        const Vehicle& car=vehicles[occupied];
+    if(const Vehicle* driven=currentVehicle()){
+        const Vehicle& car=*driven;
         Vec2 carFront=forward(car.angle),carSide{-carFront.z,carFront.x};
         Vec2 toward=norm(Vec2{target.x-car.p.x,target.z-car.p.z});
         float sideSign=toward.x*carSide.x+toward.z*carSide.z>=0?1.0f:-1.0f;
@@ -1173,6 +1174,7 @@ void update(float dt){
         if(enteringVehicle>=int(vehicles.size())||vehicles[enteringVehicle].exploded||
            health<=0){enteringVehicle=-1;vehicleEntryTime=0;}
     }
+    if(enteringVehicle>=int(vehicles.size())){enteringVehicle=-1;vehicleEntryTime=0;}
     if(enteringVehicle>=0){
         vehicleEntryTime-=dt;
         if(vehicleEntryTime<=0){
@@ -1276,8 +1278,8 @@ void update(float dt){
 #endif
                 )shoot();
             }
-        }else{
-            Vehicle& v=vehicles[occupied];
+        }else if(Vehicle* driven=currentVehicle()){
+            Vehicle& v=*driven;
             #ifndef MINI_CITY_JOLT
             engineSoundTime-=dt;
             if(engineSoundTime<=0){audio::play(v.kind==Kind::Boat?audio::Effect::Splash:audio::Effect::Engine,

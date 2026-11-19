@@ -161,6 +161,8 @@ extern std::vector<Building> buildings;
 extern std::vector<Tree> trees;
 extern std::vector<Ped> peds;
 extern std::vector<Vehicle> vehicles;
+// The vehicle the player drives, or nullptr on foot (or if `occupied` is stale).
+Vehicle* currentVehicle();
 extern std::vector<Bullet> bullets;
 extern std::vector<Impact> impacts;
 extern std::vector<HitFlash> hitFlashes;
