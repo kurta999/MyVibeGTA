@@ -216,6 +216,6 @@ void builderProgressionScenarios(){
     assert(checked==22&&crafted.size()==22);report.close();openChest();int tools=0;
     for(auto s:*builder::chest())if(s.item>=0&&builder::items()[s.item].tool!=builder::Tool::None)++tools;assert(tools==22);builder::closeInventory();
     std::printf("progression: all 22 crafted tools retained in one chest; %zu ground cuts and %zu edited scenery objects persisted\n",excavation::cells().size(),scenery_edits::records().size());
-    assert(savegame::save());std::filesystem::copy_file("savegame.ini","builder-progression-save.ini",std::filesystem::copy_options::overwrite_existing);
+    assert(savegame::save());std::filesystem::copy_file(savegame::filePath(),"builder-progression-save.ini",std::filesystem::copy_options::overwrite_existing);
     reset();assert(savegame::save());jolt_world::shutdown();
 }

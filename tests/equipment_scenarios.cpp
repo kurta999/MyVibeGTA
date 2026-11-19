@@ -30,8 +30,7 @@ void stage(){
     grounded=true;health=PLAYER_MAX_HEALTH;
 }
 void ticks(int n,float dt=1.0f/60){for(int i=0;i<n;++i)update(dt);}
-std::string savePath(){char p[MAX_PATH]{};GetModuleFileNameA(nullptr,p,MAX_PATH);
-    std::string path(p);return path.substr(0,path.find_last_of("\\/")+1)+"savegame.ini";}
+std::string savePath(){return savegame::filePath();}
 }
 void equipmentScenarios(){
     using namespace game;

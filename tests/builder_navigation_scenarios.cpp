@@ -340,12 +340,12 @@ void builderNavigationRestartSave(){
     using namespace game;fixture();tunnel(-2);
     for(int x=5;x<=7;++x)for(int z=6;z<=8;++z)assert(mineTerrainVolume({x,-1,z}));
     assert(placeEditVolume({6,-2,2},builder::itemIndex("granite"),false));
-    assert(savegame::save());std::filesystem::copy_file(runtimeFile("savegame.ini"),runtimeFile("builder-navigation-restart.ini"),std::filesystem::copy_options::overwrite_existing);
+    assert(savegame::save());std::filesystem::copy_file(savegame::filePath(),runtimeFile("builder-navigation-restart.ini"),std::filesystem::copy_options::overwrite_existing);
     jolt_world::shutdown();std::puts("builder navigation restart: edited tunnel, pit and placed obstacle saved; process exits");
 }
 
 void builderNavigationRestartLoad(){
-    using namespace game;std::filesystem::copy_file(runtimeFile("builder-navigation-restart.ini"),runtimeFile("savegame.ini"),std::filesystem::copy_options::overwrite_existing);
+    using namespace game;std::filesystem::copy_file(runtimeFile("builder-navigation-restart.ini"),savegame::filePath(),std::filesystem::copy_options::overwrite_existing);
     assert(savegame::load()&&!builder::active()&&excavation::cells().size()==336&&builder::blocks().size()==8);
     assert(builder::blocks().begin()->second.item==builder::itemIndex("granite"));
     // Recreate the same controlled surroundings; the edited cells/block are

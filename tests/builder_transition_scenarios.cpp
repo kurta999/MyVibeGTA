@@ -18,8 +18,7 @@
 #include <iterator>
 
 namespace {
-std::string savePath(){char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,filename,MAX_PATH);
-    std::string file(filename);return file.substr(0,file.find_last_of("\\/")+1)+"savegame.ini";}
+std::string savePath(){return savegame::filePath();}
 std::string bytes(const std::string& path){std::ifstream input(path,std::ios::binary);assert(input);
     return {std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>()};}
 void toggle(){bool next=!builder::active();assert(builder::requestToggle());assert(finishBuilderTransition(true)&&builder::active()==next);}

@@ -227,8 +227,7 @@ int main(int argc,char** argv){
         game::money=999;assert(savegame::load()&&game::money==123);
         for(int i=0;i<100;++i){game::money=i;savegame::request();}
         game::money=999;assert(savegame::flush()&&savegame::load()&&game::money==99);
-        char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,filename,MAX_PATH);
-        std::string file(filename);file=file.substr(0,file.find_last_of("\\/")+1)+"savegame.ini";
+        std::string file=savegame::filePath();
         HANDLE locked=CreateFileA(file.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);
         assert(locked!=INVALID_HANDLE_VALUE);
         game::money=456;savegame::request();assert(!savegame::flush());CloseHandle(locked);
@@ -1625,9 +1624,7 @@ int main(int argc,char** argv){
     assert(savegame::load());
     assert(game::money==1234&&game::health==68&&game::weapon==1);
     assert(game::missionDone[5]&&game::missionDone[8]);
-    char executable[MAX_PATH]{};GetModuleFileNameA(nullptr,executable,MAX_PATH);
-    std::string savePath(executable);
-    savePath=savePath.substr(0,savePath.find_last_of("\\/")+1)+"savegame.ini";
+    std::string savePath=savegame::filePath();
     {std::ofstream legacy(savePath,std::ios::trunc);
         legacy<<"[Save]\nVersion=1\n[Player]\nX=300\nZ=250\nHealth=64\nMoney=712\n"
               "Hour=1650\nWeapon=1\n[Weapons]\nUnlocked1=1\nReserve1=37\nMagazine1=8\n"

@@ -1,4 +1,5 @@
 #include "savegame.h"
+#include "user_paths.h"
 #include "audio.h"
 #include "game.h"
 #include "weapons.h"
@@ -29,11 +30,7 @@
 
 namespace savegame {
 namespace {
-std::string path(){
-    char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,filename,MAX_PATH);
-    std::string result(filename);auto slash=result.find_last_of("\\/");
-    return result.substr(0,slash+1)+"savegame.ini";
-}
+std::string path(){return user_paths::file("savegame.ini");}
 bool writeText(const std::string& section,const char* key,const std::string& value,const std::string& file){
     return WritePrivateProfileStringA(section.c_str(),key,value.c_str(),file.c_str())!=0;
 }
@@ -237,6 +234,7 @@ void request(){save();}
 bool flush(){return true;}
 bool takeFailure(){return false;}
 #endif
+std::string filePath(){return path();}
 bool load(){
     // Wait for ordering even when the newest write failed; the previous
     // successfully replaced file remains a valid load target.

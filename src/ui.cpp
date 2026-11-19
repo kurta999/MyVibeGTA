@@ -6,6 +6,7 @@
 #endif
 #include "savegame.h"
 #include "key_bindings.h"
+#include "user_paths.h"
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -29,11 +30,7 @@ std::array<int,int(Action::Count)> bindings=defaultBindings;
 
 namespace {
 bool applyingWindow=false;
-std::string configPath(){
-    char path[MAX_PATH]{};GetModuleFileNameA(nullptr,path,MAX_PATH);
-    std::string result(path);auto slash=result.find_last_of("\\/");
-    return result.substr(0,slash+1)+"settings.ini";
-}
+std::string configPath(){return user_paths::file("settings.ini");}
 int count(Page p){
     return p==Page::Main?7:p==Page::Graphics?GRAPHICS_MENU_ROWS:p==Page::Controls?CONTROLS_MENU_ROWS:p==Page::Audio?1:0;
 }

@@ -461,7 +461,7 @@ bool PreparePreviews(const char* commandLine,bool benchmark,bool savedBuilderPre
         }else if(std::strstr(commandLine,"--save-loading")){
             if(!builder::requestToggle())return false;builder::advance(.12f);
         }else{
-            char filename[MAX_PATH]{};GetModuleFileNameA(nullptr,filename,MAX_PATH);std::string file(filename);file=file.substr(0,file.find_last_of("\\/")+1)+"savegame.ini";
+            std::string file=savegame::filePath();
             HANDLE locked=CreateFileA(file.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
             if(locked==INVALID_HANDLE_VALUE)return false;
             bool requested=builder::requestToggle();bool switched=requested&&FinishBuilderTransition();CloseHandle(locked);

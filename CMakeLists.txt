@@ -311,6 +311,24 @@ if(BUILD_TESTING)
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
   set_tests_properties(simulation_smoke PROPERTIES
       WORKING_DIRECTORY "$<TARGET_FILE_DIR:simulation_smoke>")
+  # Simulation tests save into their own folder (MYVIBEGTA_USER_DIR), never
+  # beside the executable where a real save or another test's save lives.
+  set(SIMULATION_TESTS simulation_smoke mission_script_scenarios placement_data_scenarios
+      builder_scenarios excavation_scenarios scenery_scenarios tool_work_scenarios
+      builder_feedback_scenarios builder_recovery_scenarios builder_transition_scenarios
+      builder_progression_scenarios builder_navigation_scenarios builder_destination_scenarios
+      builder_wildlife_scenarios builder_interaction_scenarios builder_police_scenarios
+      expansion_scenarios equipment_scenarios ordnance_scenarios wildlife_scenarios
+      bird_scenarios driver_scenarios vehicle_collision_scenarios ped_scenarios
+      scene_jobs_scenarios grass_scenarios terrain_scenarios autosave_scenarios
+      traffic_scenarios navigation_scenarios)
+  foreach(simulation_test IN LISTS SIMULATION_TESTS)
+    set_property(TEST ${simulation_test} APPEND PROPERTY ENVIRONMENT
+      "MYVIBEGTA_USER_DIR=${CMAKE_CURRENT_BINARY_DIR}/test-user/${simulation_test}")
+  endforeach()
+  # The restart pair shares one folder: the load test reads the save test's file.
+  set_property(TEST builder_navigation_restart_save builder_navigation_restart_load APPEND PROPERTY
+    ENVIRONMENT "MYVIBEGTA_USER_DIR=${CMAKE_CURRENT_BINARY_DIR}/test-user/builder_navigation_restart")
   add_executable(asset_smoke tests/asset_smoke.cpp src/dx11_assets.cpp src/dx11_damage.cpp)
   target_link_libraries(asset_smoke PRIVATE MiniCityCpp20)
   add_test(NAME asset_smoke COMMAND asset_smoke)
