@@ -13,7 +13,8 @@ using namespace game;
 const char* name(Kind k){
     static const char* names[]={"CAR","SPORTS CAR","MOTORCYCLE","BOAT","HELICOPTER",
         "SKATEBOARD","BICYCLE","TRACTOR","COMBINE","TANK","TRUCK","TRAILER","AIRPLANE"};
-    return names[std::clamp(int(k),0,12)];
+    static_assert(sizeof(names)/sizeof(names[0])==KIND_COUNT);
+    return names[std::clamp(int(k),0,KIND_COUNT-1)];
 }
 bool aircraft(Kind k){return k==Kind::Helicopter||k==Kind::Airplane;}
 bool pedal(Kind k){return k==Kind::Skateboard||k==Kind::Bicycle;}
@@ -21,7 +22,8 @@ std::vector<Part> parts(const Vehicle& v){
     static std::map<std::string,std::vector<Part>> catalog;
     const char* names[]={"range-rover","mazda","motorcycle","boat","helicopter","skateboard",
         "bicycle","tractor","combine","tank","truck","trailer","airplane"};
-    std::string name=names[std::clamp(int(v.kind),0,12)];
+    static_assert(sizeof(names)/sizeof(names[0])==KIND_COUNT);
+    std::string name=names[std::clamp(int(v.kind),0,KIND_COUNT-1)];
     auto found=catalog.find(name);if(found!=catalog.end())return found->second;
     data_file::Ini file;std::vector<Part> result;int count=0;
     if(file.load(data_file::resourcePath("vehicle-models.ini"))&&file.integer(name,"Count",count,1,32)){

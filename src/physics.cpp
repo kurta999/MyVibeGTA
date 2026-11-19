@@ -80,7 +80,7 @@ bool vehicleSegmentHit(const Vehicle& vehicle,Vec3 start,Vec3 end,float& entry){
     entry=first;return true;
 }
 namespace {
-const std::array<VehicleTuning,13> defaults{{
+const std::array<VehicleTuning,KIND_COUNT> defaults{{
     {245,315,115,7.0f,0.95f,2.05f,5.5f,430,1100,70000,3.0f,0.78f,5.0f,0.43f,250000,180000,250,45,1,1,75,125,12,42,0.8f,120,7,45},
     {370,425,155,8.2f,0.75f,2.25f,7.0f,590,850,95000,3.0f,0.78f,5.0f,0.43f,250000,180000,200,45,1.15f,1,95,145,12,42,0.8f,130,7,60},
     {330,375,125,6.2f,0.90f,2.8f,8.0f,460,220,32000,3.4f,0.78f,5.5f,0.48f,250000,85000,130,50,1.3f,1,55,120,10,38,0.8f,115,7,35},
@@ -95,7 +95,7 @@ const std::array<VehicleTuning,13> defaults{{
     {1,240,70,8,1,1,4,400,2500,0,3,.8f,8,0,400000,300000,650,50,.7f,1,100,999,12,42,.8f,120,7,0},
     {550,600,1,2,.05f,1.2f,4,300,1300,0,3,.8f,5,.4f,250000,180000,450,55,2,1,150,999,12,42,.8f,120,7,0}
 }};
-std::array<VehicleTuning,13> entries=defaults;
+std::array<VehicleTuning,KIND_COUNT> entries=defaults;
 std::array<float,4> surfaceGrip{1.0f,0.78f,0.62f,0.45f};
 float wetGrip=0.72f;
 std::string error;
@@ -107,8 +107,11 @@ bool load(const char* path){
         error=file.lastError();return false;
     }
     const char* names[]={"car","sport-car","bike","boat","helicopter","skateboard","bicycle","tractor","combine","tank","truck","trailer","airplane"};
-    std::array<VehicleTuning,13> parsed{};
-    for(int i=0;i<13;++i){
+    static_assert(sizeof(names)/sizeof(names[0])==KIND_COUNT,"one vehicles.ini section per Kind");
+    const char* engineSounds[]={"car","sport-car","motorcycle","boat","helicopter","","","tractor","combine","tank","truck","","airplane"};
+    const int engineCurves[]={0,0,0,0,1,3,3,0,0,0,0,0,2};
+    std::array<VehicleTuning,KIND_COUNT> parsed{};
+    for(int i=0;i<KIND_COUNT;++i){
         std::string section=std::string("Vehicle.")+names[i];auto& v=parsed[i];
         if(!file.real(section,"Acceleration",v.acceleration,1,2000)||
            !file.real(section,"MaxSpeed",v.maxSpeed,1,2000)||
@@ -141,6 +144,16 @@ bool load(const char* path){
             error=file.lastError();return false;
         }
         if(v.driftMaxSlip<=v.driftMinSlip){error="Invalid ["+section+"] drift slip range";return false;}
+        v.engineSound=engineSounds[i];v.engineCurve=engineCurves[i];
+        if(file.has(section,"EngineSound")&&!file.string(section,"EngineSound",v.engineSound)){error=file.lastError();return false;}
+        if(v.engineSound=="none")v.engineSound.clear();
+        if(file.has(section,"EngineCurve")){
+            std::string curve;const char* curveNames[]={"geared","rotor","propeller","pedal"};
+            if(!file.string(section,"EngineCurve",curve)){error=file.lastError();return false;}
+            int found=-1;for(int c=0;c<4;++c)if(curve==curveNames[c])found=c;
+            if(found<0){error="Invalid ["+section+"] EngineCurve";return false;}
+            v.engineCurve=found;
+        }
     }
     std::array<float,4> parsedGrip{};
     const char* groundNames[]={"Asphalt","Grass","Sand","Snow"};
@@ -156,7 +169,7 @@ bool load(const char* path){
 }
 const std::string& lastError(){return error;}
 VehicleTuning tuning(Kind kind){
-    return entries[std::clamp(int(kind),0,12)];
+    return entries[std::clamp(int(kind),0,KIND_COUNT-1)];
 }
 float tractionAt(game::Vec2 point){
     float grip=surfaceGrip[0];

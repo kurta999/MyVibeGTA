@@ -47,17 +47,21 @@ int takes(Effect effect){
 #endif
 int voiceCursor=0;
 Channel motor;
-std::array<std::vector<short>,13> motorClips;
+std::array<std::vector<short>,ENGINE_KIND_COUNT> motorClips;
+// Defaults; vehicles.ini can override them through setEngineProfile.
+std::array<std::string,ENGINE_KIND_COUNT> engineClips{{"car","sport-car","motorcycle","boat","helicopter","","",
+    "tractor","combine","tank","truck","","airplane"}};
+std::array<EngineCurve,ENGINE_KIND_COUNT> engineCurves{{EngineCurve::Geared,EngineCurve::Geared,EngineCurve::Geared,
+    EngineCurve::Geared,EngineCurve::Rotor,EngineCurve::Pedal,EngineCurve::Pedal,EngineCurve::Geared,
+    EngineCurve::Geared,EngineCurve::Geared,EngineCurve::Geared,EngineCurve::Geared,EngineCurve::Propeller}};
 int motorKind=-1;
 float motorPitch=1,motorGain=0;
-void prepareMotors(){
-    const char* names[]={"car","sport-car","motorcycle","boat","helicopter",nullptr,nullptr,
-        "tractor","combine","tank","truck",nullptr,"airplane"};
+void prepareMotor(int kind){
     wchar_t executable[MAX_PATH]{};GetModuleFileNameW(nullptr,executable,MAX_PATH);
     auto folder=std::filesystem::path(executable).parent_path()/L"assets"/L"audio"/L"vehicles";
-    for(int kind=0;kind<13;++kind){auto& pcm=motorClips[kind];pcm.clear();if(!names[kind])continue;
-        std::ifstream file(folder/(std::string(names[kind])+".wav"),std::ios::binary);
-        char header[12]{};if(!file.read(header,12)||std::memcmp(header,"RIFF",4)||std::memcmp(header+8,"WAVE",4))continue;
+    {auto& pcm=motorClips[kind];pcm.clear();if(engineClips[kind].empty())return;
+        std::ifstream file(folder/(engineClips[kind]+".wav"),std::ios::binary);
+        char header[12]{};if(!file.read(header,12)||std::memcmp(header,"RIFF",4)||std::memcmp(header+8,"WAVE",4))return;
         bool valid=false;
         while(file){char chunk[4];std::uint32_t bytes=0;
             if(!file.read(chunk,4)||!file.read(reinterpret_cast<char*>(&bytes),4)||bytes>16*1024*1024)break;
@@ -75,6 +79,7 @@ void prepareMotors(){
         }
     }
 }
+void prepareMotors(){for(int kind=0;kind<ENGINE_KIND_COUNT;++kind)prepareMotor(kind);}
 float listenerX=0,listenerZ=0,listenerYaw=0;
 uint32_t noiseState=0x4a3b2c1du;
 float noise(){noiseState^=noiseState<<13;noiseState^=noiseState>>17;noiseState^=noiseState<<5;
@@ -282,15 +287,23 @@ bool exportEffectWav(Effect effect,int variant,const wchar_t* path){
 }
 #endif
 unsigned recordedEngineSamples(int kind){
-    if(kind<0||kind>=13)return 0;
+    if(kind<0||kind>=ENGINE_KIND_COUNT)return 0;
     if(motorClips[0].empty())prepareMotors();return unsigned(motorClips[kind].size());
+}
+void setEngineProfile(int kind,const std::string& clip,EngineCurve curve){
+    if(kind<0||kind>=ENGINE_KIND_COUNT)return;
+    engineCurves[kind]=curve;
+    if(engineClips[kind]==clip)return;
+    if(motorKind==kind)stopEngine();
+    engineClips[kind]=clip;
+    if(engine)prepareMotor(kind);
 }
 void stopEngine(){
     if(motor.voice){motor.voice->Stop();motor.voice->FlushSourceBuffers();}
     motorKind=-1;motorGain=0;
 }
 void updateEngine(int kind,float speed,float throttle,float dt){
-    if(!motor.voice||dt<=0)return;kind=std::clamp(kind,0,12);speed=std::clamp(speed,0.0f,1.5f);
+    if(!motor.voice||dt<=0)return;kind=std::clamp(kind,0,ENGINE_KIND_COUNT-1);speed=std::clamp(speed,0.0f,1.5f);
     if(motorClips[kind].empty()){stopEngine();return;}
     if(kind!=motorKind){stopEngine();motorKind=kind;
         const auto& pcm=motorClips[kind];XAUDIO2_BUFFER buffer{};buffer.pAudioData=reinterpret_cast<const BYTE*>(pcm.data());
@@ -299,10 +312,11 @@ void updateEngine(int kind,float speed,float throttle,float dt){
         motor.voice->SetVolume(0);motor.voice->Start();
     }
     float gear=std::min(4.0f,std::floor(speed*4));
-    float rpm=kind==4?.85f+throttle*.25f:kind==12?.8f+throttle*1.5f:
-        kind==5||kind==6?.7f+speed*1.7f:.85f+std::max(0.0f,speed*4-gear)*1.25f+std::abs(throttle)*.18f;
+    const EngineCurve curve=engineCurves[kind];
+    float rpm=curve==EngineCurve::Rotor?.85f+throttle*.25f:curve==EngineCurve::Propeller?.8f+throttle*1.5f:
+        curve==EngineCurve::Pedal?.7f+speed*1.7f:.85f+std::max(0.0f,speed*4-gear)*1.25f+std::abs(throttle)*.18f;
     motorPitch+=(rpm-motorPitch)*(1-std::exp(-dt*5));
-    float target=kind==5||kind==6?speed*.22f:.20f+std::abs(throttle)*.13f+speed*.12f;
+    float target=curve==EngineCurve::Pedal?speed*.22f:.20f+std::abs(throttle)*.13f+speed*.12f;
     motorGain+=(target-motorGain)*(1-std::exp(-dt*4));
     motor.voice->SetFrequencyRatio(std::clamp(motorPitch,.5f,3.0f));motor.voice->SetVolume(motorGain);
 }

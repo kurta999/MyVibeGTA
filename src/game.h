@@ -76,6 +76,8 @@ struct Ped{Vec2 p,target;float speed,angle,respawn=0;bool alive=true;Color shirt
 };
 enum class TrafficState{Parked,Cruise,Yield,React,Pursue,Search};
 enum class Kind{Car,SportCar,Bike,Boat,Helicopter,Skateboard,Bicycle,Tractor,Combine,Tank,Truck,Trailer,Airplane};
+// Number of vehicle kinds; per-kind tables are sized and checked against it.
+constexpr int KIND_COUNT=int(Kind::Airplane)+1;
 enum class CameraMode{FirstClose,FirstWide,ThirdNear,ThirdFar,Overview};
 struct Vehicle{Vec2 p;float angle=0,speed=0;Kind kind;Color c;
     float flightThrottle=0,flightRoll=0;bool stalled=false;

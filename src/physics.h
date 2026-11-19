@@ -18,6 +18,8 @@ struct VehicleTuning {
     int repairCost;
     float driftMinSpeed,driftMinSlip,driftMaxSlip,driftMinDuration,driftMinDistance,driftCooldown;
     int driftReward;
+    // Engine sound clip and curve (vehicles.ini EngineSound/EngineCurve).
+    std::string engineSound;int engineCurve=0;
 };
 bool load(const char* path=nullptr);
 const std::string& lastError();

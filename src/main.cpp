@@ -316,7 +316,12 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     for(const auto& loader:loaders)
         if(!loader.load())return failStartup(loader.error(),loader.title);
 #ifdef MINI_CITY_JOLT
-    for(int kind=0;kind<13;++kind){
+    static_assert(audio::ENGINE_KIND_COUNT==KIND_COUNT,"one engine sound slot per vehicle kind");
+    for(int kind=0;kind<KIND_COUNT;++kind){
+        const auto tuning=physics::tuning(Kind(kind));
+        audio::setEngineProfile(kind,tuning.engineSound,audio::EngineCurve(std::clamp(tuning.engineCurve,0,3)));
+    }
+    for(int kind=0;kind<KIND_COUNT;++kind){
         Vehicle vehicle{};vehicle.kind=Kind(kind);auto parts=vehicle_systems::parts(vehicle);
         bool valid=parts.size()>=4;
         for(const auto& part:parts)valid&=dx11::mesh(part.mesh)!=nullptr;
