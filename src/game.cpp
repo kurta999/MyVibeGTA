@@ -102,6 +102,41 @@ std::vector<Tree> trees;
 std::vector<Ped> peds;
 std::vector<Vehicle> vehicles;
 Vehicle* currentVehicle(){return occupied>=0&&occupied<int(vehicles.size())?&vehicles[occupied]:nullptr;}
+namespace {
+constexpr float INTERPOLATION_JUMP=200;
+float shortestAngle(float from,float to){
+    float delta=std::remainder(to-from,2*PI);
+    return from+delta;
+}
+}
+RenderInterpolation::RenderInterpolation(float alpha){
+    alpha=std::clamp(alpha,0.0f,1.0f);
+    saved.reserve(vehicles.size());
+    for(auto& v:vehicles){
+        saved.push_back({v.p,v.angle,v.rideHeight,v.qx,v.qy,v.qz,v.qw});
+        if(!v.hasPrevious||len(v.p-v.previousP)>INTERPOLATION_JUMP)continue;
+        float b=1-alpha;
+        v.p=v.previousP*b+v.p*alpha;
+        v.angle=v.previousAngle+(shortestAngle(v.previousAngle,v.angle)-v.previousAngle)*alpha;
+        v.rideHeight=v.previousRideHeight*b+v.rideHeight*alpha;
+        float sign=v.previousQx*v.qx+v.previousQy*v.qy+v.previousQz*v.qz+v.previousQw*v.qw<0?-1.0f:1.0f;
+        float qx=v.previousQx*b+v.qx*sign*alpha,qy=v.previousQy*b+v.qy*sign*alpha;
+        float qz=v.previousQz*b+v.qz*sign*alpha,qw=v.previousQw*b+v.qw*sign*alpha;
+        float length=std::sqrt(qx*qx+qy*qy+qz*qz+qw*qw);
+        if(length>1e-6f){v.qx=qx/length;v.qy=qy/length;v.qz=qz/length;v.qw=qw/length;}
+    }
+}
+RenderInterpolation::~RenderInterpolation(){
+    for(std::size_t i=0;i<saved.size()&&i<vehicles.size();++i){
+        auto& v=vehicles[i];const auto& s=saved[i];
+        v.p=s.p;v.angle=s.angle;v.rideHeight=s.rideHeight;v.qx=s.qx;v.qy=s.qy;v.qz=s.qz;v.qw=s.qw;
+    }
+}
+Vec2 interpolatedFocus(float alpha){
+    if(len(player-previousPlayer)>INTERPOLATION_JUMP)return player;
+    alpha=std::clamp(alpha,0.0f,1.0f);
+    return previousPlayer*(1-alpha)+player*alpha;
+}
 std::vector<Bullet> bullets;
 std::vector<Impact> impacts;
 std::vector<HitFlash> hitFlashes;
@@ -1146,6 +1181,10 @@ void update(float dt){
 #endif
     auto builderEnd=std::chrono::steady_clock::now();
     previousPlayer=player;
+    for(auto& v:vehicles){
+        v.previousP=v.p;v.previousAngle=v.angle;v.previousRideHeight=v.rideHeight;
+        v.previousQx=v.qx;v.previousQy=v.qy;v.previousQz=v.qz;v.previousQw=v.qw;v.hasPrevious=true;
+    }
     audio::setListener(player.x,player.z,cameraYaw);
     dt=std::min(dt,0.05f);fireCooldown=std::max(-dt,fireCooldown-dt);
 #ifdef MINI_CITY_JOLT

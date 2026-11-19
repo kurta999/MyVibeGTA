@@ -92,6 +92,9 @@ struct Vehicle{Vec2 p;float angle=0,speed=0;Kind kind;Color c;
     TrafficState trafficState=TrafficState::Parked;
     float reactionTime=0,blockedTime=0,desiredSpeed=0;
     float turretYaw=0,turretPitch=0;
+    // Pose at the start of the current simulation tick, for render interpolation.
+    Vec2 previousP{};float previousAngle=0,previousRideHeight=0;
+    float previousQx=0,previousQy=0,previousQz=0,previousQw=1;bool hasPrevious=false;
 };
 struct Bullet{Vec3 p,v;float life;int damage;float gravity;float distance=0,range=700,falloff=0;
     bool hostile=false,rocket=false;float explosionRadius=0;int explosionDamage=0;
@@ -163,6 +166,21 @@ extern std::vector<Ped> peds;
 extern std::vector<Vehicle> vehicles;
 // The vehicle the player drives, or nullptr on foot (or if `occupied` is stale).
 Vehicle* currentVehicle();
+// While alive, vehicle poses are blended between the previous and current
+// simulation tick (alpha 0..1) so motion is smooth above 60 Hz; the exact
+// poses are restored on destruction. Large jumps (teleports) are not blended.
+class RenderInterpolation {
+public:
+    explicit RenderInterpolation(float alpha);
+    ~RenderInterpolation();
+    RenderInterpolation(const RenderInterpolation&)=delete;
+    RenderInterpolation& operator=(const RenderInterpolation&)=delete;
+private:
+    struct Saved {Vec2 p;float angle,rideHeight,qx,qy,qz,qw;};
+    std::vector<Saved> saved;
+};
+// Interpolated camera focus (player or driven vehicle) for rendering.
+Vec2 interpolatedFocus(float alpha);
 extern std::vector<Bullet> bullets;
 extern std::vector<Impact> impacts;
 extern std::vector<HitFlash> hitFlashes;

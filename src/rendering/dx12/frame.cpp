@@ -40,9 +40,11 @@ void Dx12Renderer::Render() {
     if (!UpdateTextureSampler())
         return;
     // Scene LOD and draw culling share the same interpolated camera pose.
-    Vec2 focus = (occupied >= 0 || rightMouse)
-                     ? player
-                     : previousPlayer * (1.0f - renderAlpha) + player * renderAlpha;
+    // Vehicles are interpolated between simulation ticks for the duration of
+    // this frame, so the driving camera can follow the interpolated position
+    // too. Aiming keeps the exact tick pose so the reticle matches the shot.
+    const RenderInterpolation interpolation(renderAlpha);
+    Vec2 focus = rightMouse ? player : interpolatedFocus(renderAlpha);
     camera::Pose pose =
         camera::renderPose(focus, playerY, rightMouse && occupied < 0 && !ui::paused(), occupied);
     if (m_probeBakeActive) {
