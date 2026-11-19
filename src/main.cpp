@@ -106,6 +106,61 @@ struct TimerResolution {
     ~TimerResolution(){if(active)timeEndPeriod(1);}
 };
 }
+namespace {
+// Fixed 60 Hz simulation with interpolated rendering until WM_QUIT.
+void runGameLoop(){
+    using namespace game;
+    LARGE_INTEGER frequency{},last{},now{};QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&last);
+    bool running=true;double accumulator=0,fpsTimer=0;int frames=0,overloadEvents=0;
+    constexpr double fixedStep=1.0/60.0;
+    while(running){MSG msg{};while(PeekMessageA(&msg,nullptr,0,0,PM_REMOVE)){
+        if(msg.message==WM_QUIT){running=false;break;}TranslateMessage(&msg);DispatchMessageA(&msg);}
+        if(!running)break;
+        if(
+#ifdef MINI_CITY_JOLT
+            !builder::transitioning()&&
+#endif
+            savegame::takeFailure()){
+            message="Could not autosave game. Try Save from the pause menu.";messageTime=5;
+            logging::write("Background autosave failed");
+        }
+        input::syncLookCapture();
+        QueryPerformanceCounter(&now);
+        double dt=std::clamp(double(now.QuadPart-last.QuadPart)/double(frequency.QuadPart),0.0,0.25);last=now;
+        frameMs=frameMs*0.9f+float(dt*1000.0)*0.1f;
+#ifdef MINI_CITY_JOLT
+        if(ui::paused()&&builder::transitioning())builder::advance(float(dt));
+#endif
+        if(!ui::paused()
+#ifdef MINI_CITY_JOLT
+            &&!debug_menu::open&&!ordnance::timerOpen()
+#endif
+            )accumulator+=dt;
+        else accumulator=0;
+        // Keep the fractional remainder even when the step cap is reached so
+        // render interpolation does not snap back after a slow frame.
+        const auto plan=frame_pacing::consume(accumulator,fixedStep,5);
+        for(int step=0;step<plan.steps;++step){
+            LARGE_INTEGER beforeStep{},afterStep{};QueryPerformanceCounter(&beforeStep);
+            update(float(fixedStep));QueryPerformanceCounter(&afterStep);
+            float elapsed=float((afterStep.QuadPart-beforeStep.QuadPart)*1000.0/double(frequency.QuadPart));
+            simulationMs=simulationMs*0.9f+elapsed*0.1f;
+        }
+        if(plan.dropped&&overloadEvents++%120==0)
+            logging::write("Simulation fell behind; accumulated time dropped");
+#ifdef MINI_CITY_JOLT
+        bool radioDriving=occupied>=0&&occupied<int(vehicles.size())&&health>0&&!vehicle_systems::pedal(vehicles[occupied].kind);
+        radio::update(radioDriving,ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open,ui::masterVolume);
+        if(ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open)audio::stopEngine();
+#endif
+        ui::flushSettings();
+        renderAlpha=frame_pacing::alpha(accumulator,fixedStep);
+        render();++frames;fpsTimer+=dt;
+        if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
+        Sleep(1);
+    }
+}
+}
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     using namespace game;
     CITY_THREAD("Game main");
@@ -233,28 +288,33 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(cancelStartup())return 0;
     startup::report(85,"Loading gameplay data");
 #endif
-    if(!weapons::load()){
+    // Every data error after audio start shares one report-and-shutdown path
+    // (previously copied into each loader check).
+    auto failStartup=[&](const std::string& error,const char* title){
 #ifdef MINI_CITY_JOLT
         loading.finish();
 #endif
-        logging::write(weapons::lastError().c_str());
-        if(!smoke)MessageBoxA(win,weapons::lastError().c_str(),"Invalid weapon data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!physics::load()){
+        logging::write(error.c_str());
+        if(!smoke)MessageBoxA(win,error.c_str(),title,MB_ICONERROR);
 #ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(physics::lastError().c_str());
-        if(!smoke)MessageBoxA(win,physics::lastError().c_str(),"Invalid vehicle data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
         radio::shutdown();
 #endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
+        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();
+        return 1;
+    };
+    struct DataLoader {bool(*load)();std::string(*error)();const char* title;};
+    const DataLoader loaders[]={
+        {[]{return weapons::load();},[]{return std::string(weapons::lastError());},"Invalid weapon data"},
+        {[]{return physics::load();},[]{return std::string(physics::lastError());},"Invalid vehicle data"},
+        {[]{return fire::load();},[]{return std::string(fire::lastError());},"Invalid surface data"},
+        {[]{return police::load();},[]{return std::string(police::lastError());},"Invalid police data"},
+        {[]{return commerce::load();},[]{return std::string(commerce::lastError());},"Invalid shop data"},
+        {[]{return traversal::load();},[]{return std::string(traversal::lastError());},"Invalid traversal data"},
+        {[]{return weather::load();},[]{return std::string(weather::lastError());},"Invalid weather data"},
+        {[]{return regions::load();},[]{return std::string(regions::lastError());},"Invalid region data"},
+    };
+    for(const auto& loader:loaders)
+        if(!loader.load())return failStartup(loader.error(),loader.title);
 #ifdef MINI_CITY_JOLT
     for(int kind=0;kind<13;++kind){
         Vehicle vehicle{};vehicle.kind=Kind(kind);auto parts=vehicle_systems::parts(vehicle);
@@ -262,105 +322,17 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         for(const auto& part:parts)valid&=dx11::mesh(part.mesh)!=nullptr;
         if(!valid){
             std::string error=std::string("Missing or invalid imported vehicle assets: ")+vehicle_systems::name(vehicle.kind);
-            loading.finish();logging::write(error.c_str());
-            if(!smoke)MessageBoxA(win,error.c_str(),"Invalid vehicle assets",MB_ICONERROR);
-            radio::shutdown();audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
+            return failStartup(error,"Invalid vehicle assets");
         }
     }
 #endif
-    if(!fire::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(fire::lastError().c_str());
-        if(!smoke)MessageBoxA(win,fire::lastError().c_str(),"Invalid surface data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!police::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(police::lastError().c_str());
-        if(!smoke)MessageBoxA(win,police::lastError().c_str(),"Invalid police data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!commerce::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(commerce::lastError().c_str());
-        if(!smoke)MessageBoxA(win,commerce::lastError().c_str(),"Invalid shop data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!traversal::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(traversal::lastError().c_str());
-        if(!smoke)MessageBoxA(win,traversal::lastError().c_str(),"Invalid traversal data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!weather::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(weather::lastError().c_str());
-        if(!smoke)MessageBoxA(win,weather::lastError().c_str(),"Invalid weather data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!regions::load()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(regions::lastError().c_str());
-        if(!smoke)MessageBoxA(win,regions::lastError().c_str(),"Invalid region data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
 #ifdef MINI_CITY_JOLT
     if(cancelStartup())return 0;
     startup::report(88,"Building the city and physics world");
 #endif
     reset();
-    if(!content::lastError().empty()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(content::lastError().c_str());
-        if(!smoke)MessageBoxA(win,content::lastError().c_str(),"Invalid world data",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
-    if(!traversal::lastError().empty()){
-#ifdef MINI_CITY_JOLT
-        loading.finish();
-#endif
-        logging::write(traversal::lastError().c_str());
-        if(!smoke)MessageBoxA(win,traversal::lastError().c_str(),"Invalid climb location",MB_ICONERROR);
-        #ifdef MINI_CITY_JOLT
-        radio::shutdown();
-#endif
-        audio::shutdown();shutdownRenderer();DestroyWindow(win);logging::shutdown();return 1;
-    }
+    if(!content::lastError().empty())return failStartup(content::lastError(),"Invalid world data");
+    if(!traversal::lastError().empty())return failStartup(traversal::lastError(),"Invalid climb location");
 #ifdef MINI_CITY_JOLT
     if(cancelStartup())return 0;
     startup::report(94,"Loading saved progress");
@@ -900,60 +872,12 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     loading.finish();
 #endif
     input::syncLookCapture();
-    LARGE_INTEGER frequency{},last{},now{};QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&last);
-    bool running=true;double accumulator=0,fpsTimer=0;int frames=0,overloadEvents=0;
-    constexpr double fixedStep=1.0/60.0;
-    while(running){MSG msg{};while(PeekMessageA(&msg,nullptr,0,0,PM_REMOVE)){
-        if(msg.message==WM_QUIT){running=false;break;}TranslateMessage(&msg);DispatchMessageA(&msg);}
-        if(!running)break;
-        if(
-#ifdef MINI_CITY_JOLT
-            !builder::transitioning()&&
-#endif
-            savegame::takeFailure()){
-            message="Could not autosave game. Try Save from the pause menu.";messageTime=5;
-            logging::write("Background autosave failed");
-        }
-        input::syncLookCapture();
-        QueryPerformanceCounter(&now);
-        double dt=std::clamp(double(now.QuadPart-last.QuadPart)/double(frequency.QuadPart),0.0,0.25);last=now;
-        frameMs=frameMs*0.9f+float(dt*1000.0)*0.1f;
-#ifdef MINI_CITY_JOLT
-        if(ui::paused()&&builder::transitioning())builder::advance(float(dt));
-#endif
-        if(!ui::paused()
-#ifdef MINI_CITY_JOLT
-            &&!debug_menu::open&&!ordnance::timerOpen()
-#endif
-            )accumulator+=dt;
-        else accumulator=0;
-        // Keep the fractional remainder even when the step cap is reached so
-        // render interpolation does not snap back after a slow frame.
-        const auto plan=frame_pacing::consume(accumulator,fixedStep,5);
-        for(int step=0;step<plan.steps;++step){
-            LARGE_INTEGER beforeStep{},afterStep{};QueryPerformanceCounter(&beforeStep);
-            update(float(fixedStep));QueryPerformanceCounter(&afterStep);
-            float elapsed=float((afterStep.QuadPart-beforeStep.QuadPart)*1000.0/double(frequency.QuadPart));
-            simulationMs=simulationMs*0.9f+elapsed*0.1f;
-        }
-        if(plan.dropped&&overloadEvents++%120==0)
-            logging::write("Simulation fell behind; accumulated time dropped");
-#ifdef MINI_CITY_JOLT
-        bool radioDriving=occupied>=0&&occupied<int(vehicles.size())&&health>0&&!vehicle_systems::pedal(vehicles[occupied].kind);
-        radio::update(radioDriving,ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open,ui::masterVolume);
-        if(ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open)audio::stopEngine();
-#endif
-        ui::flushSettings();
-        renderAlpha=frame_pacing::alpha(accumulator,fixedStep);
-        render();++frames;fpsTimer+=dt;
-        if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
-        Sleep(1);
-    }
+    runGameLoop();
     ui::flushSettings(true);
     if(!savegame::flush())logging::write("Final autosave failed");
-    #ifdef MINI_CITY_JOLT
-        radio::shutdown();
+#ifdef MINI_CITY_JOLT
+    radio::shutdown();
 #endif
-        audio::shutdown();shutdownRenderer();logging::shutdown();
+    audio::shutdown();shutdownRenderer();logging::shutdown();
     return 0;
 }
