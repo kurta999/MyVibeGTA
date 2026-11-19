@@ -57,10 +57,18 @@ std::unordered_map<std::string,std::unique_ptr<Gdiplus::Bitmap>> weaponIcons;
 // kept as device-ready cached bitmaps; previously every icon was resampled
 // from its full-size PNG every frame (most of the HUD's CPU time).
 std::unordered_map<std::string,std::unique_ptr<Gdiplus::CachedBitmap>> scaledIcons;
+// Gameplay HUD scale (GDI world transform); GDI+ cached bitmaps ignore the
+// transform, so icon placement and size are converted to device pixels.
+float uiScale=1;
 void drawScaledIcon(Gdiplus::Bitmap* source,const std::string& key,int x,int y,int w,int h){
+    if(uiScale!=1){x=int(x*uiScale);y=int(y*uiScale);w=int(w*uiScale+0.5f);h=int(h*uiScale+0.5f);}
     if(!source||source->GetLastStatus()!=Gdiplus::Ok||w<=0||h<=0)return;
     const std::string sizedKey=key+"@"+std::to_string(w)+"x"+std::to_string(h);
     auto& cached=scaledIcons[sizedKey];
+    // GDI+ must see an identity DC transform; coordinates are already device pixels.
+    XFORM saved{};const bool transformed=uiScale!=1&&GetWorldTransform(memoryDC,&saved);
+    if(transformed)ModifyWorldTransform(memoryDC,nullptr,MWT_IDENTITY);
+    struct Restore{bool on;XFORM value;~Restore(){if(on)SetWorldTransform(memoryDC,&value);}} restore{transformed,saved};
     Gdiplus::Graphics target(memoryDC);
     if(!cached){
         Gdiplus::Bitmap scaled(w,h,PixelFormat32bppPARGB);
@@ -554,6 +562,19 @@ void buildHud(unsigned char* pixels,int width,int height){
     // The canvas is cleared by finalizeAndClear at the end of the previous
     // frame (and starts zeroed after resize), saving a full-screen memset.
     timer.mark(0);
+    // The gameplay HUD is laid out for 1080p and scaled with a GDI world
+    // transform, so it keeps its proportions from 720p to 4K. Layout code
+    // below uses logical width/height; menus with mouse hit-testing (shops,
+    // debug, pause, builder inventory) are drawn unscaled afterwards.
+    const int deviceW=width,deviceH=height;
+    uiScale=std::clamp(height/1080.0f,0.85f,3.0f);
+    if(std::abs(uiScale-1)<0.02f)uiScale=1;
+    if(uiScale!=1){
+        SetGraphicsMode(memoryDC,GM_ADVANCED);
+        XFORM transform{uiScale,0,0,uiScale,0,0};
+        SetWorldTransform(memoryDC,&transform);
+        width=int(width/uiScale);height=int(height/uiScale);
+    }
 #ifdef MINI_CITY_IMGUI
     const bool useImGui=menus::Enabled();
 #else
@@ -758,6 +779,8 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(width-304,height-52,textBuffer,RGB(224,245,220));}
     if(legacyHelp&&!ui::paused()&&!debug_menu::open&&!builder::active())
         label(18,height-28,"F4 DEBUG  |  X C4 DETONATE  |  K KNIFE TAKEDOWN  |  SWIM: LMB DIVE / RMB SURFACE",RGB(197,211,213));
+    if(uiScale!=1){ModifyWorldTransform(memoryDC,nullptr,MWT_IDENTITY);uiScale=1;}
+    width=deviceW;height=deviceH;
     if(!useImGui&&commerce::menu()!=commerce::Menu::None&&!ui::paused()){
         auto entries=commerce::menuEntries();
         int x=width/2-300,y=height/2-275;
