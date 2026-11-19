@@ -5,7 +5,9 @@ param(
     [switch]$Tracy,
     [switch]$DX11Benchmark,
     [string]$OutputPath = '',
-    [switch]$RunTests
+    [switch]$RunTests,
+    # Build the test executables without running them (-RunTests implies it).
+    [switch]$Tests
 )
 $ErrorActionPreference = 'Stop'
 if ($DX11 -and $DX12) {
@@ -56,6 +58,12 @@ if ($OpenGL) {
     }
     if ($vsInstall) {
         $devShell = Join-Path $vsInstall 'Common7\Tools\Launch-VsDevShell.ps1'
+        # The developer shell calls vswhere.exe by name; make it resolvable
+        # (it is not on PATH by default and printed "not recognized" errors).
+        if ($vswhere -and (Test-Path -LiteralPath $vswhere)) {
+            $vswhereFolder = Split-Path -Parent $vswhere
+            if (($env:PATH -split ';') -notcontains $vswhereFolder) { $env:PATH = "$vswhereFolder;$env:PATH" }
+        }
         if (Test-Path -LiteralPath $devShell) { & $devShell -Arch amd64 }
         $ninja = Get-Command ninja -ErrorAction SilentlyContinue
         if ($ninja -and (Get-Command cl -ErrorAction SilentlyContinue)) {
@@ -85,14 +93,18 @@ if ($OpenGL) {
             -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
-    $targets = @(
-        'MyVibeGTA', 'benchmark_options_scenarios', 'resource_cache_scenarios',
+    # A plain build compiles only the game; test executables are built for
+    # -Tests or -RunTests (test.ps1), which keeps the edit-build loop short.
+    $testTargets = @(
+        'benchmark_options_scenarios', 'resource_cache_scenarios',
         'gpu_profiler_scenarios', 'dx12_fsr2_smoke', 'simulation_smoke', 'asset_smoke',
         'texture_mips_smoke', 'texture_loading_smoke', 'shader_loading_smoke',
         'probe_smoke', 'startup_smoke', 'save_jobs_smoke', 'audio_smoke', 'sky_smoke',
         'polish_scenarios'
     )
-    if ($Tracy) {
+    $targets = @('MyVibeGTA')
+    if ($Tests -or $RunTests) { $targets += $testTargets }
+    if ($Tracy -and ($Tests -or $RunTests)) {
         $targets += 'profiling_memory_scenarios'
     }
     if ($DX11Benchmark) {
