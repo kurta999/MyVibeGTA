@@ -21,7 +21,7 @@ namespace {
 constexpr int RATE=48000;
 constexpr int VARIANTS=24;
 constexpr float PI=3.14159265359f;
-struct Channel { IXAudio2SourceVoice* voice=nullptr; std::vector<short> samples; };
+struct Channel { IXAudio2SourceVoice* voice=nullptr; std::vector<short> samples; float importance=0; unsigned long long started=0; };
 IXAudio2* engine=nullptr;
 IXAudio2MasteringVoice* master=nullptr;
 bool comInitialized=false;
@@ -173,10 +173,23 @@ void submit(Effect effect,int variant,bool positioned,float x,float z){
     if(int(effect)<0||int(effect)>=int(Effect::Count))return;
     // Far-away sounds would play at near-zero gain yet still take one of the
     // few voices, cutting off (and clicking) nearby effects when stolen.
+    float gains[2]={0.7071f,0.7071f};float volume=1;
     if(positioned){
-        float dx=x-listenerX,dz=z-listenerZ,scaled=(dx*dx+dz*dz)/(280.0f*280.0f);
-        if(1.0f/(1.0f+scaled)<0.015f)return;
+        float dx=x-listenerX,dz=z-listenerZ;
+        float distance=std::sqrt(dx*dx+dz*dz);
+        volume=1.0f/(1.0f+(distance/280.0f)*(distance/280.0f));
+        if(volume<0.015f)return;
+        float pan=distance>0.001f?std::clamp((-std::sin(listenerYaw)*dx+
+            std::cos(listenerYaw)*dz)/distance,-1.0f,1.0f):0.0f;
+        gains[0]=volume*std::sqrt((1-pan)*0.5f);
+        gains[1]=volume*std::sqrt((1+pan)*0.5f);
     }
+    // When every voice is busy, replace the least important one (quietest,
+    // lowest-priority, then oldest) instead of whichever the cursor reaches;
+    // if everything playing matters more, drop the new sound.
+    const float priority=effect==Effect::Explosion?3.0f:effect==Effect::Shot||effect==Effect::SilencedShot?2.0f:
+        effect==Effect::Hit||effect==Effect::Success||effect==Effect::Fail?1.5f:effect==Effect::Step?0.5f:1.0f;
+    const float importance=volume*priority;
     int chosen=-1;
     for(int i=0;i<int(channels.size());++i){
         int index=(voiceCursor+i)%int(channels.size());
@@ -185,14 +198,20 @@ void submit(Effect effect,int variant,bool positioned,float x,float z){
         channels[index].voice->GetState(&state,XAUDIO2_VOICE_NOSAMPLESPLAYED);
         if(state.BuffersQueued==0){chosen=index;break;}
     }
-    if(chosen<0){for(int i=0;i<int(channels.size());++i){
-        int index=(voiceCursor+i)%int(channels.size());
-        if(channels[index].voice){chosen=index;break;}
-    }}
+    if(chosen<0){
+        for(int index=0;index<int(channels.size());++index){
+            if(!channels[index].voice)continue;
+            if(chosen<0||channels[index].importance<channels[chosen].importance||
+               (channels[index].importance==channels[chosen].importance&&channels[index].started<channels[chosen].started))
+                chosen=index;
+        }
+        if(chosen>=0&&channels[chosen].importance>importance*1.25f)return;
+    }
     if(chosen<0)return;
     voiceCursor=(chosen+1)%int(channels.size());
     Channel& channel=channels[chosen];
     channel.voice->Stop(0);channel.voice->FlushSourceBuffers();
+    channel.importance=importance;channel.started=GetTickCount64();
 #ifdef MINI_CITY_JOLT
     int clip=int(effect)*VARIANTS+normalizedVariant(effect,variant);
     const auto& samples=prepared[clip*4+takeCursor[clip]++%takes(effect)].samples;
@@ -200,16 +219,6 @@ void submit(Effect effect,int variant,bool positioned,float x,float z){
     synthesize(channel,effect,variant);
     const auto& samples=channel.samples;
 #endif
-    float gains[2]={0.7071f,0.7071f};
-    if(positioned){
-        float dx=x-listenerX,dz=z-listenerZ;
-        float distance=std::sqrt(dx*dx+dz*dz);
-        float pan=distance>0.001f?std::clamp((-std::sin(listenerYaw)*dx+
-            std::cos(listenerYaw)*dz)/distance,-1.0f,1.0f):0.0f;
-        float volume=1.0f/(1.0f+(distance/280.0f)*(distance/280.0f));
-        gains[0]=volume*std::sqrt((1-pan)*0.5f);
-        gains[1]=volume*std::sqrt((1+pan)*0.5f);
-    }
     channel.voice->SetOutputMatrix(master,1,2,gains);
     XAUDIO2_BUFFER buffer{};
     buffer.AudioBytes=UINT32(samples.size()*sizeof(short));
