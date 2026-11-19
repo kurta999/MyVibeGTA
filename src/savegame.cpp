@@ -21,6 +21,8 @@
 #endif
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <map>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -68,13 +70,62 @@ bool writeDocument(const std::string& file,const std::string& text){
 std::unique_ptr<Writer> pendingWriter;
 Writer& writer(){if(!pendingWriter)pendingWriter=std::make_unique<Writer>(writeDocument);return *pendingWriter;}
 #endif
+// GetPrivateProfile* re-opens and re-parses the whole INI on every call; a
+// save holds about a thousand keys, which made Load take two seconds. The
+// file is parsed once per load into case-insensitive section/key maps with
+// the same lookup rules (first key wins, surrounding quotes stripped).
+struct IniCache {
+    std::string file;
+    std::map<std::string,std::map<std::string,std::string>> sections;
+};
+IniCache iniCache;
+std::string lowered(std::string text){
+    for(char& c:text)if(c>='A'&&c<='Z')c=char(c-'A'+'a');
+    return text;
+}
+std::string trimmed(const std::string& text){
+    auto first=text.find_first_not_of(" \t\r\n");
+    if(first==std::string::npos)return {};
+    auto last=text.find_last_not_of(" \t\r\n");
+    return text.substr(first,last-first+1);
+}
+void parseIni(const std::string& file){
+    iniCache.file=file;iniCache.sections.clear();
+    std::ifstream input(file,std::ios::binary);
+    std::string line,section;
+    while(std::getline(input,line)){
+        line=trimmed(line);
+        if(line.empty()||line[0]==';')continue;
+        if(line[0]=='['){
+            auto end=line.find(']');
+            section=lowered(trimmed(line.substr(1,end==std::string::npos?std::string::npos:end-1)));
+            continue;
+        }
+        auto equals=line.find('=');
+        if(equals==std::string::npos)continue;
+        std::string value=trimmed(line.substr(equals+1));
+        if(value.size()>=2&&((value.front()=='"'&&value.back()=='"')||(value.front()=='\''&&value.back()=='\'')))
+            value=value.substr(1,value.size()-2);
+        iniCache.sections[section].emplace(lowered(trimmed(line.substr(0,equals))),value);
+    }
+}
+const std::string* lookup(const std::string& section,const char* key,const std::string& file){
+    if(iniCache.file!=file)parseIni(file);
+    auto found=iniCache.sections.find(lowered(section));
+    if(found==iniCache.sections.end())return nullptr;
+    auto value=found->second.find(lowered(key));
+    return value==found->second.end()?nullptr:&value->second;
+}
+void clearIniCache(){iniCache.file.clear();iniCache.sections.clear();}
 int read(const std::string& section,const char* key,int fallback,const std::string& file){
-    return int(GetPrivateProfileIntA(section.c_str(),key,fallback,file.c_str()));
+    const std::string* value=lookup(section,key,file);
+    if(!value)return fallback;
+    // Matches GetPrivateProfileInt: leading decimal digits, optional sign.
+    return int(std::strtol(value->c_str(),nullptr,10));
 }
 std::string readText(const std::string& section,const char* key,const std::string& file){
-    char value[256]{};
-    GetPrivateProfileStringA(section.c_str(),key,"",value,sizeof(value),file.c_str());
-    return value;
+    const std::string* value=lookup(section,key,file);
+    return value?value->substr(0,255):std::string{};
 }
 
 }
@@ -192,6 +243,9 @@ bool load(){
     flush();
     const std::string file=path();
     if(GetFileAttributesA(file.c_str())==INVALID_FILE_ATTRIBUTES)return false;
+    // Parse the save fresh for this load and release it on every exit path.
+    clearIniCache();
+    struct ReleaseCache{~ReleaseCache(){clearIniCache();}} releaseCache;
     int version=read("Save","Version",0,file);
     if(version!=1&&version!=2&&version!=3)return false;
 #ifdef MINI_CITY_JOLT
