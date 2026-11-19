@@ -104,6 +104,16 @@ bool load(const char* file){
         }
         item.driveByAllowed=driveBy!=0;
         item.dualWieldAllowed=dual!=0;
+        item.scoped=item.id=="sniper";
+        item.pelletFan=item.id=="shotgun";
+        item.electric=item.id=="lightning";
+        item.muzzleReach=item.id=="pistol"||item.id=="silenced-pistol"?10.0f:
+            item.id=="smg"?13.0f:item.id=="minigun"?34.0f:18.0f;
+        int scoped=item.scoped,fan=item.pelletFan;
+        if(data.has(section,"Scoped")&&!data.integer(section,"Scoped",scoped,0,1))break;
+        if(data.has(section,"PelletFan")&&!data.integer(section,"PelletFan",fan,0,1))break;
+        if(data.has(section,"MuzzleReach")&&!data.real(section,"MuzzleReach",item.muzzleReach,0.0f,80.0f))break;
+        item.scoped=scoped!=0;item.pelletFan=fan!=0;
         if(item.dualWieldAllowed&&(item.melee||item.arrow||item.rocket||
             item.streamType!=0||item.pellets!=1)){
             error="Invalid dual wield weapon ["+section+"]";return false;

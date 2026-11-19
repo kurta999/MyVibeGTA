@@ -1047,7 +1047,7 @@ void shoot(){
     if(!unlimited)magazine[weapon]-=shots;
     audio::play(stats.arrow?audio::Effect::Bow:stats.streamType==1?audio::Effect::Flame:
         stats.streamType==2||stats.streamType==3?audio::Effect::Water:
-        stats.id=="lightning"?audio::Effect::Electric:
+        stats.electric?audio::Effect::Electric:
         stats.silenced?audio::Effect::SilencedShot:audio::Effect::Shot,weapon);
     if(!stats.silenced){
 #ifdef MINI_CITY_JOLT
@@ -1059,7 +1059,7 @@ void shoot(){
     }
     muzzleFlash=0.12f;
     if(occupied<0)shotVisualTime=0.32f;
-    recoil=std::min(1.0f,recoil+0.25f+(weapon==2?0.25f:0));
+    recoil=std::min(1.0f,recoil+0.25f+(stats.pelletFan?0.25f:0));
     Vec2 f=forward(cameraYaw),r{-f.z,f.x};
     camera::Pose pose=camera::compute(player,occupied>=0?0:playerY,
         occupied>=0||rightMouse,occupied);
@@ -1096,7 +1096,7 @@ void shoot(){
         ballisticTarget.y+=0.5f*stats.gravity*flightTime*flightTime;
         for(int i=0;i<stats.pellets;++i){
             float spread=randf(-stats.spread,stats.spread)*(1.0f+recoil*0.3f)+
-                (weapon==2?(i-3)*0.025f:0);
+                (stats.pelletFan?(i-3)*0.025f:0);
             Vec3 direction=norm(ballisticTarget-shotMuzzle);
             direction=norm(Vec3{direction.x+std::cos(cameraYaw+PI/2)*spread,
                 direction.y+randf(-stats.spread*0.5f,stats.spread*0.5f),
@@ -1151,7 +1151,7 @@ void update(float dt){
     if(health<=0)grapple::release();
 #endif
     bool scoped=occupied<0&&health>0&&!swimming&&(telescopeActive||
-        (rightMouse&&weapon==weapons::indexOf("sniper")));
+        (rightMouse&&weapons::stats(weapon).scoped));
     scopeBlend=std::clamp(scopeBlend+(scoped?1.0f:-1.0f)*dt*7.0f,0.0f,1.0f);
     vehicleLookTime=std::max(0.0f,vehicleLookTime-dt);
     meleeVisualTime=std::max(0.0f,meleeVisualTime-dt);

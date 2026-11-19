@@ -16,7 +16,7 @@
 
 namespace camera {
 using namespace game;
-bool isScoped(){return occupied<0&&!swimming&&rightMouse&&weapon==weapons::indexOf("sniper")
+bool isScoped(){return occupied<0&&!swimming&&rightMouse&&weapons::stats(weapon).scoped
 #ifdef MINI_CITY_JOLT
     &&!builder::active()
 #endif
@@ -74,7 +74,7 @@ Pose computeDetailed(Vec2 focus,float playerHeight,bool aiming,int occupied,Boom
     float stance=game::crouched&&occupied<0?10.0f:0.0f;
     bool first=(cameraMode==CameraMode::FirstClose||cameraMode==CameraMode::FirstWide);
     bool scope=occupied<0&&(scopeBlend>0||telescopeActive||
-        (aiming&&weapon==weapons::indexOf("sniper")));
+        (aiming&&weapons::stats(weapon).scoped));
     if(first||scope){
 #ifdef MINI_CITY_JOLT
         bool helicopter=occupied>=0&&occupied<int(vehicles.size())&&vehicles[occupied].kind==Kind::Helicopter;
@@ -262,9 +262,6 @@ Vec3 weaponMuzzle(Vec2 position,float height,float yaw,Vec3 target){
         position.z+facing.z*6+side.z*6};
     Vec3 direction=norm(target-hand);
     if(len(direction)<0.001f)direction={facing.x,0,facing.z};
-    const std::string& id=weapons::stats(weapon).id;
-    float reach=id=="pistol"||id=="silenced-pistol"?10.0f:
-        id=="smg"?13.0f:id=="minigun"?34.0f:18.0f;
-    return hand+direction*reach;
+    return hand+direction*weapons::stats(weapon).muzzleReach;
 }
 }

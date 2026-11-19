@@ -30,6 +30,12 @@ struct Stats {
     bool grapple=false;
     Payload payload=Payload::None;
     float fuseSeconds=3;
+    // Behaviour that used to be keyed on ids or the legacy index 2 in hot
+    // paths. Defaults come from the id; weapons.ini may override them.
+    bool scoped=false;      // Scoped / sniper zoom (camera, aim pose)
+    bool pelletFan=false;   // PelletFan / shotgun-style fixed pellet fan and extra recoil
+    bool electric=false;    // electric shot sound
+    float muzzleReach=18;   // MuzzleReach / hand-to-muzzle distance
 };
 bool load(const char* path=nullptr);
 const Stats& stats(int index);
