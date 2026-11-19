@@ -64,10 +64,43 @@
 #include <cstdio>
 #include <psapi.h>
 #include <timeapi.h>
+#ifdef MINI_CITY_JOLT
+#include <dxgi.h>
+#include <d3d12.h>
+#endif
 #include "frame_pacing.h"
 namespace {
 // Sleep(1) waits a whole scheduler tick (about 15.6 ms) at the default timer
 // resolution, which made the loop miss VSync intervals and stutter.
+#ifdef MINI_CITY_JOLT
+// First launch on an integrated GPU (unified memory): start from a
+// lighter preset. APUs report a large dedicated carve-out (4 GB on a 680M),
+// so the D3D12 UMA architecture flag is used instead of a VRAM threshold. Measured on a Radeon 680M, High shadows (3x2048 cascades)
+// cost ~3 ms and draw distance 70 vs 40 another ~3 ms per frame.
+void applyIntegratedGpuPreset(){
+    IDXGIFactory1* factory=nullptr;
+    if(FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1),reinterpret_cast<void**>(&factory))))return;
+    IDXGIAdapter1* adapter=nullptr;DXGI_ADAPTER_DESC1 desc{};
+    bool integrated=false;
+    if(SUCCEEDED(factory->EnumAdapters1(0,&adapter))&&SUCCEEDED(adapter->GetDesc1(&desc))&&
+       !(desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE)){
+        ID3D12Device* device=nullptr;
+        if(SUCCEEDED(D3D12CreateDevice(adapter,D3D_FEATURE_LEVEL_11_0,__uuidof(ID3D12Device),reinterpret_cast<void**>(&device)))){
+            D3D12_FEATURE_DATA_ARCHITECTURE architecture{};
+            integrated=SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE,&architecture,sizeof(architecture)))&&
+                architecture.UMA;
+            device->Release();
+        }
+    }
+    if(adapter)adapter->Release();
+    factory->Release();
+    if(!integrated)return;
+    ui::shadowQuality=1;ui::drawDistance=std::min(ui::drawDistance,35);
+    ui::grassDistance=std::min(ui::grassDistance,35);ui::vegetationDensity=std::min(ui::vegetationDensity,1);
+    ui::save();
+    logging::write("First launch on an integrated GPU: using the balanced graphics preset");
+}
+#endif
 struct TimerResolution {
     bool active=timeBeginPeriod(1)==TIMERR_NOERROR;
     ~TimerResolution(){if(active)timeEndPeriod(1);}
@@ -181,6 +214,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     if(!radio::load())logging::write(radio::lastError().c_str());
 #endif
     ui::load();
+#ifdef MINI_CITY_JOLT
+    if(ui::firstRun&&!smoke)applyIntegratedGpuPreset();
+#endif
 #ifdef MINI_CITY_JOLT
     if(smoke){ui::windowMode=0;ui::applyWindow();}
 #endif

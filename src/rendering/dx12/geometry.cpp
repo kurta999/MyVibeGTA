@@ -2,6 +2,8 @@
 #include "../../launch_options.h"
 
 namespace game {
+// Minimum projected size, in shadow-map texels, for casters in cascades 1-2.
+constexpr float kMinFarCasterTexels = 3.0f;
 
 bool Dx12Renderer::CacheModel(const dx11::Mesh* source) {
     return source && m_meshCache->Ensure(*source) && m_textureLibrary->EnsureMesh(*source);
@@ -135,6 +137,11 @@ bool Dx12Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
                     continue;
                 ++m_geometryStats.m_casterCandidates;
                 const auto& sphere = modelBounds(model);
+                // Far cascades cover large areas at low texel density: casters
+                // smaller than a few shadow texels there only add triangles.
+                if (cascade > 0 && !disableCulling &&
+                    2 * sphere.radius * m_shadowSize / extent < kMinFarCasterTexels)
+                    continue;
                 if (receiverCull && !receivers.reaches(sphere, receiverRange, padding)) {
                     ++m_geometryStats.m_receiverCulled;
                     continue;

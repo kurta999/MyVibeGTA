@@ -58,6 +58,8 @@ float grassLodDistanceUnits();
 void handleMouse(int x,int y,bool dragging);
 bool paused();
 void load();
+// True when settings.ini had no graphics settings yet (first launch).
+extern bool firstRun;
 void save();
 // Marks settings changed; flushSettings writes them once changes settle.
 void saveSoon();

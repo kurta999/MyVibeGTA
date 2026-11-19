@@ -19,6 +19,7 @@ int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
     windowMode=0,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
 bool vsync=true;
+bool firstRun=false;
 int fieldOfView=FIELD_OF_VIEW_DEFAULT;
 int fsr2Quality=1,fsr2Sharpness=20;
 bool showHelp=false;
@@ -118,6 +119,7 @@ float grassLodDistanceUnits(){
 }
 void load(){
     std::string path=configPath();
+    firstRun=GetPrivateProfileIntA("Graphics","Quality",-1,path.c_str())==-1;
     fsr2Quality=std::clamp(int(GetPrivateProfileIntA("Graphics","FSR2",1,path.c_str())),0,4);
     fsr2Sharpness=std::clamp(int(GetPrivateProfileIntA("Graphics","FSR2Sharpness",20,path.c_str())),0,100);
     graphicsQuality=std::clamp(int(GetPrivateProfileIntA("Graphics","Quality",2,path.c_str())),0,2);
