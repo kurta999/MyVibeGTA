@@ -33,8 +33,7 @@ bool Dx11Renderer::PrepareInstances(const camera::Pose& pose, const SceneConstan
     m_streetShadowInstanceBatches.clear();
     const bool disableCulling = launch::has("--no-frustum-cull");
     // Both Direct3D backends use the same conservative receiver math.
-    const bool receiverCull =
-        !disableCulling && !launch::has("--legacy-shadow-culling");
+    const bool receiverCull = !disableCulling && !launch::has("--legacy-shadow-culling");
     const bool shadowLod = !launch::has("--legacy-shadow-lod");
     const dx12::ShadowReceivers receivers(
         constants.m_viewProjection, {pose.eye.x, pose.eye.y, pose.eye.z},

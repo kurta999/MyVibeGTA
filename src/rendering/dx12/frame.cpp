@@ -8,7 +8,13 @@ void Dx12Renderer::Render() {
     profiling::Phase cpuPhase;
     CITY_CPU_STAGE(cpuPhase, "DX12 prepare scene");
     // End the final GPU scope even when a target/upload check exits early.
-    struct EndTracy { dx12::Device* device; ~EndTracy(){if(device)device->tracyEnd();} } endTracy{m_device};
+    struct EndTracy {
+        dx12::Device* device;
+        ~EndTracy() {
+            if (device)
+                device->tracyEnd();
+        }
+    } endTracy{m_device};
     if (m_deviceLost || !m_device || !m_context)
         return;
     if (m_groundRevision != excavation::revision() && !CreateStaticGeometry())
@@ -415,18 +421,15 @@ void Dx12Renderer::Render() {
                     ui::graphicsQuality > 0 ? float(ui::reflectionQuality) : 0.0f};
     if (launch::has("--profile-no-ssao"))
         post.effects.x = 0;
-    const bool probeDebug =
-        launch::has("--probe-view") || launch::has("--probe-weight-view");
+    const bool probeDebug = launch::has("--probe-view") || launch::has("--probe-weight-view");
     if (probeDebug)
         post.effects = {0, 0, 0, 0};
     post.debug.x = launch::has("--normal-view")      ? 1.0f
                    : launch::has("--roughness-view") ? 2.0f
                    : launch::has("--indirect-view")  ? 5.0f
                    : launch::has("--bloom-view")     ? 4.0f
-                   : launch::has("--shadow-cascade-view") ||
-                           launch::has("--material-view") ||
-                           launch::has("--mip-view") ||
-                           launch::has("--probe-weight-view")
+                   : launch::has("--shadow-cascade-view") || launch::has("--material-view") ||
+                           launch::has("--mip-view") || launch::has("--probe-weight-view")
                        ? 3.0f
                        : 0.0f;
     post.previousViewProjection =
@@ -457,8 +460,7 @@ void Dx12Renderer::Render() {
     if (launch::has("--profile-no-clouds"))
         post.skyWeather.z = 0;
     post.temporal.z =
-        !launch::has("--full-res-clouds") && !post.debug.x && !post.debug.w ? 1.0f
-                                                                                         : 0.0f;
+        !launch::has("--full-res-clouds") && !post.debug.x && !post.debug.w ? 1.0f : 0.0f;
     m_context->UpdateSubresource(m_postBuffer, 0, nullptr, &post, 0, 0);
     if (post.effects.w > 0.5f) {
         D3D12_VIEWPORT reflectionViewport{};
@@ -715,8 +717,7 @@ void Dx12Renderer::Render() {
     auto beforePresent = std::chrono::steady_clock::now();
     CITY_CPU_STAGE(cpuPhase, "DX12 present");
     m_device->transition(m_target->resource, D3D12_RESOURCE_STATE_PRESENT);
-    HRESULT presentResult =
-        m_device->present(ui::vsync && !launch::has("--benchmark") ? 1 : 0);
+    HRESULT presentResult = m_device->present(ui::vsync && !launch::has("--benchmark") ? 1 : 0);
     CITY_FRAME();
     Release(m_target);
     dx12::Texture2D* nextBack = nullptr;

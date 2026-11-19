@@ -212,7 +212,7 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
                   textureStats.m_compressedCount,
                   double(textureStats.m_compressedBytes) / (1024 * 1024));
     logging::write(textureSummary);
-    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers(),"Scene");
+    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers(), "Scene");
     logging::write(("CPU scene workers: " + std::to_string(m_scenePool->concurrency())).c_str());
     // Correctness is verified, but this GPU-bound fixture has not established
     // a throughput win from splitting native lists. Keep the measured serial
@@ -220,7 +220,7 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
     unsigned recordWorkers = 1;
     if (const char* option = std::strstr(launch::commandLine().c_str(), "--record-workers="))
         recordWorkers = unsigned(std::clamp(std::atoi(option + 17), 1, 8));
-    m_recordPool = std::make_unique<cpu::Pool>(recordWorkers,"DX12 recording");
+    m_recordPool = std::make_unique<cpu::Pool>(recordWorkers, "DX12 recording");
     logging::write(("DX12 command recording workers: " + std::to_string(recordWorkers)).c_str());
     return CreateProbes();
 }

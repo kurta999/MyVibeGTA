@@ -19,6 +19,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Check formatting of listed files
+        shell: pwsh
+        run: ./tools/check_format.ps1
+
       - name: Configure and build game and tests
         shell: pwsh
         run: |

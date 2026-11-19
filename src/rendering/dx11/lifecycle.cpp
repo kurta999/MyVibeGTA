@@ -238,9 +238,9 @@ bool Dx11Renderer::InitRenderer() {
                   textureStats.m_compressedCount,
                   double(textureStats.m_compressedBytes) / (1024 * 1024));
     logging::write(textureSummary);
-    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers(),"Scene");
+    m_scenePool = std::make_unique<cpu::Pool>(::rendering::SceneWorkers(), "Scene");
     logging::write(("CPU scene workers: " + std::to_string(m_scenePool->concurrency())).c_str());
-    return CreateProbes() && menus::Init(win,m_device,m_context);
+    return CreateProbes() && menus::Init(win, m_device, m_context);
 }
 
 bool Dx11Renderer::BakeReflectionProbes() {

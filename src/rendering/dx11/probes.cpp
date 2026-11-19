@@ -68,15 +68,14 @@ bool Dx11Renderer::CreateProbes() {
 
 void Dx11Renderer::UpdateProbes() {
     ProbeConstants constants{};
-    bool enabled = m_probeView && m_brdfView && !m_probeBakeActive &&
-                   !launch::has("--no-probes");
+    bool enabled = m_probeView && m_brdfView && !m_probeBakeActive && !launch::has("--no-probes");
     const auto weights = dx11::probes::timeWeights(gameHour);
     constants.m_timeWeights = {weights[0], weights[1], weights[2], 0};
     constants.m_info = {float(m_probeSet.mips ? m_probeSet.mips - 1 : 0),
                         1 - weather::current().clouds * 0.42f, enabled ? 1.0f : 0.0f,
                         launch::has("--probe-weight-view") ? 2.0f
                         : launch::has("--probe-view")      ? 1.0f
-                                                                              : 0.0f};
+                                                           : 0.0f};
     for (unsigned p = 0; p < 2; ++p) {
         const auto& v = enabled
                             ? m_probeSet.positions[p]

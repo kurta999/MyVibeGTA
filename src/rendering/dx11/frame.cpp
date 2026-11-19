@@ -7,7 +7,12 @@ using ::rendering::GpuStage;
 void Dx11Renderer::Render() {
     CITY_ZONE("DX11 render frame");
     profiling::Phase cpuPhase;
-    struct EndTracy { ::rendering::TracyDx11& profiler; ~EndTracy(){profiler.End();} } endTracy{m_tracy};
+    struct EndTracy {
+        ::rendering::TracyDx11& profiler;
+        ~EndTracy() {
+            profiler.End();
+        }
+    } endTracy{m_tracy};
     CITY_CPU_STAGE(cpuPhase, "DX11 prepare scene");
     if (m_deviceLost || !m_device || !m_context)
         return;
@@ -47,9 +52,11 @@ void Dx11Renderer::Render() {
     }
     dx11::buildScene(m_groups, m_models, pose.eye.x, pose.eye.y, pose.eye.z,
                      m_skinCS ? &m_gpuSkins : nullptr, m_probeBakeActive, m_scenePool.get());
-    if (m_skinCS)
-    { CITY_DX11_STAGE(m_tracy, "GPU skin deformation");PrepareSkins();m_tracy.End(); }
-    else {
+    if (m_skinCS) {
+        CITY_DX11_STAGE(m_tracy, "GPU skin deformation");
+        PrepareSkins();
+        m_tracy.End();
+    } else {
         m_gpuSkins.clear();
         m_skinVertexCount = 0;
     }
@@ -75,7 +82,8 @@ void Dx11Renderer::Render() {
         for (int group = 0; group < dx11::MATERIAL_GROUPS; ++group) {
             for (size_t first = 0; first < counts[group]; first += 32768) {
                 const size_t count = std::min(size_t(32768), counts[group] - first);
-                auto* destination = static_cast<dx11::Vertex*>(mapped.pData) + starts[group] + first;
+                auto* destination =
+                    static_cast<dx11::Vertex*>(mapped.pData) + starts[group] + first;
                 const auto* source = m_groups[group].data() + first;
                 auto copy = [destination, source, count] {
                     std::memcpy(destination, source, count * sizeof(dx11::Vertex));
@@ -385,18 +393,15 @@ void Dx11Renderer::Render() {
                       : ui::antiAliasingQuality == 0 ? 0.75f
                                                      : float(ui::antiAliasingQuality),
                       ui::graphicsQuality > 0 ? float(ui::reflectionQuality) : 0.0f};
-    const bool probeDebug =
-        launch::has("--probe-view") || launch::has("--probe-weight-view");
+    const bool probeDebug = launch::has("--probe-view") || launch::has("--probe-weight-view");
     if (probeDebug)
         post.m_effects = {0, 0, 0, 0};
     post.m_debug.x = launch::has("--normal-view")      ? 1.0f
                      : launch::has("--roughness-view") ? 2.0f
                      : launch::has("--indirect-view")  ? 5.0f
                      : launch::has("--bloom-view")     ? 4.0f
-                     : launch::has("--shadow-cascade-view") ||
-                             launch::has("--material-view") ||
-                             launch::has("--mip-view") ||
-                             launch::has("--probe-weight-view")
+                     : launch::has("--shadow-cascade-view") || launch::has("--material-view") ||
+                             launch::has("--mip-view") || launch::has("--probe-weight-view")
                          ? 3.0f
                          : 0.0f;
     post.m_previousViewProjection =
