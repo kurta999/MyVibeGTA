@@ -634,6 +634,13 @@ void Dx11Renderer::Render() {
         logging::write(failure);
         m_deviceLost = true;
     }
+    // Test hook: exercise device-loss recovery once without a real removal.
+    static bool simulatedLoss = false;
+    if (!simulatedLoss && m_temporalFrame == 30 && launch::has("--simulate-device-lost")) {
+        simulatedLoss = true;
+        logging::write("Simulating graphics device loss");
+        m_deviceLost = true;
+    }
     if (SUCCEEDED(presentResult)) {
         m_previousViewProjection = constants.m_viewProjection;
         m_previousCameraEye = {pose.eye.x, pose.eye.y, pose.eye.z};

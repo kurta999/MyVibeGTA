@@ -71,6 +71,9 @@ class Dx11Renderer final {
     bool ExclusiveFullscreenEnabled();
     bool SetExclusiveFullscreen(bool enabled, int width, int height);
     bool InitRenderer();
+    bool DeviceLost() const {
+        return m_deviceLost;
+    }
     void Render();
     bool BakeReflectionProbes();
     void ShutdownRenderer();
