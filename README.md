@@ -237,7 +237,7 @@ CMake copies `assets/` and `data/` beside the game on every build, including bui
 
 ### Startup feedback
 
-DX11 can prepare regional texture mipmaps ahead of time. Run `./MyVibeGTA-DX11.exe --smoke --cook-regional-mips` once to build `regional-mips-v1/` beside the executable. Subsequent DX11 launches use the cache for matching source textures. Cache files hold the full uncompressed mip chains, and the log reports the cache hits. Use `--no-regional-mip-cache` for an uncached comparison.
+Regional texture mipmaps can be prepared ahead of time. Run `./MyVibeGTA-DX11.exe --smoke --cook-regional-mips` once to build `regional-mips-v1/` beside the executable (about 1 GB). Subsequent DX11 and DX12 launches use the cache for matching source textures; on a Radeon 680M this cuts the regional texture stage from 6-10 s to about 0.6 s. Compiled shaders are cached automatically in `shader-cache-v1/` beside the executable (`--no-shader-cache` disables it). Cache files hold the full uncompressed mip chains, and the log reports the cache hits. Use `--no-regional-mip-cache` for an uncached comparison.
 
 The Direct3D executable immediately opens a loading window with a progress bar, current stage, and elapsed time. It remains responsive while graphics initialize; closing it cancels at the next startup checkpoint. The game appears after its first frame is prepared. `--smoke` runs keep the loading window hidden.
 

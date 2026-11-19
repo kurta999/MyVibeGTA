@@ -179,6 +179,9 @@ float PS(float4 pos:SV_POSITION):SV_TARGET {
     std::vector<dx11::texture::Request> regionalRequests;
     for (const auto& item : uniqueTextures)
         regionalRequests.push_back(item.second);
+    // Same cooked regional mip cache as DX11 (--cook-regional-mips).
+    if (!::rendering::SetRegionalMipCache(regionalRequests))
+        return false;
     if (!::rendering::PreloadTextures(
             regionalRequests,
             [&](size_t index, const dx11::texture::Prepared& prepared) {

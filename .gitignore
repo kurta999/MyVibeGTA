@@ -52,3 +52,4 @@ __pycache__/
 
 # Download archives are not needed with the vendored ImGui/Lua sources.
 /third_party/downloads/
+/shader-cache-v1/

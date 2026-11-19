@@ -41,8 +41,8 @@ bool Dx11Renderer::CreateShaders() {
     char timing[200]{};
     std::snprintf(
         timing, sizeof(timing),
-        "Shader loading: workers %u, peak active %u, completed %zu/%zu, wall %.3f s, CPU %.3f s%s",
-        stats.workers, stats.peakActive, stats.completed, requests.size(), stats.wallSeconds,
+        "Shader loading: workers %u, peak active %u, completed %zu/%zu, cache hits %zu, wall %.3f s, CPU %.3f s%s",
+        stats.workers, stats.peakActive, stats.completed, requests.size(), stats.cacheHits, stats.wallSeconds,
         stats.cpuSeconds, ok ? "" : " (stopped)");
     logging::write(timing);
     if (!ok) {
