@@ -1,4 +1,5 @@
 #include "ped_navigation_surface.h"
+#include "ped_grid.h"
 #include "builder.h"
 #include "destruction.h"
 #include "excavation.h"
@@ -174,10 +175,10 @@ std::vector<Vec3> search(Vec3 start,Vec3 goal,Context& context){
 
 Vec2 steer(Ped& ped,Vec2 preferred,float speed,float dt,Context& context){
     Vec2 wanted=preferred,separation{};float height=jolt_world::pedHeight(ped);
-    for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>46||std::abs(jolt_world::pedHeight(other)-height)>=25)continue;
-        auto away=ped.p-other.p;float distance=len(away);if(distance>46)continue;
+    ped_grid::forEachNear(ped.p,46,[&](const Ped& other){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>46||std::abs(jolt_world::pedHeight(other)-height)>=25)return false;
+        auto away=ped.p-other.p;float distance=len(away);if(distance>46)return false;
         if(distance<.01f){away=&ped<&other?Vec2{0,1}:Vec2{0,-1};distance=.01f;}
-        separation=separation+norm(away)*std::max(0.0f,(34-distance)/34)*speed;}
+        separation=separation+norm(away)*std::max(0.0f,(34-distance)/34)*speed;return false;});
     wanted=wanted+separation;if(len(wanted)>speed)wanted=norm(wanted)*speed;
     Vec2 best{};float bestScore=1e30f;
     // Test the intended velocity first; a perfect safe match needs no alternatives.
@@ -186,9 +187,10 @@ Vec2 steer(Ped& ped,Vec2 preferred,float speed,float dt,Context& context){
         if(option<16){float turn=(option%8-3)*PI/8;auto f=norm(wanted);candidate={f.x*std::cos(turn)-f.z*std::sin(turn),f.x*std::sin(turn)+f.z*std::cos(turn)};
             candidate=candidate*(len(wanted)*(option<8?1.0f:.45f));}
         float horizon=std::max(dt,.18f);auto end=ped.p+candidate*horizon;if(!context.clear(ped.p,end))continue;bool safe=true;
-        for(const auto& other:peds){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>65||std::abs(jolt_world::pedHeight(other)-height)>=25)continue;
+        ped_grid::forEachNear(ped.p,65,[&](const Ped& other){if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>65||std::abs(jolt_world::pedHeight(other)-height)>=25)return false;
             float now=len(other.p-ped.p),next=segmentDistance(other.p,ped.p,end);
-            if((now>=19&&next<19)||(now<19&&len(other.p-end)<now+.01f&&len(candidate)>.01f)){safe=false;break;}}
+            if((now>=19&&next<19)||(now<19&&len(other.p-end)<now+.01f&&len(candidate)>.01f)){safe=false;return true;}
+            return false;});
         if(!safe)continue;
         for(const auto& car:vehicles)if(std::abs(car.rideHeight-height)<42&&len(car.velocity)>8&&len(car.p-ped.p)<160&&
             segmentDistance(car.p,ped.p,end-car.velocity*horizon)<physics::vehicleRadius(car.kind)+12){safe=false;break;}

@@ -1,4 +1,5 @@
 #include "destruction.h"
+#include "ped_grid.h"
 #include "ped_navigation.h"
 #include "regions.h"
 #include "physics.h"
@@ -132,10 +133,10 @@ std::vector<Vec2> search(Vec2 start,Vec2 goal,const Obstacles& obstacles){
 Vec2 avoidPeople(const Ped& ped,Vec2 preferred,float speed,float dt,const Obstacles& obstacles){
     if(speed<=0)return {};
     Vec2 direction=norm(preferred),separation{};
-    for(const auto& other:peds){
-        if(&other==&ped||!other.alive||other.drivingVehicle>=0)continue;
+    ped_grid::forEachNear(ped.p,46,[&](const Ped& other){
+        if(&other==&ped||!other.alive||other.drivingVehicle>=0)return false;
         Vec2 away=ped.p-other.p;float distance=len(away);
-        if(distance>46)continue;
+        if(distance>46)return false;
         if(distance<0.01f){
             // Stable order breaks perfectly coincident starts symmetrically.
             away=(&ped<&other)?Vec2{0,1}:Vec2{0,-1};distance=0.01f;
@@ -147,7 +148,8 @@ Vec2 avoidPeople(const Ped& ped,Vec2 preferred,float speed,float dt,const Obstac
             Vec2 right{-direction.z,direction.x};
             separation=separation+right*speed*0.8f;
         }
-    }
+        return false;
+    });
     Vec2 wanted=preferred+separation;
     if(len(wanted)>speed)wanted=norm(wanted)*speed;
     // Sample locally feasible velocities. Stopping is always an option. Hard
@@ -163,13 +165,14 @@ Vec2 avoidPeople(const Ped& ped,Vec2 preferred,float speed,float dt,const Obstac
         Vec2 end=ped.p+candidate*horizon;
         if(!obstacles.clear(ped.p,end))continue;
         bool safe=true;
-        for(const auto& other:peds){
-            if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>65)continue;
+        ped_grid::forEachNear(ped.p,65,[&](const Ped& other){
+            if(&other==&ped||!other.alive||other.drivingVehicle>=0||len(other.p-ped.p)>65)return false;
             float now=len(other.p-ped.p),next=segmentDistance(other.p,ped.p,end);
             if((now>=19&&next<19)||(now<19&&len(other.p-end)<now+0.01f&&len(candidate)>0.01f)){
-                safe=false;break;
+                safe=false;return true;
             }
-        }
+            return false;
+        });
         for(const auto& car:vehicles)if(len(car.velocity)>8&&len(car.p-ped.p)<160){
             Vec2 relativeEnd=end-car.velocity*horizon;
             if(segmentDistance(car.p,ped.p,relativeEnd)<physics::vehicleRadius(car.kind)+12){safe=false;break;}
