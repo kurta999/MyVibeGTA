@@ -1,2 +1,15 @@
 # Preserve downloaded terrain source bytes for the pinned provenance checksums.
 assets/models/source/terrain/**/*.gltf -text
+
+# Git LFS for future large authoring sources only. These patterns match no
+# file tracked today, so existing history and files are unchanged (no
+# migration). Put new large sources in assets/source-lfs/ or use these types.
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.spp filter=lfs diff=lfs merge=lfs -text
+*.sbsar filter=lfs diff=lfs merge=lfs -text
+*.ztl filter=lfs diff=lfs merge=lfs -text
+assets/source-lfs/** filter=lfs diff=lfs merge=lfs -text
