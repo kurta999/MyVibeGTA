@@ -9,6 +9,7 @@
 #endif
 #include "weapons.h"
 #include "physics.h"
+#include "ui.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -32,10 +33,41 @@ float fieldOfView(){
         cameraMode==CameraMode::Overview?70.0f:65.0f;
     if(occupied>=0&&cameraMode!=CameraMode::FirstClose&&cameraMode!=CameraMode::FirstWide)
         base=65.0f;
+    // The player's field-of-view setting shifts every regular view by the
+    // same amount; scopes and telescopes keep their fixed magnification.
+    base+=float(std::clamp(ui::fieldOfView,ui::FIELD_OF_VIEW_MIN,ui::FIELD_OF_VIEW_MAX)-ui::FIELD_OF_VIEW_DEFAULT);
     float scoped=2.0f*std::atan(std::tan(65.0f*PI/360.0f)/scopeMagnification())*180.0f/PI;
     return base+(scoped-base)*scopeBlend;
 }
+namespace {
+// Third-person boom from the look anchor to the unobstructed camera position.
+struct Boom { bool valid=false; Vec3 anchor{},desired{}; };
+Pose computeDetailed(Vec2 focus,float playerHeight,bool aiming,int occupied,Boom* boom);
+}
 Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
+    return computeDetailed(focus,playerHeight,aiming,occupied,nullptr);
+}
+Pose renderPose(Vec2 focus,float playerHeight,bool aiming,int occupied){
+    Boom boom;
+    Pose pose=computeDetailed(focus,playerHeight,aiming,occupied,&boom);
+    static float smoothed=1;
+    static LARGE_INTEGER last{};
+    LARGE_INTEGER now{},frequency{};QueryPerformanceCounter(&now);QueryPerformanceFrequency(&frequency);
+    float dt=last.QuadPart?float(double(now.QuadPart-last.QuadPart)/double(frequency.QuadPart)):0.0f;
+    last=now;
+    const float full=boom.valid?len(boom.desired-boom.anchor):0.0f;
+    // Aiming keeps the exact gameplay pose so the reticle matches the shot.
+    if(!boom.valid||aiming||full<1.0f){smoothed=1;return pose;}
+    float fraction=std::clamp(len(pose.eye-boom.anchor)/full,0.0f,1.0f);
+    // Pull in immediately so walls never clip the view, but ease back out
+    // once an obstacle clears instead of snapping to full distance.
+    if(fraction<smoothed||dt<=0||dt>0.1f)smoothed=fraction;
+    else smoothed+=(fraction-smoothed)*(1-std::exp(-dt*4.0f));
+    pose.eye=boom.anchor+(boom.desired-boom.anchor)*smoothed;
+    return pose;
+}
+namespace {
+Pose computeDetailed(Vec2 focus,float playerHeight,bool aiming,int occupied,Boom* boom){
     if(swimming&&occupied<0)aiming=false;
     Vec2 f=forward(cameraYaw),right{-f.z,f.x};
     float scale=occupied>=0&&occupied<int(vehicles.size())?physics::vehicleScale(vehicles[occupied].kind):1.0f;
@@ -83,6 +115,7 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
     Vec3 desired{focus.x-f.x*distance+right.x*shoulder,height,
         focus.z-f.z*distance+right.z*shoulder};
     Vec3 safe=desired;
+    if(boom){boom->valid=true;boom->anchor=anchor;boom->desired=desired;}
 #ifdef MINI_CITY_JOLT
     float sceneryEntry=0;if(scenery_edits::segment(anchor,desired,sceneryEntry)){
         float length=game::len(desired-anchor);desired=anchor+(desired-anchor)*std::max(.08f,sceneryEntry-5/std::max(1.0f,length));safe=desired;
@@ -107,6 +140,7 @@ Pose compute(Vec2 focus,float playerHeight,bool aiming,int occupied){
         if(blocked){safe=anchor+(desired-anchor)*std::max(0.08f,(i-2)/28.0f);break;}
     }
     return {safe,{focus.x+f.x*lookDistance,lookHeight,focus.z+f.z*lookDistance}};
+}
 }
 namespace {
 float boxHit(Vec3 origin,Vec3 direction,Vec3 low,Vec3 high,float limit){

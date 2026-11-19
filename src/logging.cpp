@@ -16,7 +16,7 @@ void initialize(){
     if(!GetModuleFileNameA(nullptr,executable,MAX_PATH))return;
     std::string path(executable);
     size_t slash=path.find_last_of("\\/");
-    output.open(path.substr(0,slash+1)+"MiniCity3D.log",std::ios::app);
+    output.open(path.substr(0,slash+1)+"MyVibeGTA.log",std::ios::app);
     write("Application started");
 }
 

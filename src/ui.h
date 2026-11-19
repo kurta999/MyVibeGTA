@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <string>
 
 namespace ui {
 enum class Page { Closed, Main, Graphics, Controls, Audio };
@@ -18,12 +19,18 @@ extern int filteringQuality;
 extern int vegetationDensity;
 extern int grassDistance;
 extern int grassLodDistance;
-constexpr int GRAPHICS_ROW_HEIGHT=32;
+constexpr int GRAPHICS_ROW_HEIGHT=30;
 #ifdef MINI_CITY_DX12
-constexpr int GRAPHICS_MENU_ROWS=17;
+constexpr int GRAPHICS_MENU_ROWS=18;
 #else
-constexpr int GRAPHICS_MENU_ROWS=15;
+constexpr int GRAPHICS_MENU_ROWS=16;
 #endif
+// VSync is always the last graphics row so the FSR2 rows keep their indices.
+constexpr int GRAPHICS_VSYNC_ROW=GRAPHICS_MENU_ROWS-1;
+constexpr int CONTROLS_MENU_ROWS=9;
+constexpr int CONTROLS_ROW_HEIGHT=36;
+constexpr int CONTROLS_MENU_HEIGHT=150+CONTROLS_MENU_ROWS*CONTROLS_ROW_HEIGHT+40;
+constexpr int FIELD_OF_VIEW_MIN=55,FIELD_OF_VIEW_MAX=95,FIELD_OF_VIEW_DEFAULT=65;
 constexpr int GRAPHICS_MENU_HEIGHT=160+GRAPHICS_MENU_ROWS*GRAPHICS_ROW_HEIGHT;
 extern int effectsQuality;
 extern int drawDistance;
@@ -36,7 +43,12 @@ void setWindowActive(bool active);
 extern int mouseSensitivity;
 extern int masterVolume;
 extern bool invertY;
+extern bool vsync;
+// Third-person horizontal field of view in degrees; other views scale with it.
+extern int fieldOfView;
 extern bool showHelp;
+// Feedback for the last rejected key binding, shown on the Controls page.
+extern std::string bindingNotice;
 extern int waitingForBinding;
 extern std::array<int,int(Action::Count)> bindings;
 float drawDistanceScale();
@@ -49,4 +61,5 @@ void load();
 void save();
 void handleKey(int key);
 const char* keyName(int key);
+bool bindKey(int action,int key);
 }

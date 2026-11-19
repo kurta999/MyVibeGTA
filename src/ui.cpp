@@ -5,6 +5,7 @@
 #include "radio.h"
 #endif
 #include "savegame.h"
+#include "key_bindings.h"
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -17,9 +18,13 @@ int selection=0,graphicsQuality=2,shadowQuality=1,reflectionQuality=1,
     effectsQuality=2,drawDistance=21,lodDistance=50,windowChoice=1,
     windowMode=0,mouseSensitivity=7,masterVolume=80,waitingForBinding=-1;
 bool invertY=false;
+bool vsync=true;
+int fieldOfView=FIELD_OF_VIEW_DEFAULT;
 int fsr2Quality=1,fsr2Sharpness=20;
 bool showHelp=false;
-std::array<int,int(Action::Count)> bindings{{'W','S','A','D',VK_SHIFT,'E'}};
+std::string bindingNotice;
+constexpr std::array<int,int(Action::Count)> defaultBindings{{'W','S','A','D',VK_SHIFT,'E'}};
+std::array<int,int(Action::Count)> bindings=defaultBindings;
 
 namespace {
 bool applyingWindow=false;
@@ -29,7 +34,7 @@ std::string configPath(){
     return result.substr(0,slash+1)+"settings.ini";
 }
 int count(Page p){
-    return p==Page::Main?7:p==Page::Graphics?GRAPHICS_MENU_ROWS:p==Page::Controls?8:p==Page::Audio?1:0;
+    return p==Page::Main?7:p==Page::Graphics?GRAPHICS_MENU_ROWS:p==Page::Controls?CONTROLS_MENU_ROWS:p==Page::Audio?1:0;
 }
 void writeValue(const char* section,const char* key,int value,const std::string& path){
     char text[32];std::snprintf(text,sizeof(text),"%d",value);
@@ -123,9 +128,15 @@ void load(){
     windowMode=std::clamp(int(GetPrivateProfileIntA("Graphics","WindowMode",0,path.c_str())),0,2);
     mouseSensitivity=std::clamp(int(GetPrivateProfileIntA("Controls","Sensitivity",7,path.c_str())),1,20);
     invertY=GetPrivateProfileIntA("Controls","InvertY",0,path.c_str())!=0;
+    fieldOfView=std::clamp(int(GetPrivateProfileIntA("Controls","FieldOfView",FIELD_OF_VIEW_DEFAULT,path.c_str())),
+        FIELD_OF_VIEW_MIN,FIELD_OF_VIEW_MAX);
+    vsync=GetPrivateProfileIntA("Graphics","VSync",1,path.c_str())!=0;
     masterVolume=std::clamp(int(GetPrivateProfileIntA("Audio","Volume",80,path.c_str())),0,100);
     const char* names[]={"Forward","Backward","Left","Right","Sprint","Interact"};
-    for(int i=0;i<int(bindings.size());++i)bindings[i]=GetPrivateProfileIntA("Controls",names[i],bindings[i],path.c_str());
+    for(int i=0;i<int(bindings.size());++i)bindings[i]=GetPrivateProfileIntA("Controls",names[i],defaultBindings[i],path.c_str());
+    // A hand-edited or corrupted settings file must not leave an action
+    // unbound, bound to Escape, or sharing a key with another action.
+    key_bindings::sanitize(bindings,defaultBindings);
 #ifdef MINI_CITY_JOLT
     char station[80]{};GetPrivateProfileStringA("Audio","RadioStation","off",station,sizeof(station),path.c_str());radio::select(station);
 #endif
@@ -155,6 +166,8 @@ void save(){
     writeValue("Graphics","ResolutionVersion",2,path);
     writeValue("Controls","Sensitivity",mouseSensitivity,path);
     writeValue("Controls","InvertY",invertY?1:0,path);
+    writeValue("Controls","FieldOfView",fieldOfView,path);
+    writeValue("Graphics","VSync",vsync?1:0,path);
 #ifdef MINI_CITY_JOLT
     WritePrivateProfileStringA("Audio","RadioStation",radio::selectedId().c_str(),path.c_str());
 #endif
@@ -167,15 +180,33 @@ const char* keyName(int key){
     if(key==VK_SHIFT)return "SHIFT";
     if(key==VK_CONTROL)return "CTRL";
     if(key==VK_SPACE)return "SPACE";
-    if(key>=32&&key<127){label[0]=char(key);label[1]=0;return label;}
+    if((key>='0'&&key<='9')||(key>='A'&&key<='Z')){label[0]=char(key);label[1]=0;return label;}
+    // Ask Windows for the localized key name (arrows, numpad, punctuation...).
+    UINT scan=MapVirtualKeyA(UINT(key),MAPVK_VK_TO_VSC);
+    LONG extended=(key==VK_LEFT||key==VK_RIGHT||key==VK_UP||key==VK_DOWN||key==VK_INSERT||
+        key==VK_DELETE||key==VK_HOME||key==VK_END||key==VK_PRIOR||key==VK_NEXT||
+        key==VK_RCONTROL||key==VK_RMENU||key==VK_DIVIDE)?(1L<<24):0;
+    if(scan&&GetKeyNameTextA(LONG(scan<<16)|extended,label,int(sizeof(label)))>0){
+        for(char* p=label;*p;++p)if(*p>='a'&&*p<='z')*p=char(*p-32);
+        return label;
+    }
     std::snprintf(label,sizeof(label),"KEY %d",key);return label;
+}
+bool bindKey(int action,int key){
+    if(action<0||action>=int(bindings.size()))return false;
+    if(!key_bindings::assign(bindings,std::size_t(action),key)){
+        bindingNotice="That key is reserved. Choose another key.";
+        return false;
+    }
+    bindingNotice.clear();save();return true;
 }
 void handleKey(int key){
     if(waitingForBinding>=0){
-        if(key!=VK_ESCAPE){bindings[waitingForBinding]=key;save();}
+        if(key!=VK_ESCAPE)bindKey(waitingForBinding,key);
         waitingForBinding=-1;return;
     }
     if(key==VK_ESCAPE){
+        bindingNotice.clear();
         if(page==Page::Closed)page=Page::Main;
         else if(page==Page::Main)page=Page::Closed;
         else page=Page::Main;
@@ -196,8 +227,10 @@ void handleKey(int key){
         selection=0;return;
     }
     if(page==Page::Graphics){
+#ifdef MINI_CITY_DX12
         if(selection==15&&direction)fsr2Quality=std::clamp(fsr2Quality+direction,0,4);
         if(selection==16&&direction)fsr2Sharpness=std::clamp(fsr2Sharpness+direction*5,0,100);
+#endif
         if(selection==0&&direction)graphicsQuality=std::clamp(graphicsQuality+direction,0,2);
         if(selection==1&&direction){windowChoice=std::clamp(windowChoice+direction,0,2);applyWindow();}
         if(selection==2&&direction)vegetationDensity=std::clamp(vegetationDensity+direction,0,2);
@@ -213,11 +246,13 @@ void handleKey(int key){
         if(selection==12&&direction)grassDistance=std::clamp(grassDistance+direction*2,0,100);
         if(selection==14&&direction){windowMode=std::clamp(windowMode+direction,0,2);applyWindow();}
         if(selection==13&&direction)grassLodDistance=std::clamp(grassLodDistance+direction*2,0,100);
+        if(selection==GRAPHICS_VSYNC_ROW&&(direction||key==VK_RETURN))vsync=!vsync;
     }
     if(page==Page::Controls){
         if(selection==0&&direction)mouseSensitivity=std::clamp(mouseSensitivity+direction,1,20);
         if(selection==1&&(direction||key==VK_RETURN))invertY=!invertY;
-        if(selection>=2&&key==VK_RETURN)waitingForBinding=selection-2;
+        if(selection==2&&direction)fieldOfView=std::clamp(fieldOfView+direction*5,FIELD_OF_VIEW_MIN,FIELD_OF_VIEW_MAX);
+        if(selection>=3&&key==VK_RETURN)waitingForBinding=selection-3;
     }
     if(page==Page::Audio&&direction){masterVolume=std::clamp(masterVolume+direction*10,0,100);
         audio::setVolume(masterVolume);}
@@ -229,7 +264,7 @@ void handleMouse(int x,int y,bool dragging){
     int left=(client.right-client.left)/2-280;
     int top=((client.bottom-client.top)-GRAPHICS_MENU_HEIGHT)/2;
     for(int row=10;row<count(Page::Graphics);++row){
-        if(row==14||row==15)continue;
+        if(row==14||row==15||row==GRAPHICS_VSYNC_ROW)continue;
         int rowY=top+105+row*GRAPHICS_ROW_HEIGHT;
         if(y<rowY-4||y>rowY+GRAPHICS_ROW_HEIGHT-4)continue;
         if(!dragging&&x<left+285)return;

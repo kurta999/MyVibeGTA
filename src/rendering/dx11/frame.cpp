@@ -36,7 +36,7 @@ void Dx11Renderer::Render() {
                      ? player
                      : previousPlayer * (1.0f - renderAlpha) + player * renderAlpha;
     camera::Pose pose =
-        camera::compute(focus, playerY, rightMouse && occupied < 0 && !ui::paused(), occupied);
+        camera::renderPose(focus, playerY, rightMouse && occupied < 0 && !ui::paused(), occupied);
     if (m_probeBakeActive) {
         unsigned probe = m_probeBakeFrame / 18, state = (m_probeBakeFrame / 6) % 3,
                  face = m_probeBakeFrame % 6;
@@ -603,7 +603,7 @@ void Dx11Renderer::Render() {
     auto beforePresent = std::chrono::steady_clock::now();
     CITY_CPU_STAGE(cpuPhase, "DX11 present");
     HRESULT presentResult =
-        m_swapChain->Present(std::strstr(GetCommandLineA(), "--benchmark") ? 0 : 1, 0);
+        m_swapChain->Present(ui::vsync && !std::strstr(GetCommandLineA(), "--benchmark") ? 1 : 0, 0);
     CITY_FRAME();
     if (FAILED(presentResult)) {
         char failure[128]{};

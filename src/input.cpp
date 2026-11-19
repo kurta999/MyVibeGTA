@@ -78,6 +78,9 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
     case WM_MOVE:if(lookCaptured)clipLookCursor();return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
+        // Alt+F4 must reach DefWindowProc so it closes the game instead of
+        // toggling the F4 debug menu or being swallowed.
+        if(msg==WM_SYSKEYDOWN&&wp==VK_F4)break;
 #ifdef MINI_CITY_JOLT
         if(wp==VK_RETURN&&(lp&(1<<29))&&!(lp&(1<<30))){ui::toggleFullscreen();releaseLookCapture();return 0;}
         if(wp==VK_F11){
@@ -239,13 +242,12 @@ LRESULT CALLBACK windowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp){
         !debug_menu::open&&
 #endif
         commerce::menu()==commerce::Menu::None){
-        UINT size=0;GetRawInputData(HRAWINPUT(lp),RID_INPUT,nullptr,&size,sizeof(RAWINPUTHEADER));
-        std::vector<BYTE> buffer(size);
-        if(size&&GetRawInputData(HRAWINPUT(lp),RID_INPUT,buffer.data(),&size,sizeof(RAWINPUTHEADER))==size){
-            const RAWINPUT* data=reinterpret_cast<const RAWINPUT*>(buffer.data());
-            if(data->header.dwType==RIM_TYPEMOUSE){
-                applyMouseDelta(data->data.mouse.lLastX,data->data.mouse.lLastY);
-            }
+        // Mouse packets fit in one RAWINPUT; avoid a heap allocation for
+        // every movement event (hundreds per second on high-rate mice).
+        RAWINPUT data{};UINT size=sizeof(data);
+        if(GetRawInputData(HRAWINPUT(lp),RID_INPUT,&data,&size,sizeof(RAWINPUTHEADER))!=UINT(-1)&&
+           data.header.dwType==RIM_TYPEMOUSE&&!(data.data.mouse.usFlags&MOUSE_MOVE_ABSOLUTE)){
+            applyMouseDelta(data.data.mouse.lLastX,data.data.mouse.lLastY);
         }
     }return 0;
     case WM_KILLFOCUS:std::fill(std::begin(keys),std::end(keys),false);

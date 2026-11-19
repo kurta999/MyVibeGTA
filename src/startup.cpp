@@ -17,7 +17,7 @@ namespace {
 using Clock=std::chrono::steady_clock;
 Session* active=nullptr; // Only accessed by the startup/game thread.
 constexpr UINT finishMessage=WM_APP+1;
-constexpr char windowClass[]="MiniCity3DLoading";
+constexpr char windowClass[]="MyVibeGTALoading";
 void fill(HDC dc,const RECT& rect,COLORREF color){
     HBRUSH brush=CreateSolidBrush(color);FillRect(dc,&rect,brush);DeleteObject(brush);
 }
@@ -34,7 +34,7 @@ struct Session::State {
     bool created=false,finished=false;
     std::atomic<bool> cancel{false};
     int percent=0;
-    std::string stage="Starting Mini City 3D";
+    std::string stage="Starting MyVibeGTA";
     Clock::time_point started=Clock::now(),stageStarted=started;
     HFONT titleFont=nullptr,bodyFont=nullptr,smallFont=nullptr;
 
@@ -51,7 +51,7 @@ struct Session::State {
             MAKEINTRESOURCEA(IDI_MINICITY),IMAGE_ICON,64,64,LR_SHARED));
         if(icon)DrawIconEx(buffer,32,28,icon,64,64,0,nullptr,DI_NORMAL);
         auto oldFont=SelectObject(buffer,titleFont);
-        text(buffer,116,32,width-148,42,"MINI CITY 3D",RGB(241,247,252));
+        text(buffer,116,32,width-148,42,"MyVibeGTA",RGB(241,247,252));
         SelectObject(buffer,bodyFont);
         text(buffer,116,72,width-148,25,"Your city is getting ready",RGB(151,173,193));
         text(buffer,32,125,width-64,28,cancel?"Cancelling after the current step...":label.c_str(),
@@ -118,7 +118,7 @@ struct Session::State {
         POINT cursor{};GetCursorPos(&cursor);MONITORINFO monitor{sizeof(monitor)};
         GetMonitorInfoA(MonitorFromPoint(cursor,MONITOR_DEFAULTTOPRIMARY),&monitor);
         const RECT& work=monitor.rcWork;
-        HWND hwnd=available?CreateWindowExA(0,windowClass,"Mini City 3D - Loading",style,
+        HWND hwnd=available?CreateWindowExA(0,windowClass,"MyVibeGTA - Loading",style,
             work.left+(work.right-work.left-width)/2,work.top+(work.bottom-work.top-height)/2,
             width,height,nullptr,nullptr,instance,this):nullptr;
         if(hwnd){

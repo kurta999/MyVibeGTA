@@ -63,9 +63,20 @@
 #include <cstring>
 #include <cstdio>
 #include <psapi.h>
+#include <timeapi.h>
+#include "frame_pacing.h"
+namespace {
+// Sleep(1) waits a whole scheduler tick (about 15.6 ms) at the default timer
+// resolution, which made the loop miss VSync intervals and stutter.
+struct TimerResolution {
+    bool active=timeBeginPeriod(1)==TIMERR_NOERROR;
+    ~TimerResolution(){if(active)timeEndPeriod(1);}
+};
+}
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     using namespace game;
     CITY_THREAD("Game main");
+    TimerResolution timerResolution;
     bool smoke=commandLine&&std::strstr(commandLine,"--smoke")!=nullptr;
 #ifdef MINI_CITY_IMGUI
     bool useImGui=false, imguiReview=false;
@@ -92,7 +103,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
     }
 #ifdef TRACY_ENABLE
     logging::write("Tracy v0.13.1 enabled: CPU, native GPU, named threads and C++ heap; on-demand, system tracing disabled");
-    TracyAppInfo("MiniCity3D Tracy v0.13.1",sizeof("MiniCity3D Tracy v0.13.1")-1);
+    TracyAppInfo("MyVibeGTA Tracy v0.13.1",sizeof("MyVibeGTA Tracy v0.13.1")-1);
     if(tracyWait){
         const auto deadline=GetTickCount64()+1000ull*tracyWait;
         while(!TracyIsConnected&&GetTickCount64()<deadline)Sleep(10);
@@ -108,16 +119,16 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
     std::srand(smoke?1u:unsigned(std::time(nullptr)));
     WNDCLASSA wc{};wc.style=CS_OWNDC;wc.lpfnWndProc=input::windowProc;wc.hInstance=instance;
-    wc.hCursor=LoadCursor(nullptr,IDC_CROSS);wc.lpszClassName="MiniCity3D";
+    wc.hCursor=LoadCursor(nullptr,IDC_CROSS);wc.lpszClassName="MyVibeGTA";
 #ifdef MINI_CITY_JOLT
     wc.hIcon=LoadIconA(instance,MAKEINTRESOURCEA(IDI_MINICITY));
 #endif
     if(!RegisterClassA(&wc)){logging::write("Window class registration failed");logging::shutdown();return 1;}
     const char* windowTitle=
 #ifdef MINI_CITY_DX12
-        "Mini City 3D - Direct3D 12";
+        "MyVibeGTA - Direct3D 12";
 #else
-        "Mini City 3D - Direct3D 11";
+        "MyVibeGTA - Direct3D 11";
 #endif
     win=CreateWindowExA(0,wc.lpszClassName,windowTitle,WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,CW_USEDEFAULT,fullHd?1940:1620,fullHd?1120:940,
@@ -146,7 +157,7 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
         if(cancelled){shutdownRenderer();DestroyWindow(win);logging::shutdown();return 0;}
 #endif
         if(!smoke)MessageBoxA(win,"Graphics initialization failed. Check the GPU and assets folder.",
-        "Mini City 3D",MB_ICONERROR);logging::write("Renderer initialization failed");
+        "MyVibeGTA",MB_ICONERROR);logging::write("Renderer initialization failed");
 #ifdef MINI_CITY_JOLT
         shutdownRenderer();DestroyWindow(win);
 #endif
@@ -689,6 +700,11 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
     if(smoke&&commandLine&&std::strstr(commandLine,"--graphics-menu"))
         ui::page=ui::Page::Graphics;
+    if(smoke&&commandLine&&std::strstr(commandLine,"--controls-menu"))
+        ui::page=ui::Page::Controls;
+    // Low health shows the pulsing damage vignette in screenshot previews.
+    if(smoke&&commandLine&&std::strstr(commandLine,"--hurt-preview"))
+        health=PLAYER_MAX_HEALTH*0.15f;
 #ifdef MINI_CITY_JOLT
     if(smoke&&commandLine&&std::strstr(commandLine,"--grass-preview")){
         player=previousPlayer={4550,4500};playerY=0;
@@ -870,22 +886,23 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR commandLine,int show){
 #endif
             )accumulator+=dt;
         else accumulator=0;
-        int steps=0;
-        while(accumulator>=fixedStep&&steps<5){
+        // Keep the fractional remainder even when the step cap is reached so
+        // render interpolation does not snap back after a slow frame.
+        const auto plan=frame_pacing::consume(accumulator,fixedStep,5);
+        for(int step=0;step<plan.steps;++step){
             LARGE_INTEGER beforeStep{},afterStep{};QueryPerformanceCounter(&beforeStep);
             update(float(fixedStep));QueryPerformanceCounter(&afterStep);
             float elapsed=float((afterStep.QuadPart-beforeStep.QuadPart)*1000.0/double(frequency.QuadPart));
             simulationMs=simulationMs*0.9f+elapsed*0.1f;
-            accumulator-=fixedStep;++steps;
         }
-        if(steps==5){accumulator=0;if(overloadEvents++%120==0)
-            logging::write("Simulation fell behind; accumulated time dropped");}
+        if(plan.dropped&&overloadEvents++%120==0)
+            logging::write("Simulation fell behind; accumulated time dropped");
 #ifdef MINI_CITY_JOLT
         bool radioDriving=occupied>=0&&occupied<int(vehicles.size())&&health>0&&!vehicle_systems::pedal(vehicles[occupied].kind);
         radio::update(radioDriving,ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open,ui::masterVolume);
         if(ui::paused()||commerce::menu()!=commerce::Menu::None||debug_menu::open)audio::stopEngine();
 #endif
-        renderAlpha=float(accumulator/fixedStep);
+        renderAlpha=frame_pacing::alpha(accumulator,fixedStep);
         render();++frames;fpsTimer+=dt;
         if(fpsTimer>=0.5){frameRate=float(frames/fpsTimer);frames=0;fpsTimer=0;}
         Sleep(1);

@@ -45,11 +45,11 @@ int main(int argc,char** argv){
         DestroyIcon(icon);
     }
     {startup::Session hidden(false);
-        if(!check(FindWindowA("MiniCity3DLoading",nullptr)==nullptr,"headless launch showed a loading window"))return 1;
+        if(!check(FindWindowA("MyVibeGTALoading",nullptr)==nullptr,"headless launch showed a loading window"))return 1;
         startup::report(100,"Ready");hidden.finish();hidden.finish();
     }
     {startup::Session loading(true);
-        HWND hwnd=FindWindowA("MiniCity3DLoading",nullptr);
+        HWND hwnd=FindWindowA("MyVibeGTALoading",nullptr);
         if(!check(hwnd&&IsWindowVisible(hwnd),"loading window was not immediately visible"))return 1;
         if(!check(SendMessageA(hwnd,WM_GETICON,ICON_SMALL,0)!=0&&
             GetClassLongPtrA(hwnd,GCLP_HICON)!=0,"loading window icons missing"))return 1;
@@ -68,7 +68,7 @@ int main(int argc,char** argv){
     }
     // Reopening catches stale window classes, handles, and joinable threads.
     {startup::Session loading(true);startup::report(100,"Ready");loading.finish();}
-    if(!check(FindWindowA("MiniCity3DLoading",nullptr)==nullptr,"finished loading window leaked"))return 1;
+    if(!check(FindWindowA("MyVibeGTALoading",nullptr)==nullptr,"finished loading window leaked"))return 1;
     std::puts("Startup window responsiveness, cancellation, lifecycle and seven icon sizes passed");
     return 0;
 }

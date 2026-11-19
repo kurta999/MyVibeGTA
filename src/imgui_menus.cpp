@@ -91,7 +91,7 @@ bool Window(const char* title,float width,float height){
 void Back(){if(Button("Back",{-1,32})){ui::waitingForBinding=-1;ui::page=ui::Page::Main;}}
 void Pause(){
     if(!ui::paused())return;
-    const char* title=ui::page==ui::Page::Main?"Mini City 3D - Paused":ui::page==ui::Page::Graphics?"Graphics":ui::page==ui::Page::Controls?"Controls":"Audio";
+    const char* title=ui::page==ui::Page::Main?"MyVibeGTA - Paused":ui::page==ui::Page::Graphics?"Graphics":ui::page==ui::Page::Controls?"Controls":"Audio";
     if(Window(title,600,ui::page==ui::Page::Graphics?840:500)){
         bool changed=false;
         ImGui::PushItemWidth(-220);
@@ -106,6 +106,7 @@ void Pause(){
             changed|=Combo("Scene quality",&ui::graphicsQuality,"Low\0Medium\0High\0");
             if(Combo("Window size",&ui::windowChoice,"1280 x 720\0" "1600 x 900\0" "1920 x 1080\0")){ui::applyWindow();changed=true;}
             if(Combo("Display mode",&ui::windowMode,"Windowed\0Borderless\0Fullscreen\0")){ui::applyWindow();changed=true;}
+            changed|=Checkbox("VSync",&ui::vsync);
             changed|=Combo("Vegetation",&ui::vegetationDensity,"Low\0Medium\0High\0");
             changed|=Combo("Effects",&ui::effectsQuality,"Low\0Medium\0High\0");
             changed|=Combo("Shadows",&ui::shadowQuality,"Off\0Medium\0High\0");
@@ -126,6 +127,7 @@ void Pause(){
         }else if(ui::page==ui::Page::Controls){
             changed|=SliderInt("Mouse sensitivity",&ui::mouseSensitivity,1,20);
             changed|=Checkbox("Invert vertical mouse",&ui::invertY);
+            changed|=SliderInt("Field of view",&ui::fieldOfView,ui::FIELD_OF_VIEW_MIN,ui::FIELD_OF_VIEW_MAX,"%d deg");
             const char* labels[]={"Forward","Backward","Left","Right","Sprint","Enter / exit vehicle"};
             for(int i=0;i<int(ui::bindings.size());++i){
                 ImGui::PushID(i);ImGui::TextUnformatted(labels[i]);ImGui::SameLine(300);
@@ -133,7 +135,7 @@ void Pause(){
                 if(Button(key.c_str(),{180,28}))ui::waitingForBinding=i;
                 ImGui::PopID();
             }
-            ImGui::TextWrapped("F interacts with people, shops and mission markers. Escape cancels key binding.");
+            ImGui::TextWrapped("F interacts with people, shops and mission markers. Escape cancels key binding; choosing a key that is already used swaps the two actions.");
             Back();
         }else{
             if(SliderInt("Master volume",&ui::masterVolume,0,100,"%d%%")){audio::setVolume(ui::masterVolume);changed=true;}

@@ -32,6 +32,7 @@
 #include "traffic.h"
 #endif
 #include "mission_script.h"
+#include "hud_pixels.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -84,6 +85,37 @@ void rect(int x,int y,int w,int h,COLORREF color){
 }
 void label(int x,int y,const char* value,COLORREF color){
     SetTextColor(memoryDC,color);TextOutA(memoryDC,x,y,value,int(std::strlen(value)));
+}
+int textWidth(const char* value){
+    SIZE size{};GetTextExtentPoint32A(memoryDC,value,int(std::strlen(value)),&size);return size.cx;
+}
+// Centers text on x so prompts and notices stay balanced whatever their length.
+void labelCentered(int centerX,int y,const char* value,COLORREF color){
+    label(centerX-textWidth(value)/2,y,value,color);
+}
+// Panel sized to its text: avoids clipped long messages and oversized boxes.
+void noticeBox(int centerX,int y,const char* value,COLORREF background,COLORREF color,int minimumWidth=300){
+    int width=std::max(minimumWidth,textWidth(value)+48);
+    rect(centerX-width/2,y,width,44,background);
+    rect(centerX-width/2,y,width,3,RGB(246,189,85));
+    labelCentered(centerX,y+12,value,color);
+}
+// Red screen-edge feedback when the player is hurt, plus a slow pulse at low
+// health. Driven by wall-clock time because the HUD is built once per frame.
+float damageFeedback(){
+    static float lastHealth=-1,hurt=0;
+    static ULONGLONG lastTick=0;
+    ULONGLONG now=GetTickCount64();
+    float dt=lastTick?std::min(0.25f,float(now-lastTick)/1000.0f):0.0f;lastTick=now;
+    float health=game::health,maximum=std::max(1.0f,float(game::PLAYER_MAX_HEALTH));
+    if(lastHealth>=0&&health<lastHealth-0.5f)
+        hurt=std::min(1.0f,hurt+0.35f+(lastHealth-health)/maximum*4.0f);
+    lastHealth=health;
+    if(!ui::paused())hurt=std::max(0.0f,hurt-dt*1.4f);
+    const char* commandLine=GetCommandLineA();
+    if(health<=0||ui::paused()||(std::strstr(commandLine,"--smoke")&&!std::strstr(commandLine,"--hurt-preview")))return 0;
+    float low=health<maximum*0.25f?0.32f+0.14f*std::sin(float(now%100000)/1000.0f*4.5f):0.0f;
+    return std::max(hurt*0.85f,low);
 }
 void line(int x0,int y0,int x1,int y1,COLORREF color,int width=2){
     HPEN pen=CreatePen(PS_SOLID,width,color);HGDIOBJ old=SelectObject(memoryDC,pen);
@@ -336,13 +368,14 @@ void map(int x,int y,int width,int height,bool large,const MissionGuidance& guid
 void pauseMenu(int width,int height){
     if(!ui::paused())return;
     rect(0,0,width,height,RGB(20,29,38));
-    int menuHeight=ui::page==ui::Page::Graphics?ui::GRAPHICS_MENU_HEIGHT:500;
+    int menuHeight=ui::page==ui::Page::Graphics?ui::GRAPHICS_MENU_HEIGHT:
+        ui::page==ui::Page::Controls?ui::CONTROLS_MENU_HEIGHT:500;
     int x=width/2-280,y=(height-menuHeight)/2;
     rect(x,y,560,menuHeight,RGB(34,45,56));
 #ifdef MINI_CITY_DX12
-    label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 12",RGB(255,225,151));
+    label(x+29,y+27,"MyVibeGTA  /  DIRECT3D 12",RGB(255,225,151));
 #else
-    label(x+29,y+27,"MINI CITY 3D  /  DIRECT3D 11",RGB(255,225,151));
+    label(x+29,y+27,"MyVibeGTA  /  DIRECT3D 11",RGB(255,225,151));
 #endif
     const char* heading=ui::page==ui::Page::Main?"PAUSED":ui::page==ui::Page::Graphics?"GRAPHICS":
         ui::page==ui::Page::Controls?"CONTROLS":"AUDIO";
@@ -375,6 +408,8 @@ void pauseMenu(int width,int height){
             if(i<10){
                 std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],items[i]);
                 label(x+42,row+5,buffer,RGB(239,241,229));
+            }else if(i==ui::GRAPHICS_VSYNC_ROW){
+                std::snprintf(buffer,sizeof(buffer),"VSync: < %s >",ui::vsync?"On":"Off");label(x+42,row+5,buffer,RGB(239,241,229));
             }else if(i==15){
                 const char* modes[]={"Off (native)","Quality","Balanced","Performance","Ultra Performance"};
                 std::snprintf(buffer,sizeof(buffer),"AMD FSR2: < %s >",modes[ui::fsr2Quality]);label(x+42,row+5,buffer,RGB(239,241,229));
@@ -400,14 +435,18 @@ void pauseMenu(int width,int height){
                 rect(x+286+220*value/100,row+7,8,18,RGB(248,231,185));
             }}
     }else if(ui::page==ui::Page::Controls){
-        const char* names[]={"Mouse sensitivity","Invert vertical mouse","Forward","Backward","Left","Right","Sprint","Interact"};
-        for(int i=0;i<8;++i){int row=y+105+i*39;
+        const char* names[]={"Mouse sensitivity","Invert vertical mouse","Field of view","Forward","Backward","Left","Right","Sprint","Interact"};
+        for(int i=0;i<ui::CONTROLS_MENU_ROWS;++i){int row=y+105+i*ui::CONTROLS_ROW_HEIGHT;
             if(i==ui::selection)rect(x+22,row-3,510,32,RGB(73,113,134));
             if(i==0)std::snprintf(buffer,sizeof(buffer),"%s:  < %d >",names[i],ui::mouseSensitivity);
             else if(i==1)std::snprintf(buffer,sizeof(buffer),"%s:  < %s >",names[i],ui::invertY?"On":"Off");
-            else std::snprintf(buffer,sizeof(buffer),"%s:  %s",names[i],ui::keyName(ui::bindings[i-2]));
+            else if(i==2)std::snprintf(buffer,sizeof(buffer),"%s:  < %d >",names[i],ui::fieldOfView);
+            else if(ui::waitingForBinding==i-3)std::snprintf(buffer,sizeof(buffer),"%s:  ...",names[i]);
+            else std::snprintf(buffer,sizeof(buffer),"%s:  %s",names[i],ui::keyName(ui::bindings[i-3]));
             label(x+42,row+4,buffer,RGB(236,239,231));}
-        if(ui::waitingForBinding>=0)label(x+42,y+434,"Press a new key (Esc cancels)",RGB(255,220,132));
+        int hintY=y+105+ui::CONTROLS_MENU_ROWS*ui::CONTROLS_ROW_HEIGHT+6;
+        if(ui::waitingForBinding>=0)label(x+42,hintY,"Press a new key (Esc cancels). Used keys swap.",RGB(255,220,132));
+        else if(!ui::bindingNotice.empty())label(x+42,hintY,ui::bindingNotice.c_str(),RGB(255,190,140));
     }else{
         std::snprintf(buffer,sizeof(buffer),"Master volume:  < %d%% >",ui::masterVolume);
         rect(x+22,y+124,510,40,RGB(73,113,134));
@@ -476,8 +515,10 @@ void buildHud(unsigned char* pixels,int width,int height){
     char textBuffer[240];
     rect(12,12,legacyHelp?760:190,legacyHelp?72:53,RGB(31,41,49));
     int hour=int(game::gameHour),minute=int((game::gameHour-hour)*60);
-    label(24,19,"MINI CITY 3D",RGB(255,225,151));
-    if(legacyHelp&&game::occupied>=0){
+    label(24,19,"MyVibeGTA",RGB(255,225,151));
+    const bool driving=game::occupied>=0&&game::occupied<int(game::vehicles.size());
+    const game::Kind drivenKind=driving?game::vehicles[game::occupied].kind:game::Kind::Car;
+    if(legacyHelp&&driving){
         const auto& vehicle=game::vehicles[game::occupied];
         const char* name=vehicle_systems::name(vehicle.kind);
         std::snprintf(textBuffer,sizeof(textBuffer),"%s  |  HP %d  |  SPACE drift  |  H lights  |  E exit",
@@ -492,18 +533,18 @@ void buildHud(unsigned char* pixels,int width,int height){
             weather::current().name.c_str());
         label(24,40,textBuffer,RGB(211,230,236));
     }
-    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Helicopter)
+    if(driving&&drivenKind==game::Kind::Helicopter)
         label(24,72,"W/S forward/back  |  A/D turn  |  SPACE rise  |  CTRL descend  |  E exit",RGB(230,223,178));
-    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Airplane){
+    if(driving&&drivenKind==game::Kind::Airplane){
         const auto& plane=game::vehicles[game::occupied];
         std::snprintf(textBuffer,sizeof(textBuffer),"W/S throttle %d%%  |  SPACE/CTRL pitch  |  A/D bank  |  Q/R rudder  |  E exit",int(plane.flightThrottle*100));
         label(24,72,textBuffer,RGB(230,223,178));
         std::snprintf(textBuffer,sizeof(textBuffer),"AIRSPEED %.0f  |  ALTITUDE %.0f%s",plane.speed,plane.rideHeight,plane.stalled?"  |  STALL":"");
         label(24,94,textBuffer,plane.stalled?RGB(255,140,100):RGB(190,224,211));
     }
-    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Truck)
+    if(driving&&drivenKind==game::Kind::Truck)
         label(24,72,"J attach/detach trailer near the rear hitch  |  MOUSE WHEEL radio",RGB(230,223,178));
-    if(game::occupied>=0&&game::vehicles[game::occupied].kind==game::Kind::Tank)
+    if(driving&&drivenKind==game::Kind::Tank)
         label(24,72,"Mouse aims turret and barrel  |  LMB fire cannon  |  MOUSE WHEEL radio",RGB(230,223,178));
     const auto guide=missionGuidance();
     map(18,height-169,180,140,false,guide);
@@ -554,7 +595,12 @@ void buildHud(unsigned char* pixels,int width,int height){
         float damage=std::clamp(vehicle.damage,0.0f,100.0f);
         const char* name=vehicle_systems::name(vehicle.kind);
         COLORREF color=damage>=80?RGB(242,87,75):damage>=45?RGB(244,174,71):RGB(111,209,189);
-        label(22,120,radio::status().c_str(),RGB(245,222,146));
+        // Give the radio line a panel so it stays readable over bright scenes.
+        const std::string station=radio::status();
+        int radioY=drivenKind==game::Kind::Airplane?124:legacyHelp||drivenKind==game::Kind::Helicopter||
+            drivenKind==game::Kind::Truck||drivenKind==game::Kind::Tank?102:72;
+        rect(12,radioY-6,textWidth(station.c_str())+24,32,RGB(31,41,49));
+        label(24,radioY,station.c_str(),RGB(245,222,146));
         rect(statusX+14,156,320,1,RGB(96,110,117));
         std::snprintf(textBuffer,sizeof(textBuffer),"%s DAMAGE %d%%",name,int(std::round(damage)));
         label(statusX+15,164,textBuffer,color);
@@ -584,7 +630,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(game::swimming)prompt="LMB: DIVE   RMB: SURFACE";
     if(police::hiding()){
         std::snprintf(textBuffer,sizeof(textBuffer),"HIDEOUT: LOSING WANTED LEVEL %d%%",int(police::hideProgress()*100));
-        label(width/2-190,height-132,textBuffer,RGB(110,238,219));
+        labelCentered(width/2,height-132,textBuffer,RGB(110,238,219));
     }
     float nearestBomb=601;
     for(const auto& d:ordnance::devices)if(d.kind==weapons::Payload::TimedBomb&&
@@ -592,11 +638,11 @@ void buildHud(unsigned char* pixels,int width,int height){
         nearestBomb=std::min(nearestBomb,d.fuse);
     if(nearestBomb<601){
         std::snprintf(textBuffer,sizeof(textBuffer),"TIMED BOMB: %d SECONDS",int(std::ceil(nearestBomb)));
-        label(width/2-140,height-156,textBuffer,RGB(255,155,112));
+        labelCentered(width/2,height-156,textBuffer,RGB(255,155,112));
     }
     std::string carry=builder::modal()?std::string{}:game::carryPrompt();
-    if(!prompt.empty())label(width/2-125,builder::active()?height-212:height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
-    if(!carry.empty())label(width/2-125,builder::active()?height-192:height-51,carry.c_str(),RGB(210,228,244));
+    if(!prompt.empty())labelCentered(width/2,builder::active()?height-212:height-(game::messageTime>0?100:74),prompt.c_str(),RGB(255,226,153));
+    if(!carry.empty())labelCentered(width/2,builder::active()?height-192:height-(game::messageTime>0?122:51),carry.c_str(),RGB(210,228,244));
     if(camera::zoomActive()&&game::scopeBlend>0.85f&&!ui::paused())scopeOverlay(width,height);
     else if(game::occupied<0&&game::rightMouse&&!game::swimming&&!ui::paused()){
         int x=width/2,y=height/2,kick=int(game::recoil*9);
@@ -613,8 +659,7 @@ void buildHud(unsigned char* pixels,int width,int height){
     }
     if(game::messageTime>0){
         int messageY=builder::active()?height-170:height-65;
-        rect(width/2-310,messageY,620,44,RGB(31,41,49));
-        label(width/2-294,messageY+10,game::message.c_str(),RGB(255,225,154));
+        noticeBox(width/2,messageY,game::message.c_str(),RGB(31,41,49),RGB(255,225,154));
     }
     if(game::missionBannerTime>0&&!ui::paused()){
         int left=width/2-315,top=height/2-152;
@@ -631,9 +676,12 @@ void buildHud(unsigned char* pixels,int width,int height){
             int(game::missionBannerDetail.size()),&detailSize);
         label(width/2-detailSize.cx/2,top+70,game::missionBannerDetail.c_str(),RGB(228,236,230));
     }
-    if(game::health<=0){rect(width/2-145,height/2-48,290,96,RGB(35,42,48));
-        label(width/2-65,height/2-24,"YOU DIED",RGB(252,124,115));
-        label(width/2-94,height/2+8,"Press R to restart",RGB(247,242,233));}
+    if(game::health<=0){rect(width/2-160,height/2-52,320,104,RGB(35,42,48));
+        rect(width/2-160,height/2-52,320,4,RGB(222,86,76));
+        HGDIOBJ previous=SelectObject(memoryDC,bannerFont);
+        labelCentered(width/2,height/2-36,"YOU DIED",RGB(252,124,115));
+        SelectObject(memoryDC,previous);
+        labelCentered(width/2,height/2+12,"Press R to restart",RGB(247,242,233));}
     if(game::debugHud){rect(width-315,height-218,300,205,RGB(30,42,48));
         std::snprintf(textBuffer,sizeof(textBuffer),"FPS %.0f   FRAME %.1f ms",game::frameRate,game::frameMs);
         label(width-304,height-208,textBuffer,RGB(224,245,220));
@@ -758,9 +806,8 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(x,y,"SWITCHING WORLD LAYER",RGB(247,228,167));label(x,y+36,builder::transitionLabel(),RGB(210,225,230));
         rect(x,y+78,520,20,RGB(55,67,76));rect(x,y+78,int(520*builder::transitionProgress()),20,RGB(120,212,158));
     }
-    for(size_t i=0;i<size_t(width)*height;++i)
-        if(dib[i*4]||dib[i*4+1]||dib[i*4+2])dib[i*4+3]=255;
-    std::memcpy(pixels,dib,size_t(width)*height*4);
+    hud_pixels::finalize(dib,pixels,size_t(width)*height);
+    hud_pixels::applyDamageVignette(pixels,width,height,damageFeedback());
     if(ordnance::flash>0){
         unsigned char alpha=static_cast<unsigned char>(std::min(235.0f,ordnance::flash*94));
         for(size_t i=0;i<size_t(width)*height;++i){

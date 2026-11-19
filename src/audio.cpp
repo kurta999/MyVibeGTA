@@ -171,6 +171,12 @@ void synthesize(Channel& channel,Effect effect,int variant){
 void submit(Effect effect,int variant,bool positioned,float x,float z){
     if(!engine||!master)return;
     if(int(effect)<0||int(effect)>=int(Effect::Count))return;
+    // Far-away sounds would play at near-zero gain yet still take one of the
+    // few voices, cutting off (and clicking) nearby effects when stolen.
+    if(positioned){
+        float dx=x-listenerX,dz=z-listenerZ,scaled=(dx*dx+dz*dz)/(280.0f*280.0f);
+        if(1.0f/(1.0f+scaled)<0.015f)return;
+    }
     int chosen=-1;
     for(int i=0;i<int(channels.size());++i){
         int index=(voiceCursor+i)%int(channels.size());

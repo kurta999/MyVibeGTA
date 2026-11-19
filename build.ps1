@@ -26,7 +26,7 @@ if ($OpenGL) {
     $useDX12 = -not $DX11
     # Separate caches prevent backend switches from rebuilding the other backend.
     $buildSuffix = if ($useDX12) { '-dx12' } else { '' }
-    $defaultExecutable = if ($useDX12) { 'MiniCity3D.exe' } else { 'MiniCity3D-DX11.exe' }
+    $defaultExecutable = if ($useDX12) { 'MyVibeGTA.exe' } else { 'MyVibeGTA-DX11.exe' }
     $backendOption = if ($useDX12) { 'ON' } else { 'OFF' }
     $tracyOption = if ($Tracy) { 'ON' } else { 'OFF' }
     $comparisonOption = if ($DX11Benchmark) { 'ON' } else { 'OFF' }
@@ -60,7 +60,7 @@ if ($OpenGL) {
         $ninja = Get-Command ninja -ErrorAction SilentlyContinue
         if ($ninja -and (Get-Command cl -ErrorAction SilentlyContinue)) {
             $buildDirectory = Join-Path $root ("build-msvc-ninja$buildSuffix")
-            $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
+            $builtExecutable = Join-Path $buildDirectory 'MyVibeGTA.exe'
             & $cmake -S $root -B $buildDirectory -G Ninja `
                 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TRY_COMPILE_CONFIGURATION=Release `
                 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
@@ -69,7 +69,7 @@ if ($OpenGL) {
                 else { 'Visual Studio 18 2026' }
             $buildName = if ($vs2022) { 'build-msvc' } else { 'build-msvc-v18' }
             $buildDirectory = Join-Path $root ("$buildName$buildSuffix")
-            $builtExecutable = Join-Path $buildDirectory 'Release\MiniCity3D.exe'
+            $builtExecutable = Join-Path $buildDirectory 'Release\MyVibeGTA.exe'
             & $cmake -S $root -B $buildDirectory -G $generator -A x64 -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
         }
     } else {
@@ -79,23 +79,24 @@ if ($OpenGL) {
             throw 'Install Visual Studio C++ tools, or install both clang++ and Ninja.'
         }
         $buildDirectory = Join-Path $root ("build-jolt-ninja$buildSuffix")
-        $builtExecutable = Join-Path $buildDirectory 'MiniCity3D.exe'
+        $builtExecutable = Join-Path $buildDirectory 'MyVibeGTA.exe'
         & $cmake -S $root -B $buildDirectory -G Ninja `
             "-DCMAKE_CXX_COMPILER=$($compiler.Source.Replace('\','/'))" `
             -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON "-DMINI_CITY_USE_DX12=$backendOption" @profilingOptions
     }
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed ($LASTEXITCODE)." }
     $targets = @(
-        'MiniCity3D', 'benchmark_options_scenarios', 'resource_cache_scenarios',
+        'MyVibeGTA', 'benchmark_options_scenarios', 'resource_cache_scenarios',
         'gpu_profiler_scenarios', 'dx12_fsr2_smoke', 'simulation_smoke', 'asset_smoke',
         'texture_mips_smoke', 'texture_loading_smoke', 'shader_loading_smoke',
-        'probe_smoke', 'startup_smoke', 'save_jobs_smoke', 'audio_smoke', 'sky_smoke'
+        'probe_smoke', 'startup_smoke', 'save_jobs_smoke', 'audio_smoke', 'sky_smoke',
+        'polish_scenarios'
     )
     if ($Tracy) {
         $targets += 'profiling_memory_scenarios'
     }
     if ($DX11Benchmark) {
-        $targets += 'MiniCity3D-DX11-benchmark'
+        $targets += 'MyVibeGTA-DX11-benchmark'
     }
     & $cmake --build $buildDirectory --config Release `
         --target @targets --parallel 6

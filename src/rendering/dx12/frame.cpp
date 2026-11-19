@@ -50,7 +50,7 @@ void Dx12Renderer::Render() {
                      ? player
                      : previousPlayer * (1.0f - renderAlpha) + player * renderAlpha;
     camera::Pose pose =
-        camera::compute(focus, playerY, rightMouse && occupied < 0 && !ui::paused(), occupied);
+        camera::renderPose(focus, playerY, rightMouse && occupied < 0 && !ui::paused(), occupied);
     if (m_probeBakeActive) {
         unsigned probe = m_probeBakeFrame / 18, state = (m_probeBakeFrame / 6) % 3,
                  face = m_probeBakeFrame % 6;
@@ -720,7 +720,7 @@ void Dx12Renderer::Render() {
     CITY_CPU_STAGE(cpuPhase, "DX12 present");
     m_device->transition(m_target->resource, D3D12_RESOURCE_STATE_PRESENT);
     HRESULT presentResult =
-        m_device->present(std::strstr(GetCommandLineA(), "--benchmark") ? 0 : 1);
+        m_device->present(ui::vsync && !std::strstr(GetCommandLineA(), "--benchmark") ? 1 : 0);
     CITY_FRAME();
     Release(m_target);
     dx12::Texture2D* nextBack = nullptr;

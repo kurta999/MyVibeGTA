@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-project(MiniCity3D LANGUAGES C CXX RC)
+project(MyVibeGTA LANGUAGES C CXX RC)
 
 # Shared language requirement for the game and its tests; vendor targets and
 # the retained OpenGL fallback keep their own compiler settings.
@@ -96,26 +96,26 @@ if(MINI_CITY_USE_DX12)
 else()
   set(PRIMARY_RENDERER_SOURCES ${DX11_RENDERER_SOURCES} ${DX11_MENU_SOURCES})
 endif()
-add_executable(MiniCity3D WIN32 ${COMMON_SOURCES}
+add_executable(MyVibeGTA WIN32 ${COMMON_SOURCES}
     ${SHARED_RENDERER_SOURCES}
     ${DIRECT3D_PREVIEW_SOURCES}
     src/startup.cpp assets/app/minicity.rc
     ${PRIMARY_RENDERER_SOURCES} src/dx11_texture_mips.cpp src/dx11_texture_loading.cpp src/dx11_shader_loading.cpp src/dx11_probes.cpp src/dx11_scene.cpp src/dx11_assets.cpp src/dx11_damage.cpp src/dx11_hud.cpp
     src/dx11_terrain.cpp src/terrain.cpp src/builder.cpp src/builder_feedback.cpp src/excavation.cpp src/scenery_edits.cpp src/surface_work.cpp src/ordnance.cpp src/destruction.cpp src/vehicle_systems.cpp src/radio.cpp src/dx11_sky.cpp src/dx11_grass.cpp src/grapple.cpp src/jolt_world.cpp src/debug_menu.cpp src/traffic.cpp src/ped_navigation.cpp src/ped_navigation_surface.cpp src/wildlife.cpp src/birds.cpp)
-target_link_libraries(MiniCity3D PRIVATE MiniCityCpp20)
-minicity_enable_tracy(MiniCity3D)
-target_compile_definitions(MiniCity3D PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
+target_link_libraries(MyVibeGTA PRIVATE MiniCityCpp20)
+minicity_enable_tracy(MyVibeGTA)
+target_compile_definitions(MyVibeGTA PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT)
 if(MINI_CITY_USE_DX12)
-  target_compile_definitions(MiniCity3D PRIVATE MINI_CITY_DX12)
+  target_compile_definitions(MyVibeGTA PRIVATE MINI_CITY_DX12)
 else()
-  target_compile_definitions(MiniCity3D PRIVATE MINI_CITY_IMGUI)
-  target_link_libraries(MiniCity3D PRIVATE MiniCityImGui d3d11)
+  target_compile_definitions(MyVibeGTA PRIVATE MINI_CITY_IMGUI)
+  target_link_libraries(MyVibeGTA PRIVATE MiniCityImGui d3d11)
 endif()
-target_include_directories(MiniCity3D PRIVATE third_party/JoltPhysics src assets/app third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
+target_include_directories(MyVibeGTA PRIVATE third_party/JoltPhysics src assets/app third_party/FidelityFX-FSR2/src/ffx-fsr2-api)
 if(MINI_CITY_USE_DX12)
-  target_link_libraries(MiniCity3D PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
+  target_link_libraries(MyVibeGTA PRIVATE ffx_fsr2_api_x64 ffx_fsr2_api_dx12_x64)
 endif()
-target_link_libraries(MiniCity3D PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi)
+target_link_libraries(MyVibeGTA PRIVATE MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d12 dxgi d3dcompiler psapi winmm)
 # Both Direct3D executables use the same runtime directory. One copy operation
 # avoids concurrent writes when both backends are built in parallel.
 set(RUNTIME_COPY_DIRECTORY copy_directory)
@@ -124,26 +124,26 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.26")
 endif()
 add_custom_target(MiniCityRuntimeAssets
   COMMAND ${CMAKE_COMMAND} -E ${RUNTIME_COPY_DIRECTORY}
-  "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MiniCity3D>/assets"
+  "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:MyVibeGTA>/assets"
   COMMAND ${CMAKE_COMMAND} -E ${RUNTIME_COPY_DIRECTORY}
-  "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MiniCity3D>/data"
+  "${CMAKE_CURRENT_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:MyVibeGTA>/data"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  "${CMAKE_CURRENT_SOURCE_DIR}/TRACY-LICENSE.txt" "$<TARGET_FILE_DIR:MiniCity3D>/TRACY-LICENSE.txt")
-add_dependencies(MiniCity3D MiniCityRuntimeAssets)
+  "${CMAKE_CURRENT_SOURCE_DIR}/TRACY-LICENSE.txt" "$<TARGET_FILE_DIR:MyVibeGTA>/TRACY-LICENSE.txt")
+add_dependencies(MyVibeGTA MiniCityRuntimeAssets)
 
 option(MINI_CITY_BUILD_OPENGL "Build the old OpenGL fallback executable" OFF)
 option(MINI_CITY_BUILD_DX11_BENCHMARK "Build the retained DX11 renderer for performance comparisons" OFF)
 if(MINI_CITY_BUILD_DX11_BENCHMARK)
-  get_target_property(DX11_BENCHMARK_SOURCES MiniCity3D SOURCES)
+  get_target_property(DX11_BENCHMARK_SOURCES MyVibeGTA SOURCES)
   list(REMOVE_ITEM DX11_BENCHMARK_SOURCES ${DX12_RENDERER_SOURCES} ${DX11_RENDERER_SOURCES} src/dx12_backend.cpp src/fsr2.cpp ${DX11_MENU_SOURCES})
   list(REMOVE_ITEM DX11_BENCHMARK_SOURCES src/profiling_memory.cpp)
-  add_executable(MiniCity3D-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} ${DX11_MENU_SOURCES})
-  target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE MiniCityCpp20)
-  minicity_enable_tracy(MiniCity3D-DX11-benchmark)
-  target_compile_definitions(MiniCity3D-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_IMGUI)
-  target_include_directories(MiniCity3D-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
-  target_link_libraries(MiniCity3D-DX11-benchmark PRIVATE MiniCityImGui MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi)
-  add_dependencies(MiniCity3D-DX11-benchmark MiniCityRuntimeAssets)
+  add_executable(MyVibeGTA-DX11-benchmark WIN32 ${DX11_BENCHMARK_SOURCES} ${DX11_RENDERER_SOURCES} ${DX11_MENU_SOURCES})
+  target_link_libraries(MyVibeGTA-DX11-benchmark PRIVATE MiniCityCpp20)
+  minicity_enable_tracy(MyVibeGTA-DX11-benchmark)
+  target_compile_definitions(MyVibeGTA-DX11-benchmark PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX MINI_CITY_JOLT MINI_CITY_IMGUI)
+  target_include_directories(MyVibeGTA-DX11-benchmark PRIVATE third_party/JoltPhysics src assets/app)
+  target_link_libraries(MyVibeGTA-DX11-benchmark PRIVATE MiniCityImGui MiniCityLua Jolt user32 gdi32 gdiplus ole32 xaudio2 mfplay mfplat mfuuid d3d11 dxgi d3dcompiler psapi winmm)
+  add_dependencies(MyVibeGTA-DX11-benchmark MiniCityRuntimeAssets)
 endif()
 if(MINI_CITY_BUILD_OPENGL)
   add_executable(MiniCity3DGL WIN32 ${COMMON_SOURCES} src/renderer.cpp src/textures.cpp)
@@ -160,6 +160,10 @@ if(BUILD_TESTING)
   add_executable(benchmark_options_scenarios tests/benchmark_options_scenarios.cpp)
   target_link_libraries(benchmark_options_scenarios PRIVATE MiniCityCpp20)
   add_test(NAME benchmark_options_scenarios COMMAND benchmark_options_scenarios)
+  # Frame pacing, key binding validation and HUD compositing helpers.
+  add_executable(polish_scenarios tests/polish_scenarios.cpp)
+  target_link_libraries(polish_scenarios PRIVATE MiniCityCpp20)
+  add_test(NAME polish_scenarios COMMAND polish_scenarios)
   if(MINI_CITY_TRACY)
     add_executable(profiling_memory_scenarios tests/profiling_memory_scenarios.cpp src/profiling_memory.cpp)
     target_link_libraries(profiling_memory_scenarios PRIVATE MiniCityCpp20)
@@ -236,12 +240,12 @@ if(BUILD_TESTING)
   add_test(NAME placement_data_scenarios COMMAND simulation_smoke --placement-data-only)
   set_tests_properties(mission_script_scenarios placement_data_scenarios PROPERTIES RUN_SERIAL TRUE)
   if(NOT MINI_CITY_USE_DX12)
-    add_test(NAME standard_gui_review COMMAND MiniCity3D --smoke --standard-gui-review)
+    add_test(NAME standard_gui_review COMMAND MyVibeGTA --smoke --standard-gui-review)
     set_tests_properties(standard_gui_review PROPERTIES
-      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>" TIMEOUT 180 RUN_SERIAL TRUE)
-    add_test(NAME imgui_menu_scenarios COMMAND MiniCity3D --smoke --1080p --imgui-review)
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MyVibeGTA>" TIMEOUT 180 RUN_SERIAL TRUE)
+    add_test(NAME imgui_menu_scenarios COMMAND MyVibeGTA --smoke --1080p --imgui-review)
     set_tests_properties(imgui_menu_scenarios PROPERTIES
-      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>" TIMEOUT 120 RUN_SERIAL TRUE)
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MyVibeGTA>" TIMEOUT 120 RUN_SERIAL TRUE)
   endif()
   add_test(NAME builder_scenarios COMMAND simulation_smoke --builder-only)
   add_test(NAME excavation_scenarios COMMAND simulation_smoke --excavation-only)
@@ -311,7 +315,7 @@ if(BUILD_TESTING)
   target_link_libraries(asset_smoke PRIVATE MiniCityCpp20)
   add_test(NAME asset_smoke COMMAND asset_smoke)
   set_tests_properties(asset_smoke PROPERTIES
-      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>")
+      WORKING_DIRECTORY "$<TARGET_FILE_DIR:MyVibeGTA>")
   add_executable(texture_mips_smoke tests/texture_mips_smoke.cpp src/dx11_texture_mips.cpp)
   target_link_libraries(texture_mips_smoke PRIVATE MiniCityCpp20)
   add_test(NAME texture_mips_smoke COMMAND texture_mips_smoke)
@@ -331,5 +335,5 @@ if(BUILD_TESTING)
   target_link_libraries(probe_smoke PRIVATE MiniCityCpp20)
   target_compile_definitions(probe_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME probe_smoke COMMAND probe_smoke)
-  set_tests_properties(probe_smoke PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:MiniCity3D>")
+  set_tests_properties(probe_smoke PROPERTIES WORKING_DIRECTORY "$<TARGET_FILE_DIR:MyVibeGTA>")
 endif()

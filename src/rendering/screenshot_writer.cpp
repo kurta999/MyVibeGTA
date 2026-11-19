@@ -32,7 +32,7 @@ bool ScreenshotWriter::SavePng(void* pixels, unsigned rowPitch, unsigned width, 
     GetLocalTime(&now);
     wchar_t name[100]{};
     for (int attempt = 0; attempt < 1000; ++attempt) {
-        std::swprintf(name, 100, L"MiniCity3D-%04u%02u%02u-%02u%02u%02u-%03u-%lu-%u.png", now.wYear,
+        std::swprintf(name, 100, L"MyVibeGTA-%04u%02u%02u-%02u%02u%02u-%03u-%lu-%u.png", now.wYear,
                       now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond, now.wMilliseconds,
                       GetCurrentProcessId(), m_sequence++);
         std::wstring path = folder + L"\\" + name;
