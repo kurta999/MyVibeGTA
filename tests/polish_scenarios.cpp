@@ -2,6 +2,7 @@
 #include "../src/frame_pacing.h"
 #include "../src/key_bindings.h"
 #include "../src/hud_pixels.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <vector>
@@ -75,6 +76,12 @@ int main(){
         check(output[4]==10&&output[5]==20&&output[6]==30&&output[7]==255,"drawn pixel opaque");
         check(output[11]==255,"dim pixel opaque");
         check(output[15]==255&&output[12]==255,"white pixel opaque");
+        std::vector<unsigned char> fused(source);std::vector<unsigned char> fusedOut(source.size(),77);
+        fused[3]=9; // alpha-only pixel (e.g. left by GDI+) must not survive the clear
+        hud_pixels::finalizeAndClear(fused.data(),fusedOut.data(),4);
+        bool cleared=true;for(auto value:fused)cleared&=value==0;
+        check(cleared,"finalizeAndClear zeroes the canvas");
+        check(std::equal(fusedOut.begin(),fusedOut.end(),output.begin()),"finalizeAndClear matches finalize");
     }
     // Damage vignette: tints edges, leaves the centre and opaque widgets alone.
     {

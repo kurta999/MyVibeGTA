@@ -34,6 +34,7 @@
 #endif
 #include "mission_script.h"
 #include "hud_pixels.h"
+#include "logging.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -52,6 +53,28 @@ HGDIOBJ oldFont=nullptr;
 unsigned char* dib=nullptr;
 int canvasW=0,canvasH=0;
 std::unordered_map<std::string,std::unique_ptr<Gdiplus::Bitmap>> weaponIcons;
+// Icons are resampled with high-quality bicubic filtering once per size and
+// kept as device-ready cached bitmaps; previously every icon was resampled
+// from its full-size PNG every frame (most of the HUD's CPU time).
+std::unordered_map<std::string,std::unique_ptr<Gdiplus::CachedBitmap>> scaledIcons;
+void drawScaledIcon(Gdiplus::Bitmap* source,const std::string& key,int x,int y,int w,int h){
+    if(!source||source->GetLastStatus()!=Gdiplus::Ok||w<=0||h<=0)return;
+    const std::string sizedKey=key+"@"+std::to_string(w)+"x"+std::to_string(h);
+    auto& cached=scaledIcons[sizedKey];
+    Gdiplus::Graphics target(memoryDC);
+    if(!cached){
+        Gdiplus::Bitmap scaled(w,h,PixelFormat32bppPARGB);
+        {
+            Gdiplus::Graphics resample(&scaled);
+            resample.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+            resample.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHalf);
+            resample.DrawImage(source,Gdiplus::Rect(0,0,w,h));
+        }
+        cached=std::make_unique<Gdiplus::CachedBitmap>(&scaled,&target);
+        if(cached->GetLastStatus()!=Gdiplus::Ok){cached.reset();return;}
+    }
+    target.DrawCachedBitmap(cached.get(),x,y);
+}
 void weaponIcon(int x,int y,const std::string& id){
     auto& bitmap=weaponIcons[id];
     if(!bitmap){
@@ -60,10 +83,8 @@ void weaponIcon(int x,int y,const std::string& id){
     }
     if(bitmap->GetLastStatus()!=Gdiplus::Ok)return;
     float scale=std::min(108.0f/bitmap->GetWidth(),52.0f/bitmap->GetHeight());
-    float w=bitmap->GetWidth()*scale,h=bitmap->GetHeight()*scale;
-    Gdiplus::Graphics graphics(memoryDC);
-    graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-    graphics.DrawImage(bitmap.get(),Gdiplus::RectF(x+(108-w)/2,y+(52-h)/2,w,h));
+    int w=int(bitmap->GetWidth()*scale+0.5f),h=int(bitmap->GetHeight()*scale+0.5f);
+    drawScaledIcon(bitmap.get(),"weapon/"+id,x+(108-w)/2,y+(52-h)/2,w,h);
 }
 void resize(int width,int height){
     if(width==canvasW&&height==canvasH)return;
@@ -80,9 +101,14 @@ void resize(int width,int height){
         OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY,DEFAULT_PITCH|FF_SWISS,"Arial");
     oldFont=SelectObject(memoryDC,font);SetBkMode(memoryDC,TRANSPARENT);
 }
+// Solid brushes are reused; the minimap alone fills hundreds of rectangles
+// per frame and each used to create and delete its own brush.
+std::unordered_map<COLORREF,HBRUSH> brushes;
 void rect(int x,int y,int w,int h,COLORREF color){
-    RECT area{x,y,x+w,y+h};HBRUSH brush=CreateSolidBrush(color);
-    FillRect(memoryDC,&area,brush);DeleteObject(brush);
+    RECT area{x,y,x+w,y+h};
+    auto& brush=brushes[color];
+    if(!brush)brush=CreateSolidBrush(color);
+    FillRect(memoryDC,&area,brush);
 }
 void label(int x,int y,const char* value,COLORREF color){
     SetTextColor(memoryDC,color);TextOutA(memoryDC,x,y,value,int(std::strlen(value)));
@@ -503,10 +529,31 @@ void debugMenu(int width,int height){
 }
 }
 
+namespace {
+// Optional section timings (MINICITY_CPU_PROFILE) to keep HUD cost visible.
+struct HudTimer {
+    bool enabled=GetEnvironmentVariableA("MINICITY_CPU_PROFILE",nullptr,0)!=0;
+    LARGE_INTEGER frequency{},last{};double sections[5]{};
+    HudTimer(){if(enabled){QueryPerformanceFrequency(&frequency);QueryPerformanceCounter(&last);}}
+    void mark(int section){
+        if(!enabled)return;LARGE_INTEGER now{};QueryPerformanceCounter(&now);
+        sections[section]+=double(now.QuadPart-last.QuadPart)*1000.0/double(frequency.QuadPart);last=now;
+    }
+    ~HudTimer(){
+        if(!enabled)return;char text[200]{};
+        std::snprintf(text,sizeof(text),"HUD sections: clear %.3f, guidance %.3f, minimap %.3f, widgets %.3f, composite %.3f ms",
+            sections[0],sections[1],sections[2],sections[3],sections[4]);
+        logging::write(text);
+    }
+};
+}
 void buildHud(unsigned char* pixels,int width,int height){
+    HudTimer timer;
     resize(width,height);
     if(!memoryDC||!dib){std::memset(pixels,0,size_t(width)*height*4);return;}
-    std::memset(dib,0,size_t(width)*height*4);
+    // The canvas is cleared by finalizeAndClear at the end of the previous
+    // frame (and starts zeroed after resize), saving a full-screen memset.
+    timer.mark(0);
 #ifdef MINI_CITY_IMGUI
     const bool useImGui=menus::Enabled();
 #else
@@ -548,7 +595,9 @@ void buildHud(unsigned char* pixels,int width,int height){
     if(driving&&drivenKind==game::Kind::Tank)
         label(24,72,"Mouse aims turret and barrel  |  LMB fire cannon  |  MOUSE WHEEL radio",RGB(230,223,178));
     const auto guide=missionGuidance();
+    timer.mark(1);
     map(18,height-169,180,140,false,guide);
+    timer.mark(2);
     int statusX=width-360;
     bool inVehicle=game::occupied>=0&&game::occupied<int(game::vehicles.size());
     int vehicleHudHeight=inVehicle?48:0;
@@ -756,7 +805,7 @@ void buildHud(unsigned char* pixels,int width,int height){
             if(stack.item<0)return;
             const auto& item=builder::items()[stack.item];auto& icon=weaponIcons["builder/"+item.id];
             if(!icon){auto* source=mesh("builder/"+item.id);if(source){auto path=std::filesystem::path(source->textureFile).parent_path()/(item.id+".icon.png");icon=std::make_unique<Gdiplus::Bitmap>(path.c_str());}}
-            if(icon&&icon->GetLastStatus()==Gdiplus::Ok){Gdiplus::Graphics graphics(memoryDC);graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);graphics.DrawImage(icon.get(),Gdiplus::Rect(r.x+2,r.y+2,r.w-4,r.h-4));}
+            if(icon)drawScaledIcon(icon.get(),"builder/"+item.id,r.x+2,r.y+2,r.w-4,r.h-4);
             if(item.durability>0){rect(r.x+3,r.y+r.h-6,r.w-6,3,RGB(83,72,61));rect(r.x+3,r.y+r.h-6,int((r.w-6)*float(stack.durability)/item.durability),3,RGB(110,224,152));}
             else{std::snprintf(info,sizeof(info),"%d",stack.count);label(r.x+r.w-24,r.y+r.h-20,info,RGB(250,250,233));}
         };
@@ -807,8 +856,10 @@ void buildHud(unsigned char* pixels,int width,int height){
         label(x,y,"SWITCHING WORLD LAYER",RGB(247,228,167));label(x,y+36,builder::transitionLabel(),RGB(210,225,230));
         rect(x,y+78,520,20,RGB(55,67,76));rect(x,y+78,int(520*builder::transitionProgress()),20,RGB(120,212,158));
     }
-    hud_pixels::finalize(dib,pixels,size_t(width)*height);
+    timer.mark(3);
+    hud_pixels::finalizeAndClear(dib,pixels,size_t(width)*height);
     hud_pixels::applyDamageVignette(pixels,width,height,damageFeedback());
+    timer.mark(4);
     if(ordnance::flash>0){
         unsigned char alpha=static_cast<unsigned char>(std::min(235.0f,ordnance::flash*94));
         for(size_t i=0;i<size_t(width)*height;++i){
@@ -817,7 +868,10 @@ void buildHud(unsigned char* pixels,int width,int height){
     }
 }
 void shutdownHud(){
+    scaledIcons.clear();
     weaponIcons.clear();
+    for(auto& entry:brushes)if(entry.second)DeleteObject(entry.second);
+    brushes.clear();
     if(memoryDC){if(oldFont)SelectObject(memoryDC,oldFont);if(font)DeleteObject(font);
         if(bannerFont)DeleteObject(bannerFont);
         if(oldBitmap)SelectObject(memoryDC,oldBitmap);if(bitmap)DeleteObject(bitmap);

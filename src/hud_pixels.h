@@ -20,6 +20,18 @@ inline void finalize(const unsigned char* source,unsigned char* destination,std:
     }
 }
 
+// finalize() plus clearing the source canvas in the same pass, so the next
+// frame starts from a blank canvas without a separate full-screen memset.
+inline void finalizeAndClear(unsigned char* source,unsigned char* destination,std::size_t pixelCount){
+    for(std::size_t i=0;i<pixelCount;++i){
+        std::uint32_t value;
+        std::memcpy(&value,source+i*4,4);
+        value=(value&0x00FFFFFFu)?(value|0xFF000000u):0u;
+        const std::uint32_t zero=0;std::memcpy(source+i*4,&zero,4);
+        std::memcpy(destination+i*4,&value,4);
+    }
+}
+
 // Strength of the red damage vignette at a pixel, 0 at the centre rising to
 // `intensity` at the edges. Only pixels outside the inner ellipse are tinted.
 inline float vignette(int x,int y,int width,int height,float intensity){
